@@ -27,7 +27,7 @@
     "firebase": "8.0.1",
     "firebase-admin": "9.3.0",
     "flatted": "3.1.1",
-    "framer-motion": "3.9.1",
+    "framer-motion": "5.3.3",
     "lowlight": "1.20.0",
     "luxon": "1.25.0",
     "mobx": "6.0.5",
@@ -46,9 +46,9 @@
     "web-vitals": "0.2.4"
   },
   "scripts": {
-    "dev": "react-scripts start",
-    "build": "CI=false && react-scripts build",
-    "test": "react-scripts test",
+    "dev": "react-app-rewired start",
+    "build": "CI=false && react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -71,6 +71,8 @@
   },
   "devDependencies": {
     "@types/color-hash": "^1.0.1",
+    "customize-cra": "1.0.0",
+    "react-app-rewired": "2.1.8",
     "sass": "1.43.5",
     "sass-loader": "^12.0.0",
     "ts-jest": "26.4.4"
