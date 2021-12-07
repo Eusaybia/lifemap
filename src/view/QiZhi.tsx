@@ -31,7 +31,7 @@ export const QiZhiWrapper = (props: {energy: QiZhiT, children: any}) => {
   return (
     <motion.div
       initial={{
-        boxShadow: `0px 0px 8px 10px #EFEFEF`,
+        filter: `drop-shadow(0 0 5px #FEFEFE)`
       }}
       // animate={{
       //   boxShadow: `0px 0px 20px 10px ${props.energy.colour}`,
@@ -43,7 +43,6 @@ export const QiZhiWrapper = (props: {energy: QiZhiT, children: any}) => {
       //   repeatDelay: 1,
       // }}
       style={{
-        borderRadius: 20,
       }}
     >
       {props.children}

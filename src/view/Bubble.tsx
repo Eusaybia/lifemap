@@ -1,5 +1,5 @@
 import ColorHash from "color-hash";
-import { AnimateSharedLayout, motion } from "framer-motion";
+import { AnimateSharedLayout, LayoutGroup, motion } from "framer-motion";
 import { DateTime } from "luxon";
 import Xarrow, { useXarrow, Xwrapper } from "react-xarrows";
 import { action, isObservable } from "mobx";
@@ -214,9 +214,7 @@ export const AlphaBubble = observer(
     const updateXarrow = useXarrow()
 
     return (
-      <motion.div layout style={{
-        display: "inline-block"
-      }}>
+      <motion.div>
         {/* {props.q.type === "Qi" && (
           <motion.div layout id="causalRelations">
             <motion.div layout style={{ display: "grid" }}>
@@ -244,7 +242,7 @@ export const AlphaBubble = observer(
             update={action(() => {
               tick.tick ? (tick.tick = false) : (tick.tick = true);
               console.log("updating");
-              updateXarrow()
+              updateXarrow();
             })}
           >
             <motion.div
@@ -264,7 +262,7 @@ export const AlphaBubble = observer(
                   onClick={(e: any) => {
                     e.stopPropagation();
                   }}
-                  style={{ margin: `0 0 0 0` }}
+                  style={{ margin: `0 0 0 0`, width: `100%` }}
                 >
                   <Tiptap
                     modShen={action((text: string) => {
@@ -329,7 +327,7 @@ export const AlphaBubble = observer(
 export const AlphaBubbleExample = () => {
   return (
     <Store>
-      <AlphaBubble q={React.useContext(ShenContext)} />
+      <AlphaBubble q={React.useContext(ShenContext)} hideDetail={false}/>
     </Store>
   );
 };

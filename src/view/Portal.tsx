@@ -1,6 +1,10 @@
 import React from "react";
 import { AnimateSharedLayout, motion } from "framer-motion";
 import { Tiptap } from "../core/Tiptap";
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import CloseIcon from '@mui/icons-material/Close';
+import CircleIcon from '@mui/icons-material/Circle';
 
 const Portal = (props: { text: string }) => {
   const [isExpanded, setIsExpanded] = React.useState<boolean>(true);
@@ -88,7 +92,7 @@ export const PortalFree = (props: { children: any, id: string, hideDetail?: bool
   const cycleExpansionState = () => {
     if (expansionState === "Expanded") setExpansionState("Preview");
     else if (expansionState === "Preview") setExpansionState("Expanded");
-    // else if (expansionState === "Point") setExpansionState("Expanded");
+    else if (expansionState === "Point") setExpansionState("Preview");
   };
   const handleChildClick = (e: any) => {
     e.stopPropagation();
@@ -111,30 +115,107 @@ export const PortalFree = (props: { children: any, id: string, hideDetail?: bool
             }
           : undefined
       }
-      onClick={handleChildClick}
       style={{
         backgroundColor: props.backgroundColor,
-        borderRadius: 17,
+        borderRadius: 15,
         display: "inline-block",
         border: `2px solid #777777`,
         overflow: "hidden",
-        width:
+        width: expansionState === "Expanded" ? "100%" : undefined,
+        height: expansionState === "Expanded" ? "100%" : undefined,
+        maxWidth:
           expansionState === "Expanded"
             ? undefined
             : expansionState === "Preview"
-            ? 100
-            : 10,
-        height:
+            ? 200
+            : 100,
+        maxHeight:
           expansionState === "Expanded"
             ? undefined
             : expansionState === "Preview"
-            ? 20
-            : 10,
-        padding: expansionState === "Point" ? undefined : 4,
+            ? 50
+            : 50,
+        minWidth: expansionState === "Point" ? 100 : undefined,
+        minHeight: expansionState === "Point" ? 50 : undefined,
+        padding: 4,
       }}
     >
       <AnimateSharedLayout>
-        {!(expansionState === "Point") && props.children}
+        <>
+          <motion.div
+            layout
+            id="buttons"
+            style={{
+              position: "relative",
+              display: "flex",
+              marginTop: -10,
+              marginLeft: -8,
+            }}
+          >
+            <motion.div
+              layout
+              style={{
+                width: 40,
+                height: 40,
+                scale: 0.35,
+                borderRadius: "50%",
+                backgroundColor: "#e53935",
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <motion.div style={{ scale: 1.2, marginTop: 6 }}>
+                <CloseIcon />
+              </motion.div>
+            </motion.div>
+            <motion.div
+              onClick={() => {
+                setExpansionState("Point");
+              }}
+              layout
+              style={{
+                width: 40,
+                height: 40,
+                scale: 0.35,
+                borderRadius: "50%",
+                backgroundColor: "#ABABAB",
+                display: "grid",
+                placeItems: "center",
+                marginLeft: -20,
+              }}
+            >
+              <motion.div style={{ scale: 1, marginTop: 4 }}>
+                <CircleIcon />
+              </motion.div>
+            </motion.div>
+            <motion.div
+              onClick={() => {
+                cycleExpansionState();
+              }}
+              layout
+              style={{
+                width: 40,
+                height: 40,
+                scale: 0.35,
+                rotate: 45,
+                borderRadius: "50%",
+                backgroundColor: "#ABABAB",
+                display: "grid",
+                placeItems: "center",
+                marginLeft: -20,
+              }}
+            >
+              <motion.div style={{ scale: 1.3, marginTop: 4 }}>
+                {expansionState === "Expanded" ? (
+                  <UnfoldLessIcon />
+                ) : (
+                  <UnfoldMoreIcon />
+                )}
+              </motion.div>
+            </motion.div>
+          </motion.div>
+          {props.children}
+        </>
       </AnimateSharedLayout>
     </motion.div>
   );

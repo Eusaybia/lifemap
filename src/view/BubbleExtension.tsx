@@ -36,7 +36,7 @@ export const BubbleExtension = Node.create({
     return ReactNodeViewRenderer((props: any) => {
       return (
         <NodeViewWrapper>
-          <AlphaBubble q={QiCorrect.createQi()} hideDetail={true} />
+          <AlphaBubble q={QiCorrect.createQi()} hideDetail={false} />
         </NodeViewWrapper>
       );
     });
