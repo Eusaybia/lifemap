@@ -41,7 +41,6 @@ export const Bubble = observer(
       >
         <motion.div
           id={props.q.id.toString()}
-          layout
           style={{
             display: "flex",
             flexDirection: "column",
@@ -214,26 +213,7 @@ export const AlphaBubble = observer(
     const updateXarrow = useXarrow()
 
     return (
-      <motion.div>
-        {/* {props.q.type === "Qi" && (
-          <motion.div layout id="causalRelations">
-            <motion.div layout style={{ display: "grid" }}>
-              {Array.from(props.q.causalRelations.keys()).map(
-                (relation: QiT, index) => (
-                  <div key={index}>
-                    {relation.type === "Qi" ? (
-                      <AlphaBubble q={relation} hideDetail={true} />
-                    ) : (
-                      relation.time.toString().substring(0, 10) + "..."
-                    )}
-                    {"-"}
-                    {(props.q as QiT).causalRelations.get(relation) + " "}
-                  </div>
-                )
-              )}
-            </motion.div>
-          </motion.div>
-        )} */}
+      <motion.div >
         <QiZhiWrapper energy={props.q.energy}>
           <PortalFree
             id={props.q.id.toString()}
@@ -247,49 +227,41 @@ export const AlphaBubble = observer(
           >
             <motion.div
               id={props.q.id.toString()}
-              layout
               style={{
                 display: "grid",
-                placeItems: "center",
+                paddingLeft: 10,
+                placeItems: "start",
               }}
             >
               <motion.div
-                layout
+                onClick={(e: any) => {
+                  e.stopPropagation();
+                }}
+                // style={{ margin: `0 0 0 0` }}
+              >
+                <Tiptap
+                  modShen={action((text: string) => {
+                    let currentQ = props.q;
+                    // Get the q from the store that matches the q in the props
+                    for (const storeQ of shen.relations.keys()) {
+                      if (storeQ.id === props.q.id) currentQ = storeQ;
+                    }
+                    console.log("isob q", isObservable(currentQ));
+                    console.log("isob shen", isObservable(shen));
+                    QiCorrect.changeQi(currentQ as QiT, {
+                      concept: { richText: text, type: "RichText" },
+                      type: "Concept",
+                    });
+                  })}
+                  content={
+                    (props.q.information.concept as RichText).richText as string
+                  }
+                />
+              </motion.div>
+              <motion.div
                 style={{ display: "flex", justifyContent: "space-between" }}
               >
                 <motion.div
-                  layout
-                  onClick={(e: any) => {
-                    e.stopPropagation();
-                  }}
-                  style={{ margin: `0 0 0 0`, width: `100%` }}
-                >
-                  <Tiptap
-                    modShen={action((text: string) => {
-                      let currentQ = props.q;
-                      // Get the q from the store that matches the q in the props
-                      for (const storeQ of shen.relations.keys()) {
-                        if (storeQ.id === props.q.id) currentQ = storeQ;
-                      }
-                      console.log("isob q", isObservable(currentQ));
-                      console.log("isob shen", isObservable(shen));
-                      QiCorrect.changeQi(currentQ as QiT, {
-                        concept: { richText: text, type: "RichText" },
-                        type: "Concept",
-                      });
-                    })}
-                    content={
-                      (props.q.information.concept as RichText)
-                        .richText as string
-                    }
-                  />
-                </motion.div>
-              </motion.div>
-              <motion.div
-                layout
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                {/* <motion.div
                   layout
                   style={{ display: "grid", placeItems: "center" }}
                 >
@@ -300,13 +272,13 @@ export const AlphaBubble = observer(
                           {keyValue[1].map((rtr: RelationToRelation) => (
                             <>
                               <AlphaBubble q={rtr} hideDetail={true} />
-                                <Xarrow
+                              <Xarrow
                                 color={"#676767"}
-                                  strokeWidth={2}
-                                  headSize={4}
-                                  start={rtr.id.toString()}
-                                  end={keyValue[0].id.toString()} //can be react ref
-                                />
+                                strokeWidth={2}
+                                headSize={4}
+                                start={rtr.id.toString()}
+                                end={keyValue[0].id.toString()} //can be react ref
+                              />
                             </>
                           ))}
                         </>
@@ -314,7 +286,7 @@ export const AlphaBubble = observer(
                       </motion.div>
                     )
                   )}
-                </motion.div> */}
+                </motion.div>
               </motion.div>
             </motion.div>
           </PortalFree>

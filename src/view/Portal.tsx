@@ -58,7 +58,6 @@ const Portal2 = (props: { text: string }) => {
   return (
     <>
       <motion.div
-        layout
         transition={{
           type: "spring", damping: 16
         }}
@@ -119,7 +118,9 @@ export const PortalFree = (props: { children: any, id: string, hideDetail?: bool
         backgroundColor: props.backgroundColor,
         borderRadius: 15,
         display: "inline-block",
-        border: `2px solid #777777`,
+        border: `1px solid #BBBBBB20`,
+        boxSizing: `border-box`,
+        filter: `drop-shadow(0 3px 3px #898989)`,
         overflow: "hidden",
         width: expansionState === "Expanded" ? "100%" : undefined,
         height: expansionState === "Expanded" ? "100%" : undefined,

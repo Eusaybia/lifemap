@@ -325,9 +325,9 @@ export const Tiptap = (props: {content: Content, modShen?: (text: string) => voi
   })
 
   return (
-    <motion.div layout>
+    <>
       <MenuBar editor={editor} />
       <EditorContent editor={editor} />
-    </motion.div>
+    </>
   );
 }
