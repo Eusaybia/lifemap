@@ -16,10 +16,20 @@ export const RichText = () => {
     type: "RichText",
   });
 };
-export type Time = { time: TimePoint | TimeLength | TimeField } & Type<"Time">;
+export type Time =
+  | ({ time: TimePoint | TimeLength | TimeField } & Type<"Time">)
+  | undefined;
 export type TimePoint = DateTime; 
 export type TimeLength = Duration;
 export type TimeField = Interval;
+export type TimeOps = {
+  createTime: () => Time
+}
+export const TimeCorrect: TimeOps = {
+  createTime: () => {
+    return {type: "Time", time: new DateTime()}
+  }
+}
 
 export type EmotionName = {emotionName: string} & Type<"EmotionName">
 export type Void = "Undefined"
@@ -72,9 +82,10 @@ const QiZhi = () => {
 // and then check it
 // At a high level, the data structure present should be ergonomic locally, per object, as well as 
 // globally allow for high level analysis and querying 
+export type QiIdT = string
 export type QiT = {
   shen: ShenT;
-  readonly id: number;
+  readonly id: QiIdT;
   information: Concept;
   // This should be a set, or map for lookup performance,
   // but it's fine to have it as an array for now.
@@ -93,14 +104,16 @@ export type QiT = {
 } & Type<"Qi">;
 type Qi = {
   createQi: (shen?: ShenT) => QiT | ShenT;
-  changeQi: (q: QiT, meaning: Concept) => QiT;
-  calculateQiZhi: (q: QiT) => QiT;
-  createRelation: (q: QiT, qz?: QiZhiT) => { q1: QiT; sibling: QiT };
-  createCausalRelation: (
-    q: QiT,
-    c: CausalOrder,
-    qTo: QiT
-  ) => { q1: QiT };
+  // parseRelationsFromInformation: (q: QiT) => QiT["relationsTo"];
+  // parseEnergyFromInformation: (q: QiT) => QiT["energy"];
+  createRelationTo: (q: QiT) => { q1: QiT; sibling: QiT };
+  linkRelationTo: (q: QiT, qTo: QiT) => { q1: QiT; sibling: QiT };
+  linkRelationFrom: (q: QiT, qFrom: QiT) => { q1: QiT };
+  // TODO:
+  // createCausalRelation: (
+  //   q: QiT,
+  //   qTo: QiT
+  // ) => { q1: QiT };
   convertIntoQi: (shen: ShenT, richText: Content) => QiT;
   // This parses the richText and determines what, if any relations are embedded
   // within the Content (ProseMirror format). Essentially to keep
@@ -118,60 +131,61 @@ export const QiCorrect: Qi = {
       return observable({
         type: "Qi",
         shen: shen!,
-        id: Date.now() + Math.random(),
-        information: {concept: {richText: "....", type: "RichText"}, type: "Concept"},
+        id: generateAutoId(),
+        information: {
+          concept: { richText: "....", type: "RichText" },
+          type: "Concept",
+        },
         relationsTo: [],
         relationsFrom: [],
         energy: QiZhi(),
-        causalRelations: new Map<QiT, CausalOrder[]>().set(
-          //@ts-ignore
-          {time: DateTime.local(), type: "Time"},
-          [">"]
-        ),
-        time: 
+        causalRelationsTo: [],
+        causalRelationsFrom: [],
+        time: TimeCorrect.createTime(),
       }) as QiT;
     } else {
       return observable({
         type: "Shen",
-        id: Date.now() + Math.random(),
+        id: generateAutoId(),
         information: {
-          concept: {
-            richText: `
-            ....
-            `,
-            type: "RichText",
-          },
+          concept: { richText: "....", type: "RichText" },
           type: "Concept",
         },
-        relations: new Map<QiT, RelationToRelation[]>(),
+        relationsTo: [],
+        relationsFrom: [],
         energy: QiZhi(),
+        time: TimeCorrect.createTime(),
       }) as ShenT;
     }
   },
-  changeQi: action((q: QiT, meaning: Concept) => {
-    q.information = meaning;
-    return q;
-  }),
-  calculateQiZhi: action((q: QiT) => {
-    // calculate QiZhi of all children of q, then change QiZhi of this q
-    return q
-  }),
-  createRelation: action((q: QiT, qz?: QiZhiT) => {
+  // TODO
+  // parseEnergyFromInformation: action((q: QiT) => {
+  //   // calculate QiZhi of all children of q, then change QiZhi of this q
+  //   return QiZhi()
+  // }),
+  createRelationTo: action((q: QiT, qz?: QiZhiT) => {
     let relation = QiCorrect.createQi(q.shen) as QiT;
     let rtr = QiCorrect.createQi(q.shen) as QiT;
-    q.relations.set(relation, [rtr])
-    return {q1: q, sibling: relation};
+    q.relationsTo.push(relation.id);
+    return { q1: q, sibling: relation };
   }),
-  createCausalRelation: action((q: QiT, c: CausalOrder, qTo: QiT) => { 
-    q.causalRelations.set(qTo, [c])
-    return { q1: q };
-  }),
+  // TODO:
+  // createCausalRelation: action((q: QiT, c: CausalOrder, qTo: QiT) => { 
+  //   q.causalRelations.set(qTo, [c])
+  //   return { q1: q };
+  // }),
   convertIntoQi: action((shen: ShenT, richText: Content) => {
     // Takes the span of richText and creates a new q out of it
     // Also places into store
-    let q = QiCorrect.createQi() as QiT
-    return q
-  })
+    let q = QiCorrect.createQi() as QiT;
+    return q;
+  }),
+  linkRelationTo: function (q: QiT, qTo: QiT): { q1: QiT; sibling: QiT; } {
+    throw new Error("Function not implemented.");
+  },
+  linkRelationFrom: function (q: QiT, qFrom: QiT): { q1: QiT; } {
+    throw new Error("Function not implemented.");
+  }
 };
 // This is simply an empty placeholder, that will morph into actual Qi when 
 // data is loaded
@@ -179,41 +193,21 @@ export const DefaultQi = () => {
   return QiCorrect.createQi() as QiT
 }
 
-export type ShenT = Omit<QiT, "type" | "shen" | "causalRelations"> & Type<"Shen">
+// Shen or 神 is the aggregation of all qi for an individual user. It's the final qi to be computed in this
+// divide and conquer fashion. It stores references to all qi, but the database store itself
+// stores the actual qi. As a result, 神 object, shouldn't be queried in order to get qi. Instead,
+// the database store should be queried, since this is much faster.
+export type ShenT = Omit<QiT, "type" | "shen" | "causalRelationsFrom" | "causalRelationsTo"> & Type<"Shen">
 export type Shen = {
   createShen: () => ShenT;
-  createRelation: (s: ShenT, ) => { q: QiT; s1: ShenT };
 };
 export const GraphCorrect: Shen = {
+  // Need type coercion, not sure why TS isn't inferring that createQi() with no args
+  // doesn't return ShenT (which it should)
   createShen: () => observable(QiCorrect.createQi() as ShenT),
-  createRelation: action((s: ShenT) => {
-    let q: QiT = QiCorrect.createQi(s) as QiT;
-    s!.relations.set(q, []);
-    return { q: q, s1: s };
-  }),
 };
-// const ShenFast: Shen = {};
-type ShenChecker = (sCorrect: Shen, sFast: Shen) => boolean;
-const ShenCheckerCorrect: ShenChecker = (sCorrect: Shen, sFast: Shen) => true;
 
 export const ExampleShen = () => {
   let shen = GraphCorrect.createShen();
-  let tuple: { q: QiT; s1: ShenT } = GraphCorrect.createRelation(shen);
-  let result = QiCorrect.createRelation(tuple.q)
-  QiCorrect.createCausalRelation(tuple.q, "<", result.q1);
   return shen;
 }
-
-export type QiIdT = {
-  id: string;
-};
-export const QiId = () => ({
-  id: generateAutoId(),
-});
-export type ShenIdList = {
-  nodes: QiNodeT[],
-  relations: [QiID, RelationToRelation, QiID], // many qi, to many possible qi relations
-  causalRelations: [QiID, CausalOrder, QiID] // many qi, to many possible qi relations
-}
-
-
