@@ -1,6 +1,6 @@
 import {  autorun, isObservable, reaction, toJS } from 'mobx';
 import React from 'react'
-import { ExampleShen, GraphCorrect, ShenT } from "./LifeGraphModel";
+import { ExampleShen, GraphCorrect, ShenT } from "./Model";
 import { stringify, parse } from "flatted";
 
 export const ShenContext = React.createContext<ShenT>(GraphCorrect.createShen())

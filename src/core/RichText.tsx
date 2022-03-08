@@ -9,9 +9,16 @@ import TableHeader from '@tiptap/extension-table-header'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { BubbleExtension } from "../view/BubbleExtension";
-import { action } from 'mobx'
+import { action, comparer } from 'mobx'
 import { motion } from 'framer-motion'
 import './styles.scss'
+import { db } from '../backend/Database'
+import {
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
 
 const MenuBar = (props: { editor: Editor | null }) => {
   const editor = props.editor
@@ -300,34 +307,90 @@ const CustomStarterKit = StarterKit.extend({
   },
 });
 
-export const Tiptap = (props: {content: Content, modShen?: (text: string) => void}) => {
-  const editor = useEditor({
-    extensions: [
-      CustomStarterKit,
-      BubbleExtension,
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell
-    ],
-    content: props.content ? props.content : "",
-    onUpdate: action(({editor}) => {
-      // send the content to an API here
-      const json = editor.getJSON()
-      if (json) {
-      console.log("changed, json:", json)
-      // const text = json.content[0].content[0].text;
-      // if (props.modShen) props.modShen(text)
+// This component will first load in the default text
+// Then will load in the text referred to by the qiID
+export const RichText = (props: {
+  defaultContent: string | Content;
+  quantaId?: string;
+  editable?: boolean;
+}) => {
+  // First, load content
+  let content: Content = "Empty";
+  if (props.quantaId) {
+    console.log("quantaId", props.quantaId);
+    // TODO: Maybe use a converter, but Content has possible type null which DocumentData can't be
+    const docRef = doc(db, "contents", props.quantaId);
+    getDoc(docRef).then((doc) => {
+      // If Firestore reference exists, then set the document as the content
+      if (doc.exists()) {
+        content = doc.data() as Content;
+        if (editor && !comparer.structural(editor.getJSON(), content)) {
+          editor.commands.setContent(content);
+        }
+      } else {
+        // Otherwise, create a new doc
+        const content = {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              attrs: { textAlign: "left" },
+              content: [{ type: "text", text: "Empty text" }],
+            },
+          ],
+        };
+        setDoc(docRef, content, { merge: true });
       }
-    })
-  })
+      // Then change editor content
+      // if (content && editor) editor.commands.setContent(content)
+    });
+  } else if (typeof props.defaultContent === "string") {
+    content = props.defaultContent
+  } else {
+    content = props.defaultContent;
+  }
+
+  // Then, initialise editor
+  let editor = useEditor({
+    extensions: [
+      StarterKit,
+    ],
+    content: content,
+    onUpdate: ({ editor }) => {
+      if (props.quantaId) {
+        const contentJSON = editor.getJSON();
+        const docRef = doc(db, "contents", props.quantaId);
+        if (contentJSON) {
+          setDoc(docRef, editor.getJSON(), { merge: true });
+        }
+        console.log("Saved JSON to Firestore");
+      }
+    },
+    editable: props.editable ? true : false,
+  });
 
   return (
     <>
-      <MenuBar editor={editor} />
-      <EditorContent editor={editor} />
+      {props.editable && <MenuBar editor={editor} />}
+      {!props.editable && typeof props.defaultContent === "string" ? (
+        <div
+          style={{
+            fontFamily: "Josefin Sans",
+          }}
+        >
+          {props.defaultContent}
+        </div>
+      ) : (
+        <div style={{ marginTop: -18, marginBottom: -15 }}>
+          {editor && <EditorContent editor={editor} />}
+        </div>
+      )}
     </>
   );
-}
+};
+
+const ExampleRichText = () => {
+  const content = "To be or not to be is the question"
+  return <RichText defaultContent={content} editable={true} />;
+};
+

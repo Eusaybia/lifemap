@@ -1,6 +1,6 @@
 import React from "react";
 import { AnimateSharedLayout, motion } from "framer-motion";
-import { Tiptap } from "../core/Tiptap";
+import { RichText } from "../core/RichText";
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import CloseIcon from '@mui/icons-material/Close';
@@ -75,7 +75,7 @@ const Portal2 = (props: { text: string }) => {
       >
         {
           <div style={{ marginTop: -15, marginBottom: -15 }}>
-            <Tiptap content={isExpanded ? props.text : props.text} />
+            <RichText content={isExpanded ? props.text : props.text} />
           </div>
         }
       </motion.div>
@@ -120,7 +120,7 @@ export const PortalFree = (props: { children: any, id: string, hideDetail?: bool
         display: "inline-block",
         border: `1px solid #BBBBBB20`,
         boxSizing: `border-box`,
-        filter: `drop-shadow(0 3px 3px #898989)`,
+        filter: `drop-shadow(0 3px 3px #00000030)`,
         overflow: "hidden",
         width: expansionState === "Expanded" ? "100%" : undefined,
         height: expansionState === "Expanded" ? "100%" : undefined,

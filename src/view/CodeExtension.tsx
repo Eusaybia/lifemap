@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import React from "react";
-import { QiCorrect } from "../core/LifeGraphModel";
+import { QiCorrect } from "../core/Model";
 import { AlphaBubble } from "./Bubble";
 
 export const tildeInputRegex = /^```(?<language>[a-z]*)?[\s\n]$/

@@ -1,4 +1,4 @@
-import { QiZhiT } from "./Model";
+import { SpectralSignatureT } from "./Model";
 
 
 // Heart Qi is red - Overexcitment -> Joy/Love
@@ -6,14 +6,14 @@ import { QiZhiT } from "./Model";
 // Spleen is light yellow - Worry -> Contemplative
 // Liver green - Anger/Irritation/Resentment/Impatience -> Patience/Will 
 // Kidney black with blue, green, purple tingles - Fear -> Trust/Relaxation
-export const Fear: QiZhiT = {
+export const Fear: SpectralSignatureT = {
   colour: "#232323",
   dispersion: 0,
   halfCycleDuration: 0,
   repeatDelay: 0
 }
 
-export const Worry: QiZhiT = {
+export const Worry: SpectralSignatureT = {
   colour: "#FFFFFF",
   dispersion: 0,
   halfCycleDuration: 0,
@@ -23,7 +23,7 @@ export const Worry: QiZhiT = {
 // Basically from me not being aware of what my energy body feels like
 // And what my normal body feels like. Right side...
 // Relax the right side of my body
-export const Anxiety: QiZhiT = {
+export const Anxiety: SpectralSignatureT = {
   colour: "#FFFFFF",
   dispersion: 0,
   halfCycleDuration: 0,

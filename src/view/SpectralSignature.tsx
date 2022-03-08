@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import React, { Children } from 'react';
-import { QiZhiT } from "../core/LifeGraphModel";
+import { SpectralSignatureT } from "../core/Model";
 
-export const QiZhi = (props: {energy: QiZhiT}) => {
+export const QiZhi = (props: {energy: SpectralSignatureT}) => {
   return (
     <motion.div
       initial={{
@@ -27,11 +27,11 @@ export const QiZhi = (props: {energy: QiZhiT}) => {
   );
 }
 
-export const QiZhiWrapper = (props: {energy: QiZhiT, children: any}) => {
+export const QiZhiWrapper = (props: {energy: SpectralSignatureT, children: any}) => {
   return (
     <motion.div
       initial={{
-        filter: `drop-shadow(0 0 5px #FEFEFE)`
+        filter: `drop-shadow(0 0 10px #FFFFFF)`
       }}
       // animate={{
       //   boxShadow: `0px 0px 20px 10px ${props.energy.colour}`,

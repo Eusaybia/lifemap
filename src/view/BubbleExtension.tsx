@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import React from "react";
-import { QiCorrect } from "../core/LifeGraphModel";
+import { QiCorrect } from "../core/Model";
 import { AlphaBubble } from "./Bubble";
 
 export const tildeInputRegex = /~>$/
@@ -36,6 +36,7 @@ export const BubbleExtension = Node.create({
     return ReactNodeViewRenderer((props: any) => {
       return (
         <NodeViewWrapper>
+          {/* When created, this needs to accept a shen, that should resolve all issues */}
           <AlphaBubble q={QiCorrect.createQi()} hideDetail={false} />
         </NodeViewWrapper>
       );

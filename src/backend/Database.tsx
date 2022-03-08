@@ -1,6 +1,7 @@
-import firebase from "firebase";
-import "firebase/database";
+import { initializeApp } from "firebase/app";
+import { getFirestore, QueryDocumentSnapshot } from "firebase/firestore";
 
+// TODO: Put this in env vars
 var firebaseConfig = {
   apiKey: "AIzaSyCqulAS9_9MHrnn0ly8zQpQR3QDBSFl5Oo",
   authDomain: "lifemap-31c67.firebaseapp.com",
@@ -12,5 +13,5 @@ var firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-export const db = firebase.firestore()
+export const firebaseApp = initializeApp(firebaseConfig);
+export const db = getFirestore();

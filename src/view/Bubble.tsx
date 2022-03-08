@@ -6,23 +6,23 @@ import { action, isObservable } from "mobx";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import React from "react";
 import {
-  QiT,
+  Quanta,
   ShenT,
   ExampleShen,
   RelationToRelation,
   QiCorrect,
   Time,
-  RichText,
   GraphCorrect,
-} from "../core/LifeGraphModel";
+} from "../core/Model";
 import { ShenContext, Store } from "../core/Store";
-import { Tiptap } from "../core/Tiptap";
+import { RichText } from "../core/RichText";
 import { RefinedConnector } from "./components/Connector";
 import { PortalFree } from "./Portal";
-import { QiZhi, QiZhiWrapper } from "./QiZhi";
+import { QiZhi, QiZhiWrapper } from "./SpectralSignature";
+import { Content } from "@tiptap/react";
 
 export const Bubble = observer(
-  (props: { q: QiT | ShenT; hideDetail?: boolean }) => {
+  (props: { q: Quanta | ShenT; hideDetail?: boolean }) => {
     const colour = new ColorHash({ lightness: 0.9 }).hex(props.q.id.toString());
     let shen = React.useContext(ShenContext);
     let tick = useLocalObservable(() => ({
@@ -52,10 +52,7 @@ export const Bubble = observer(
               layout
             >
               {"神: "}
-              <Bubble
-                q={props.q.shen}
-                hideDetail={true}
-              />
+              <Bubble q={props.q.shen} hideDetail={true} />
             </motion.div>
           )}
           <motion.div
@@ -80,24 +77,7 @@ export const Bubble = observer(
               }}
               style={{ margin: `-16px 0 -16px 0` }}
             >
-              <Tiptap
-                modShen={action((text: string) => {
-                  let currentQ = props.q;
-                  // Get the q from the store that matches the q in the props
-                  for (const storeQ of shen.relations.keys()) {
-                    if (storeQ.id === props.q.id) currentQ = storeQ;
-                  }
-                  console.log("isob q", isObservable(currentQ));
-                  console.log("isob shen", isObservable(shen));
-                  QiCorrect.changeQi(currentQ as QiT, {
-                    concept: { richText: text, type: "RichText" },
-                    type: "Concept",
-                  });
-                })}
-                content={
-                  (props.q.information.concept as RichText).richText as string
-                }
-              />
+              <RichText defaultContent={""} quantaId={props.q.id} />
             </motion.div>
           </motion.div>
           <motion.div
@@ -171,9 +151,9 @@ export const Bubble = observer(
               {"causalRelations: "}
               <motion.div layout style={{ display: "grid" }}>
                 {Array.from(props.q.causalRelations.keys()).map(
-                  (relation: QiT, index) => (
+                  (relation: Quanta, index) => (
                     <div key={index}>
-                      {(props.q as QiT).causalRelations.get(relation) + " "}
+                      {(props.q as Quanta).causalRelations.get(relation) + " "}
                       {relation.type === "Qi" ? (
                         <Bubble q={relation} hideDetail={true} />
                       ) : (
@@ -203,7 +183,7 @@ export const BubbleExample = () => {
 // Make it so that in relations wrap, and out relations are contained
 // While causal relations are left and right, next to, spatially
 export const AlphaBubble = observer(
-  (props: { q: QiT | ShenT; hideDetail?: boolean }) => {
+  (props: { q: Quanta | ShenT; hideDetail?: boolean }) => {
     const colour = new ColorHash({ lightness: 0.9 }).hex(props.q.id.toString());
     let shen = React.useContext(ShenContext);
     let tick = useLocalObservable(() => ({
@@ -213,7 +193,7 @@ export const AlphaBubble = observer(
     const updateXarrow = useXarrow()
 
     return (
-      <motion.div >
+      <motion.div>
         <QiZhiWrapper energy={props.q.energy}>
           <PortalFree
             id={props.q.id.toString()}
@@ -239,16 +219,15 @@ export const AlphaBubble = observer(
                 }}
                 // style={{ margin: `0 0 0 0` }}
               >
-                <Tiptap
-                  modShen={action((text: string) => {
+                <RichText
+                  qiID={props.q.id.toString()}
+                  modShen={action((text: string | Content) => {
                     let currentQ = props.q;
                     // Get the q from the store that matches the q in the props
                     for (const storeQ of shen.relations.keys()) {
                       if (storeQ.id === props.q.id) currentQ = storeQ;
                     }
-                    console.log("isob q", isObservable(currentQ));
-                    console.log("isob shen", isObservable(shen));
-                    QiCorrect.changeQi(currentQ as QiT, {
+                    QiCorrect.changeQi(currentQ as Quanta, {
                       concept: { richText: text, type: "RichText" },
                       type: "Concept",
                     });
