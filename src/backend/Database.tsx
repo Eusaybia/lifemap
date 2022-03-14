@@ -1,17 +1,19 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, QueryDocumentSnapshot } from "firebase/firestore";
+import { connectFirestoreEmulator, getFirestore, QueryDocumentSnapshot } from "firebase/firestore";
 
-// TODO: Put this in env vars
 var firebaseConfig = {
-  apiKey: "AIzaSyCqulAS9_9MHrnn0ly8zQpQR3QDBSFl5Oo",
-  authDomain: "lifemap-31c67.firebaseapp.com",
-  databaseURL: "https://lifemap-31c67.firebaseio.com",
-  projectId: "lifemap-31c67",
-  storageBucket: "lifemap-31c67.appspot.com",
-  messagingSenderId: "908420793581",
-  appId: "1:908420793581:web:43079e2e62752ab77038e4",
+  apiKey: `${process.env.API_KEY}`,
+  authDomain: `${process.env.AUTH_DOMAIN}`,
+  databaseURL: `${process.env.DATABASE_URL}` ,
+  projectId: `${process.env.PROJECT_ID}`,
+  storageBucket: `${process.env.STORAGE_BUCKET}`,
+  messagingSenderId: `${process.env.MESSAGING_SENDER_ID}`,
+  appId: `${process.env.APP_ID}`,
 };
 
 // Initialize Firebase
 export const firebaseApp = initializeApp(firebaseConfig);
 export const db = getFirestore();
+if (`${process.env.USE_EMULATOR}` === "True") {
+  connectFirestoreEmulator(db, 'localhost', 8080)
+}
