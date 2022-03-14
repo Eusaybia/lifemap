@@ -13,10 +13,10 @@ export const QuantaStoreContent = React.createContext<Quanta>(DefaultQi());
 export const QuantaStore = (props: {
   quantaId: QuantaIdT;
   userId: string;
-  // Should take (props: { qi: QiT }) => Element but the type checking doesn't allow it
+  // Should take (props: { quanta: QuantaT }) => Element but the type checking doesn't allow it
   children: any
 }) => {
-  // Create a single qi, which represents the local state of this store
+  // Create a single quanta, which represents the local state of this store
   let quanta: Quanta | ShenT = React.useContext(QuantaStoreContent);
   console.log(props.quantaId)
   const quantaRef = doc(db, "quanta", props.quantaId)
@@ -25,16 +25,16 @@ export const QuantaStore = (props: {
   // The fields information, relationsFrom and causalRelationsFrom will automatically update from the server
   const unsubQuanta = onSnapshot(quantaRef, (doc) => {
     console.log("Current data: ", doc.data());
-    const serverQi = doc.data();
-    // Compare the retrieved qi with the qi in local state
-    if (serverQi && !comparer.structural(serverQi, quanta)) {
-      // Update the local state qi
+    const serverQuanta = doc.data();
+    // Compare the retrieved quanta with the quanta in local state
+    if (serverQuanta && !comparer.structural(serverQuanta, quanta)) {
+      // Update the local state quanta
       runInAction(() => {
         // TODO: Should have a withConverter
-        if (serverQi.type === "Qi") {
-          quanta = observable(serverQi) as Quanta;
-        } else if (serverQi.type === "Shen") {
-          quanta = observable(serverQi) as ShenT;
+        if (serverQuanta.type === "Qi") {
+          quanta = observable(serverQuanta) as Quanta;
+        } else if (serverQuanta.type === "Shen") {
+          quanta = observable(serverQuanta) as ShenT;
         }
       });
     }
