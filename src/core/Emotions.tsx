@@ -29,3 +29,10 @@ export const Anxiety: SpectralSignatureT = {
   halfCycleDuration: 0,
   repeatDelay: 0
 }
+
+export const Hatred: SpectralSignatureT = {
+  colour: "#010101",
+  dispersion: 0,
+  halfCycleDuration: 0,
+  repeatDelay: 0
+}
