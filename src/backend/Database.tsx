@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { connectFirestoreEmulator, getFirestore, QueryDocumentSnapshot } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 
 var firebaseConfig = {
   apiKey: `${process.env.API_KEY}`,
