@@ -25,6 +25,7 @@ export const QuantaStore = (props: {
   // The fields information, relationsFrom and causalRelationsFrom will automatically update from the server
   const unsubQuanta = onSnapshot(quantaRef, (doc) => {
     console.log("Current data: ", doc.data());
+    console.log("Doc ref: ", quantaRef);
     const serverQuanta = doc.data();
     // Compare the retrieved quanta with the quanta in local state
     if (serverQuanta && !comparer.structural(serverQuanta, quanta)) {
