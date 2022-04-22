@@ -53,8 +53,8 @@
   "scripts": {
     "emulators": "firebase emulators:start",
     "build-functions": "cd functions && npm run build",
-    "dev": "react-app-rewired start",
-    "build": "CI=false && react-app-rewired build",
+    "dev": "react-app-rewired --openssl-legacy-provider start",
+    "build": "CI=false && react-app-rewired  build",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
