@@ -1,8 +1,4 @@
 import React from "react";
-import { QuantaStore } from "./core/QuantaStore";
-import { ShenContext, Store } from "./core/Store";
-import { AlphaBubble, Bubble } from "./view/Bubble";
-import { Qi } from "./view/Quanta";
 
 const Main = () => {
   const userId = "000000"

@@ -78,10 +78,13 @@
   },
   "devDependencies": {
     "@types/color-hash": "^1.0.1",
+    "autoprefixer": "^10.4.4",
     "customize-cra": "1.0.0",
+    "postcss": "^8.4.12",
     "react-app-rewired": "2.1.8",
     "sass": "1.43.5",
     "sass-loader": "^12.0.0",
+    "tailwindcss": "^3.0.24",
     "ts-jest": "26.4.4"
   }
 }
