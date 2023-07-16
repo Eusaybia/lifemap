@@ -23,7 +23,18 @@ export const getMathsLoupeFromAttributes = (attrs: Attrs) => {
   return mathsLoupe;
 }
 
-export const generatePrompt = (text: string) => `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation: ${text}`
+export const generatePrompt = (text: string, mode?: 'localise' | 'guide' | 'translate') => {
+  switch (mode) {
+    case 'guide':
+      return `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation, but only show your response: ${text}`
+    case 'translate':
+      return `You're a wise yet friendly AI tutor guide named Sophia that helps the user by translating the phrase into Mandarin but in a formal way, such that the professionals would say something similar. Translate the following message: ${text}`
+    case 'localise':
+      return `You're a wise yet friendly AI tutor guide named Sophia that helps the user by translating the phrase into Mandarin but in a colloquial way, such that the locals would say something similar. Translate the following message: ${text}`
+    default:
+      return `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation, but only show your response: ${text}`
+  }
+}
 
 export function getActiveMarkCodes (view: EditorView) {
     const isEmpty = view.state.selection.empty;

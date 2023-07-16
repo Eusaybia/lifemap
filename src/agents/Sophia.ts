@@ -2,6 +2,7 @@ import { Plugin, PluginKey } from 'prosemirror-state';
 import { Extension } from '@tiptap/core';
 import { openai } from './AI';
 import { purple } from '../view/Theme';
+import { generatePrompt } from '../utils/utils';
 
 export const SophiaAI = Extension.create({
     name: 'myPlugin',
@@ -43,7 +44,7 @@ const SophiaAIPlugin = new Plugin({
                             // Create some AI generated text in response to the message node
                             openai.createChatCompletion({
                                 model: "gpt-3.5-turbo",
-                                messages: [{ role: "user", content: messageText }],
+                                messages: [{ role: "user", content: generatePrompt(messageText) }],
                             }).then((response: any) => {
                                 const responseText = response.data.choices[0].message.content
                                 console.log("response text", responseText)
