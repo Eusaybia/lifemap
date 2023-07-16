@@ -1,7 +1,7 @@
-import { Plugin, PluginKey } from 'prosemirror-state';
+import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Extension } from '@tiptap/core';
 import { openai } from './AI';
-import { purple } from '../view/Theme';
+import { highlightGreen, purple } from '../view/Theme';
 import { generatePrompt } from '../utils/utils';
 
 export const SophiaAI = Extension.create({
@@ -27,7 +27,7 @@ const SophiaAIPlugin = new Plugin({
 
                 // Find all message nodes with a mention tag with the label "needs-reply"
                 state.doc.descendants((node, pos) => {
-                    if (node.type.name === 'message') {
+                    if (node.type.name) {
                         let needsReplyMentionPos: any = null;
                         node.content.forEach((child, offset) => {
                             if (child.type.name === 'mention' && child.attrs.label.includes('needs reply')) {
@@ -52,8 +52,11 @@ const SophiaAIPlugin = new Plugin({
                                 const tr = view.state.tr;
                                 const mentionNode = state.schema.nodes.mention.create({ ...node.attrs, label: 'replied' });
                                 tr.replaceWith(needsReplyMentionPos, needsReplyMentionPos + 1, mentionNode);
+                                const newMessageNode = state.schema.nodes.message.create({backgroundColor: highlightGreen}, state.schema.text(responseText) )
                                 // Insert a new message node after the current message node
-                                tr.insert(pos + node.nodeSize, state.schema.nodes.message.create({backgroundColor: purple}, state.schema.text(responseText)))
+                                tr.insert(pos + node.nodeSize, newMessageNode)
+                                // Set the text selection to the position after the new message node
+                                tr.setSelection(TextSelection.create(tr.doc, pos + node.nodeSize + newMessageNode.nodeSize));
                                 view.dispatch(tr);
                             });
                         }
