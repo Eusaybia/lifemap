@@ -43,16 +43,12 @@ export const KeyValuePairExtension = Node.create<KeyValuePairAttributes>({
 
       const handleKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setKey(event.target.value);
-        const { tr } = props.editor.state;
-        tr.setNodeMarkup(props.getPos(), undefined, { key: event.target.value });
-        props.editor.view.dispatch(tr);
+        props.updateAttributes({ key: event.target.value });
       };
 
       const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setValue(event.target.value);
-        const { tr } = props.editor.state;
-        tr.setNodeMarkup(props.getPos(), undefined, { value: event.target.value });
-        props.editor.view.dispatch(tr);
+        props.updateAttributes({ value: event.target.value });
       };
 
       return (
