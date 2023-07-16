@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Node, mergeAttributes, NodeViewProps } from '@tiptap/core';
+import { Node, mergeAttributes, NodeViewProps, wrappingInputRule } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { Tag } from "../content/Tag";
 
@@ -35,6 +35,24 @@ export const KeyValuePairExtension = Node.create<KeyValuePairAttributes>({
         default: 'defaultValue',
       },
     }
+  },
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: /(\w+):"([^"]+)"/g,
+        type: this.type,
+        getAttributes: (match) => {
+          const [fullMatch, key, value] = match;
+          console.log("fullMatch", fullMatch)
+          console.log("key", key)
+          console.log("value", value)
+          return {
+            key: key,
+            value: value
+          }
+        },
+      }),
+    ]
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
