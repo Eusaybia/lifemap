@@ -4,6 +4,7 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule 
 import { Group } from "./Group";
 import { Qi } from "../../core/Qi";
 import { group } from "console";
+import { Message } from "../content/Message";
 
 export const tildeInputRegex = /~>$/
 
@@ -39,11 +40,7 @@ export const Conversation = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <div style={{position: "absolute", left:0 }}>
-            🗣️
-          </div>
           <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
-            <NodeViewContent />
           </Group>
         </NodeViewWrapper>
       );
