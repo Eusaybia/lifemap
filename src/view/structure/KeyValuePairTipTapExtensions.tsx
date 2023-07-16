@@ -1,17 +1,17 @@
-import React from "react";
-import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
-import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
-import { motion } from "framer-motion";
-import { purple } from "../Theme";
+import React, { useState } from 'react';
+import { Node, mergeAttributes, NodeViewProps } from '@tiptap/core';
+import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { Tag } from "../content/Tag";
 
-export const doubleSingleQuoteInputRegex = /''([^'']*)''/
+interface KeyValuePairAttributes {
+  key: string;
+  value: string;
+}
 
-export const KeyValuePairExtension = Node.create({
+export const KeyValuePairExtension = Node.create<KeyValuePairAttributes>({
   name: "keyValuePair",
   group: "block",
   content: "block*",
-  // TODO: Doesn't handle inline groups
   inline: false,
   selectable: false,
   atom: true,
@@ -22,14 +22,8 @@ export const KeyValuePairExtension = Node.create({
       },
     ];
   },
-  renderHTML({ node, HTMLAttributes }) {
-    return [
-      'keyValuePair',
-      {
-        ...HTMLAttributes,
-      },
-      0
-    ];
+  renderHTML({ HTMLAttributes }) {
+    return ['keyValuePair', mergeAttributes(HTMLAttributes), 0];
   },
   draggable: true,
   addAttributes() {
@@ -42,39 +36,33 @@ export const KeyValuePairExtension = Node.create({
       },
     }
   },
-  addInputRules() {
-    return [
-      wrappingInputRule({
-        find: /(\w+):"([^"]+)"/g,
-        type: this.type,
-        getAttributes: (match) => {
-          const [fullMatch, key, value] = match;
-          console.log("fullMatch", fullMatch)
-          console.log("key", key)
-          console.log("value", value)
-          return {
-            key: key,
-            value: value
-          }
-        },
-      }),
-    ]
-  },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      const [key, setKey] = useState(props.node.attrs.key);
+      const [value, setValue] = useState(props.node.attrs.value);
+
+      const handleKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setKey(event.target.value);
+        const { tr } = props.editor.state;
+        tr.setNodeMarkup(props.getPos(), undefined, { key: event.target.value });
+        props.editor.view.dispatch(tr);
+      };
+
+      const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setValue(event.target.value);
+        const { tr } = props.editor.state;
+        tr.setNodeMarkup(props.getPos(), undefined, { value: event.target.value });
+        props.editor.view.dispatch(tr);
+      };
+
       return (
         <NodeViewWrapper>
-          <motion.div style={{
-            backgroundColor: purple, borderRadius: 5, padding: `20px 20px 20px 20px`, color: "#FFFFFF"
-          }}>
+          <Tag>
+            <input type="text" value={key} onChange={handleKeyChange} style={{ border: 'none', backgroundColor: 'transparent', width: `${key.length + 1}ch` }} />
             <Tag>
-              {props.node.attrs.key}
-              <Tag>
-                {props.node.attrs.value}
-              </Tag>
+              <input type="text" value={value} onChange={handleValueChange} style={{ border: 'none', backgroundColor: 'transparent', width: `${value.length + 1}ch` }} />
             </Tag>
-            <NodeViewContent />
-          </motion.div>
+          </Tag>
         </NodeViewWrapper>
       );
     });
