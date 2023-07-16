@@ -40,6 +40,8 @@ import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
+import { SophiaAI } from '../../agents/Sophia'
+import { Conversation } from '../structure/Conversation'
 
 lowlight.registerLanguage('js', js)
 
@@ -126,6 +128,7 @@ export const CustomisedEditor = (information: RichTextT) => {
   
   const customExtensions: Extensions = [
    CalculationExtension,
+   Conversation,
    CustomLink.configure({
      openOnClick: true,
    }),
@@ -146,6 +149,10 @@ export const CustomisedEditor = (information: RichTextT) => {
    QuoteExtension,
   ]
 
+  const agents: Extensions = [
+    SophiaAI,
+  ]
+
   if (isYDoc) {
     officalExtensions.push(
       Collaboration.configure({
@@ -156,7 +163,7 @@ export const CustomisedEditor = (information: RichTextT) => {
   }
 
   return useEditor({
-    extensions: [...officalExtensions, ...customExtensions],
+    extensions: [...officalExtensions, ...customExtensions, ...agents],
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',

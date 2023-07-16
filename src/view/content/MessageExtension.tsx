@@ -3,12 +3,26 @@ import { ReactNodeViewRenderer, NodeViewProps, NodeViewWrapper, NodeViewContent 
 import { Message } from './Message';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import React from 'react';
+import { blue } from '../Theme';
 
 export const MessageExtension = Node.create({
     name: 'message',
     group: 'block',
     content: 'inline*',
     selectable: true,
+    addAttributes() {
+        return {
+            backgroundColor: {
+                default: blue,
+                parseHTML: element => ({
+                    backgroundColor: element.style.backgroundColor,
+                }),
+                renderHTML: attributes => ({
+                    style: `background-color: ${attributes.backgroundColor}`,
+                }),
+            },
+        };
+    },
     parseHTML() {
         return [
             {
@@ -29,7 +43,8 @@ export const MessageExtension = Node.create({
                 getAttributes: (match) => {
                     console.log(match)
                     return {
-                        textContent: match[1]
+                        // TODO: This isn't even properly added to attributes
+                        textContent: match[1],
                     };
                 }
             }),
@@ -43,6 +58,7 @@ export const MessageExtension = Node.create({
     
                 if (messageNode) {
                     // Insert a mention tag at the current cursor position
+                    editor.commands.insertContent(' ')
                     editor.commands.insertContent({
                         type: 'mention',
                         attrs: {
@@ -51,7 +67,9 @@ export const MessageExtension = Node.create({
                         }
                     });
                     // Move the cursor to the position after the message node
-                    let newPosition = selection.$from.after(messageNode.depth) + 1;
+                    // TODO: THis doesn't cover the case of if there are new lines after the message - so kind of hacky
+                    // TODO: THis doesn't work if there;s actually no space after the message node
+                    let newPosition = selection.$from.after(messageNode.depth) + 2;
                     editor.commands.setTextSelection(newPosition)
 
                     return true;
@@ -97,7 +115,8 @@ export const MessageExtension = Node.create({
     addNodeView() {
         return ReactNodeViewRenderer((props: NodeViewProps) => {
             return <NodeViewWrapper>
-                <Message>
+                <Message backgroundColor={props.node.attrs.backgroundColor}>
+                    {console.log(props.node)}
                     <NodeViewContent/>
                 </Message>
             </NodeViewWrapper>

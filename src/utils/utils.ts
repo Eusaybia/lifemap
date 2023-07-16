@@ -23,6 +23,8 @@ export const getMathsLoupeFromAttributes = (attrs: Attrs) => {
   return mathsLoupe;
 }
 
+export const generatePrompt = (text: string) => `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation: ${text}`
+
 export function getActiveMarkCodes (view: EditorView) {
     const isEmpty = view.state.selection.empty;
     const state = view.state;
