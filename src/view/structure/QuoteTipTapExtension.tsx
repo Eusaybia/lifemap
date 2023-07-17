@@ -1,7 +1,6 @@
 import React from "react";
 import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
-import { Group } from "./Group";
 import { motion } from "framer-motion";
 import { purple } from "../Theme";
 

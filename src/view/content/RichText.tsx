@@ -116,6 +116,7 @@ export const CustomisedEditor = (information: RichTextT) => {
     Underline,
     UniqueID.configure({
       attributeName: 'qid',
+      // TODO: Add more nodes
       types: ['group'],
       filterTransaction: transaction => !isChangeOrigin(transaction),
     }),
