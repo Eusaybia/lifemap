@@ -18,14 +18,26 @@ export const Location: React.FC<LocationProps> = () => {
         if (map.current) return; // initialize map only once
         map.current = new mapboxgl.Map({
             container: mapContainer.current as HTMLElement,
-            style: 'mapbox://styles/mapbox/streets-v12',
             center: [lng, lat],
+            pitch: 45,
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/mapbox/satellite-streets-v12',
             zoom: zoom
         });
         map.current!.on('move', () => {
             setLng(Number(map.current!.getCenter().lng.toFixed(4)));
             setLat(Number(map.current!.getCenter().lat.toFixed(4)));
             setZoom(Number(map.current!.getZoom().toFixed(2)));
+        });
+        map.current!.on('style.load', () => {
+            map.current!.addSource('mapbox-dem', {
+                'type': 'raster-dem',
+                'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                'tileSize': 512,
+                'maxzoom': 14
+            });
+            // add the DEM source as a terrain layer with exaggerated height
+            map.current!.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
         });
     });
 
