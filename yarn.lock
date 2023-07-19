@@ -2710,10 +2710,15 @@
   resolved "https://registry.yarnpkg.com/@tiptap/extension-font-family/-/extension-font-family-2.0.3.tgz#cf78209ffd0518014cb63611c6619dfdfed46968"
   integrity sha512-Fg7lqoaiKfBHFzJDLa2QE4QtF/dX2KG0kV4P+Kx2s0S0Z6vfKQ7KLgOg8QBkgNsI/b1KdXN7hAefHCC/L8l7bQ==
 
-"@tiptap/extension-gapcursor@2.0.3", "@tiptap/extension-gapcursor@^2.0.3":
+"@tiptap/extension-gapcursor@^2.0.3":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@tiptap/extension-gapcursor/-/extension-gapcursor-2.0.3.tgz#e098b78c4a169e1630dc6531d68b7f365de59c2f"
   integrity sha512-6I9EzzsYOyyqDvDvxIK6Rv3EXB+fHKFj8ntHO8IXmeNJ6pkhOinuXVsW6Yo7TcDYoTj4D5I2MNFAW2rIkgassw==
+
+"@tiptap/extension-gapcursor@^2.0.4":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-gapcursor/-/extension-gapcursor-2.0.4.tgz#c100a792fd41535ad6382aa8133d0d9c0b2cb2b8"
+  integrity sha512-VxmKfBQjSSu1mNvHlydA4dJW/zawGKyqmnryiFNcUV9s+/HWLR5i9SiUl4wJM/B8sG8cQxClne5/LrCAeGNYuA==
 
 "@tiptap/extension-hard-break@^2.0.3":
   version "2.0.3"

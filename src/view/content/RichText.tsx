@@ -11,6 +11,7 @@ import Link from '@tiptap/extension-link'
 import TextStyle from '@tiptap/extension-text-style'
 import Underline from '@tiptap/extension-underline'
 import Image from '@tiptap/extension-image'
+import Gapcursor from '@tiptap/extension-gapcursor'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import Mention from '@tiptap/extension-mention'
@@ -75,6 +76,7 @@ export const CustomisedEditor = (information: RichTextT) => {
       types: ['textStyle'],
     }),
     FontSize,
+    Gapcursor,
     Heading.configure({
       levels: [1, 2, 3, 4],
     }),

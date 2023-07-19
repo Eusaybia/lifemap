@@ -1,25 +1,16 @@
-import { Link } from '@tiptap/extension-link'
+import Link, { LinkOptions } from '@tiptap/extension-link'
+import { Command, Editor, KeyboardShortcutCommand } from '@tiptap/core'
 
 export const CustomLink = Link.extend({
-  // @ts-ignore
-  addCommands() {
+  addKeyboardShortcuts(): Record<string, KeyboardShortcutCommand> {
     return {
-  // @ts-ignore
-      promptLink: () => ({ commands }) => {
-        const url = window.prompt('URL')
-
-        if (url) {
-          return commands.setLink({ href: url })
-        } else {
-          return commands.unsetLink()
+      'Mod-k': () => {
+        const href = prompt('URL')
+        if (href) {
+          this.editor.commands.setLink({ href })
         }
+        return true
       },
-    }
-  },
-  addKeyboardShortcuts() {
-    return {
-  // @ts-ignore
-      'Mod-k': () => this.editor.commands.promptLink(),
     }
   },
 })
