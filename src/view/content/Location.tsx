@@ -50,8 +50,10 @@ export const Location: React.FC<LocationProps> = (props: LocationProps) => {
 
     return (
         <div>
-            <div className="sidebar">
-                Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+            <div style={{ position: "relative" }}>
+                <div className="sidebar">
+                    Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+                </div>
             </div>
             <div ref={mapContainer} className="map-container" />
         </div>
