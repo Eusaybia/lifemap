@@ -1,17 +1,22 @@
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { SearchBox } from '@mapbox/search-js-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import 'styles.scss';
+import './styles.scss';
 
-mapboxgl.accessToken = 'MAPBOX_TOKEN_REMOVED';
+export const mapboxAccessToken = 'MAPBOX_TOKEN_REMOVED';
 
-interface LocationProps { }
+mapboxgl.accessToken = mapboxAccessToken
 
-export const Location: React.FC<LocationProps> = () => {
+interface LocationProps {
+    location: string
+}
+
+export const Location: React.FC<LocationProps> = (props: LocationProps) => {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
-    const [lng, setLng] = useState(-70.9);
-    const [lat, setLat] = useState(42.35);
+    const [lng, setLng] = useState(151.21512);
+    const [lat, setLat] = useState(-33.861344);
     const [zoom, setZoom] = useState(9);
 
     useEffect(() => {
@@ -34,7 +39,7 @@ export const Location: React.FC<LocationProps> = () => {
                 'type': 'raster-dem',
                 'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
                 'tileSize': 512,
-                'maxzoom': 14
+                'maxzoom': 9 
             });
             // add the DEM source as a terrain layer with exaggerated height
             map.current!.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
