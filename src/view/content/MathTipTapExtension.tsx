@@ -54,13 +54,6 @@ export const MathExtension = Node.create({
       // }),
     ];
   },
-  addKeyboardShortcuts() {
-    return {
-      'Mod-Enter': () => {
-        return this.editor.chain().insertContentAt(this.editor.state.selection.head, { type: this.type.name }).focus().run()
-      },
-    }
-  },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
