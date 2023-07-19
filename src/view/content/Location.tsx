@@ -26,7 +26,7 @@ export const Location: React.FC<LocationProps> = (props: LocationProps) => {
             center: [lng, lat],
             pitch: 45,
             // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
-            style: 'mapbox://styles/mapbox/satellite-streets-v12',
+            style: 'mapbox://styles/mapbox/streets-v12',
             zoom: zoom
         });
         map.current!.on('move', () => {
@@ -44,6 +44,8 @@ export const Location: React.FC<LocationProps> = (props: LocationProps) => {
             // add the DEM source as a terrain layer with exaggerated height
             map.current!.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
         });
+        let lngLat = new mapboxgl.LngLat(lng, lat)
+        let marker = new mapboxgl.Marker().setLngLat(lngLat).addTo(map.current!);
     });
 
     return (
