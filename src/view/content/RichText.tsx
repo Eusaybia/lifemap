@@ -43,6 +43,7 @@ import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { Conversation } from '../structure/Conversation'
+import { LocationExtension } from './LocationTipTapExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -145,8 +146,9 @@ export const CustomisedEditor = (information: RichTextT) => {
    ),
    FadeIn,
    GroupExtension,
-   KeyValuePairExtension,
    Indent,
+   KeyValuePairExtension,
+   LocationExtension,
    MathExtension,
    MessageExtension,
    QuoteExtension,
