@@ -17,21 +17,30 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
     })
 
     useEffect(() => {
-        let referencedNode: ProseMirrorNode | undefined = undefined;
-    
-        props.editor.state.doc.descendants(descendant => {
-            if (descendant.attrs.qiId === props.referencedQiId) {
-                referencedNode = descendant
+        const updateContent = () => {
+            let referencedNode: ProseMirrorNode | undefined = undefined;
+
+            props.editor.state.doc.descendants(descendant => {
+                if (descendant.attrs.qiId === props.referencedQiId) {
+                    referencedNode = descendant
+                }
+            })
+
+            if (!referencedNode) {
+                editor.commands.setContent("Couldn't find referenced qi")
             }
-        })
-    
-        if (!referencedNode) {
-            editor.commands.setContent("Couldn't find referenced qi")
+            else {
+                const nodeContent = (referencedNode as ProseMirrorNode).content.toJSON()
+                editor.commands.setContent(nodeContent)
+            }
         }
-        else {
-            const nodeContent = (referencedNode as ProseMirrorNode).content.toJSON()
-            editor.commands.setContent(nodeContent)
-        }
+
+        // Update the content initially
+        updateContent()
+
+        // Subscribe to changes in the editor state and update the content whenever the state changes
+        props.editor.on('update', updateContent)
+
     }, [props])
 
     return <EditorContent editor={editor} style={{border: `1px solid black`, borderRadius: 5}}/>
