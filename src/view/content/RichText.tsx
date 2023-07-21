@@ -44,6 +44,7 @@ import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { Conversation } from '../structure/Conversation'
 import { LocationExtension } from './LocationTipTapExtension'
+import { CommentExtension } from '../structure/CommentTipTapExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -132,6 +133,7 @@ export const CustomisedEditor = (information: RichTextT) => {
   
   const customExtensions: Extensions = [
    CalculationExtension,
+   CommentExtension,
    Conversation,
    CustomLink.configure({
      openOnClick: true,
