@@ -5,16 +5,13 @@ import { Editor as CoreEditor } from '@tiptap/core'
 import React, { useEffect, useState } from 'react'
 import { Attrs, Node as ProseMirrorNode } from 'prosemirror-model'
 import { QiId } from '../../core/Model'
+import { CustomisedEditor } from '../content/RichText'
 
 const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 // TODO: Ideally, there shouldn't be a CoreEditor and Editor, it should be the same time. Mismatch should not be happening
 const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
-    let editor = new Editor({
-        extensions: [StarterKit],
-        content: "Hello world",
-        editable: false,
-    })
+    let editor = CustomisedEditor("Content has not been updated to match the referenced node")
 
     useEffect(() => {
         const updateContent = () => {
@@ -30,7 +27,9 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
                 editor.commands.setContent("Couldn't find referenced qi")
             }
             else {
-                const nodeContent = (referencedNode as ProseMirrorNode).content.toJSON()
+                console.log("referenced node", referencedNode)
+                const nodeContent = (referencedNode as ProseMirrorNode).toJSON()
+                console.log("node content", nodeContent)
                 editor.commands.setContent(nodeContent)
             }
         }
@@ -43,7 +42,7 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
 
     }, [props])
 
-    return <EditorContent editor={editor} style={{border: `1px solid black`, borderRadius: 5}}/>
+    return <EditorContent editor={editor} style={{border: `1.5px dashed black`, borderRadius: 5}}/>
 }
 
 export const PortalExtension = Node.create({
@@ -86,7 +85,6 @@ export const PortalExtension = Node.create({
           return (
             <NodeViewWrapper>
                 <NodeViewContent/>
-                {console.log("textContent", props.node.textContent)}
                 <Portal editor={props.editor} referencedQiId={props.node.textContent}/>
             </NodeViewWrapper>
           );
