@@ -45,6 +45,7 @@ import { SophiaAI } from '../../agents/Sophia'
 import { Conversation } from '../structure/Conversation'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
+import { PortalExtension } from '../structure/PortalExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -153,6 +154,7 @@ export const CustomisedEditor = (information: RichTextT) => {
    LocationExtension,
    MathExtension,
    MessageExtension,
+   PortalExtension,
    QuoteExtension,
   ]
 
