@@ -6,12 +6,13 @@ import React, { useEffect, useState } from 'react'
 import { Attrs, Node as ProseMirrorNode } from 'prosemirror-model'
 import { QiId } from '../../core/Model'
 import { CustomisedEditor } from '../content/RichText'
+import { debounce } from 'lodash'
 
 const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 // TODO: Ideally, there shouldn't be a CoreEditor and Editor, it should be the same time. Mismatch should not be happening
 const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
-    let editor = CustomisedEditor("Content has not been updated to match the referenced node")
+    const [editor, setEditor] = React.useState(CustomisedEditor("Content has not been updated to match the referenced node"))
 
     useEffect(() => {
         const updateContent = () => {
@@ -38,11 +39,16 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
         updateContent()
 
         // Subscribe to changes in the editor state and update the content whenever the state changes
-        props.editor.on('update', updateContent)
+        const debouncedUpdateContent = debounce(updateContent, 5000)
+        props.editor.on('update', debouncedUpdateContent)
 
     }, [props])
 
-    return <EditorContent editor={editor} style={{border: `1.5px dashed black`, borderRadius: 5}}/>
+    return (
+        <div style={{border: `1.5px solid black`}}>
+            <EditorContent editor={editor} style={{border: `1.5px dashed black`, borderRadius: 5}}/>
+        </div>
+    )
 }
 
 export const PortalExtension = Node.create({

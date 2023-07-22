@@ -49,7 +49,7 @@ import { PortalExtension } from '../structure/PortalExtension'
 
 lowlight.registerLanguage('js', js)
 
-export const CustomisedEditor = (information: RichTextT) => {
+export const CustomisedEditor = (information: RichTextT, isPortalEditor?: boolean) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
 
@@ -126,6 +126,7 @@ export const CustomisedEditor = (information: RichTextT) => {
        attributeName: 'qiId',
      }),
   ]
+  console.log("isPortalEditor")
   
   const customExtensions: Extensions = [
    CalculationExtension,
@@ -166,7 +167,7 @@ export const CustomisedEditor = (information: RichTextT) => {
     )
   }
 
-  return new Editor({
+  let editor = new Editor({
     extensions: [...officalExtensions, ...customExtensions, ...agents],
     editorProps: {
       attributes: {
@@ -180,6 +181,8 @@ export const CustomisedEditor = (information: RichTextT) => {
       // console.log("editor getText", editor.getText())
     }
   })
+
+  return editor
 }
 
 export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
