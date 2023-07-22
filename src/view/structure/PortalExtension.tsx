@@ -25,13 +25,17 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
             })
 
             if (!referencedNode) {
-                editor.commands.setContent("Couldn't find referenced qi")
+                if (editor) {
+                    editor.commands.setContent("Couldn't find referenced qi")
+                }
             }
             else {
                 console.log("referenced node", referencedNode)
                 const nodeContent = (referencedNode as ProseMirrorNode).toJSON()
                 console.log("node content", nodeContent)
-                editor.commands.setContent(nodeContent)
+                if (editor) {
+                    editor.commands.setContent(nodeContent)
+                }
             }
         }
 

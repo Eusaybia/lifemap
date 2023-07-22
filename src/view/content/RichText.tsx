@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Color } from '@tiptap/extension-color'
 import { Highlight } from '@tiptap/extension-highlight'
-import { EditorContent, Extensions, JSONContent, Editor } from '@tiptap/react'
+import { EditorContent, Extensions, JSONContent, Editor, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
@@ -49,7 +49,7 @@ import { PortalExtension } from '../structure/PortalExtension'
 
 lowlight.registerLanguage('js', js)
 
-export const CustomisedEditor = (information: RichTextT, isPortalEditor?: boolean) => {
+export const CustomisedEditor = (information: RichTextT) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
 
@@ -150,7 +150,7 @@ export const CustomisedEditor = (information: RichTextT, isPortalEditor?: boolea
    LocationExtension,
    MathExtension,
    MessageExtension,
-   PortalExtension,
+  //  PortalExtension,
    QuoteExtension,
   ]
 
@@ -167,7 +167,7 @@ export const CustomisedEditor = (information: RichTextT, isPortalEditor?: boolea
     )
   }
 
-  let editor = new Editor({
+  let editor = useEditor({
     extensions: [...officalExtensions, ...customExtensions, ...agents],
     editorProps: {
       attributes: {
