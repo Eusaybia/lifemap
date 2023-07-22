@@ -227,6 +227,11 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                             </FlowSwitch>
                             <FlowSwitch isLens>
                                 <motion.div
+                                    onClick={() => props.editor!.chain().focus().setFontSize('36px').run()}
+                                >
+                                    36
+                                </motion.div>
+                                <motion.div
                                     onClick={() => props.editor!.chain().focus().setFontSize('30px').run()}
                                 >
                                     30
