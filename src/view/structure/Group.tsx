@@ -37,7 +37,7 @@ export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) =>
                     borderRadius: `10px`,
                     border: `2px solid var(--Light_Grey, #dddddd)`,
                     boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
-                    padding: `15px`,
+                    padding: `20px`,
                     margin: `10px 0px 10px 0px`,
                 }}
             >
@@ -51,7 +51,7 @@ export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) =>
                 onMouseUp={(event) => {
                     event.currentTarget.style.cursor = "grab";
                 }}
-                style={{ position: "absolute", right: -3, top: 10, display: "flex", flexDirection: "column", cursor: "grab" }} 
+                style={{ position: "absolute", right: -5, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }} 
                 contentEditable="false" 
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}>
