@@ -1,8 +1,6 @@
 import { motion, useScroll, useVelocity } from "framer-motion"
-import { ExampleTypeTag, TypeTag } from "../content/Tag"
 import React, { useRef } from "react"
 import './styles.scss'
-import { clickElement } from "../../utils/utils"
 
 export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
