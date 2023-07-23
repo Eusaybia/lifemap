@@ -14,10 +14,8 @@ const REGEX_BLOCK_AT = /@[^@]+@/
 
 export const LocationExtension = Node.create({
   name: "location",
-  group: "inline",
-  inline: true,
+  group: "block",
   content: "block*",
-  code: true,
   selectable: true,
   atom: true,
   draggable: true,
