@@ -49,9 +49,10 @@ import { PortalExtension } from '../structure/PortalExtension'
 
 lowlight.registerLanguage('js', js)
 
-export const CustomisedEditor = (information: RichTextT) => {
+export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
+
 
   const isYDoc = typeof information !== "string";
 
@@ -121,7 +122,7 @@ export const CustomisedEditor = (information: RichTextT) => {
     Underline,
      UniqueID.configure({
       // TODO: Add more nodes
-       types: ['paragraph', 'mention'],
+       types: ['paragraph', 'mention', 'group'],
        filterTransaction: transaction => !isChangeOrigin(transaction),
        attributeName: 'qiId',
      }),
@@ -150,7 +151,7 @@ export const CustomisedEditor = (information: RichTextT) => {
    LocationExtension,
    MathExtension,
    MessageExtension,
-  //  PortalExtension,
+   PortalExtension,
    QuoteExtension,
   ]
 
@@ -167,8 +168,9 @@ export const CustomisedEditor = (information: RichTextT) => {
     )
   }
 
-  let editor = useEditor({
+  const [editor, setEditor] = React.useState(new Editor({
     extensions: [...officalExtensions, ...customExtensions, ...agents],
+    editable: !readOnly,
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
@@ -176,11 +178,11 @@ export const CustomisedEditor = (information: RichTextT) => {
     },
     content: isYDoc ? null : information,
     onUpdate: ({ editor }) => {
-      console.log("JSON Output", editor.getJSON())
-      console.log("HTML Output", editor.getHTML())
+      // console.log("JSON Output", editor.getJSON())
+      // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
     }
-  })
+  }))
 
   return editor
 }
