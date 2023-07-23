@@ -5,18 +5,6 @@ import { MathsLoupeC } from '../core/Model';
 
 export const generateUniqueID = () => uuidv4()
 
-export const clickElement = (ref: React.RefObject<HTMLElement>) => {
-  console.log("clicked")
-  ref.current?.dispatchEvent(
-    new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true,
-      buttons: 1,
-    }),
-  );
-};
-
 export const getMathsLoupeFromAttributes = (attrs: Attrs) => {
   let mathsLoupe = new MathsLoupeC()
   mathsLoupe.selectedDisplayLens = mathsLoupe.displayLenses.findIndex((lens) => (lens === attrs.lensDisplay))

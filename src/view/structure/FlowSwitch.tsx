@@ -86,10 +86,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                         }
                         // TODO: This is mean to click the currently selected element, think of a better way.
                         // Basically, find the currently selected element, and invoke its onClick
-                        if (selectedIndex) {
-                            // clickElement(refs[selectedIndex])
-                                switchElements[selectedIndex].props.onClick()
-                        }
+                        switchElements[selectedIndex].props.onClick()
                     }, 250);
                 }
             }
