@@ -1,5 +1,5 @@
-import { motion, useScroll, useVelocity } from "framer-motion"
-import React, { useRef } from "react"
+import { motion } from "framer-motion"
+import React from "react"
 import './styles.scss'
 
 export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
