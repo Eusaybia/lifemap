@@ -12,10 +12,14 @@ const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 // TODO: Ideally, there shouldn't be a CoreEditor and Editor, it should be the same time. Mismatch should not be happening
 const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
-    const [editor, setEditor] = React.useState(CustomisedEditor("Content has not been updated to match the referenced node"))
+    const [editor, setEditor] = React.useState(CustomisedEditor("Content has not been updated to match the referenced node.", true))
+    console.log("editor", editor)
+
 
     useEffect(() => {
         const updateContent = () => {
+            if (!editor) return
+
             let referencedNode: ProseMirrorNode | undefined = undefined;
 
             props.editor.state.doc.descendants(descendant => {
@@ -25,17 +29,13 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
             })
 
             if (!referencedNode) {
-                if (editor) {
-                    editor.commands.setContent("Couldn't find referenced qi")
-                }
+                editor.commands.setContent("Couldn't find referenced qi. Are you sure the id you're using is a valid one?")
             }
             else {
                 console.log("referenced node", referencedNode)
                 const nodeContent = (referencedNode as ProseMirrorNode).toJSON()
                 console.log("node content", nodeContent)
-                if (editor) {
-                    editor.commands.setContent(nodeContent)
-                }
+                editor.commands.setContent(nodeContent)
             }
         }
 
@@ -43,15 +43,13 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
         updateContent()
 
         // Subscribe to changes in the editor state and update the content whenever the state changes
-        const debouncedUpdateContent = debounce(updateContent, 5000)
+        const debouncedUpdateContent = debounce(updateContent, 2000)
         props.editor.on('update', debouncedUpdateContent)
 
-    }, [props])
+    }, [props, editor])
 
     return (
-        <div style={{border: `1.5px solid black`}}>
-            <EditorContent editor={editor} style={{border: `1.5px dashed black`, borderRadius: 5}}/>
-        </div>
+        <EditorContent editor={editor} style={{ border: `2px dashed grey`, borderRadius: 5, minHeight: 30, padding: 15 }} />
     )
 }
 
@@ -92,12 +90,14 @@ export const PortalExtension = Node.create({
     },
     addNodeView() {
         return ReactNodeViewRenderer((props: NodeViewProps) => {
-          return (
-            <NodeViewWrapper>
-                <NodeViewContent/>
-                <Portal editor={props.editor} referencedQiId={props.node.textContent}/>
-            </NodeViewWrapper>
-          );
+            return (
+                <NodeViewWrapper>
+                    <div style={{ border: `1px solid black`, borderRadius: 4, padding: 8, marginBottom: 2 }}>
+                        <NodeViewContent />
+                    </div>
+                    <Portal editor={props.editor} referencedQiId={props.node.textContent} />
+                </NodeViewWrapper>
+            );
         });
-      },
+    },
 })
