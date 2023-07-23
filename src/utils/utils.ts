@@ -5,8 +5,9 @@ import { MathsLoupeC } from '../core/Model';
 
 export const generateUniqueID = () => uuidv4()
 
-export const clickElement = (ref: React.RefObject<HTMLDivElement>) => {
-  ref.current!.dispatchEvent(
+export const clickElement = (ref: React.RefObject<HTMLElement>) => {
+  console.log("clicked")
+  ref.current?.dispatchEvent(
     new MouseEvent('click', {
       view: window,
       bubbles: true,

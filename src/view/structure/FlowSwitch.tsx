@@ -1,6 +1,6 @@
 import { motion, useScroll, useVelocity } from "framer-motion"
 import { ExampleTypeTag, TypeTag } from "../content/Tag"
-import React from "react"
+import React, { useRef } from "react"
 import './styles.scss'
 import { clickElement } from "../../utils/utils"
 
@@ -9,12 +9,52 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
     const [realTimeSelected, setRealTimeSelected] = React.useState<number>(0)
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [hasBeenChanged, setHasBeenChanged] = React.useState(false);
+    const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
 
     const tickSound = new Audio("/tick.mp3");
 
     let timer: NodeJS.Timeout | null = null;
 
     const handleScrollEnded = (event: any) => { console.log("stopped") }
+
+    const refs = props.children.map(() => React.createRef<HTMLDivElement>());
+
+    const switchElements = props.children.map((child, index) => {
+        return (<motion.div
+            // @ts-ignore
+            ref={refs[index]}
+            initial={{ opacity: 0.2, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            onClick={() => {
+                if (typeof child.props.onClick === 'function') {
+                    child.props.onClick()
+                }
+            }
+            }
+            style={{
+                // TODO: Change this eventually
+                scrollSnapAlign: "none",
+            }}
+            viewport={{ root: flowSwitchContainerRef, margin: "-12px 0px -12px 0px" }}
+            onViewportEnter={(entry) => {
+                // The activation box is a thin line in the middle of the flow switch
+                // and activates when a child element enters this thin line.
+                if (hasBeenChanged) {
+                    // TODO: Find a way to play sound even when the page hasn't been interacted with
+                    tickSound.play().catch(function (error) {
+                        console.log("Chrome cannot play sound without user interaction first")
+                    });
+                } else {
+                    setHasBeenChanged(true)
+                }
+                setSelectedIndex(index)
+            }}
+            key={index}
+        >
+            {child}
+        </motion.div>)
+    }
+    )
 
     // Eventually use this scrollend event instead of a scroll timeout when more browsers support it
     // React.useEffect(() => {
@@ -46,8 +86,11 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                         }
                         // TODO: This is mean to click the currently selected element, think of a better way.
                         // Basically, find the currently selected element, and invoke its onClick
-                        // clickElement(flowSwitchContainerRef)
-                    }, 150);
+                        if (selectedIndex) {
+                            // clickElement(refs[selectedIndex])
+                                switchElements[selectedIndex].props.onClick()
+                        }
+                    }, 250);
                 }
             }
 
@@ -78,35 +121,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                 borderRadius: 5,
                 border: "1px solid #BBBBBB"
             }}>
-            {
-                props.children.map((child, index) => {
-                    return (<motion.div
-                        initial={{ opacity: 0.2, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        style={{
-                            // TODO: Change this eventually
-                            scrollSnapAlign: "none",
-                        }}
-                        viewport={{ root: flowSwitchContainerRef, margin: "-12px 0px -12px 0px" }}
-                        onViewportEnter={(entry) => {
-                            // The activation box is a thin line in the middle of the flow switch
-                            // and activates when a child element enters this thin line.
-                            if (hasBeenChanged) {
-                                // TODO: Find a way to play sound even when the page hasn't been interacted with
-                                tickSound.play().catch(function (error) {
-                                    console.log("Chrome cannot play sound without user interaction first")
-                                });
-                            } else {
-                                setHasBeenChanged(true)
-                            }
-                        }}
-                        key={index}
-                    >
-                        {child}
-                    </motion.div>)
-                }
-                )
-            }
+            {switchElements}
         </motion.div>
     )
 }
