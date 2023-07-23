@@ -19,9 +19,11 @@ declare global {
   }
 }
 
-export const Math = (props: { equationString: string, loupe: MathsLoupe, children?: any, onChange?: (change: string | JSONContent) => void }) => {
+export const Math = (props: { equationString: string, loupe: MathsLoupe, children?: any, updateContent?: (event:any ) => void }) => {
+    console.log("equationString", props.equationString)
     const ce = new ComputeEngine();
     const [outputEquationString, setOutputEquationString] = useState("");
+    const mathFieldRef = React.useRef<HTMLInputElement>()
 
     useEffect(() => {
         let expression: BoxedExpression = ce.parse(props.equationString);
@@ -69,7 +71,8 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
         }
 
         setOutputEquationString(newOutputEquationString);
-    }, [props.equationString, props.loupe]);
+        console.log("output", outputEquationString)
+    }, [props.equationString, props.loupe, outputEquationString]);
 
 
     return (
@@ -81,12 +84,15 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
                             text={outputEquationString}
                             lenses={["text"]}
                         />,
-                    'natural': 
-                        // TODO: When I change this to Rich text, it shoes the entire lifemap root recursively
-                        <math-field>
-                            {props.children}
-                        </math-field>
-                        ,
+                    'natural':
+                        <math-field ref={mathFieldRef} onInput={(event: any) => {
+                            if (props.updateContent) {
+                                props.updateContent(mathFieldRef.current?.value) 
+                            }
+                        }}>
+                            {/* TODO: Make this read only */}
+                            {props.equationString}
+                        </math-field>,
                     'linear': 
                         <RichText
                             text={outputEquationString}
@@ -131,7 +137,7 @@ export const MathNaturalExample = () => {
     </math-live>
     `
     return (
-        <Math equationString={equationString} loupe={mathsLoupe} onChange={() => { return }} />
+        <Math equationString={equationString} loupe={mathsLoupe} updateContent={() => { return }} />
     )
 }
 

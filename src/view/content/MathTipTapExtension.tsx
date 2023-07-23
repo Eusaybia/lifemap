@@ -8,6 +8,7 @@ import { getMathsLoupeFromAttributes } from "../../utils/utils";
 import { Tag } from "./Tag";
 import { FlowSwitch } from "../structure/FlowSwitch";
 import { motion } from "framer-motion";
+import { TextSelection } from "prosemirror-state";
 
 const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
 const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
@@ -17,7 +18,6 @@ export const MathExtension = Node.create({
   group: "inline",
   inline: true,
   content: "block*",
-  code: true,
   selectable: true,
   atom: true,
   draggable: true,
@@ -39,6 +39,9 @@ export const MathExtension = Node.create({
       },
       lensEvaluation: {
         default: 'evaluate'
+      },
+      equationValue: {
+        default: ''
       }
     }
   },
@@ -48,26 +51,28 @@ export const MathExtension = Node.create({
         find: REGEX_INLINE_MATH_DOLLARS,
         type: this.type,
       }),
-      // wrappingInputRule({
-      //   find: REGEX_BLOCK_MATH_DOLLARS,
-      //   type: this.type,
-      // }),
+      wrappingInputRule({
+        find: REGEX_BLOCK_MATH_DOLLARS,
+        type: this.type,
+      }),
     ];
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      const updateContent = (changedEquation: string) => {
+        props.updateAttributes({ equationValue: changedEquation });
+      }
+      
       return (
         <NodeViewWrapper>
-            <Math equationString={props.node.textContent} loupe={getMathsLoupeFromAttributes(props.node.attrs)} onChange={function (change: string | JSONContent): void {
-              throw new Error("Function not implemented.");
-            }} >
-              {console.log("nvc", <NodeViewContent/>)}
-
-              <NodeViewContent/>
-            </Math>
+          <Math
+            equationString={props.node.attrs.equationValue}
+            loupe={getMathsLoupeFromAttributes(props.node.attrs)}
+            updateContent={updateContent}
+          />
         </NodeViewWrapper>
-      );
-    });
+      )
+    })
   },
 });
 
