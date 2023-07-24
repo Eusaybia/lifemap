@@ -36,7 +36,6 @@ import { QiStoreContext } from '../../backend/QiStore'
 import { FontSize } from './FontSizeTipTapExtension'
 import { mentionSuggestionOptions } from './TagTipTapExtension'
 import BubbleMenu from '@tiptap/extension-bubble-menu'
-import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
 import { CustomLink } from './Link'
@@ -49,6 +48,7 @@ import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { backup } from '../../utils/utils'
+import { CalculationExtension } from '../structure/CalculationTipTapExtension'
 
 lowlight.registerLanguage('js', js)
 
