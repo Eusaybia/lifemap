@@ -49,7 +49,7 @@ const Portal = (props: { editor: CoreEditor, referencedQiId: QiId }) => {
     }, [props, editor])
 
     return (
-        <EditorContent editor={editor} style={{ border: `2px dashed grey`, borderRadius: 5, minHeight: 30, padding: 15 }} />
+        <EditorContent editor={editor} style={{ border: `2px dashed grey`, borderRadius: 5, minHeight: 20, padding: 10 }} />
     )
 }
 
@@ -92,7 +92,7 @@ export const PortalExtension = Node.create({
         return ReactNodeViewRenderer((props: NodeViewProps) => {
             return (
                 <NodeViewWrapper>
-                    <div style={{ border: `1px solid black`, borderRadius: 4, padding: 8, marginBottom: 2 }}>
+                    <div style={{ border: `1.5px solid grey`, borderRadius: 4, padding: 10, marginBottom: 2 }}>
                         <NodeViewContent />
                     </div>
                     <Portal editor={props.editor} referencedQiId={props.node.textContent} />
