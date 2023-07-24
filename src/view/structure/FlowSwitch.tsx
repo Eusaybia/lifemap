@@ -32,6 +32,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
             style={{
                 // TODO: Change this eventually
                 scrollSnapAlign: "none",
+                width: "max-content"
             }}
             viewport={{ root: flowSwitchContainerRef, margin: "-12px 0px -12px 0px" }}
             onViewportEnter={(entry) => {
@@ -85,7 +86,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                         // TODO: This is mean to click the currently selected element, think of a better way.
                         // Basically, find the currently selected element, and invoke its onClick
                         switchElements[selectedIndex].props.onClick()
-                    }, 250);
+                    }, 550);
                 }
             }
 
@@ -93,7 +94,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                 scrollSnapType: `y mandatory`,
                 boxSizing: "border-box",
                 flexShrink: 0,
-                width: "max-content",
+                width: "fit-content",
                 maxWidth: 500,
                 height: 37,
                 display: "flex",
@@ -112,7 +113,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (
                 position: "relative",
                 alignContent: "start",
                 flexWrap: "nowrap",
-                gap: 0,
+                gap: 3,
                 borderRadius: 5,
                 border: "1px solid #BBBBBB"
             }}>
