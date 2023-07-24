@@ -83,6 +83,7 @@
     "react-scripts": "5.0.0",
     "sass": "^1.59.2",
     "tippy.js": "^6.3.7",
+    "tiptap-markdown": "^0.8.2",
     "typescript": "4.0.3",
     "typia": "^3.6.8",
     "uuid": "^9.0.0",
@@ -122,6 +123,7 @@
   "devDependencies": {
     "@capacitor/cli": "^4.6.2",
     "@types/color-hash": "^1.0.1",
+    "@types/lodash": "^4.14.195",
     "@types/mapbox-gl": "^2.7.11",
     "add": "^2.0.6",
     "autoprefixer": "^10.4.13",

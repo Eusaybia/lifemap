@@ -2,6 +2,7 @@ import { EditorView } from '@tiptap/pm/view';
 import { Attrs } from 'prosemirror-model';
 import { v4 as uuidv4 } from 'uuid';
 import { MathsLoupeC } from '../core/Model';
+import { JSONContent } from '@tiptap/core';
 
 export const generateUniqueID = () => uuidv4()
 
@@ -55,3 +56,18 @@ export function getActiveMarkCodes (view: EditorView) {
       return Array.from(activeMarks);
     }
   }
+
+export const backup = (content: JSONContent) => {
+  const date = new Date();
+  const timestamp = date.toISOString().replace(/[-:.]/g, '');
+  const filename = `lifemap+${timestamp}.json`;
+
+  const jsonData = JSON.stringify(content);
+  const blob = new Blob([jsonData], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}

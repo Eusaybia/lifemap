@@ -6,6 +6,7 @@ import { EditorContent, Extensions, JSONContent, Editor, useEditor } from '@tipt
 import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
+import { Markdown } from 'tiptap-markdown';
 import FontFamily from '@tiptap/extension-font-family'
 import Link from '@tiptap/extension-link'
 import TextStyle from '@tiptap/extension-text-style'
@@ -21,6 +22,7 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
+import { debounce } from 'lodash'
 import { QiC, QiT, TextSectionLens, RichTextT } from '../../core/Model'
 import { lowlight } from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
@@ -46,6 +48,7 @@ import { Conversation } from '../structure/Conversation'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
+import { backup } from '../../utils/utils'
 
 lowlight.registerLanguage('js', js)
 
@@ -149,6 +152,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
    Indent,
    KeyValuePairExtension,
    LocationExtension,
+   Markdown,
    MathExtension,
    MessageExtension,
    PortalExtension,
@@ -181,6 +185,13 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
       // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
+      
+      // Backup every minute
+      const performBackup = () => {
+        backup(editor.getJSON())
+      }
+
+      debounce(performBackup, 10000)
     }
   }))
 
