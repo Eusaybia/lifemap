@@ -85,7 +85,7 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
                             lenses={["text"]}
                         />,
                     'natural':
-                        <math-field ref={mathFieldRef} onInput={(event: any) => {
+                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
                             if (props.updateContent) {
                                 props.updateContent(mathFieldRef.current?.value) 
                             }
