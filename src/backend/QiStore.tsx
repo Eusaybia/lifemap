@@ -15,12 +15,12 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   const appId = 'dy9wzo9x'
 
   // Sync the document using the cloud provider
-  new TiptapCollabProvider({ 
-    appId: appId,// get this at collab.tiptap.dev
-    name: roomName, // e.g. a uuid uuidv4();
-    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2ODQxNDQ5MDAsIm5iZiI6MTY4NDE0NDkwMCwiZXhwIjoxNjg0MjMxMzAwLCJpc3MiOiJodHRwczovL2NvbGxhYi50aXB0YXAuZGV2IiwiYXVkIjoia29uZ3dlaUBldXNheWJpYS5jb20ifQ.bUsMJ8W_T15zk0PWdiBddMeVLNyppDlI6g7Vr3dIA3s', // see "Authentication" below
-    document: qi.information
-  });
+  // new TiptapCollabProvider({ 
+  //   appId: appId,// get this at collab.tiptap.dev
+  //   name: roomName, // e.g. a uuid uuidv4();
+  //   token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2ODQxNDQ5MDAsIm5iZiI6MTY4NDE0NDkwMCwiZXhwIjoxNjg0MjMxMzAwLCJpc3MiOiJodHRwczovL2NvbGxhYi50aXB0YXAuZGV2IiwiYXVkIjoia29uZ3dlaUBldXNheWJpYS5jb20ifQ.bUsMJ8W_T15zk0PWdiBddMeVLNyppDlI6g7Vr3dIA3s', // see "Authentication" below
+  //   document: qi.information
+  // });
 
   //  Sync the document locally
   new IndexeddbPersistence(roomName, qi.information)
