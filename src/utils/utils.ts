@@ -57,6 +57,21 @@ export function getActiveMarkCodes (view: EditorView) {
     }
   }
 
+  export async function getData() {
+    try {
+      const res = await fetch('/backups/lifemap.json');
+      if (!res.ok) {
+        throw new Error(`An error occurred while fetching the data: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      console.log("data:", data)
+      return data;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  
+
 export const backup = (content: JSONContent) => {
   const date = new Date();
   const timestamp = date.toISOString().replace(/[-:.]/g, '');
