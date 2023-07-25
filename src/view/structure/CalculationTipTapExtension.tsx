@@ -1,13 +1,17 @@
-import { Node } from "@tiptap/core";
-import { NodeViewContent, NodeViewWrapper } from "@tiptap/react";
-import { motion } from "framer-motion";
-import { parchment } from "../Theme";
 import React from "react";
+import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
+import { motion } from "framer-motion";
+import { parchment, purple } from "../Theme";
 
-export const CalculationExtension = Node.create({
+const REGEX_PLUS = /^\+.+\+$/
+
+
+export const Calculation = Node.create({
   name: "calculation",
   group: "block",
-  content: "inline*",
+  content: "block*",
+  // TODO: Doesn't handle inline groups
   inline: false,
   selectable: false,
   atom: true,
@@ -22,44 +26,26 @@ export const CalculationExtension = Node.create({
     return ["calculation", HTMLAttributes, 0];
   },
   draggable: true,
-  addCommands() {
-    return {
-      insertCalculation: () => ({ commands }) => {
-        return commands.insertContent({
-          type: 'calculation',
-          content: [
-            {
-              type: 'math',
-              attrs: {
-                lensDisplay: 'natural',
-                lensEvaluation: 'evaluate',
-                equationValue: ''
-              }
-            },
-            {
-              type: 'math',
-              attrs: {
-                lensDisplay: 'natural',
-                lensEvaluation: 'evaluate',
-                equationValue: ''
-              }
-            }
-          ]
-        });
-      }
-    }
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: REGEX_PLUS,
+        type: this.type,
+      })
+    ]
   },
   addNodeView() {
-    return (props) => {
+    return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
           <motion.div style={{
             backgroundColor: parchment, borderRadius: 5, padding: `20px 20px 20px 20px`, color: "#343434"
           }}>
-            <NodeViewContent />
+            <math lensDisplay="natural" lensEvaluation="evaluate" equationValue=""/>
+            <math lensDisplay="natural" lensEvaluation="evaluate" equationValue=""/>
           </motion.div>
         </NodeViewWrapper>
       );
-    };
+    });
   },
 });
