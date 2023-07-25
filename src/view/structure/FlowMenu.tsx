@@ -62,7 +62,9 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
     const [left, setLeft] = React.useState(0);
     const elementRef = React.useRef<HTMLDivElement>(null);
     const [value, setValue] = React.useState<string>('');
+    console.log("isMath", props.editor?.isActive('math'))
 
+    React.useEffect(() => {}, [props.editor?.state.selection])
 
     // Make sure the menu stays within the viewport
     React.useEffect(() => {
@@ -104,8 +106,8 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
             }
         };
 
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        // window.addEventListener("scroll", handleScroll);
+        // return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     React.useEffect(() => {
@@ -215,7 +217,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                     </motion.div>
                 </FlowSwitch>
                 <FlowSwitch isLens>
-                    <div
+                    { !props.editor!.isActive('math') ? <div
                         style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll" }}>
                         <Tag>
                             Rich Text
@@ -358,8 +360,8 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 <FormatColorFill />
                             </IconButton>
                         </Tag>
-                    </div>
-                    <div
+                    </div> : <></>}
+                    {props.editor!.isActive('math') ? <div
                         style={{ display: "flex", gap: 5, height: "fit-content" }}>
                         <Tag>
                             Math
@@ -466,7 +468,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                    </div>
+                    </div> : <></>}
                 </FlowSwitch>
             </motion.div>
         </BubbleMenu>

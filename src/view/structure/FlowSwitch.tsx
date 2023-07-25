@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import React from "react"
 import './styles.scss'
 
-export const FlowSwitch = (props: { children: React.ReactElement[], onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
+export const FlowSwitch = (props: { children: (React.ReactElement)[], onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
     const [realTimeSelected, setRealTimeSelected] = React.useState<number>(0)
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)

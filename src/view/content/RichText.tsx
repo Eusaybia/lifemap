@@ -185,6 +185,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
       // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
+      console.log("active", editor.state.selection)
       
       // Backup every minute
       const performBackup = () => {
