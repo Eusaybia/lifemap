@@ -47,7 +47,7 @@ import { Conversation } from '../structure/Conversation'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup, getData } from '../../utils/utils'
+import { backup } from '../../utils/utils'
 import { CalculationExtension } from '../structure/CalculationTipTapExtension'
 
 lowlight.registerLanguage('js', js)
@@ -57,7 +57,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
   console.log("qiId", qi.id)
 
 
-  const isYDoc = typeof information !== "string" && typeof information !== "object";
+  const isYDoc = typeof information !== "string";
 
   const officalExtensions: Extensions = [
     // Add official extensions
@@ -113,7 +113,6 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
       // Disable provided extensions so they don't load twice
       heading: false,
       codeBlock: false,
-      gapcursor: false,
     }),
     TaskItem.configure({
       nested: true,
@@ -124,39 +123,40 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     }),
     TextStyle,
     Underline,
-    UniqueID.configure({
+     UniqueID.configure({
       // TODO: Add more nodes
-      types: ['paragraph', 'mention', 'group'],
-      filterTransaction: transaction => !isChangeOrigin(transaction),
-      attributeName: 'qiId',
-    }),
+       types: ['paragraph', 'mention', 'group'],
+       filterTransaction: transaction => !isChangeOrigin(transaction),
+       attributeName: 'qiId',
+     }),
   ]
-
+  console.log("isPortalEditor")
+  
   const customExtensions: Extensions = [
-    CalculationExtension,
-    CommentExtension,
-    Conversation,
-    CustomLink.configure({
-      openOnClick: true,
-    }),
-    CustomMention.configure(
-      {
-        HTMLAttributes: {
-          class: 'mention',
-        },
-        suggestion: mentionSuggestionOptions,
-      }
-    ),
-    FadeIn,
-    GroupExtension,
-    Indent,
-    KeyValuePairExtension,
-    LocationExtension,
-    Markdown,
-    MathExtension,
-    MessageExtension,
-    PortalExtension,
-    QuoteExtension,
+   CalculationExtension,
+   CommentExtension,
+   Conversation,
+   CustomLink.configure({
+     openOnClick: true,
+   }),
+   CustomMention.configure(
+     {
+       HTMLAttributes: {
+         class: 'mention',
+       },
+       suggestion: mentionSuggestionOptions,
+     }
+   ),
+   FadeIn,
+   GroupExtension,
+   Indent,
+   KeyValuePairExtension,
+   LocationExtension,
+   Markdown,
+   MathExtension,
+   MessageExtension,
+   PortalExtension,
+   QuoteExtension,
   ]
 
   const agents: Extensions = [
@@ -174,7 +174,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
 
   const [editor, setEditor] = React.useState(new Editor({
     extensions: [...officalExtensions, ...customExtensions, ...agents],
-    editable: (!readOnly),
+    editable: !readOnly,
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
@@ -185,7 +185,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
       // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
-
+      
       // Backup every minute
       const performBackup = () => {
         backup(editor.getJSON())
@@ -274,29 +274,5 @@ export const RichTextCodeExample = () => {
   return (<RichText qi={new QiC()} text={content} lenses={["code"]} onChange={() => {
   }} />)
 }
-
-export const RichTextFromBackup = () => {
-  const [content, setContent] = React.useState('');
-
-  async function fetchContent() {
-    const data = await getData();
-    setContent(data);
-  }
-
-  useEffect(() => {
-    fetchContent();
-  }, []);
-
-  console.log("content", typeof content)
-
-  return (
-    <RichText
-      qi={new QiC()}
-      text={content}
-      lenses={['text']}
-      onChange={() => { }}
-    />
-  );
-};
 
 export default RichText
