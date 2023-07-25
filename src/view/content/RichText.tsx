@@ -55,6 +55,7 @@ lowlight.registerLanguage('js', js)
 export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
+  console.log("info:", information)
 
 
   const isYDoc = typeof information !== "string" && typeof information !== "object";
