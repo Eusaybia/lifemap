@@ -22,33 +22,33 @@ export const CalculationExtension = Node.create({
     return ["calculation", HTMLAttributes, 0];
   },
   draggable: true,
-  // addCommands() {
-  //   return {
-  //     insertCalculation: () => ({ commands }) => {
-  //       return commands.insertContent({
-  //         type: 'calculation',
-  //         content: [
-  //           {
-  //             type: 'math',
-  //             attrs: {
-  //               lensDisplay: 'natural',
-  //               lensEvaluation: 'evaluate',
-  //               equationValue: ''
-  //             }
-  //           },
-  //           {
-  //             type: 'math',
-  //             attrs: {
-  //               lensDisplay: 'natural',
-  //               lensEvaluation: 'evaluate',
-  //               equationValue: ''
-  //             }
-  //           }
-  //         ]
-  //       });
-  //     }
-  //   }
-  // },
+  addCommands() {
+    return {
+      insertCalculation: () => ({ commands }) => {
+        return commands.insertContent({
+          type: 'calculation',
+          content: [
+            {
+              type: 'math',
+              attrs: {
+                lensDisplay: 'natural',
+                lensEvaluation: 'evaluate',
+                equationValue: ''
+              }
+            },
+            {
+              type: 'math',
+              attrs: {
+                lensDisplay: 'natural',
+                lensEvaluation: 'evaluate',
+                equationValue: ''
+              }
+            }
+          ]
+        });
+      }
+    }
+  },
   addNodeView() {
     return (props) => {
       return (
