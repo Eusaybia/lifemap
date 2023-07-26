@@ -64,9 +64,10 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
     const [value, setValue] = React.useState<string>('');
     console.log("isMath", props.editor?.isActive('math'))
 
-    React.useEffect(() => {}, [props.editor?.state.selection])
-
     // Make sure the menu stays within the viewport
+    // TODO: Use more official implementation
+    // https://github.com/ueberdosis/tiptap/issues/2305
+    // https://floating-ui.com/
     React.useEffect(() => {
         const handleScroll = () => {
             if (elementRef.current) {
@@ -150,25 +151,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
 
 
     if (props.editor === null) return null;
-
-    // TODO: Fix status updating of the menu items
-    const handleChange = (
-        event: React.MouseEvent<Element> | React.KeyboardEvent<Element> | React.FocusEvent<Element> | null,
-        newValue: string | null
-    ) => {
-        if (newValue) {
-            setValue(newValue);
-        }
-        // Check which font is active in the current selection and update
-        // TODO: Technically, this should be checked both on change and when the menu is initalised
-        if (props.editor!.isActive('textStyle', { fontFamily: 'EB Garamond' })) {
-            setValue("EB Garamond");
-        } else if (props.editor!.isActive('textStyle', { fontFamily: 'Inter' })) {
-            setValue("Inter")
-        } else if (props.editor!.isActive('textStyle', { fontFamily: 'Arial' })) {
-            setValue("Arial")
-        }
-    };
+    console.log("actual size:", props.editor?.getAttributes('textStyle').fontSize)
 
     return (
         <BubbleMenu editor={props.editor} tippyOptions={{ duration: 100 }}>
@@ -306,10 +289,8 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                             <IconButton
                                 style={{ color: black }}
                                 size="sm"
-                                // @ts-ignore
                                 onClick={() => props.editor!.chain().focus().toggleBold().run()}
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
+                                variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
                                 <FormatBoldIcon />
                             </IconButton>
                             <IconButton

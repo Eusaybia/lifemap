@@ -172,7 +172,8 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     )
   }
 
-  const [editor, setEditor] = React.useState(new Editor({
+  // TODO: This breaks transclusion, possible solution is to use hook for the main editor, and new Editor objects for transclusions
+  const editor = useEditor({
     extensions: [...officalExtensions, ...customExtensions, ...agents],
     editable: !readOnly,
     editorProps: {
@@ -194,7 +195,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
 
       debounce(performBackup, 10000)
     }
-  }))
+  })
 
   return editor
 }
