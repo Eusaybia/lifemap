@@ -19,7 +19,7 @@ import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import { Tag, TypeTag } from "../content/Tag"
-import { black, highlightYellow } from "../Theme"
+import { black, highlightYellow, white } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch } from "./FlowSwitch"
 import React from "react"
@@ -287,37 +287,31 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                         </FlowSwitch>
                         <Tag isLens>
                             <IconButton
-                                style={{ color: black }}
+                                style={{ color: props.editor!.isActive('bold') ? white : black }}
                                 size="sm"
                                 onClick={() => props.editor!.chain().focus().toggleBold().run()}
                                 variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
                                 <FormatBoldIcon />
                             </IconButton>
                             <IconButton
-                                style={{ color: black }}
+                                style={{ color: props.editor!.isActive('italic') ? white : black }}
                                 size="sm"
-                                // @ts-ignore
                                 onClick={() => props.editor!.chain().focus().toggleItalic().run()}
-                                className={props.editor.isActive('italic') ? 'is-active' : ''}
-                                variant="plain">
+                                variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
                                 <FormatItalicIcon />
                             </IconButton>
                             <IconButton
-                                style={{ color: black }}
+                                style={{ color: props.editor!.isActive('underline') ? white : black }}
                                 size="sm"
-                                // @ts-ignore
                                 onClick={() => props.editor!.chain().focus().toggleUnderline().run()}
-                                className={props.editor.isActive('underline') ? 'is-active' : ''}
-                                variant="plain">
+                                variant={props.editor!.isActive('underline') ? "solid" : "plain"}>
                                 <FormatUnderlinedIcon />
                             </IconButton>
                             <IconButton
-                                style={{ color: black }}
+                                style={{ color: props.editor!.isActive('strike') ? white : black }}
                                 size="sm"
-                                // @ts-ignore
                                 onClick={() => props.editor!.chain().focus().toggleStrike().run()}
-                                className={props.editor.isActive('strike') ? 'is-active' : ''}
-                                variant="plain">
+                                variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
                                 <FormatStrikethrough />
                             </IconButton>
                         </Tag>
