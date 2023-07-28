@@ -3,7 +3,6 @@ import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample } from "../content/RichText"
 import { motion, useScroll, useVelocity } from "framer-motion"
 import Select from '@mui/joy/Select';
-import Option from '@mui/joy/Option';
 import IconButton from '@mui/joy/IconButton';
 import Chip from '@mui/joy/Chip';
 import InfoIcon from '@mui/icons-material/Info';
@@ -21,7 +20,7 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import { Tag, TypeTag } from "../content/Tag"
 import { black, highlightYellow, white } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
-import { FlowSwitch } from "./FlowSwitch"
+import { FlowSwitch, Option } from "./FlowSwitch"
 import React from "react"
 import { NodeSelection } from "prosemirror-state";
 
@@ -33,7 +32,7 @@ const flowMenuStyle = (isFixed: boolean, left: number): React.CSSProperties => {
         left: isFixed ? left : undefined,
         boxSizing: "border-box",
         flexShrink: 0,
-        width: "fit-content",
+        width: "max-content",
         height: "fit-content",
         display: "flex",
         flexDirection: "row",
@@ -62,7 +61,16 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
     const [left, setLeft] = React.useState(0);
     const elementRef = React.useRef<HTMLDivElement>(null);
     const [value, setValue] = React.useState<string>('');
-    console.log("isMath", props.editor?.isActive('math'))
+
+
+    const [selectedFont, setSelectedFont] = React.useState<string>("Inter")
+    const [selectedAlignment, setSelectedAlignment] = React.useState<string>("left")
+    const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("natural")
+    const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
+    const [selectedNotationLens, setSelectedNotationLens] = React.useState<string>("decimal")
+    const [selectedPrecisionLens, setSelectedPrecisionLens] = React.useState<string>("decimal")
+    const [selectedFractionLens, setSelectedFractionLens] = React.useState<string>("decimal")
+    const [selectedBaseLens, setSelectedBaseLens] = React.useState<string>("decimal")
 
     // Make sure the menu stays within the viewport
     // TODO: Use more official implementation
@@ -158,7 +166,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
             <motion.div
                 ref={elementRef}
                 style={flowMenuStyle(isFixed, left)}>
-                <FlowSwitch>
+                <FlowSwitch value={"Delete"}>
                     <motion.div>
                         Copy
                     </motion.div>
@@ -175,7 +183,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                         Delete
                     </motion.div>
                 </FlowSwitch>
-                <FlowSwitch>
+                <FlowSwitch value={"Add details"}>
                     <motion.div
                         onClick={() => {
                             const { selection } = props.editor!.state;
@@ -192,37 +200,40 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                             Add details
                         </span>
                     </motion.div>
-                    {/* // TODO: Update this to add speech */}
                     <motion.div onClick={() => props.editor!.chain().focus().setDetails().run()} >
+                        {/* // TODO: Update this to add speech */}
                         <span style={{ fontFamily: 'Inter' }}>
                             Add speech direction
                         </span>
                     </motion.div>
                 </FlowSwitch>
-                <FlowSwitch isLens>
-                    { !props.editor!.isActive('math') ? <div
-                        style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll" }}>
+                    {!props.editor!.isActive('math') ? <div
+                        style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
                         <Tag>
                             Rich Text
                         </Tag>
-                        <FlowSwitch isLens>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
-                                <span style={{ fontFamily: 'EB Garamond' }}>
-                                    EB Garamond
-                                </span>
-                            </motion.div>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Inter
-                                </span>
-                            </motion.div>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                        <FlowSwitch value={"Inter"} isLens>
+                            <Option value={"EB Garamond"}>
+                                <motion.div onClick={() => { }}>
+                                    <span style={{ fontFamily: 'EB Garamond' }}>
+                                        EB Garamond
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value={"Inter"}>
+                                <motion.div onClick={() => { }}>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Inter
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value={"Arial"}>
                                 <span style={{ fontFamily: 'Arial' }}>
                                     Arial
                                 </span>
-                            </motion.div>
+                            </Option>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={"30px"} isLens>
                             <motion.div
                                 onClick={() => props.editor!.chain().focus().setFontSize('36px').run()}
                             >
@@ -251,39 +262,48 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 14
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
-                            <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignLeft />
-                            </IconButton>
-                            <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignCentre />
-                            </IconButton>
-                            <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignRight />
-                            </IconButton>
-                            <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignJustify />
-                            </IconButton>
+                        <FlowSwitch value={selectedAlignment} isLens>
+                            <Option value="left">
+
+                                <IconButton
+                                    // @ts-ignore
+                                    onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
+                                    size="sm"
+                                    className={props.editor.isActive('bold') ? 'is-active' : ''}
+                                    variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
+                                    <FormatAlignLeft />
+                                </IconButton>
+                            </Option>
+                            <Option value="center">
+                                <IconButton
+                                    // @ts-ignore
+                                    onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
+                                    size="sm"
+                                    className={props.editor.isActive('bold') ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatAlignCentre />
+                                </IconButton>
+                            </Option>
+                            <Option value="right">
+                                <IconButton
+                                    // @ts-ignore
+                                    onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
+                                    size="sm"
+                                    className={props.editor.isActive('bold') ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatAlignRight />
+                                </IconButton>
+                            </Option>
+                            <Option value="justify">
+                                <IconButton
+                                    // @ts-ignore
+                                    onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
+                                    size="sm"
+                                    className={props.editor.isActive('bold') ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatAlignJustify />
+                                </IconButton>
+                            </Option>
                         </FlowSwitch>
                         <Tag isLens>
                             <IconButton
@@ -335,13 +355,12 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 <FormatColorFill />
                             </IconButton>
                         </Tag>
-                    </div> : <></>}
-                    {props.editor!.isActive('math') ? <div
-                        style={{ display: "flex", gap: 5, height: "fit-content" }}>
+                    </div> : <div
+                        style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
                         <Tag>
                             Math
                         </Tag>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedDisplayLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <div style={{ fontFamily: 'Inter' }}>
                                     Natural
@@ -363,7 +382,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedEvaluationLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     Simplify
@@ -380,7 +399,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedNotationLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     Scientific
@@ -397,7 +416,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedPrecisionLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     15 (Machine)
@@ -409,7 +428,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedFractionLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     Simplified Fraction
@@ -421,7 +440,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                        <FlowSwitch isLens>
+                        <FlowSwitch value={selectedBaseLens} isLens>
                             <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     Decimal
@@ -443,8 +462,7 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                                 </span>
                             </motion.div>
                         </FlowSwitch>
-                    </div> : <></>}
-                </FlowSwitch>
+                    </div>}
             </motion.div>
         </BubbleMenu>
     )

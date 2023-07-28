@@ -97,6 +97,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     return (
         <motion.div className="flow-menu"
+            key={props.value}
             ref={flowSwitchContainerRef}
             onScroll={
                 // TODO: In future, see if this can be replaced by onScrollEnd
