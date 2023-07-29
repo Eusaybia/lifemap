@@ -60,7 +60,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 scrollSnapAlign: "none",
                 width: "fit-content"
             }}
-            viewport={{ root: flowSwitchContainerRef, margin: "-12px 0px -12px 0px" }}
+            viewport={{ root: flowSwitchContainerRef, margin: "-13px 0px -13px 0px" }}
             onViewportEnter={(entry) => {
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
@@ -123,7 +123,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 flexShrink: 0,
                 width: "fit-content",
                 maxWidth: 500,
-                height: 37,
+                height: 39,
                 display: "flex",
                 flexDirection: "column",
                 // TODO: check the safe keyword works on other browsers

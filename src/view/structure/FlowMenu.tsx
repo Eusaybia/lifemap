@@ -213,25 +213,27 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                             Rich Text
                         </Tag>
                         <FlowSwitch value={"Inter"} isLens>
-                            <Option value={"EB Garamond"}>
-                                <motion.div onClick={() => { }}>
-                                    <span style={{ fontFamily: 'EB Garamond' }}>
-                                        EB Garamond
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value={"Inter"}>
-                                <motion.div onClick={() => { }}>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Inter
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value={"Arial"}>
+                        <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
+                            <motion.div onClick={() => { console.log("clicked EB") }}>
+                                <span style={{ fontFamily: 'EB Garamond' }}>
+                                    EB Garamond
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value={"Inter"} onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
+                            <motion.div onClick={() => { }}>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Inter
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value={"Arial"} onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                            <motion.div onClick={() => { }}>
                                 <span style={{ fontFamily: 'Arial' }}>
                                     Arial
                                 </span>
-                            </Option>
+                            </motion.div>
+                        </Option>
                         </FlowSwitch>
                         <FlowSwitch value={"30px"} isLens>
                             <motion.div
@@ -264,7 +266,6 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
                         </FlowSwitch>
                         <FlowSwitch value={selectedAlignment} isLens>
                             <Option value="left">
-
                                 <IconButton
                                     // @ts-ignore
                                     onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
