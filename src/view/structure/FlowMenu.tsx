@@ -24,12 +24,8 @@ import { FlowSwitch, Option } from "./FlowSwitch"
 import React from "react"
 import { NodeSelection } from "prosemirror-state";
 
-const flowMenuStyle = (isFixed: boolean, left: number): React.CSSProperties => {
+const flowMenuStyle = (): React.CSSProperties => {
     return {
-        position: isFixed ? "fixed" : "relative",
-        scale: 1,
-        top: isFixed ? 0 : undefined,
-        left: isFixed ? left : undefined,
         boxSizing: "border-box",
         flexShrink: 0,
         width: "max-content",
@@ -54,14 +50,7 @@ const flowMenuStyle = (isFixed: boolean, left: number): React.CSSProperties => {
 }
 
 export const FlowMenu = (props: { editor: Editor | null }) => {
-    const [isFixed, setIsFixed] = React.useState(false);
-    const [top, setTop] = React.useState(0);
-    const [right, setRight] = React.useState(0);
-    const [bottom, setBottom] = React.useState(0);
-    const [left, setLeft] = React.useState(0);
     const elementRef = React.useRef<HTMLDivElement>(null);
-    const [value, setValue] = React.useState<string>('');
-
 
     const [selectedFont, setSelectedFont] = React.useState<string>("Inter")
     const [selectedAlignment, setSelectedAlignment] = React.useState<string>("left")
@@ -72,100 +61,30 @@ export const FlowMenu = (props: { editor: Editor | null }) => {
     const [selectedFractionLens, setSelectedFractionLens] = React.useState<string>("decimal")
     const [selectedBaseLens, setSelectedBaseLens] = React.useState<string>("decimal")
 
-    // Make sure the menu stays within the viewport
-    // TODO: Use more official implementation
-    // https://github.com/ueberdosis/tiptap/issues/2305
-    // https://floating-ui.com/
-    React.useEffect(() => {
-        const handleScroll = () => {
-            if (elementRef.current) {
-                const rect = elementRef.current.getBoundingClientRect();
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                if (rect.top < 0) {
-                    // The element is about to be hidden at the top of the viewport
-                    // Update its position to keep it visible
-                    setIsFixed(true);
-                    setTop(0);
-                    setLeft(rect.left);
-                } else if (rect.bottom > viewportHeight) {
-                    // The element is about to be hidden at the bottom of the viewport
-                    // Update its position to keep it visible
-                    setIsFixed(true);
-                    setTop(viewportHeight - rect.height);
-                    setLeft(rect.left);
-                } else if (rect.left < 0) {
-                    // The element is about to be hidden on the left side of the viewport
-                    // Update its position to keep it visible
-                    setIsFixed(true);
-                    setTop(rect.top);
-                    setLeft(0);
-                } else if (rect.right > viewportWidth) {
-                    // The element is about to be hidden on the right side of the viewport
-                    // Update its position to keep it visible
-                    setIsFixed(true);
-                    setTop(rect.top);
-                    setLeft(viewportWidth - rect.width);
-                } else {
-                    // The element is still visible
-                    // Reset its position
-                    setIsFixed(false);
-                }
-            }
-        };
-
-        // window.addEventListener("scroll", handleScroll);
-        // return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-
-    React.useEffect(() => {
-        if (elementRef.current) {
-            const rect = elementRef.current.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            if (rect.top < 0) {
-                // The element is initially rendered off-screen at the top of the viewport
-                // Update its position to keep it visible
-                setIsFixed(true);
-                setTop(0);
-                setLeft(rect.left);
-            } else if (rect.bottom > viewportHeight) {
-                // The element is initially rendered off-screen at the bottom of the viewport
-                // Update its position to keep it visible
-                setIsFixed(true);
-                setTop(viewportHeight - rect.height);
-                setLeft(rect.left);
-            } else if (rect.left < 0) {
-                // The element is initially rendered off-screen on the left side of the viewport
-                // Update its position to keep it visible
-                setIsFixed(true);
-                setTop(rect.top);
-                setLeft(0);
-            } else if (rect.right > viewportWidth) {
-                // The element is initially rendered off-screen on the right side of the viewport
-                // Update its position to keep it visible
-                setIsFixed(true);
-                setTop(rect.top);
-                // TODO: This is kind of hacky, there shouldn't need to be a multiplier
-                setLeft(viewportWidth - 1.9 * rect.width);
-            } else {
-                // The element is initially rendered on-screen
-                // Do nothing
-            }
-        }
-    }, []);
-
-
     if (props.editor === null) return null;
     console.log("actual size:", props.editor?.getAttributes('textStyle').fontSize)
 
     return (
-        <BubbleMenu editor={props.editor} tippyOptions={{ duration: 100 }}>
+        <BubbleMenu 
+            editor={props.editor} 
+            tippyOptions={{
+                placement: "top", 
+                popperOptions: {
+                    strategy: 'fixed',
+                    modifiers: [
+                      {
+                        name: 'preventOverflow',
+                        options: {
+                          altAxis: true,
+                          tether: false,
+                        },
+                      },
+                    ],
+                  },
+            }}>
             <motion.div
                 ref={elementRef}
-                style={flowMenuStyle(isFixed, left)}>
+                style={flowMenuStyle()}>
                 <FlowSwitch value={"Delete"}>
                     <motion.div>
                         Copy
