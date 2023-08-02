@@ -16,7 +16,6 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         // Scroll to the element with the key === props.value
         const index = props.children.findIndex(child => (child.props.value === props.value))
 
-        console.log("index", index)
         if (index !== -1 && refs[index].current) {
             console.log("scrolling to", refs[index].current)
             // Find the element
@@ -158,7 +157,7 @@ export const Option = (props: { value: string, onClick?: () => void, children: R
 }
 
 export const FlowSwitchExample = () => {
-    const [selectedValue, setSelectedValue] = React.useState<string>("Inter")
+    const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
 
     return (
         <FlowSwitch value={selectedValue} isLens>

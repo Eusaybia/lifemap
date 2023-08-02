@@ -183,7 +183,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     },
     content: isYDoc ? null : information,
     onUpdate: ({ editor }) => {
-      // console.log("JSON Output", editor.getJSON())
+      console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       console.log("active", editor.state.selection)
@@ -218,21 +218,24 @@ export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [T
   }
 
   let editor = CustomisedEditor(content)
-
-  if (process.env.NODE_ENV === 'development') {
-    if (editor) {
-      // console.debug(editor.schema)
+  if (editor) {
+    if (process.env.NODE_ENV === 'development') {
+      if (editor) {
+        // console.debug(editor.schema)
+      }
     }
-  }
 
-  return (
-    <div key={props.qi?.id}>
-      <div key={`bubbleMenu${props.qi?.id}`}>
-        <FlowMenu editor={editor} />
+    return (
+      <div key={props.qi?.id}>
+        <div key={`bubbleMenu${props.qi?.id}`}>
+          <FlowMenu editor={editor} />
+        </div>
+        <EditorContent editor={editor} />
       </div>
-      <EditorContent editor={editor} />
-    </div>
-  )
+    )
+  } else {
+    return <>`Editor is loading :)`</>
+  }
 })
 
 export const RichTextCodeExample = () => {

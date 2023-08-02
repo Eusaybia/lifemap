@@ -79,11 +79,6 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
         <>
             {
                 {
-                    'latex':
-                        <RichText
-                            text={outputEquationString}
-                            lenses={["text"]}
-                        />,
                     'natural':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
                             if (props.updateContent) {
@@ -92,6 +87,16 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
                         }}>
                             {/* TODO: Make this read only */}
                             {props.equationString}
+                        </math-field>,
+                    'latex':
+                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
+                            if (props.updateContent) {
+                                props.updateContent(mathFieldRef.current?.value) 
+                            }
+                        }}>
+                            {/* TODO: Make this read only */}
+                            {props.equationString}
+                            latex
                         </math-field>,
                     'linear': 
                         <RichText
