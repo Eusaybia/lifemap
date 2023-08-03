@@ -1,6 +1,6 @@
+// import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
-import './styles.scss'
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)

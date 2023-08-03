@@ -1,8 +1,8 @@
+// import './styles.scss'
 import React, { useState } from 'react';
 import { Node, mergeAttributes, NodeViewProps, wrappingInputRule } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { Tag } from "../content/Tag";
-import './styles.scss'
 
 interface KeyValuePairAttributes {
   key: string;
@@ -53,7 +53,7 @@ export const KeyValuePairExtension = Node.create<KeyValuePairAttributes>({
           }
         },
       }),
-    ]
+    ];
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {

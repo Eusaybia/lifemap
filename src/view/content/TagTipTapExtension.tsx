@@ -1,10 +1,10 @@
+// import './MentionList.scss'
 import { MentionOptions } from "@tiptap/extension-mention";
 import { ReactRenderer } from "@tiptap/react";
 import { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 import React from "react";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import tippy, { Instance as TippyInstance } from "tippy.js";
-import './MentionList.scss'
 import { motion } from "framer-motion";
 
 export type MentionSuggestion = {
