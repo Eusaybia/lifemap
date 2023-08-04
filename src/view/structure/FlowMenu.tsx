@@ -327,6 +327,13 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         </Option>
                         </FlowSwitch>
                         <FlowSwitch value={selectedEvaluationLens} isLens >
+                            <Option value="identity" onClick={() => { setEvaluationLens("identity") }} >
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Identity
+                                    </span>
+                                </motion.div>
+                            </Option>
                             <Option value="simplify" onClick={() => { setEvaluationLens("simplify") }} >
                                 <motion.div>
                                     <span style={{ fontFamily: 'Inter' }}>

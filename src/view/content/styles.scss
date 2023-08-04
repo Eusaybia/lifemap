@@ -224,6 +224,12 @@
   }
 }
 
+
+.has-focus {
+  border-radius: 3px;
+  box-shadow: 0 0 0 3px #68cef8;
+}
+
 // Mapbox
 .map-container {
   height: 400px;
