@@ -1,8 +1,7 @@
 'use client'
 
-import { motion } from 'framer-motion';
 import * as React from 'react';
-import '@fontsource/public-sans';
+import { motion } from 'framer-motion';
 import { Qi } from '../src/core/Qi';
 
 const App = () => {
