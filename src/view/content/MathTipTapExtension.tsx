@@ -67,27 +67,27 @@ export const MathExtension = Node.create({
         <NodeViewWrapper>
           <div style={{
             padding: 5,
-            backgroundColor: "grey",
+            backgroundColor: "#EFEFEF",
             borderRadius: 5,
             boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
           }}
-          contentEditable="false"
-                onMouseLeave={(event) => {
-                    event.currentTarget.style.cursor = "grab";
-                }}
-                onMouseDown={(event) => {
-                    event.currentTarget.style.cursor = "grabbing";
-                }}
-                onMouseUp={(event) => {
-                    event.currentTarget.style.cursor = "grab";
-                }}
+            contentEditable="false"
+            onMouseLeave={(event) => {
+              event.currentTarget.style.cursor = "grab";
+            }}
+            onMouseDown={(event) => {
+              event.currentTarget.style.cursor = "grabbing";
+            }}
+            onMouseUp={(event) => {
+              event.currentTarget.style.cursor = "grab";
+            }}
             data-drag-handle
           >
-          <Math
-            equationString={props.node.attrs.equationValue}
-            loupe={getMathsLoupeFromAttributes(props.node.attrs)}
-            updateContent={updateContent}
-          />
+            <Math
+              equationString={props.node.attrs.equationValue}
+              loupe={getMathsLoupeFromAttributes(props.node.attrs)}
+              updateContent={updateContent}
+            />
           </div>
         </NodeViewWrapper>
       )

@@ -53,10 +53,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedAlignment, setSelectedAlignment] = React.useState<string>("left")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
-    const [selectedNotationLens, setSelectedNotationLens] = React.useState<string>("decimal")
-    const [selectedPrecisionLens, setSelectedPrecisionLens] = React.useState<string>("decimal")
-    const [selectedFractionLens, setSelectedFractionLens] = React.useState<string>("decimal")
-    const [selectedBaseLens, setSelectedBaseLens] = React.useState<string>("decimal")
 
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
     console.log("fontSize", props.editor.getAttributes('textStyle').fontSize)
@@ -83,6 +79,10 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     const setDisplayLensNatural = () => {
         props.editor!.chain().focus().updateAttributes("math", { lensDisplay: "natural" }).run();
+    }
+
+    const setEvaluationLens = (mathLens: MathLens) => {
+        props.editor!.chain().focus().updateAttributes("math", { lensEvaluation: mathLens }).run();
     }
 
     const setMathsLens = (mathLens: MathLens) => {
@@ -325,30 +325,30 @@ export const FlowMenu = (props: { editor: Editor }) => {
                                 </span>
                             </motion.div>
                         </Option>
-                    </FlowSwitch>
-                    <FlowSwitch value={selectedEvaluationLens} isLens>
-                        <Option value="simplify">
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Simplify
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="evaluate">
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Evaluate
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="numeric">
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Numeric
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
+                        </FlowSwitch>
+                        <FlowSwitch value={selectedEvaluationLens} isLens >
+                            <Option value="simplify" onClick={() => { setEvaluationLens("simplify") }} >
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Simplify
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value="evaluate" onClick={() => { setEvaluationLens("evaluate") }} >
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Evaluate
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value="numeric" onClick={() => { setEvaluationLens("numeric") }} >
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Numeric
+                                    </span>
+                                </motion.div>
+                            </Option>
+                        </FlowSwitch>
                 </div>}
             </motion.div>
         </BubbleMenu>

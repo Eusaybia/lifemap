@@ -8,6 +8,7 @@ import { Qi } from '../../core/Qi';
 import { DOMAttributes } from "react";
 import { MathfieldElementAttributes } from 'mathlive'
 import { Group } from '../structure/Group';
+import { observer } from 'mobx-react-lite';
 
 type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 
@@ -19,61 +20,57 @@ declare global {
   }
 }
 
-export const Math = (props: { equationString: string, loupe: MathsLoupe, children?: any, updateContent?: (event:any ) => void }) => {
+export const Math = observer((props: { equationString: string, loupe: MathsLoupe, children?: any, updateContent?: (event: any) => void }) => {
     console.log("equationString", props.equationString)
     const ce = new ComputeEngine();
-    const [outputEquationString, setOutputEquationString] = useState("");
+    // const [outputEquationString, setOutputEquationString] = useState("");
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
-    useEffect(() => {
-        let expression: BoxedExpression = ce.parse(props.equationString);
+    let expression: BoxedExpression = ce.parse(props.equationString);
 
-        // Configure evaluation mode
-        switch (props.loupe.evaluationLenses[props.loupe.selectedEvaluationLens]) {
-            case "identity":
-                // Do nothing
-                break;
-            case "evaluate":
-                // @ts-ignore
-                expression = expression.evaluate();
-                break;
-            case "simplify":
-                // @ts-ignore
-                expression = expression.simplify();
-                break;
-            case "numeric":
-                // @ts-ignore
-                expression = expression.N();
-                break;
-        }
+    // Configure evaluation mode
+    switch (props.loupe.evaluationLenses[props.loupe.selectedEvaluationLens]) {
+        case "identity":
+            // Do nothing
+            break;
+        case "evaluate":
+            // @ts-ignore
+            expression = expression.evaluate();
+            break;
+        case "simplify":
+            // @ts-ignore
+            expression = expression.simplify();
+            break;
+        case "numeric":
+            // @ts-ignore
+            expression = expression.N();
+            break;
+    }
 
-        // Check display lens to determine which format to display output
-        let newOutputEquationString = "";
-        switch (props.loupe.displayLenses[props.loupe.selectedDisplayLens]) {
-            case "latex":
-                // @ts-ignore
-                newOutputEquationString = expression.latex;
-                break;
-            case "linear":
-                // @ts-ignore
-                newOutputEquationString = convertLatexToAsciiMath(expression.latex);
-                break;
-            case "mathjson":
-                newOutputEquationString = expression.toString();
-                break;
-            case "natural":
-                // N/A
-                // @ts-ignore
-                newOutputEquationString = expression.latex;
-                break;
-            default:
-                break;
-        }
+    // Check display lens to determine which format to display output
+    let newOutputEquationString = "";
+    switch (props.loupe.displayLenses[props.loupe.selectedDisplayLens]) {
+        case "latex":
+            // @ts-ignore
+            newOutputEquationString = expression.latex;
+            break;
+        case "linear":
+            // @ts-ignore
+            newOutputEquationString = convertLatexToAsciiMath(expression.latex);
+            break;
+        case "mathjson":
+            newOutputEquationString = expression.toString();
+            break;
+        case "natural":
+            // N/A
+            // @ts-ignore
+            newOutputEquationString = expression.latex;
+            break;
+        default:
+            break;
+    }
 
-        setOutputEquationString(newOutputEquationString);
-        console.log("output", outputEquationString)
-    }, [props.equationString, props.loupe, outputEquationString]);
-
+    // setOutputEquationString(newOutputEquationString);
 
     return (
         <>
@@ -86,7 +83,7 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {props.equationString}
+                            {newOutputEquationString}
                         </math-field>,
                     'latex':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
@@ -95,24 +92,23 @@ export const Math = (props: { equationString: string, loupe: MathsLoupe, childre
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {props.equationString}
-                            latex
+                            {newOutputEquationString}
                         </math-field>,
                     'linear': 
                         <RichText
-                            text={outputEquationString}
+                            text={newOutputEquationString}
                             lenses={["code"]}
                         />,
                     'mathjson':
                         <RichText
-                            text={outputEquationString}
+                            text={newOutputEquationString}
                             lenses={["code"]}
                         />,
                 }[props.loupe.displayLenses[props.loupe.selectedDisplayLens]]
             }
         </>
     )
-}
+})
 
 export const MathsWithoutQi = () => {
     return (
