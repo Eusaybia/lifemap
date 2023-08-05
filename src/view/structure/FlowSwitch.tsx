@@ -1,10 +1,10 @@
 // import './styles.scss'
 import { motion } from "framer-motion"
+import { release } from "os"
 import React from "react"
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
-    const [realTimeSelected, setRealTimeSelected] = React.useState<number>(0)
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [hasBeenChanged, setHasBeenChanged] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
@@ -12,39 +12,8 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
     let timer: NodeJS.Timeout | null = null;
     const refs = props.children.map(() => React.createRef<HTMLDivElement>());
 
-    React.useEffect(() => {
-        // Scroll to the element with the key === props.value
-        const index = props.children.findIndex(child => (child.props.value === props.value))
-
-        if (index !== -1 && refs[index].current) {
-            console.log("scrolling to", refs[index].current)
-            // Find the element
-            refs[index].current?.scrollIntoView({ behavior: 'smooth' });
-
-            // Scroll to the element
-            const container = flowSwitchContainerRef.current;
-            const element = refs[index].current;
-
-            if (container && element) {
-                const containerRect = container.getBoundingClientRect();
-                const elementRect = element.getBoundingClientRect();
-
-                const scrollTop = elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
-
-                container.scrollTo({
-                    top: scrollTop,
-                    left: 0,
-                    behavior: 'smooth'
-                });
-            }
-
-        }
-
-    }, [props.value, refs])
-
-    const switchElements = props.children.map((child, index) => {
-        return (<motion.div
-            // @ts-ignore
+    const switchElements = props.children.map((child, index) => 
+        (<motion.div
             ref={refs[index]}
             initial={{ opacity: 0.2, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -71,14 +40,50 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 } else {
                     setHasBeenChanged(true)
                 }
+                console.log("setting selected index to ", index)
                 setSelectedIndex(index)
             }}
             key={index}
         >
             {child}
         </motion.div>)
-    }
     )
+
+    React.useEffect(() => {
+        // Scroll to the element with the key === props.value
+        const index = props.children.findIndex(child => {
+            return child.props.value === props.value
+        })
+        console.log("attempting to find element with key", props.value)
+        console.log("refs", refs)
+
+        if (index !== -1 && refs[index].current) {
+            console.log("found, and scrolling to", refs[index].current)
+            // Find the element
+            refs[index].current!.scrollIntoView({ behavior: 'smooth' });
+
+            // Scroll to the element
+            const container = flowSwitchContainerRef.current;
+            const element = refs[index].current;
+
+            if (container && element) {
+                const containerRect = container.getBoundingClientRect();
+                const elementRect = element.getBoundingClientRect();
+
+                const scrollTop = elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+
+                container.scrollTo({
+                    top: scrollTop,
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            }
+
+        } else {
+            console.log("not found key")
+        }
+
+    }, [props.value, refs])
 
     // Eventually use this scrollend event instead of a scroll timeout when more browsers support it
     // React.useEffect(() => {
@@ -105,13 +110,13 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                         clearTimeout(timer);
                     }
                     timer = setTimeout(function () {
-                        setReleaseSelected(realTimeSelected)
+                        setReleaseSelected(selectedIndex)
                         if (props.onChange) {
                             props.onChange(releaseSelected);
                         }
                         // TODO: This is mean to click the currently selected element, think of a better way.
                         // Basically, find the currently selected element, and invoke its onClick
-                        switchElements[selectedIndex].props.onClick()
+                        switchElements[releaseSelected].props.onClick()
                     }, 550);
                 }
             }
@@ -131,7 +136,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 color: props.isLens ? "#333333": "#222222",
                 padding: "5px 10px 5px 10px",
                 msOverflowStyle: "none",
-                overflow: "auto",
+                overflow: "scroll",
                 scrollbarColor: "transparent transparent",
                 boxShadow: "0px 0.6021873017743928px 3.010936508871964px -0.9166666666666666px rgba(0, 0, 0, 0.14), 0px 2.288533303243457px 11.442666516217285px -1.8333333333333333px rgba(0, 0, 0, 0.13178), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.1125)",
                 backgroundColor: props.isLens ? "rgba(217, 217, 217, 0.22)" : "rgba(250, 250, 250, 0.95)",
@@ -150,9 +155,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
 export const Option = (props: { value: string, onClick?: () => void, children: React.ReactElement }) => {
     return (
-        <>
+        <motion.div>
             {props.children}
-        </>
+        </motion.div>
     )
 }
 
@@ -161,24 +166,26 @@ export const FlowSwitchExample = () => {
 
     return (
         <FlowSwitch value={selectedValue} isLens>
-            <Option value={"EB Garamond"}>
-                <motion.div onClick={() => { }}>
+            <Option value={"EB Garamond"} onClick={() => {}}>
+                <motion.div>
                     <span style={{ fontFamily: 'EB Garamond' }}>
                         EB Garamond
                     </span>
                 </motion.div>
             </Option>
-            <Option value={"Inter"}>
-                <motion.div onClick={() => { }}>
+            <Option value={"Inter"} onClick={() => {}}>
+                <motion.div>
                     <span style={{ fontFamily: 'Inter' }}>
                         Inter
                     </span>
                 </motion.div>
             </Option>
-            <Option value={"Arial"}>
-                <span style={{ fontFamily: 'Arial' }}>
-                    Arial
-                </span>
+            <Option value={"Arial"} onClick={() => {}}>
+                <motion.div >
+                    <span style={{ fontFamily: 'Arial' }}>
+                        Arial
+                    </span>
+                </motion.div>
             </Option>
         </FlowSwitch>
     )
