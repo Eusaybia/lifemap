@@ -1,3 +1,4 @@
+import './MentionList.scss';
 import { Mention, MentionOptions } from '@tiptap/extension-mention';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 

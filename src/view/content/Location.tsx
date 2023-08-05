@@ -1,4 +1,4 @@
-// import './styles.scss';
+import './styles.scss';
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { SearchBox } from '@mapbox/search-js-react';
