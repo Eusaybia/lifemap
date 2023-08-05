@@ -18,8 +18,9 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
 import React from "react"
 import { NodeSelection } from "prosemirror-state";
-import { MathLens, displayLenses } from "../../core/Model";
+import { Lens, MathLens, displayLenses } from "../../core/Model";
 import { Select } from "@mui/material";
+import { observer } from "mobx-react-lite";
 
 const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -49,28 +50,37 @@ const flowMenuStyle = (): React.CSSProperties => {
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
 
-    const [selectedFont, setSelectedFont] = React.useState<string>("Inter")
+    const [selectedFont, setSelectedFont] = React.useState<string>("Arial")
     const [selectedAlignment, setSelectedAlignment] = React.useState<string>("left")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
+
+    // If I hard code a value for the FlowSwitch associated with the maths lenses, even that doesn't change them
+    // TODO: First, make sure that the font lenses are controlled
 
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
     console.log("fontSize", props.editor.getAttributes('textStyle').fontSize)
 
     const selection = props.editor!.view.state.selection
 
-    // @ts-ignore
-    if (selection.node) {
+    React.useEffect(() => {
+        // Typing is wrong, selection does have node field
         // @ts-ignore
-        const node = selection.node
-        const lensDisplay = node.attrs.lensDisplay
-        // TODO: This causes infinite loop
-        if (lensDisplay !== selectedDisplayLens) {
-            setSelectedDisplayLens(lensDisplay)
+        if (selection.node) {
+            // @ts-ignore
+            const node = selection.node
+            const lensDisplay: MathLens = node.attrs.lensDisplay
+            const lensEvaluation: MathLens = node.attrs.lensEvaluation
+
+            setSelectedDisplayLens(node.attrs.lensDisplay)
+            setSelectedEvaluationLens(node.attrs.lensEvaluation)
+
+            console.log('selected node', node);
+            console.log('lensDisplay', lensDisplay);
+            console.log('lensEvaluation', lensEvaluation);
         }
-        console.log('selected node', node);
-        console.log('lensDisplay', lensDisplay);
-    }
+    // @ts-ignore
+    }, [])
 
     // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
     const setDisplayLensLatex = () => {
@@ -82,6 +92,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     }
 
     const setEvaluationLens = (mathLens: MathLens) => {
+        console.log("setting evaluation lens:", mathLens)
         props.editor!.chain().focus().updateAttributes("math", { lensEvaluation: mathLens }).run();
     }
 
@@ -113,23 +124,23 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <Tag>
                         Rich Text
                     </Tag>
-                    <FlowSwitch value={"Arial"} isLens>
+                    <FlowSwitch value={selectedFont} isLens>
                         <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
-                            <motion.div onClick={() => { console.log("clicked EB") }}>
+                            <motion.div>
                                 <span style={{ fontFamily: 'EB Garamond' }}>
                                     EB Garamond
                                 </span>
                             </motion.div>
                         </Option>
                         <Option value={"Inter"} onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
-                            <motion.div onClick={() => { }}>
+                            <motion.div>
                                 <span style={{ fontFamily: 'Inter' }}>
                                     Inter
                                 </span>
                             </motion.div>
                         </Option>
                         <Option value={"Arial"} onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                            <motion.div onClick={() => { }}>
+                            <motion.div>
                                 <span style={{ fontFamily: 'Arial' }}>
                                     Arial
                                 </span>
@@ -139,49 +150,71 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <FlowSwitch value={props.editor.getAttributes('textStyle').fontSize} isLens>
                         <Option
                             value={"36px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('36px').run()}
+                            onClick={() => {props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked")}}
                         >
-                            <motion.div
-                            >
-                                36
+                            <motion.div>
+                                <span>
+                                    36
+                                </span>
                             </motion.div>
                         </Option>
                         <Option
                             value={"30px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('30px').run()}
+                            onClick={() => {props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked")}}
                         >
-                            <motion.div
-                            >
-                                30
+                            <motion.div>
+                                <span>
+                                    30
+                                </span>
                             </motion.div>
                         </Option>
                         <Option
                             value={"24px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('30px').run()}
-                        >
-                        <motion.div
                             onClick={() => props.editor!.chain().focus().setFontSize('24px').run()}
                         >
-                            24
-                        </motion.div>
+                            <motion.div>
+                                <span>
+                                    24
+                                </span>
+                            </motion.div>
                         </Option>
                         <Option
                             value={"20px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('30px').run()}
+                            onClick={() => props.editor!.chain().focus().setFontSize('20px').run()}
                         >
-                        <motion.div onClick={() => props.editor!.chain().focus().setFontSize('24px').run()}>
-                            20
-                        </motion.div>
+                            <motion.div>
+                                <span>
+                                    20
+                                </span>
+                            </motion.div>
                         </Option>
-                        <motion.div onClick={() => props.editor!.chain().focus().setFontSize('18px').run()}>
-                            18
-                        </motion.div>
-                        <motion.div onClick={() => props.editor!.chain().focus().setFontSize('16px').run()}>
-                            16
-                        </motion.div>
-                        <motion.div onClick={() => props.editor!.chain().focus().setFontSize('14px').run()}>
-                            14
-                        </motion.div>
+                        <Option value={"18px"}
+                            onClick={() => props.editor!.chain().focus().setFontSize('18px').run()}
+                        >
+                            <motion.div>
+                                <span>
+                                    18
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value={"16px"}
+                            onClick={() => props.editor!.chain().focus().setFontSize('16px').run()}
+                        >
+                            <motion.div>
+                                <span>
+                                    16
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value={"14px"}
+                            onClick={() => props.editor!.chain().focus().setFontSize('14px').run()}
+                        >
+                            <motion.div>
+                                <span>
+                                    14
+                                </span>
+                            </motion.div>
+                        </Option>
                     </FlowSwitch>
                     <FlowSwitch value={selectedAlignment} isLens>
                         <Option value="left">
@@ -280,53 +313,53 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <Tag>
                         Math
                     </Tag>
-                    <FlowSwitch value={selectedDisplayLens} isLens>
-                        <Option value="natural" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensNatural()
-                        }}>
-                            <motion.div>
-                                <div style={{ fontFamily: 'Inter' }}>
-                                    Natural
-                                </div>
-                            </motion.div>
-                        </Option>
-                        <Option value="latex" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Latex
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="linear" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Linear
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="mathjson" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    MathJSON
-                                </span>
-                            </motion.div>
-                        </Option>
+                        <FlowSwitch value={selectedDisplayLens} isLens>
+                            <Option value="natural" onClick={() => {
+                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                                // setMathsLens("latex")
+                                setDisplayLensNatural()
+                            }}>
+                                <motion.div>
+                                    <div style={{ fontFamily: 'Inter' }}>
+                                        Natural
+                                    </div>
+                                </motion.div>
+                            </Option>
+                            <Option value="latex" onClick={() => {
+                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                                // setMathsLens("latex")
+                                setDisplayLensLatex()
+                            }}>
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Latex
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value="linear" onClick={() => {
+                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                                // setMathsLens("latex")
+                                setDisplayLensLatex()
+                            }}>
+                                <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        Linear
+                                    </span>
+                                </motion.div>
+                            </Option>
+                            <Option value="mathjson" onClick={() => {
+                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                                // setMathsLens("latex")
+                                setDisplayLensLatex()
+                            }}>
+                                <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                                    <span style={{ fontFamily: 'Inter' }}>
+                                        MathJSON
+                                    </span>
+                                </motion.div>
+                            </Option>
                         </FlowSwitch>
-                        <FlowSwitch value={selectedEvaluationLens} isLens >
+                        <FlowSwitch value={"evaluate"} isLens >
                             <Option value="identity" onClick={() => { setEvaluationLens("identity") }} >
                                 <motion.div>
                                     <span style={{ fontFamily: 'Inter' }}>
