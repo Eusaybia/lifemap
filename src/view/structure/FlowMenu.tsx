@@ -217,40 +217,40 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         </Option>
                     </FlowSwitch>
                     <FlowSwitch value={selectedAlignment} isLens>
-                        <Option value="left">
+                        <Option value="left"
+                            onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
+                        >
                             <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
                                 size="sm"
                                 className={props.editor.isActive('bold') ? 'is-active' : ''}
                                 variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
                                 <FormatAlignLeft />
                             </IconButton>
                         </Option>
-                        <Option value="center">
+                        <Option value="center"
+                            onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
+                        >
                             <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
                                 size="sm"
                                 className={props.editor.isActive('bold') ? 'is-active' : ''}
                                 variant="plain">
                                 <FormatAlignCentre />
                             </IconButton>
                         </Option>
-                        <Option value="right">
+                        <Option value="right"
+                            onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
+                        >
                             <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
                                 size="sm"
                                 className={props.editor.isActive('bold') ? 'is-active' : ''}
                                 variant="plain">
                                 <FormatAlignRight />
                             </IconButton>
                         </Option>
-                        <Option value="justify">
+                        <Option value="justify"
+                            onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
+                        >
                             <IconButton
-                                // @ts-ignore
-                                onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
                                 size="sm"
                                 className={props.editor.isActive('bold') ? 'is-active' : ''}
                                 variant="plain">
