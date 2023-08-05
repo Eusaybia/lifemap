@@ -34,6 +34,7 @@ export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) =>
                 position: "relative",
                 backgroundColor: white,
                 minHeight: 20,
+                width: "fit-content",
                 borderRadius: `10px`,
                 border: `2px solid var(--Light_Grey, #dddddd)`,
                 boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
