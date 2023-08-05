@@ -55,6 +55,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
+
     // If I hard code a value for the FlowSwitch associated with the maths lenses, even that doesn't change them
     // TODO: First, make sure that the font lenses are controlled
 
@@ -79,7 +80,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
             console.log('lensDisplay', lensDisplay);
             console.log('lensEvaluation', lensEvaluation);
         }
-    // @ts-ignore
+        setSelectedFont(props.editor.getAttributes('textStyle').fontFamily)
+
     }, [])
 
     // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
@@ -153,8 +155,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => {props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked")}}
                         >
                             <motion.div>
-                                <span>
-                                    36
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    36 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -163,8 +165,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => {props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked")}}
                         >
                             <motion.div>
-                                <span>
-                                    30
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    30 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -173,8 +175,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => props.editor!.chain().focus().setFontSize('24px').run()}
                         >
                             <motion.div>
-                                <span>
-                                    24
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    24 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -183,8 +185,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => props.editor!.chain().focus().setFontSize('20px').run()}
                         >
                             <motion.div>
-                                <span>
-                                    20
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    20 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -192,8 +194,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => props.editor!.chain().focus().setFontSize('18px').run()}
                         >
                             <motion.div>
-                                <span>
-                                    18
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    18 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -201,8 +203,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => props.editor!.chain().focus().setFontSize('16px').run()}
                         >
                             <motion.div>
-                                <span>
-                                    16
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    16 px
                                 </span>
                             </motion.div>
                         </Option>
@@ -210,8 +212,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             onClick={() => props.editor!.chain().focus().setFontSize('14px').run()}
                         >
                             <motion.div>
-                                <span>
-                                    14
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    14 px
                                 </span>
                             </motion.div>
                         </Option>

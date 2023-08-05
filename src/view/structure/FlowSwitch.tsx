@@ -51,6 +51,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     React.useEffect(() => {
         // Scroll to the element with the key === props.value
+        // Find the element
         const index = props.children.findIndex(child => {
             return child.props.value === props.value
         })
@@ -59,8 +60,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
         if (index !== -1 && refs[index].current) {
             console.log("found, and scrolling to", refs[index].current)
-            // Find the element
-            refs[index].current!.scrollIntoView({ behavior: 'smooth' });
+            // refs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
             // Scroll to the element
             const container = flowSwitchContainerRef.current;
@@ -83,7 +83,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             console.log("not found key")
         }
 
-    }, [props.value, refs])
+    }, [refs])
 
     // Eventually use this scrollend event instead of a scroll timeout when more browsers support it
     // React.useEffect(() => {
@@ -116,7 +116,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                         }
                         // TODO: This is mean to click the currently selected element, think of a better way.
                         // Basically, find the currently selected element, and invoke its onClick
-                        switchElements[releaseSelected].props.onClick()
+                        switchElements[selectedIndex].props.onClick()
                     }, 550);
                 }
             }
