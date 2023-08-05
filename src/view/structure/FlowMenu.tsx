@@ -50,8 +50,6 @@ const flowMenuStyle = (): React.CSSProperties => {
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
 
-    const [selectedFont, setSelectedFont] = React.useState<string>("Arial")
-    const [selectedAlignment, setSelectedAlignment] = React.useState<string>("left")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
@@ -80,7 +78,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
             console.log('lensDisplay', lensDisplay);
             console.log('lensEvaluation', lensEvaluation);
         }
-        setSelectedFont(props.editor.getAttributes('textStyle').fontFamily)
 
     }, [])
 
@@ -126,7 +123,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <Tag>
                         Rich Text
                     </Tag>
-                    <FlowSwitch value={selectedFont} isLens>
+                    <FlowSwitch value={props.editor.getAttributes('textStyle').fontFamily} isLens>
                         <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                             <motion.div>
                                 <span style={{ fontFamily: 'EB Garamond' }}>
@@ -218,7 +215,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </motion.div>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={selectedAlignment} isLens>
+                    <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens>
                         <Option value="left"
                             onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
                         >
