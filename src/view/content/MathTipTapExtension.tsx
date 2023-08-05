@@ -15,8 +15,8 @@ const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "
 
 export const MathExtension = Node.create({
   name: "math",
-  group: "inline",
-  inline: true,
+  group: "block",
+  inline: false,
   content: "block*",
   selectable: true,
   atom: true,
@@ -65,30 +65,11 @@ export const MathExtension = Node.create({
       
       return (
         <NodeViewWrapper>
-          <div style={{
-            padding: 5,
-            backgroundColor: "#EFEFEF",
-            borderRadius: 5,
-            boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
-          }}
-            contentEditable="false"
-            onMouseLeave={(event) => {
-              event.currentTarget.style.cursor = "grab";
-            }}
-            onMouseDown={(event) => {
-              event.currentTarget.style.cursor = "grabbing";
-            }}
-            onMouseUp={(event) => {
-              event.currentTarget.style.cursor = "grab";
-            }}
-            data-drag-handle
-          >
-            <Math
-              equationString={props.node.attrs.equationValue}
-              loupe={getMathsLoupeFromAttributes(props.node.attrs)}
-              updateContent={updateContent}
-            />
-          </div>
+          <Math
+            equationString={props.node.attrs.equationValue}
+            nodeAttributes={props.node.attrs}
+            updateContent={updateContent}
+          />
         </NodeViewWrapper>
       )
     })

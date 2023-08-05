@@ -9,6 +9,9 @@ import { DOMAttributes } from "react";
 import { MathfieldElementAttributes } from 'mathlive'
 import { Group } from '../structure/Group';
 import { observer } from 'mobx-react-lite';
+import { motion } from 'framer-motion';
+import { Attrs } from 'prosemirror-model';
+import { getMathsLoupeFromAttributes } from '../../utils/utils';
 
 type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 
@@ -20,16 +23,21 @@ declare global {
   }
 }
 
-export const Math = observer((props: { equationString: string, loupe: MathsLoupe, children?: any, updateContent?: (event: any) => void }) => {
+export const Math = observer((props: { equationString: string, nodeAttributes: Attrs, children?: any, updateContent?: (event: any) => void }) => {
     console.log("equationString", props.equationString)
     const ce = new ComputeEngine();
     // const [outputEquationString, setOutputEquationString] = useState("");
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
     let expression: BoxedExpression = ce.parse(props.equationString);
+    let loupe: MathsLoupe = new MathsLoupeC();
+
+    // React.useEffect(() => {
+    loupe = getMathsLoupeFromAttributes(props.nodeAttributes)
+    // }, [props.nodeAttributes])
 
     // Configure evaluation mode
-    switch (props.loupe.evaluationLenses[props.loupe.selectedEvaluationLens]) {
+    switch (loupe.evaluationLenses[loupe.selectedEvaluationLens]) {
         case "identity":
             // Do nothing
             break;
@@ -49,7 +57,7 @@ export const Math = observer((props: { equationString: string, loupe: MathsLoupe
 
     // Check display lens to determine which format to display output
     let newOutputEquationString = "";
-    switch (props.loupe.displayLenses[props.loupe.selectedDisplayLens]) {
+    switch (loupe.displayLenses[loupe.selectedDisplayLens]) {
         case "latex":
             // @ts-ignore
             newOutputEquationString = expression.latex;
@@ -73,7 +81,31 @@ export const Math = observer((props: { equationString: string, loupe: MathsLoupe
     // setOutputEquationString(newOutputEquationString);
 
     return (
-        <>
+          <motion.div style={{
+            position: "relative",
+            width: "fit-content",
+            padding: 5,
+            backgroundColor: "#EFEFEF",
+            borderRadius: 5,
+            boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
+          }}
+          >
+            <motion.div data-drag-handle
+                onMouseLeave={(event) => {
+                    event.currentTarget.style.cursor = "grab";
+                }}
+                onMouseDown={(event) => {
+                    event.currentTarget.style.cursor = "grabbing";
+                }}
+                onMouseUp={(event) => {
+                    event.currentTarget.style.cursor = "grab";
+                }}
+                style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+                contentEditable="false"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}>
+                ⠿
+            </motion.div>
             {
                 {
                     'natural':
@@ -104,9 +136,9 @@ export const Math = observer((props: { equationString: string, loupe: MathsLoupe
                             text={newOutputEquationString}
                             lenses={["code"]}
                         />,
-                }[props.loupe.displayLenses[props.loupe.selectedDisplayLens]]
+                }[loupe.displayLenses[loupe.selectedDisplayLens]]
             }
-        </>
+        </motion.div>
     )
 })
 

@@ -239,7 +239,7 @@ export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [T
       </div>
     )
   } else {
-    return <>`Editor is loading :)`</>
+    return <>Editor is loading... 🙂</>
   }
 })
 
