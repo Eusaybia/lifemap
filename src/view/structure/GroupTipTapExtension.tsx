@@ -5,7 +5,6 @@ import { Group } from "./Group";
 import { Qi } from "../../core/Qi";
 import { group } from "console";
 
-export const tildeInputRegex = /~>$/
 // TODO: Match for brackets with text in between
 export const groupInputRegex = /{([^{}]*)}/;
 
@@ -30,11 +29,6 @@ export const GroupExtension = Node.create({
   },
   addInputRules() {
     return [
-      nodeInputRule({
-        find: tildeInputRegex,
-        type: this.type,
-        getAttributes: ({ groups }) => groups,
-      }),
       wrappingInputRule({
         find: groupInputRegex,
         type: this.type,

@@ -45,7 +45,7 @@ import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
-import { Conversation } from '../structure/Conversation'
+import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
@@ -140,7 +140,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
   const customExtensions: Extensions = [
    CalculationExtension,
    CommentExtension,
-   Conversation,
+   ConversationExtension,
    CustomLink.configure({
      openOnClick: true,
    }),

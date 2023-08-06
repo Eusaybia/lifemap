@@ -8,9 +8,10 @@ import { Message } from "../content/Message";
 
 export const tildeInputRegex = /~>$/
 
-export const Conversation = Node.create({
+export const ConversationExtension = Node.create({
   name: "conversation",
   group: "block",
+  // TODO: Technically this should only accept message nodes
   content: "block*",
   // TODO: Doesn't handle inline groups
   inline: false,
@@ -29,10 +30,9 @@ export const Conversation = Node.create({
   },
   addInputRules() {
     return [
-      nodeInputRule({
+      wrappingInputRule({
         find: tildeInputRegex,
         type: this.type,
-        getAttributes: ({ groups }) => groups,
       }),
     ]
   },
@@ -40,7 +40,13 @@ export const Conversation = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
+          <>
+          </>
           <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
+            <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
+              Group Chat
+            </div>
+            <NodeViewContent/>
           </Group>
         </NodeViewWrapper>
       );

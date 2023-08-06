@@ -34,11 +34,11 @@ export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) =>
                 position: "relative",
                 backgroundColor: white,
                 minHeight: 20,
-                width: "fit-content",
+                // width: "fit-content",
                 borderRadius: `10px`,
-                border: `2px solid var(--Light_Grey, #dddddd)`,
-                boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
-                padding: `20px`,
+                // border: `2px solid var(--Light_Grey, #dddddd)`,
+                boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 10px 34px -3px rgba(0, 0, 0, 0.2)`,
+                padding: `35px`,
                 margin: `10px 0px 10px 0px`,
             }}
         >
