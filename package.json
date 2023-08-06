@@ -99,7 +99,7 @@
     "dev-web": "yarn next dev",
     "dev-ios": "npx cap open ios",
     "dev-android": "npx cap open android",
-    "build": "yarn initialise-mobile-native && CI=false && yarn next build && npx cap sync",
+    "build": "yarn initialise-mobile-native && CI=false && yarn next build",
     "test": "jest test"
   },
   "browserslist": {
