@@ -1,3 +1,5 @@
+'use client'
+
 import './styles.scss'
 import React, { useEffect, useRef } from 'react'
 import Placeholder from '@tiptap/extension-placeholder'
