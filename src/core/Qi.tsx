@@ -9,7 +9,6 @@ export const Qi = (props: { qiId: QiId; userId: string, loupe?: Loupe }) => {
     // This store is not visual, it is purely to feed information
     // @ts-ignore
     <NoSSR>
-
       <QiStore qiId={props.qiId} userId={props.userId}>
         {/* Use the qi in QiStore 
       This seemingly gets the wrong qi, the default value, rather than
