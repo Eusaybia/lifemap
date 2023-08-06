@@ -1,3 +1,5 @@
+'use client'
+
 import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { TiptapCollabProvider } from '@hocuspocus/provider'
