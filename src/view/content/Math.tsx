@@ -152,28 +152,6 @@ export const MathsWithoutQi = () => {
     )
 }
 
-export const MathNaturalExample = () => {
-    const computation = `10 * 12`
-    const quadraticFormula = String.raw`x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}`
-    let qi: QiT = new QiC()
-    // qi.informationTypeName = 'maths' 
-    let mathsLoupe = new MathsLoupeC()
-    let equationString = computation;
-    const content = `
-    $$
-        \frac{1}{2}
-    $$
-    `
-    const parsedContent = `
-    <math-live>
-        \frac{1}{2}
-    </math-live>
-    `
-    return (
-        <Math equationString={equationString} loupe={mathsLoupe} updateContent={() => { return }} />
-    )
-}
-
 export const MathWithQiExample = () => {
     const computation = `10 * 12`
     const quadraticFormula = String.raw`x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}`

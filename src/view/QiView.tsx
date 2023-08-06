@@ -24,13 +24,12 @@ export const QiView = observer((props: { qi: QiT | ShenT }) => {
             console.log(change) 
           }}
         />;
+// TODO: Get rid of this since attrs handle lenses
       case 'ascii-math':
       case 'math-live-boxed-json-expression':
       case 'latex':
         const loupe = new MathsLoupeC()
-        return <Math loupe={loupe} updateContent={function (change: string | JSONContent): void {
-          //
-        } } equationString={""} />
+        return
       default:
         throw Error("Qi does not fall into any existing informationTypes")
     }
