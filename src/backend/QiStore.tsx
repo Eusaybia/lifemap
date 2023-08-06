@@ -22,7 +22,7 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   new TiptapCollabProvider({ 
     appId: appId,// get this at collab.tiptap.dev
     name: roomName, // e.g. a uuid uuidv4();
-    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2ODQxNDQ5MDAsIm5iZiI6MTY4NDE0NDkwMCwiZXhwIjoxNjg0MjMxMzAwLCJpc3MiOiJodHRwczovL2NvbGxhYi50aXB0YXAuZGV2IiwiYXVkIjoia29uZ3dlaUBldXNheWJpYS5jb20ifQ.bUsMJ8W_T15zk0PWdiBddMeVLNyppDlI6g7Vr3dIA3s', // see "Authentication" below
+    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2OTEzMDY5MTUsIm5iZiI6MTY5MTMwNjkxNSwiZXhwIjoxNjkxMzkzMzE1LCJpc3MiOiJodHRwczovL2NvbGxhYi50aXB0YXAuZGV2IiwiYXVkIjoia29uZ3dlaUBldXNheWJpYS5jb20ifQ._5rFNU0bG-vQ6DM_NAEPX8sRcu5H7q3Ka1cz2aTO7H4',
     document: qi.information
   });
 
