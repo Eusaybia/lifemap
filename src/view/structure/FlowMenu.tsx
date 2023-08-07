@@ -108,6 +108,9 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     // TODO: For some reason the FlowSwitch doesn't work properly when embedded into the BubbleMenu
     // TODO: For now, just use a normal MUI select
+    const font = props.editor.getAttributes('textStyle').fontFamily;
+    const fontSize = props.editor.getAttributes('textStyle').fontSize
+    const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
 
     return (
         <BubbleMenu
@@ -123,7 +126,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <Tag>
                         Rich Text
                     </Tag>
-                    <FlowSwitch value={props.editor.getAttributes('textStyle').fontFamily} isLens>
+                    <FlowSwitch value={font} isLens>
                         <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                             <motion.div>
                                 <span style={{ fontFamily: 'EB Garamond' }}>
@@ -146,7 +149,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </motion.div>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={props.editor.getAttributes('textStyle').fontSize} isLens>
+                    <FlowSwitch value={fontSize} isLens>
                         <Option
                             value={"36px"}
                             onClick={() => {props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked")}}
@@ -215,7 +218,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </motion.div>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens>
+                    <FlowSwitch value={}>
+                    {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
                         <Option value="left"
                             onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
                         >
