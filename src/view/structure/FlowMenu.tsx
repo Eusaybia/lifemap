@@ -218,7 +218,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </motion.div>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={}>
+                    <FlowSwitch value={justification}>
                     {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
                         <Option value="left"
                             onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
