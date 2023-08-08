@@ -18,6 +18,9 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
 
   const appId = 'dy9wzo9x'
 
+  //  Sync the document locally
+  new IndexeddbPersistence(roomName, qi.information)
+
   // Sync the document using the cloud provider
   new TiptapCollabProvider({ 
     appId: appId,// get this at collab.tiptap.dev
@@ -28,8 +31,6 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
 
   console.log("roomName", roomName)
 
-  //  Sync the document locally
-  new IndexeddbPersistence(roomName, qi.information)
 
   return (
     <QiStoreContext.Provider value={qi}>
