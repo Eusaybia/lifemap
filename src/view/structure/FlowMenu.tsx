@@ -108,9 +108,9 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     // TODO: For some reason the FlowSwitch doesn't work properly when embedded into the BubbleMenu
     // TODO: For now, just use a normal MUI select
-    const font = props.editor.getAttributes('textStyle').fontFamily;
-    const fontSize = props.editor.getAttributes('textStyle').fontSize
-    const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
+    const font = true ? "Arial" : props.editor.getAttributes('textStyle').fontFamily;
+    const fontSize = true ? "14px" : props.editor.getAttributes('textStyle').fontSize
+    const justification = true ? "center" : props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
 
     return (
         <BubbleMenu
