@@ -152,7 +152,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <FlowSwitch value={fontSize} isLens>
                         <Option
                             value={"36px"}
-                            onClick={() => {props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked")}}
+                            onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
                         >
                             <motion.div>
                                 <span style={{ fontFamily: 'Inter' }}>
@@ -162,7 +162,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         </Option>
                         <Option
                             value={"30px"}
-                            onClick={() => {props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked")}}
+                            onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
                         >
                             <motion.div>
                                 <span style={{ fontFamily: 'Inter' }}>
@@ -218,8 +218,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </motion.div>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={justification}>
-                    {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
+                    <FlowSwitch value={justification} isLens>
+                        {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
                         <Option value="left"
                             onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
                         >
@@ -291,157 +291,155 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             <FormatStrikethrough />
                         </IconButton>
                     </Tag>
-                    <Tag isLens>
-                        <FlowSwitch value={justification}>
-                            <Option 
-                                value={"#121212"}
-                                onClick={() => props.editor.chain().focus().setColor('#121212').run()}
+                    <FlowSwitch value={justification} isLens>
+                        <Option
+                            value={"#121212"}
+                            onClick={() => props.editor.chain().focus().setColor('#121212').run()}
+                        >
+                            <IconButton
+                                style={{ color: black }}
+                                size="sm"
+                                // @ts-ignore
+                                className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
+                                variant="plain"
                             >
-                                <IconButton
-                                    style={{ color: black }}
-                                    size="sm"
-                                    // @ts-ignore
-                                    className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
-                                    variant="plain"
-                                >
-                                    <FormatColorTextIcon />
-                                </IconButton>
-                            </Option>
-                            <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
-                                <IconButton
-                                    style={{ color: "#958DF1" }}
-                                    size="sm"
-                                    // @ts-ignore
-                                    className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
-                                    variant="plain"
-                                >
-                                    <FormatColorTextIcon />
-                                </IconButton>
-                            </Option>
-                        </FlowSwitch>
-                        <FlowSwitch value={justification}>
-                            <Option 
-                                value={highlightYellow}
-                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
+                                <FormatColorTextIcon />
+                            </IconButton>
+                        </Option>
+                        <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
+                            <IconButton
+                                style={{ color: "#958DF1" }}
+                                size="sm"
+                                // @ts-ignore
+                                className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
+                                variant="plain"
                             >
-                                <IconButton
-                                    style={{ color: highlightYellow }}
-                                    size="sm"
-                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                    className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
-                                    variant="plain">
-                                    <FormatColorFill />
-                                </IconButton>
-                            </Option>
-                            <Option 
-                                value={blue}
-                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: blue }).run()}
-                            >
-                                <IconButton
-                                    style={{ color: blue }}
-                                    size="sm"
-                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                    className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
-                                    variant="plain">
-                                    <FormatColorFill />
-                                </IconButton>
-                            </Option>
-                            <Option 
-                                value={purple}
-                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: purple }).run()}
-                            >
-                                <IconButton
-                                    style={{ color: purple }}
-                                    size="sm"
-                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                    className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
-                                    variant="plain">
-                                    <FormatColorFill />
-                                </IconButton>
-                            </Option>
-                        </FlowSwitch>
-                    </Tag>
+                                <FormatColorTextIcon />
+                            </IconButton>
+                        </Option>
+                    </FlowSwitch>
+                    <FlowSwitch value={justification} isLens>
+                        <Option
+                            value={highlightYellow}
+                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
+                        >
+                            <IconButton
+                                style={{ color: highlightYellow }}
+                                size="sm"
+                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
+                                variant="plain">
+                                <FormatColorFill />
+                            </IconButton>
+                        </Option>
+                        <Option
+                            value={blue}
+                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: blue }).run()}
+                        >
+                            <IconButton
+                                style={{ color: blue }}
+                                size="sm"
+                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                                variant="plain">
+                                <FormatColorFill />
+                            </IconButton>
+                        </Option>
+                        <Option
+                            value={purple}
+                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: purple }).run()}
+                        >
+                            <IconButton
+                                style={{ color: purple }}
+                                size="sm"
+                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                                variant="plain">
+                                <FormatColorFill />
+                            </IconButton>
+                        </Option>
+                    </FlowSwitch>
                 </div> : <div
                     style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
                     <Tag>
                         Math
                     </Tag>
-                        <FlowSwitch value={selectedDisplayLens} isLens>
-                            <Option value="natural" onClick={() => {
-                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                                // setMathsLens("latex")
-                                setDisplayLensNatural()
-                            }}>
-                                <motion.div>
-                                    <div style={{ fontFamily: 'Inter' }}>
-                                        Natural
-                                    </div>
-                                </motion.div>
-                            </Option>
-                            <Option value="latex" onClick={() => {
-                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                                // setMathsLens("latex")
-                                setDisplayLensLatex()
-                            }}>
-                                <motion.div>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Latex
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value="linear" onClick={() => {
-                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                                // setMathsLens("latex")
-                                setDisplayLensLatex()
-                            }}>
-                                <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Linear
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value="mathjson" onClick={() => {
-                                // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                                // setMathsLens("latex")
-                                setDisplayLensLatex()
-                            }}>
-                                <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        MathJSON
-                                    </span>
-                                </motion.div>
-                            </Option>
-                        </FlowSwitch>
-                        <FlowSwitch value={"evaluate"} isLens >
-                            <Option value="identity" onClick={() => { setEvaluationLens("identity") }} >
-                                <motion.div>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Identity
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value="simplify" onClick={() => { setEvaluationLens("simplify") }} >
-                                <motion.div>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Simplify
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value="evaluate" onClick={() => { setEvaluationLens("evaluate") }} >
-                                <motion.div>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Evaluate
-                                    </span>
-                                </motion.div>
-                            </Option>
-                            <Option value="numeric" onClick={() => { setEvaluationLens("numeric") }} >
-                                <motion.div>
-                                    <span style={{ fontFamily: 'Inter' }}>
-                                        Numeric
-                                    </span>
-                                </motion.div>
-                            </Option>
-                        </FlowSwitch>
+                    <FlowSwitch value={selectedDisplayLens} isLens>
+                        <Option value="natural" onClick={() => {
+                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                            // setMathsLens("latex")
+                            setDisplayLensNatural()
+                        }}>
+                            <motion.div>
+                                <div style={{ fontFamily: 'Inter' }}>
+                                    Natural
+                                </div>
+                            </motion.div>
+                        </Option>
+                        <Option value="latex" onClick={() => {
+                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                            // setMathsLens("latex")
+                            setDisplayLensLatex()
+                        }}>
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Latex
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value="linear" onClick={() => {
+                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                            // setMathsLens("latex")
+                            setDisplayLensLatex()
+                        }}>
+                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Linear
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value="mathjson" onClick={() => {
+                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                            // setMathsLens("latex")
+                            setDisplayLensLatex()
+                        }}>
+                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    MathJSON
+                                </span>
+                            </motion.div>
+                        </Option>
+                    </FlowSwitch>
+                    <FlowSwitch value={"evaluate"} isLens >
+                        <Option value="identity" onClick={() => { setEvaluationLens("identity") }} >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Identity
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value="simplify" onClick={() => { setEvaluationLens("simplify") }} >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Simplify
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value="evaluate" onClick={() => { setEvaluationLens("evaluate") }} >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Evaluate
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option value="numeric" onClick={() => { setEvaluationLens("numeric") }} >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    Numeric
+                                </span>
+                            </motion.div>
+                        </Option>
+                    </FlowSwitch>
                 </div>}
             </motion.div>
         </BubbleMenu>
