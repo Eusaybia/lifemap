@@ -13,13 +13,13 @@ import FormatAlignRight from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import { Tag } from "../content/Tag"
-import { black, highlightYellow, white } from "../Theme"
+import { black, blue, highlightYellow, purple, white } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
 import React from "react"
 import { NodeSelection } from "prosemirror-state";
 import { Lens, MathLens, displayLenses } from "../../core/Model";
-import { Select } from "@mui/material";
+import { Icon, Select } from "@mui/material";
 import { observer } from "mobx-react-lite";
 
 const flowMenuStyle = (): React.CSSProperties => {
@@ -292,24 +292,74 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         </IconButton>
                     </Tag>
                     <Tag isLens>
-                        <IconButton
-                            style={{ color: black }}
-                            size="sm"
-                            // @ts-ignore
-                            onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}
-                            className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
-                            variant="plain">
-                            <FormatColorTextIcon />
-                        </IconButton>
-                        <IconButton
-                            style={{ color: black }}
-                            size="sm"
-                            // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
-                            className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
-                            variant="plain">
-                            <FormatColorFill />
-                        </IconButton>
+                        <FlowSwitch value={justification}>
+                            <Option 
+                                value={"#121212"}
+                                onClick={() => props.editor.chain().focus().setColor('#121212').run()}
+                            >
+                                <IconButton
+                                    style={{ color: black }}
+                                    size="sm"
+                                    // @ts-ignore
+                                    className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
+                                    variant="plain"
+                                >
+                                    <FormatColorTextIcon />
+                                </IconButton>
+                            </Option>
+                            <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
+                                <IconButton
+                                    style={{ color: "#958DF1" }}
+                                    size="sm"
+                                    // @ts-ignore
+                                    className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
+                                    variant="plain"
+                                >
+                                    <FormatColorTextIcon />
+                                </IconButton>
+                            </Option>
+                        </FlowSwitch>
+                        <FlowSwitch value={justification}>
+                            <Option 
+                                value={highlightYellow}
+                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
+                            >
+                                <IconButton
+                                    style={{ color: highlightYellow }}
+                                    size="sm"
+                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                    className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatColorFill />
+                                </IconButton>
+                            </Option>
+                            <Option 
+                                value={blue}
+                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: blue }).run()}
+                            >
+                                <IconButton
+                                    style={{ color: blue }}
+                                    size="sm"
+                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                    className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatColorFill />
+                                </IconButton>
+                            </Option>
+                            <Option 
+                                value={purple}
+                                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: purple }).run()}
+                            >
+                                <IconButton
+                                    style={{ color: purple }}
+                                    size="sm"
+                                    // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                                    className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                                    variant="plain">
+                                    <FormatColorFill />
+                                </IconButton>
+                            </Option>
+                        </FlowSwitch>
                     </Tag>
                 </div> : <div
                     style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>

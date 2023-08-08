@@ -94,7 +94,9 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     Heading.configure({
       levels: [1, 2, 3, 4],
     }),
-    Highlight,
+    Highlight.configure({
+      multicolor: true,
+    }),
     Image,
     Placeholder.configure({
       includeChildren: true,
