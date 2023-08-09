@@ -141,6 +141,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 boxShadow: "0px 0.6021873017743928px 3.010936508871964px -0.9166666666666666px rgba(0, 0, 0, 0.14), 0px 2.288533303243457px 11.442666516217285px -1.8333333333333333px rgba(0, 0, 0, 0.13178), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.1125)",
                 backgroundColor: props.isLens ? "rgba(217, 217, 217, 0.22)" : "rgba(250, 250, 250, 0.95)",
                 backdropFilter: props.isLens ? `blur(3px)` : ``,
+                WebkitBackdropFilter: `blur(3px)`,
                 transform: `translate3d(0, 0, 0)`, // this fixes blur not displaying properly on Safari
                 position: "relative",
                 alignContent: "start",
