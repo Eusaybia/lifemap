@@ -24,61 +24,56 @@ declare global {
 }
 
 export const Math = observer((props: { equationString: string, nodeAttributes: Attrs, children?: any, updateContent?: (event: any) => void }) => {
-    console.log("equationString", props.equationString)
     const ce = new ComputeEngine();
-    // const [outputEquationString, setOutputEquationString] = useState("");
     const mathFieldRef = React.useRef<HTMLInputElement>()
+
+    let [outputEquationString, setOutputEquationString] = React.useState<string>(props.equationString)
 
     let expression: BoxedExpression = ce.parse(props.equationString);
     let loupe: MathsLoupe = new MathsLoupeC();
 
-    // React.useEffect(() => {
-    loupe = getMathsLoupeFromAttributes(props.nodeAttributes)
-    // }, [props.nodeAttributes])
+    React.useEffect(() => {
+        loupe = getMathsLoupeFromAttributes(props.nodeAttributes)
+        console.log("maths equationString", props.equationString)
+        console.log("maths node attrs", props.nodeAttributes)
 
-    // Configure evaluation mode
-    switch (loupe.evaluationLenses[loupe.selectedEvaluationLens]) {
-        case "identity":
-            // Do nothing
-            break;
-        case "evaluate":
-            // @ts-ignore
-            expression = expression.evaluate();
-            break;
-        case "simplify":
-            // @ts-ignore
-            expression = expression.simplify();
-            break;
-        case "numeric":
-            // @ts-ignore
-            expression = expression.N();
-            break;
-    }
+        // Configure evaluation mode
+        switch (loupe.evaluationLenses[loupe.selectedEvaluationLens]) {
+            case "identity":
+                // Do nothing
+                break;
+            case "evaluate":
+                // @ts-ignore
+                expression = expression.evaluate();
+                break;
+            case "simplify":
+                // @ts-ignore
+                expression = expression.simplify();
+                break;
+            case "numeric":
+                // @ts-ignore
+                expression = expression.N();
+                break;
+        }
 
-    // Check display lens to determine which format to display output
-    let newOutputEquationString = "";
-    switch (loupe.displayLenses[loupe.selectedDisplayLens]) {
-        case "latex":
-            // @ts-ignore
-            newOutputEquationString = expression.latex;
-            break;
-        case "linear":
-            // @ts-ignore
-            newOutputEquationString = convertLatexToAsciiMath(expression.latex);
-            break;
-        case "mathjson":
-            newOutputEquationString = expression.toString();
-            break;
-        case "natural":
-            // N/A
-            // @ts-ignore
-            newOutputEquationString = expression.latex;
-            break;
-        default:
-            break;
-    }
-
-    // setOutputEquationString(newOutputEquationString);
+        // Check display lens to determine which format to display output
+        switch (loupe.displayLenses[loupe.selectedDisplayLens]) {
+            case "latex":
+                setOutputEquationString(expression.latex)
+                break;
+            case "linear":
+                setOutputEquationString(convertLatexToAsciiMath(expression.latex))
+                break;
+            case "mathjson":
+                setOutputEquationString(expression.toString())
+                break;
+            case "natural":
+                setOutputEquationString(expression.latex)
+                break;
+            default:
+                break;
+        }
+    }, [props.nodeAttributes, props.equationString])
 
     return (
           <motion.div style={{
@@ -115,7 +110,7 @@ export const Math = observer((props: { equationString: string, nodeAttributes: A
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {newOutputEquationString}
+                            {outputEquationString}
                         </math-field>,
                     'latex':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
@@ -124,16 +119,16 @@ export const Math = observer((props: { equationString: string, nodeAttributes: A
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {newOutputEquationString}
+                            {outputEquationString}
                         </math-field>,
                     'linear': 
                         <RichText
-                            text={newOutputEquationString}
+                            text={outputEquationString}
                             lenses={["code"]}
                         />,
                     'mathjson':
                         <RichText
-                            text={newOutputEquationString}
+                            text={outputEquationString}
                             lenses={["code"]}
                         />,
                 }[loupe.displayLenses[loupe.selectedDisplayLens]]
