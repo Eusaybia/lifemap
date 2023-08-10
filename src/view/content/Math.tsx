@@ -1,29 +1,45 @@
-import React, { useCallback } from 'react'
-import MathView, { MathViewRef } from "react-math-view"
+import React, { DetailedHTMLProps, HTMLAttributes, useCallback, useEffect, useState } from 'react'
 import { BoxedExpression, ComputeEngine } from '@cortex-js/compute-engine';
 import { MathsLoupe, MathsLoupeC, QiC, QiT } from '../../core/Model';
 import { RichText } from './RichText';
-import { convertLatexToAsciiMath} from 'mathlive';
+import { convertLatexToAsciiMath } from 'mathlive';
 import { JSONContent } from '@tiptap/react';
 import { Qi } from '../../core/Qi';
+import { DOMAttributes } from "react";
+import { MathfieldElementAttributes } from 'mathlive'
+import { Group } from '../structure/Group';
+import { observer } from 'mobx-react-lite';
+import { motion } from 'framer-motion';
+import { Attrs } from 'prosemirror-model';
+import { getMathsLoupeFromAttributes } from '../../utils/utils';
 
-export const Math = (props: { qi: QiT, equationString?: string, loupe: MathsLoupe, onChange: (change: string | JSONContent) => void }) => {
-    const ref = React.useRef<MathViewRef>(null)
-    const toggleKeyboard = useCallback(
-        () => ref.current?.executeCommand("toggleVirtualKeyboard"),
-        [ref]
-    )
-    const text = props.qi.informationText
+type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      ["math-field"]: CustomElement<MathfieldElementAttributes>;
+    }
+  }
+}
+
+export const Math = observer((props: { equationString: string, nodeAttributes: Attrs, children?: any, updateContent?: (event: any) => void }) => {
+    console.log("equationString", props.equationString)
     const ce = new ComputeEngine();
-    const [equationString, setEquationString] = React.useState(text|| "");
+    // const [outputEquationString, setOutputEquationString] = useState("");
+    const mathFieldRef = React.useRef<HTMLInputElement>()
 
-    let expression: BoxedExpression = ce.parse(equationString)
-    let outputEquationString = ""
+    let expression: BoxedExpression = ce.parse(props.equationString);
+    let loupe: MathsLoupe = new MathsLoupeC();
+
+    // React.useEffect(() => {
+    loupe = getMathsLoupeFromAttributes(props.nodeAttributes)
+    // }, [props.nodeAttributes])
 
     // Configure evaluation mode
-    switch (props.loupe.evaluationLenses[props.loupe.selectedEvaluationLens]) {
+    switch (loupe.evaluationLenses[loupe.selectedEvaluationLens]) {
         case "identity":
+            // Do nothing
             break;
         case "evaluate":
             // @ts-ignore
@@ -40,97 +56,99 @@ export const Math = (props: { qi: QiT, equationString?: string, loupe: MathsLoup
     }
 
     // Check display lens to determine which format to display output
-    // https://cortexjs.io/mathlive/guides/static/
-    // Convert to string
-    switch (props.loupe.displayLenses[props.loupe.selectedDisplayLens]) {
+    let newOutputEquationString = "";
+    switch (loupe.displayLenses[loupe.selectedDisplayLens]) {
         case "latex":
-            // Use props.equation and feed into RichText view
-            // Or try and activate latex editing mode
             // @ts-ignore
-            outputEquationString = expression.latex;
-            
+            newOutputEquationString = expression.latex;
             break;
         case "linear":
             // @ts-ignore
-            outputEquationString = convertLatexToAsciiMath(expression.latex)
+            newOutputEquationString = convertLatexToAsciiMath(expression.latex);
             break;
         case "mathjson":
-            outputEquationString = expression.toString()
-
+            newOutputEquationString = expression.toString();
             break;
         case "natural":
             // N/A
             // @ts-ignore
-            outputEquationString = expression.latex
-
+            newOutputEquationString = expression.latex;
             break;
         default:
             break;
     }
 
+    // setOutputEquationString(newOutputEquationString);
+
     return (
-        <>
+          <motion.div style={{
+            position: "relative",
+            width: "fit-content",
+            padding: 5,
+            backgroundColor: "#EFEFEF",
+            borderRadius: 5,
+            boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
+          }}
+          >
+            <motion.div data-drag-handle
+                onMouseLeave={(event) => {
+                    event.currentTarget.style.cursor = "grab";
+                }}
+                onMouseDown={(event) => {
+                    event.currentTarget.style.cursor = "grabbing";
+                }}
+                onMouseUp={(event) => {
+                    event.currentTarget.style.cursor = "grab";
+                }}
+                style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+                contentEditable="false"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}>
+                ⠿
+            </motion.div>
             {
                 {
+                    'natural':
+                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
+                            if (props.updateContent) {
+                                props.updateContent(mathFieldRef.current?.value) 
+                            }
+                        }}>
+                            {/* TODO: Make this read only */}
+                            {newOutputEquationString}
+                        </math-field>,
                     'latex':
-                        <RichText
-                            text={outputEquationString}
-                            lenses={["text"]}
-                            onChange={props.onChange}
-                        />,
-                    'natural': 
-                        <MathView
-                            readOnly={props.loupe.evaluationLenses[props.loupe.selectedEvaluationLens] !== "identity"}
-                            style={{
-                                fontSize: 25,
-                                fontFamily: "SF Pro",
-                                display: "inline-block",
-                            }}
-                            value={outputEquationString}
-                            onChange={(e: React.SyntheticEvent<any, any>) => {
-                                // console.log('value', e.currentTarget.getValue('spoken'), ref.current?.getValue('latex'));
-                                console.log(e.currentTarget.getValue('latex'))
-                                props.onChange(e.currentTarget.getValue('latex'))
-                            }}
-                            ref={ref}
-                        />,
+                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
+                            if (props.updateContent) {
+                                props.updateContent(mathFieldRef.current?.value) 
+                            }
+                        }}>
+                            {/* TODO: Make this read only */}
+                            {newOutputEquationString}
+                        </math-field>,
                     'linear': 
                         <RichText
-                            text={outputEquationString}
+                            text={newOutputEquationString}
                             lenses={["code"]}
-                            onChange={props.onChange}
                         />,
                     'mathjson':
                         <RichText
-                            text={outputEquationString}
+                            text={newOutputEquationString}
                             lenses={["code"]}
-                            onChange={props.onChange}
                         />,
-                }[props.loupe.displayLenses[props.loupe.selectedDisplayLens]]
+                }[loupe.displayLenses[loupe.selectedDisplayLens]]
             }
-        </>
+        </motion.div>
     )
-}
+})
 
-export const MathNaturalExample = () => {
-    const computation = `10 * 12`
-    const quadraticFormula = String.raw`x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}`
-    let qi: QiT = new QiC()
-    // qi.informationTypeName = 'maths' 
-    let mathsLoupe = new MathsLoupeC()
-    let equationString = computation;
-    const content = `
-    $$
-        \frac{1}{2}
-    $$
-    `
-    const parsedContent = `
-    <math-live>
-        \frac{1}{2}
-    </math-live>
-    `
+export const MathsWithoutQi = () => {
     return (
-        <Math qi={qi} equationString={equationString} loupe={mathsLoupe} onChange={() => { return }} />
+        <div>
+            <math-field>
+                \frac{1}{2}
+            </math-field>
+        </div>
     )
 }
 

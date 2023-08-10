@@ -1,36 +1,34 @@
 import React from "react";
 import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
-import { Group } from "./Group";
-import { Qi } from "../../core/Qi";
-import { group } from "console";
+import { motion } from "framer-motion";
+import { purple } from "../Theme";
 
-// TODO: Match for brackets with text in between
-export const groupInputRegex = /{([^{}]*)}/;
+export const doubleDoubleQuoteInputRegex = /""([^""]*)""/
 
-export const GroupExtension = Node.create({
-  name: "group",
+export const QuoteExtension = Node.create({
+  name: "quote",
   group: "block",
   content: "block*",
   // TODO: Doesn't handle inline groups
   inline: false,
-  selectable: true,
-  draggable: true,
+  selectable: false,
   atom: true,
   parseHTML() {
     return [
       {
-        tag: "group",
+        tag: "quote",
       },
     ];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["group", HTMLAttributes, 0];
+    return ["quote", HTMLAttributes, 0];
   },
+  draggable: true,
   addInputRules() {
     return [
       wrappingInputRule({
-        find: groupInputRegex,
+        find: doubleDoubleQuoteInputRegex,
         type: this.type,
       })
     ]
@@ -39,9 +37,14 @@ export const GroupExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
+          <motion.div style={{
+            backgroundColor: purple, borderRadius: 5, padding: `20px 20px 20px 20px`, color: "#FFFFFF"
+          }}>
+            <div style={{fontFamily: "Times New Roman", fontSize: 50}}>
+              {"💬"}
+            </div>
             <NodeViewContent />
-          </Group>
+          </motion.div>
         </NodeViewWrapper>
       );
     });

@@ -4,13 +4,14 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule 
 import { Group } from "./Group";
 import { Qi } from "../../core/Qi";
 import { group } from "console";
+import { Message } from "../content/Message";
 
-// TODO: Match for brackets with text in between
-export const groupInputRegex = /{([^{}]*)}/;
+export const tildeInputRegex = /~>$/
 
-export const GroupExtension = Node.create({
-  name: "group",
+export const ConversationExtension = Node.create({
+  name: "conversation",
   group: "block",
+  // TODO: Technically this should only accept message nodes
   content: "block*",
   // TODO: Doesn't handle inline groups
   inline: false,
@@ -20,27 +21,32 @@ export const GroupExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: "group",
+        tag: "conversation",
       },
     ];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["group", HTMLAttributes, 0];
+    return ["conversation", HTMLAttributes, 0];
   },
   addInputRules() {
     return [
       wrappingInputRule({
-        find: groupInputRegex,
+        find: tildeInputRegex,
         type: this.type,
-      })
+      }),
     ]
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
+          <>
+          </>
           <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
-            <NodeViewContent />
+            <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
+              Group Chat
+            </div>
+            <NodeViewContent/>
           </Group>
         </NodeViewWrapper>
       );

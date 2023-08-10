@@ -47,11 +47,9 @@ yarn install
 ```
 ### 3. Run Lifemap 
 ```bash
-yarn start 
+yarn dev-web 
 ```
-### 4. Run tests 
-```bash
-yarn test 
+
 ```
 ## Engineering design decisions
 - Language

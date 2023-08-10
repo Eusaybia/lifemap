@@ -1,69 +1,78 @@
 import React from "react";
-import { Node, mergeAttributes, InputRule, wrappingInputRule, markInputRule, Mark } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule, NodeViewContent } from "@tiptap/react";
-import { DOMAttributes } from "react";
-import { MathfieldElementAttributes } from 'mathlive'
-import { Math } from './Math';
+import { Node, mergeAttributes, InputRule, wrappingInputRule, markInputRule, Mark, JSONContent, nodeInputRule } from "@tiptap/core";
+import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { Math } from "../content/Math"
 import { MathsLoupeC } from "../../core/Model";
+import { NodeViewProps } from '@tiptap/core'
+import { getMathsLoupeFromAttributes } from "../../utils/utils";
+import { Tag } from "./Tag";
+import { FlowSwitch } from "../structure/FlowSwitch";
+import { motion } from "framer-motion";
+import { TextSelection } from "prosemirror-state";
 
-export const regexMathsDollars: RegExp = /\$([^\$]*)\$/gi;
-export const inlineRegexMathsDollars: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
-export const REGEX_BLOCK_MATH_DOLLARS:RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
+const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
+const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
 
-
-export const blockInputRegex = /^\s*~\s$/
-
-export const MathExtension = Mark.create({
+export const MathExtension = Node.create({
   name: "math",
-  group: "(block | inline)",
-  content: "text*",
-  code: true,
-  inline: true,
-  selectable: false,
+  group: "block",
+  inline: false,
+  content: "block*",
+  selectable: true,
   atom: true,
   draggable: true,
   parseHTML() {
     return [
       {
-        tag: "math-live",
+        tag: "math",
       },
     ];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["math-live", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+    return ["math", mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+  },
+  addAttributes() {
+    // Return an object with attribute configuration
+    return {
+      lensDisplay: {
+        default: 'natural'
+      },
+      lensEvaluation: {
+        default: 'evaluate'
+      },
+      equationValue: {
+        default: ''
+      }
+    }
   },
   addInputRules() {
     return [
-      markInputRule({
-        find: inlineRegexMathsDollars,
+      wrappingInputRule({
+        find: REGEX_INLINE_MATH_DOLLARS,
         type: this.type,
-        getAttributes: ({ groups }) => groups,
       }),
-    ]
+      wrappingInputRule({
+        find: REGEX_BLOCK_MATH_DOLLARS,
+        type: this.type,
+      }),
+    ];
   },
-  addKeyboardShortcuts() {
-    return {
-      'Mod-Enter': () => {
-        return this.editor.chain().insertContentAt(this.editor.state.selection.head, { type: this.type.name }).focus().run()
-      },
-    }
-  },
-  // Each type should have an extension that is a single react component, the component takes in the loupe and renders
-  // So basically
-  // MathExtension -> MathView -> n * MathLenses (each of which is its own component)
-  // javascript elements or react components, based on child.
-  // Need to get the content of the matched selection and pass it into Math too. 
-  // Can use NodeView Content for more basic things like code, as opposed to Math
   addNodeView() {
-    return ReactNodeViewRenderer((props: any) => {
+    return ReactNodeViewRenderer((props: NodeViewProps) => {
+      const updateContent = (changedEquation: string) => {
+        props.updateAttributes({ equationValue: changedEquation });
+      }
+      
       return (
         <NodeViewWrapper>
-          {/* <Math loupe={new MathsLoupeC()}> */}
-            <NodeViewContent />
-          {/* </Math> */}
+          <Math
+            equationString={props.node.attrs.equationValue}
+            nodeAttributes={props.node.attrs}
+            updateContent={updateContent}
+          />
         </NodeViewWrapper>
-      );
-    });
+      )
+    })
   },
 });
 

@@ -1,8 +1,8 @@
-import { motion } from 'framer-motion';
+'use client'
+
 import * as React from 'react';
-import { Qi } from './core/Qi';
-import { Group } from './view/structure/Group';
-import '@fontsource/public-sans';
+import { motion } from 'framer-motion';
+import { Qi } from '../src/core/Qi';
 
 const App = () => {
   return (
