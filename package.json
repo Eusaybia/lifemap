@@ -97,7 +97,7 @@
   },
   "scripts": {
     "initialise-mobile-native": "yarn next build && npx cap add android && npx cap add ios",
-    "dev-web": "yarn concurrently -n NEXT,TS -c magenta,cyan \"yarn next dev -p 1234\" \"yarn tsc --watch\"",
+    "dev-web": "yarn concurrently -n NEXT,TS -c magenta,cyan \"yarn next dev -p 3000\" \"yarn tsc --watch\"",
     "dev-ios": "npx cap open ios",
     "dev-android": "npx cap open android",
     "build": "CI=false && yarn next build",

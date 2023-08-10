@@ -4,6 +4,8 @@ import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { TiptapCollabProvider } from '@hocuspocus/provider'
 import { QiC, QiId, QiT } from "../core/Model";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../app/page";
 
 // Handles storing and syncing information from a single qi to the database
 export const QiStoreContext = React.createContext<QiT>(new QiC());
@@ -21,16 +23,28 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   //  Sync the document locally
   new IndexeddbPersistence(roomName, qi.information)
 
+  // Generate a JWT Auth Token to verify the user 
+  let jwt = ""
+  const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
+  generateAuthenticationToken().then((result) => {
+    // Read result of the Cloud Function.
+    console.log("result", result)
+    const data: any = result.data;
+    jwt = data.jwt;
+    console.log("jwt", jwt)
+  }).catch((error) => {
+    console.error(error)
+  });
+
   // Sync the document using the cloud provider
   new TiptapCollabProvider({ 
     appId: appId,// get this at collab.tiptap.dev
     name: roomName, // e.g. a uuid uuidv4();
-    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE2OTE0NTk2MDIsIm5iZiI6MTY5MTQ1OTYwMiwiZXhwIjoxNjkxNTQ2MDAyLCJpc3MiOiJodHRwczovL2NvbGxhYi50aXB0YXAuZGV2IiwiYXVkIjoia29uZ3dlaUBldXNheWJpYS5jb20ifQ.AeaTq-IkPZ5n21XAVj5lS5IfUNNsz3As25sUhkexxQY',
+    token: jwt,
     document: qi.information
   });
 
   console.log("roomName", roomName)
-
 
   return (
     <QiStoreContext.Provider value={qi}>
