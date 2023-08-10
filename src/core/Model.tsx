@@ -47,7 +47,7 @@ export class QiC implements QiT {
     get informationText() {
         // const editor = CustomisedEditor(this.information);
         const prosemirrorJSON: JSONContent = TiptapTransformer.fromYdoc(this.information)
-        console.log(prosemirrorJSON)
+        // console.log(prosemirrorJSON)
         if (prosemirrorJSON.text) {
             return prosemirrorJSON.text
         } else {

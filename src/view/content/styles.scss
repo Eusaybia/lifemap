@@ -9,15 +9,23 @@
     margin-top: 0em;
   }
 
+  mark {
+    background-color: #ffe066;
+    border-radius: 0.25em;
+    box-decoration-break: clone;
+    padding: 0.125em 0;
+  }
+
   p {
-    margin: 0em 0;
+    margin: 0px 0;
+    line-height: 1.35;
   }
 
   h1 {
     margin: 0em 0;
     font-family: 'EB Garamond';
   }
-  
+
   h2 {
     margin: 0em 0;
     font-family: 'EB Garamond';
@@ -31,8 +39,7 @@
   ul[data-type="taskList"] {
     list-style: none;
     padding: 0;
-    margin-block-start: 0;
-    margin-block-end: 0;
+    margin: 1.5px 0;
 
     p {
       margin: 0;
@@ -40,6 +47,7 @@
 
     li {
       display: flex;
+      margin: 1.5px 0;
 
       >label {
         flex: 0 0 auto;
@@ -50,74 +58,15 @@
       >div {
         flex: 1 1 auto;
       }
-    }
-  }
 
-  $black: #363839;
-  $lightgray: #9c9e9f;
-  $gray: #bdc1c6;
-  $white: #fff;
-  $green: #06842c;
-
-  input[type="checkbox"] {
-    position: relative;
-    width: 19px;
-    height: 19px;
-    color: $black;
-    border: 1.5px solid $gray;
-    border-radius: 4px;
-    appearance: none;
-    outline: 0;
-    cursor: pointer;
-    transition: background 175ms cubic-bezier(0.1, 0.1, 0.25, 1);
-
-    &::before {
-      position: absolute;
-      content: '';
-      display: block;
-      top: 0.5px;
-      left: 5px;
-      width: 6px;
-      height: 12px;
-      border-style: solid;
-      border-color: $white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-      opacity: 0;
-    }
-
-    &:checked {
-      color: $white;
-      border-color: $green;
-      background: $green;
-
-      &::before {
-        opacity: 1;
+      ul li,
+      ol li {
+        display: list-item;
       }
 
-      ~label::before {
-        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      ul[data-type="taskList"]>li {
+        display: flex;
       }
-    }
-  }
-
-  label {
-    position: relative;
-    cursor: pointer;
-    font-size: 12.5px;
-    font-weight: 600;
-    padding: 2.5px 3px 0;
-    user-select: none;
-
-    &::before {
-      position: absolute;
-      content: attr(data-content);
-      color: $lightgray;
-      clip-path: polygon(0 0, 0 0, 0% 100%, 0 100%);
-      text-decoration: line-through;
-      text-decoration-thickness: 3px;
-      text-decoration-color: $black;
-      transition: clip-path 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
   }
 
@@ -187,4 +136,116 @@
       font-weight: 700;
     }
   }
+}
+
+.mention {
+  width: max-content;
+  /* 61px */
+  height: fit-content;
+  justify-content: center;
+  color: #111111;
+  align-items: center;
+  padding: 2px 5px 2px 5px;
+  box-shadow: 0px 0.3613123810646357px 1.8065619053231785px -1.6666666666666665px rgba(0, 0, 0, 0.23), 0px 1.3731199819460742px 6.8655999097303715px -3.333333333333333px rgba(0, 0, 0, 0.19279), 0px 6px 30px -5px rgba(0, 0, 0, 0);
+  background-color: #ffffff;
+  overflow: hidden;
+  align-content: center;
+  flex-wrap: nowrap;
+  gap: 2;
+  border-radius: 5px;
+  border: 1px solid #BBBBBB;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.ProseMirror-selectednode {
+  outline: 1px solid grey;
+}
+
+
+.ProseMirror span {
+  animation: fadeIn 0.7s;
+}
+
+// TODO: Tidy up and properly group CSS
+.ProseMirror {
+  >*+* {
+    margin-top: 0.75em;
+  }
+
+  .is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #adb5bd;
+    pointer-events: none;
+    height: 0;
+  }
+
+  .details {
+    display: flex;
+    padding: 0.5rem;
+
+    >button {
+      display: flex;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      padding: 0;
+
+      &::before {
+        content: '\25B6';
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 1.5em;
+        height: 1.5em;
+      }
+    }
+
+    &.is-open>button::before {
+      content: '\25BC';
+    }
+
+    >div {
+      flex: 1 1 auto;
+    }
+
+    :last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.has-focus {
+  box-shadow: 1 5 10px rgba(240, 230, 255, 0.8);
+}
+
+
+// Mapbox
+.map-container {
+  height: 400px;
+  width: "100%";
+  border-radius: 5px;
+}
+
+.sidebar {
+  background-color: rgba(35, 55, 75, 0.9);
+  color: #fff;
+  padding: 6px 12px;
+  font-family: monospace;
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 12px;
+  width: max-content;
+  border-radius: 4px;
 }

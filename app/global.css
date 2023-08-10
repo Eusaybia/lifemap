@@ -1,13 +1,13 @@
 @font-face {
   font-family: 'Manrope';
   font-weight: 400;
-  src: local('manrope'), url(./assets/Manrope-Variable-Font.ttf) format('truetype');
+  src: local('manrope'), url(../public/fonts/Manrope-Variable-Font.ttf) format('truetype');
 }
 
 @font-face {
   font-family: 'Inter';
   font-weight: 400;
-  src: local('inter'), url(./assets/Inter-Variable-Font.ttf) format('truetype');
+  src: local('inter'), url(../public/fonts/Inter-Variable-Font.ttf) format('truetype');
 }
 
 
@@ -24,3 +24,4 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+

@@ -1,52 +1,71 @@
-import React from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Qi } from '../../core/Qi';
+import { QiId } from '../../core/Model';
+import React from 'react'
+import { white } from '../Theme';
 
 export type GroupLenses = "verticalArray";
 
-export const Group = (props: { children: any, lens: GroupLenses }) => {
+export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) => {
 
-    // TODO: Exit doesn't work
+    // TODO: Exit animation doesn't work
     // TODO: Fix stretchy border: https://github.com/framer/motion/issues/1249
     return (
-        <AnimatePresence>
-            <motion.div
-                key="group"
-                layoutId="group"
-                className="group"
-                initial={{
-                    scale: 0,
-                    opacity: 0,
-                    originX: 0,
-                    originY: 0
+        <motion.div
+            key="group"
+            layoutId={props.qid}
+            className="group"
+            initial={{
+                scale: 0,
+                opacity: 0,
+                originX: 0,
+                originY: 0
+            }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{
+                scale: 0,
+                opacity: 0,
+            }}
+            transition={{
+                type: "ease",
+                duration: 0.4
+            }}
+            style={{
+                position: "relative",
+                backgroundColor: white,
+                minHeight: 20,
+                // width: "fit-content",
+                borderRadius: `10px`,
+                // border: `2px solid var(--Light_Grey, #dddddd)`,
+                boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 10px 34px -3px rgba(0, 0, 0, 0.2)`,
+                padding: `35px`,
+                margin: `10px 0px 10px 0px`,
+            }}
+        >
+            <motion.div data-drag-handle
+                onMouseLeave={(event) => {
+                    event.currentTarget.style.cursor = "grab";
                 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{
-                    scale: 0,
-                    opacity: 0,
+                onMouseDown={(event) => {
+                    event.currentTarget.style.cursor = "grabbing";
                 }}
-                transition={{
-                    type: "ease",
-                    duration: 0.4
+                onMouseUp={(event) => {
+                    event.currentTarget.style.cursor = "grab";
                 }}
-                style={{
-                    minHeight: 20,
-                    borderRadius: `10px`,
-                    border: `2px solid var(--Light_Grey, #dddddd)`,
-                    boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
-                    padding: `30px`,
-                    // margin: `10px`,
-                }}
-            >
-                {props.children}
+                style={{ position: "absolute", right: -5, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+                contentEditable="false"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}>
+                ⠿
             </motion.div>
-        </AnimatePresence>
+            {props.children}
+        </motion.div>
     )
 }
 
 export const GroupExample = () => {
     return (
-        <Group lens={"verticalArray"}>
+        <Group lens={"verticalArray"} qid={"000001"}>
             <Qi qiId={'000001'} userId={''} />
         </Group>
     )
