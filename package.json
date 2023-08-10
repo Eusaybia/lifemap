@@ -59,6 +59,7 @@
     "@types/react": "18.2.18",
     "@types/react-dom": "18.2.7",
     "@types/uuid": "^9.0.1",
+    "firebase": "^10.1.0",
     "framer-motion": "10.12.16",
     "highlight.js": "^11.7.0",
     "iframe-resizer-react": "^1.1.0",

@@ -52,6 +52,7 @@ import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { backup } from '../../utils/utils'
+import { ThreeDExtension } from './ThreeDExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -166,6 +167,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
    MessageExtension,
    PortalExtension,
    QuoteExtension,
+   ThreeDExtension
   ]
 
   const agents: Extensions = [
