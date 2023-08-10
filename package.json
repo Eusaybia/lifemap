@@ -61,6 +61,7 @@
     "@types/uuid": "^9.0.1",
     "framer-motion": "10.12.16",
     "highlight.js": "^11.7.0",
+    "iframe-resizer-react": "^1.1.0",
     "katex": "^0.16.4",
     "lowlight": "^2.8.1",
     "mapbox-gl": "^2.15.0",
