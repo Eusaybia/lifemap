@@ -64,7 +64,7 @@ export const ThreeDExtension = Node.create({
 
             return (
                 <NodeViewWrapper>
-                    <input type="text" value={src} onChange={handleSrcChange} style={{ border: 'none', outline: 'none', backgroundColor: 'transparent', width: `${src.length + 1}ch` }} />
+                    <input type="text" value={src} onChange={handleSrcChange} style={{ border: '1.5px solid #34343450', borderRadius: 5, outline: 'none', backgroundColor: 'transparent', width: `80px` }} />
                     <ThreeD src={props.node.attrs.src} />
                 </NodeViewWrapper>
             );
