@@ -5,7 +5,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { TiptapCollabProvider } from '@hocuspocus/provider'
 import { QiC, QiId, QiT } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
-import { functions } from "../../app/page";
+import { functions } from "./Firebase";
 
 // Handles storing and syncing information from a single qi to the database
 export const QiStoreContext = React.createContext<QiT>(new QiC());
