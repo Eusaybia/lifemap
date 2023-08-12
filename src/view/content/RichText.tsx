@@ -53,15 +53,18 @@ import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { backup } from '../../utils/utils'
 import { ThreeDExtension } from './ThreeDExtension'
+import { issue123DocumentState } from '../../../bugs/issue-123'
 
 lowlight.registerLanguage('js', js)
+
+export type textInformationType =  "string" | "jsonContent" | "yDoc";
 
 export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
 
-
-  const isYDoc = typeof information !== "string";
+  const informationType = typeof information === "string" ? "string" : typeof information === "object" ? "object" : "yDoc"
+  console.log(informationType)
 
   const officalExtensions: Extensions = [
     // Add official extensions
@@ -140,7 +143,6 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
        attributeName: 'qiId',
      }),
   ]
-  console.log("isPortalEditor")
   
   const customExtensions: Extensions = [
    CalculationExtension,
@@ -174,14 +176,15 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     SophiaAI,
   ]
 
-  if (isYDoc) {
+  if (informationType === "yDoc") {
+    console.log("infoType", informationType)
     officalExtensions.push(
       Collaboration.configure({
         document: qi.information,
         field: 'default',
       }),
     )
-  }
+  } 
 
   // TODO: This breaks transclusion, possible solution is to use hook for the main editor, and new Editor objects for transclusions
   const editor = useEditor({
@@ -192,7 +195,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
-    content: isYDoc ? null : information,
+    content: (informationType === "yDoc") ? null : information,
     onUpdate: ({ editor }) => {
       console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
@@ -248,6 +251,15 @@ export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [T
     return <>Editor is loading... 🙂</>
   }
 })
+
+export const issue123Example = () => {
+  return (
+    <RichText 
+      text={issue123DocumentState} 
+      lenses={["text"]} 
+    />
+  )
+}
 
 export const RichTextCodeExample = () => {
   const content = `

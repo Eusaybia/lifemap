@@ -32,6 +32,7 @@
   "include": [
     "app",
     "src",
+    "bugs",
     "types/*",
     ".next/types/**/*.ts"
   ],
