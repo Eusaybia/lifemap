@@ -57,14 +57,14 @@ import { issue123DocumentState } from '../../../bugs/issue-123'
 
 lowlight.registerLanguage('js', js)
 
-export type textInformationType =  "string" | "jsonContent" | "yDoc";
+export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
-export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => {
+export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly?: boolean) => {
   let qi = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
 
-  const informationType = typeof information === "string" ? "string" : typeof information === "object" ? "object" : "yDoc"
-  console.log(informationType)
+  const informationType = isQi ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
+  console.log("informationType", informationType)
 
   const officalExtensions: Extensions = [
     // Add official extensions
@@ -197,7 +197,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
     },
     content: (informationType === "yDoc") ? null : information,
     onUpdate: ({ editor }) => {
-      console.log("JSON Output", editor.getJSON())
+      // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       console.log("active", editor.state.selection)
@@ -214,6 +214,7 @@ export const CustomisedEditor = (information: RichTextT, readOnly?: boolean) => 
   return editor
 }
 
+// TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
 
@@ -231,7 +232,7 @@ export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [T
       break;
   }
 
-  let editor = CustomisedEditor(content)
+  let editor = CustomisedEditor(content, true)
   if (editor) {
     if (process.env.NODE_ENV === 'development') {
       if (editor) {
