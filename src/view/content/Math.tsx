@@ -1,6 +1,6 @@
 import React, { DetailedHTMLProps, HTMLAttributes, useCallback, useEffect, useState } from 'react'
 import { BoxedExpression, ComputeEngine } from '@cortex-js/compute-engine';
-import { MathsLoupe, MathsLoupeC, QiC, QiT } from '../../core/Model';
+import { DisplayLens, EvaluationLens, MathLens, MathsLoupe, MathsLoupeC, QiC, QiT } from '../../core/Model';
 import { RichText } from './RichText';
 import { convertLatexToAsciiMath } from 'mathlive';
 import { JSONContent } from '@tiptap/react';
@@ -23,57 +23,53 @@ declare global {
   }
 }
 
-export const Math = observer((props: { equationString: string, nodeAttributes: Attrs, children?: any, updateContent?: (event: any) => void }) => {
+export const Math = (props: { equationString: string, nodeAttributes: Attrs, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
     let [outputEquationString, setOutputEquationString] = React.useState<string>(props.equationString)
+    let nonStateOutputEquationString = ""
 
     let expression: BoxedExpression = ce.parse(props.equationString);
-    let loupe: MathsLoupe = new MathsLoupeC();
 
-    React.useEffect(() => {
-        loupe = getMathsLoupeFromAttributes(props.nodeAttributes)
-        console.log("maths equationString", props.equationString)
-        console.log("maths node attrs", props.nodeAttributes)
+    // Configure evaluation mode
+    switch (props.lensEvaluation) {
+        case "identity":
+            break;
+        case "evaluate":
+            expression = expression.evaluate();
+            break;
+        case "simplify":
+            expression = expression.simplify();
+            break;
+        case "numeric":
+            expression = expression.N();
+            break;
+    }
 
-        // Configure evaluation mode
-        switch (loupe.evaluationLenses[loupe.selectedEvaluationLens]) {
-            case "identity":
-                // Do nothing
-                break;
-            case "evaluate":
-                // @ts-ignore
-                expression = expression.evaluate();
-                break;
-            case "simplify":
-                // @ts-ignore
-                expression = expression.simplify();
-                break;
-            case "numeric":
-                // @ts-ignore
-                expression = expression.N();
-                break;
-        }
+    // Check display lens to determine the format of the display output 
+    switch (props.lensDisplay) {
+        case "latex":
+            nonStateOutputEquationString = expression.latex
+            // setOutputEquationString(expression.latex)
+            break;
+        case "linear":
+            nonStateOutputEquationString = convertLatexToAsciiMath(expression.latex)
+            // setOutputEquationString(convertLatexToAsciiMath(expression.latex))
+            break;
+        case "mathjson":
+            nonStateOutputEquationString = expression.toString()
+            // setOutputEquationString(expression.toString())
+            break;
+        case "natural":
+            nonStateOutputEquationString = expression.latex.toString()
+            // setOutputEquationString(expression.latex)
+            break;
+        default:
+            break;
+    }
 
-        // Check display lens to determine which format to display output
-        switch (loupe.displayLenses[loupe.selectedDisplayLens]) {
-            case "latex":
-                setOutputEquationString(expression.latex)
-                break;
-            case "linear":
-                setOutputEquationString(convertLatexToAsciiMath(expression.latex))
-                break;
-            case "mathjson":
-                setOutputEquationString(expression.toString())
-                break;
-            case "natural":
-                setOutputEquationString(expression.latex)
-                break;
-            default:
-                break;
-        }
-    }, [props.nodeAttributes, props.equationString])
+    console.log(nonStateOutputEquationString)
 
     return (
           <motion.div style={{
@@ -96,7 +92,6 @@ export const Math = observer((props: { equationString: string, nodeAttributes: A
                     event.currentTarget.style.cursor = "grab";
                 }}
                 style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
-                contentEditable="false"
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}>
                 ⠿
@@ -110,7 +105,7 @@ export const Math = observer((props: { equationString: string, nodeAttributes: A
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {outputEquationString}
+                            {nonStateOutputEquationString}
                         </math-field>,
                     'latex':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
@@ -119,29 +114,31 @@ export const Math = observer((props: { equationString: string, nodeAttributes: A
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {outputEquationString}
+                            {nonStateOutputEquationString}
                         </math-field>,
                     'linear': 
                         <RichText
-                            text={outputEquationString}
+                            text={nonStateOutputEquationString}
                             lenses={["code"]}
                         />,
                     'mathjson':
                         <RichText
-                            text={outputEquationString}
+                            text={nonStateOutputEquationString}
                             lenses={["code"]}
                         />,
-                }[loupe.displayLenses[loupe.selectedDisplayLens]]
+                }[props.lensDisplay]
             }
         </motion.div>
     )
-})
+}
 
-export const MathsWithoutQi = () => {
+export const MathsWithoutQi = (props: { equation: string }) => {
+    const [equation, setEquation] = React.useState(props.equation)
+
     return (
         <div>
             <math-field>
-                \frac{1}{2}
+                {equation}
             </math-field>
         </div>
     )

@@ -1,14 +1,8 @@
 import React from "react";
-import { Node, mergeAttributes, InputRule, wrappingInputRule, markInputRule, Mark, JSONContent, nodeInputRule } from "@tiptap/core";
-import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { Node, mergeAttributes, wrappingInputRule } from "@tiptap/core";
+import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Math } from "../content/Math"
-import { MathsLoupeC } from "../../core/Model";
 import { NodeViewProps } from '@tiptap/core'
-import { getMathsLoupeFromAttributes } from "../../utils/utils";
-import { Tag } from "./Tag";
-import { FlowSwitch } from "../structure/FlowSwitch";
-import { motion } from "framer-motion";
-import { TextSelection } from "prosemirror-state";
 
 const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
 const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
@@ -62,12 +56,19 @@ export const MathExtension = Node.create({
       const updateContent = (changedEquation: string) => {
         props.updateAttributes({ equationValue: changedEquation });
       }
-      
+
+      console.log("maths node attrs", props.node.attrs)
+
+      const lensEvaluation = props.node.attrs.lensEvaluation
+      const lensDisplay = props.node.attrs.lensDisplay
+
       return (
         <NodeViewWrapper>
           <Math
             equationString={props.node.attrs.equationValue}
             nodeAttributes={props.node.attrs}
+            lensEvaluation={lensEvaluation}
+            lensDisplay={lensDisplay}
             updateContent={updateContent}
           />
         </NodeViewWrapper>
