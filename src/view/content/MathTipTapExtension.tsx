@@ -55,6 +55,7 @@ export const MathExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const updateContent = (changedEquation: string) => {
         props.updateAttributes({ equationValue: changedEquation });
+        console.log("updated attributes", props.node.attrs)
       }
 
       console.log("maths node attrs", props.node.attrs)
@@ -66,7 +67,6 @@ export const MathExtension = Node.create({
         <NodeViewWrapper>
           <Math
             equationString={props.node.attrs.equationValue}
-            nodeAttributes={props.node.attrs}
             lensEvaluation={lensEvaluation}
             lensDisplay={lensDisplay}
             updateContent={updateContent}

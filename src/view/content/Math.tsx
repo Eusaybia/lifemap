@@ -23,56 +23,58 @@ declare global {
   }
 }
 
-export const Math = (props: { equationString: string, nodeAttributes: Attrs, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
+export const Math = (props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
-    let [outputEquationString, setOutputEquationString] = React.useState<string>(props.equationString)
-    let nonStateOutputEquationString = ""
+    let nonStateOutputEquationString = props.equationString
+    React.useEffect(() => {
 
-    let expression: BoxedExpression = ce.parse(props.equationString);
+        let expression: BoxedExpression = ce.parse(props.equationString);
 
-    // Configure evaluation mode
-    switch (props.lensEvaluation) {
-        case "identity":
-            break;
-        case "evaluate":
-            expression = expression.evaluate();
-            break;
-        case "simplify":
-            expression = expression.simplify();
-            break;
-        case "numeric":
-            expression = expression.N();
-            break;
-    }
+        // Configure evaluation mode
+        switch (props.lensEvaluation) {
+            case "identity":
+                break;
+            case "evaluate":
+                expression = expression.evaluate();
+                break;
+            case "simplify":
+                expression = expression.simplify();
+                break;
+            case "numeric":
+                expression = expression.N();
+                break;
+        }
 
-    // Check display lens to determine the format of the display output 
-    switch (props.lensDisplay) {
-        case "latex":
-            nonStateOutputEquationString = expression.latex
-            // setOutputEquationString(expression.latex)
-            break;
-        case "linear":
-            nonStateOutputEquationString = convertLatexToAsciiMath(expression.latex)
-            // setOutputEquationString(convertLatexToAsciiMath(expression.latex))
-            break;
-        case "mathjson":
-            nonStateOutputEquationString = expression.toString()
-            // setOutputEquationString(expression.toString())
-            break;
-        case "natural":
-            nonStateOutputEquationString = expression.latex.toString()
-            // setOutputEquationString(expression.latex)
-            break;
-        default:
-            break;
-    }
+        // Check display lens to determine the format of the display output 
+        switch (props.lensDisplay) {
+            case "latex":
+                nonStateOutputEquationString = expression.latex
+                // setOutputEquationString(expression.latex)
+                break;
+            case "linear":
+                nonStateOutputEquationString = convertLatexToAsciiMath(expression.latex)
+                // setOutputEquationString(convertLatexToAsciiMath(expression.latex))
+                break;
+            case "mathjson":
+                nonStateOutputEquationString = expression.toString()
+                // setOutputEquationString(expression.toString())
+                break;
+            case "natural":
+                nonStateOutputEquationString = expression.latex.toString()
+                // setOutputEquationString(expression.latex)
+                break;
+            default:
+                break;
+        }
 
-    console.log(nonStateOutputEquationString)
+        console.log("maths output", nonStateOutputEquationString)
+
+    }, [props.equationString, props.lensDisplay, props.lensEvaluation])
 
     return (
-          <motion.div style={{
+        <motion.div style={{
             position: "relative",
             width: "fit-content",
             padding: 5,
@@ -82,6 +84,7 @@ export const Math = (props: { equationString: string, nodeAttributes: Attrs, len
           }}
           >
             <motion.div data-drag-handle
+                contentEditable={false}
                 onMouseLeave={(event) => {
                     event.currentTarget.style.cursor = "grab";
                 }}
@@ -101,7 +104,7 @@ export const Math = (props: { equationString: string, nodeAttributes: Attrs, len
                     'natural':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
                             if (props.updateContent) {
-                                props.updateContent(mathFieldRef.current?.value) 
+                                props.updateContent(mathFieldRef.current!.value) 
                             }
                         }}>
                             {/* TODO: Make this read only */}
@@ -110,7 +113,7 @@ export const Math = (props: { equationString: string, nodeAttributes: Attrs, len
                     'latex':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
                             if (props.updateContent) {
-                                props.updateContent(mathFieldRef.current?.value) 
+                                props.updateContent(mathFieldRef.current!.value) 
                             }
                         }}>
                             {/* TODO: Make this read only */}
