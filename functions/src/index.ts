@@ -32,7 +32,6 @@ export const generateAuthenticationToken = functions.https.onCall(async (data, c
         // An empty array means no access at all.
         // Not sending this property means access to all documents.
         // We are supporting a wildcard at the end of the string (only there).
-        allowedDocumentNames: []
     }
 
     // Sign the JWT with the custom claims and your secret
