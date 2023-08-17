@@ -28,6 +28,8 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
     let nonStateOutputEquationString = props.equationString
+    const [outputEquation, setOutputEquation] = React.useState(props.equationString)
+
     React.useEffect(() => {
 
         let expression: BoxedExpression = ce.parse(props.equationString);
@@ -51,19 +53,21 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
         switch (props.lensDisplay) {
             case "latex":
                 nonStateOutputEquationString = expression.latex
-                // setOutputEquationString(expression.latex)
+                setOutputEquation(expression.latex)
                 break;
             case "linear":
                 nonStateOutputEquationString = convertLatexToAsciiMath(expression.latex)
-                // setOutputEquationString(convertLatexToAsciiMath(expression.latex))
+                console.log("linear", nonStateOutputEquationString)
+                setOutputEquation(convertLatexToAsciiMath(expression.latex))
                 break;
             case "mathjson":
                 nonStateOutputEquationString = expression.toString()
-                // setOutputEquationString(expression.toString())
+                console.log("mathjson", nonStateOutputEquationString)
+                setOutputEquation(expression.toString())
                 break;
             case "natural":
                 nonStateOutputEquationString = expression.latex.toString()
-                // setOutputEquationString(expression.latex)
+                setOutputEquation(expression.latex)
                 break;
             default:
                 break;
@@ -71,7 +75,7 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
 
         console.log("maths output", nonStateOutputEquationString)
 
-    }, [props.equationString, props.lensDisplay, props.lensEvaluation])
+    }, [props.equationString, props.lensDisplay, props.lensEvaluation, outputEquation])
 
     return (
         <motion.div style={{
@@ -108,7 +112,7 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {nonStateOutputEquationString}
+                            {outputEquation}
                         </math-field>,
                     'latex':
                         <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
@@ -117,18 +121,16 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
                             }
                         }}>
                             {/* TODO: Make this read only */}
-                            {nonStateOutputEquationString}
+                            {outputEquation}
                         </math-field>,
                     'linear': 
-                        <RichText
-                            text={nonStateOutputEquationString}
-                            lenses={["code"]}
-                        />,
+                        <>
+                            {outputEquation}
+                        </>,
                     'mathjson':
-                        <RichText
-                            text={nonStateOutputEquationString}
-                            lenses={["code"]}
-                        />,
+                        <>
+                            {outputEquation}
+                        </>,
                 }[props.lensDisplay]
             }
         </motion.div>
