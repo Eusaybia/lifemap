@@ -16,14 +16,14 @@ import { getMathsLoupeFromAttributes } from '../../utils/utils';
 type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 
 declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      ["math-field"]: CustomElement<MathfieldElementAttributes>;
+    namespace JSX {
+        interface IntrinsicElements {
+            ["math-field"]: CustomElement<MathfieldElementAttributes>;
+        }
     }
-  }
 }
 
-export const Math = (props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
+export const Math = observer((props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
 
@@ -77,6 +77,42 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
 
     }, [props.equationString, props.lensDisplay, props.lensEvaluation, outputEquation])
 
+    const renderMathsDisplay = (lensDisplay: DisplayLens) => {
+        switch (lensDisplay) {
+            case 'natural':
+                return (<math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
+                    if (props.updateContent) {
+                        props.updateContent(mathFieldRef.current!.value)
+                    }
+                }}>
+                    {/* TODO: Make this read only */}
+                    {outputEquation}
+                </math-field>)
+            case 'latex':
+                return <math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
+                    if (props.updateContent) {
+                        props.updateContent(mathFieldRef.current!.value)
+                    }
+                }}>
+                    {/* TODO: Make this read only */}
+                    {outputEquation}
+                </math-field>
+            case 'linear':
+                return (<>
+                    {outputEquation}
+                </>)
+            case 'mathjson':
+                return (<>
+                    {outputEquation}
+                </>)
+                break;
+
+            default:
+                break;
+        }
+
+    }
+
     return (
         <motion.div style={{
             position: "relative",
@@ -85,8 +121,8 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
             backgroundColor: "#EFEFEF",
             borderRadius: 5,
             boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
-          }}
-          >
+        }}
+        >
             <motion.div data-drag-handle
                 contentEditable={false}
                 onMouseLeave={(event) => {
@@ -104,38 +140,11 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
                 ⠿
             </motion.div>
             {
-                {
-                    'natural':
-                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
-                            if (props.updateContent) {
-                                props.updateContent(mathFieldRef.current!.value) 
-                            }
-                        }}>
-                            {/* TODO: Make this read only */}
-                            {outputEquation}
-                        </math-field>,
-                    'latex':
-                        <math-field style={{border: 'none'}} ref={mathFieldRef} onInput={(event: any) => {
-                            if (props.updateContent) {
-                                props.updateContent(mathFieldRef.current!.value) 
-                            }
-                        }}>
-                            {/* TODO: Make this read only */}
-                            {outputEquation}
-                        </math-field>,
-                    'linear': 
-                        <>
-                            {outputEquation}
-                        </>,
-                    'mathjson':
-                        <>
-                            {outputEquation}
-                        </>,
-                }[props.lensDisplay]
+                renderMathsDisplay(props.lensDisplay)
             }
         </motion.div>
     )
-}
+})
 
 export const MathsWithoutQi = (props: { equation: string }) => {
     const [equation, setEquation] = React.useState(props.equation)
