@@ -15,7 +15,8 @@
   "main": "lib/index.js",
   "dependencies": {
     "firebase-admin": "^11.8.0",
-    "firebase-functions": "^4.3.1"
+    "firebase-functions": "^4.3.1",
+    "jsonwebtoken": "^9.0.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.2",

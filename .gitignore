@@ -10,7 +10,6 @@
 
 # production
 /build
-.tsbuildinfo
 /android
 /ios
 
@@ -37,3 +36,5 @@ yarn-error.log*
 # local env files
 # vercel
 .vercel
+tsconfig.tsbuildinfo
+.gitignore

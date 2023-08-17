@@ -30,7 +30,7 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
     // Read result of the Cloud Function.
     console.log("result", result)
     const data: any = result.data;
-    jwt = data.jwt;
+    jwt = data.token;
     console.log("jwt", jwt)
   }).catch((error) => {
     console.error(error)
