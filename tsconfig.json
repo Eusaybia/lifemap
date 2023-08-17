@@ -22,7 +22,7 @@
     "noImplicitThis": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "incremental": true,
+    "incremental": false,
     "plugins": [
       {
         "name": "next"
