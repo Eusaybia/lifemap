@@ -28,7 +28,11 @@ export const generateAuthenticationToken = functions.https.onCall(async (data, c
     //   }
 
     // Sign the JWT with the custom claims and your secret
-    const token = jwt.sign({ }, appSecret);
+    const token = jwt.sign({
+        allowedDocumentNames: [
+            '000000', // userUuid/documentUuid
+        ]
+    }, appSecret);
 
     // Return the token
     return { token };
