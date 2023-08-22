@@ -31,6 +31,7 @@ export const generateAuthenticationToken = functions.https.onCall(async (data, c
     const token = jwt.sign({
         allowedDocumentNames: [
             '000000', // userUuid/documentUuid
+            '000003', // userUuid/documentUuid
         ]
     }, appSecret);
 
