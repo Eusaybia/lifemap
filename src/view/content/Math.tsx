@@ -23,12 +23,14 @@ declare global {
     }
 }
 
-export const Math = observer((props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
+export const Math = (props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
+    console.log("lensDisplay", props.lensDisplay)
+    console.log("lensEvaluation", props.lensEvaluation)
 
-    let nonStateOutputEquationString = props.equationString
     const [outputEquation, setOutputEquation] = React.useState(props.equationString)
+
 
     React.useEffect(() => {
 
@@ -40,6 +42,7 @@ export const Math = observer((props: { equationString: string, lensDisplay: Disp
                 break;
             case "evaluate":
                 expression = expression.evaluate();
+                console.log("lensEvaluating", expression)
                 break;
             case "simplify":
                 expression = expression.simplify();
@@ -52,68 +55,28 @@ export const Math = observer((props: { equationString: string, lensDisplay: Disp
         // Check display lens to determine the format of the display output 
         switch (props.lensDisplay) {
             case "latex":
-                nonStateOutputEquationString = expression.latex
                 setOutputEquation(expression.latex)
                 break;
             case "linear":
-                nonStateOutputEquationString = convertLatexToAsciiMath(expression.latex)
-                console.log("linear", nonStateOutputEquationString)
                 setOutputEquation(convertLatexToAsciiMath(expression.latex))
                 break;
             case "mathjson":
-                nonStateOutputEquationString = expression.toString()
-                console.log("mathjson", nonStateOutputEquationString)
                 setOutputEquation(expression.toString())
                 break;
             case "natural":
-                nonStateOutputEquationString = expression.latex.toString()
                 setOutputEquation(expression.latex)
                 break;
             default:
                 break;
         }
 
-        console.log("maths output", nonStateOutputEquationString)
+        console.log("maths output:", outputEquation)
 
     }, [props.equationString, props.lensDisplay, props.lensEvaluation, outputEquation])
-
-    const renderMathsDisplay = (lensDisplay: DisplayLens) => {
-        switch (lensDisplay) {
-            case 'natural':
-                return (<math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
-                    if (props.updateContent) {
-                        props.updateContent(mathFieldRef.current!.value)
-                    }
-                }}>
-                    {/* TODO: Make this read only */}
-                    {outputEquation}
-                </math-field>)
-            case 'latex':
-                return <math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
-                    if (props.updateContent) {
-                        props.updateContent(mathFieldRef.current!.value)
-                    }
-                }}>
-                    {/* TODO: Make this read only */}
-                    {outputEquation}
-                </math-field>
-            case 'linear':
-                return (<>
-                    {outputEquation}
-                </>)
-            case 'mathjson':
-                return (<>
-                    {outputEquation}
-                </>)
-                break;
-
-            default:
-                break;
-        }
-
-    }
+    console.log("maths output s", outputEquation)
 
     return (
+        <>
         <motion.div style={{
             position: "relative",
             width: "fit-content",
@@ -136,15 +99,27 @@ export const Math = observer((props: { equationString: string, lensDisplay: Disp
                 }}
                 style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
                 initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}>
-                ⠿
+                    whileHover={{ opacity: 1 }}>
+                    ⠿
+                </motion.div>
+                {props.lensEvaluation === "identity" ?
+                    <math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
+                        if (props.updateContent) {
+                            props.updateContent(mathFieldRef.current!.value)
+                        }
+                    }}>
+                        {/* TODO: Make this read only */}
+                        {props.equationString}
+                    </math-field> :
+                    <>
+                        {outputEquation}
+                    </>
+
+                }
             </motion.div>
-            {
-                renderMathsDisplay(props.lensDisplay)
-            }
-        </motion.div>
+        </>
     )
-})
+}
 
 export const MathsWithoutQi = (props: { equation: string }) => {
     const [equation, setEquation] = React.useState(props.equation)
