@@ -23,7 +23,9 @@ declare global {
     }
 }
 
-export const Math = (props: { equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
+type MathStyle = "cards" | "flat"
+
+export const Math = (props: { style: MathStyle, equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
     console.log("lensDisplay", props.lensDisplay)
@@ -79,31 +81,34 @@ export const Math = (props: { equationString: string, lensDisplay: DisplayLens, 
         <>
         <motion.div style={{
             position: "relative",
-            width: "fit-content",
+            width: "100%",
+            height: "40px",
+            display: "grid",
+            alignItems: "center",
             padding: 5,
-            backgroundColor: "#EFEFEF",
+            backgroundColor: "#FFFFFF",
             borderRadius: 5,
-            boxShadow: `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)`,
+            boxShadow: props.style === "cards" ? `0px 0.6032302072222955px 0.6032302072222955px -1.25px rgba(0, 0, 0, 0.18), 0px 2.290210571630906px 2.290210571630906px -2.5px rgba(0, 0, 0, 0.15887), 0px 10px 10px -3.75px rgba(0, 0, 0, 0.0625)` : undefined,
         }}
         >
-            <motion.div data-drag-handle
-                contentEditable={false}
-                onMouseLeave={(event) => {
-                    event.currentTarget.style.cursor = "grab";
-                }}
-                onMouseDown={(event) => {
-                    event.currentTarget.style.cursor = "grabbing";
-                }}
-                onMouseUp={(event) => {
-                    event.currentTarget.style.cursor = "grab";
-                }}
-                style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
-                initial={{ opacity: 0 }}
+                <motion.div data-drag-handle
+                    contentEditable={false}
+                    onMouseLeave={(event) => {
+                        event.currentTarget.style.cursor = "grab";
+                    }}
+                    onMouseDown={(event) => {
+                        event.currentTarget.style.cursor = "grabbing";
+                    }}
+                    onMouseUp={(event) => {
+                        event.currentTarget.style.cursor = "grab";
+                    }}
+                    style={{ position: "absolute", right: -5, top: 3, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+                    initial={{ opacity: 0 }}
                     whileHover={{ opacity: 1 }}>
                     ⠿
                 </motion.div>
                 {props.lensEvaluation === "identity" ?
-                    <math-field style={{ border: 'none' }} ref={mathFieldRef} onInput={(event: any) => {
+                    <math-field style={{ border: 'none', width: "95%" }} ref={mathFieldRef} onInput={(event: any) => {
                         if (props.updateContent) {
                             props.updateContent(mathFieldRef.current!.value)
                         }

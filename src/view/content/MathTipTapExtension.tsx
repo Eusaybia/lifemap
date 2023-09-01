@@ -66,6 +66,7 @@ export const MathExtension = Node.create({
       return (
         <NodeViewWrapper>
           <Math
+            style={"flat"}
             equationString={props.node.attrs.equationValue}
             lensEvaluation={lensEvaluation}
             lensDisplay={lensDisplay}

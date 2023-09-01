@@ -46,9 +46,6 @@ export const CalculationExtension = Mark.create({
     return ReactNodeViewRenderer((props: any) => {
       return (
         <NodeViewWrapper>
-          <div>
-            {"hellosdsds"}
-          </div>
         </NodeViewWrapper>
       );
     });
