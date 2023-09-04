@@ -60,16 +60,13 @@ export const MathExtension = Node.create({
 
       console.log("maths node attrs", props.node.attrs)
 
-      const lensEvaluation = props.node.attrs.lensEvaluation
-      const lensDisplay = props.node.attrs.lensDisplay
-
       return (
         <NodeViewWrapper>
           <Math
             style={"flat"}
             equationString={props.node.attrs.equationValue}
-            lensEvaluation={lensEvaluation}
-            lensDisplay={lensDisplay}
+            lensEvaluation={props.node.attrs.lensEvaluation}
+            lensDisplay={props.node.attrs.lensDisplay}
             updateContent={updateContent}
           />
         </NodeViewWrapper>

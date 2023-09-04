@@ -25,7 +25,16 @@ declare global {
 
 type MathStyle = "cards" | "flat"
 
-export const Math = (props: { style: MathStyle, equationString: string, lensDisplay: DisplayLens, lensEvaluation: EvaluationLens, children?: any, updateContent?: (event: any) => void }) => {
+export type MathProps = { 
+    style: MathStyle, 
+    equationString: string, 
+    lensDisplay: DisplayLens, 
+    lensEvaluation: EvaluationLens, 
+    children?: any, 
+    updateContent?: (event: any) => void 
+}
+
+export const Math = (props: MathProps) => {
     const ce = new ComputeEngine();
     const mathFieldRef = React.useRef<HTMLInputElement>()
     console.log("lensDisplay", props.lensDisplay)
