@@ -15,40 +15,18 @@ export type MentionSuggestion = {
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
     char: "#",
     allowSpaces: true,
-    items: ({ query }): MentionSuggestion[] =>
-        [
-            "Lea Thompson",
-            "Cyndi Lauper",
-            "Tom Cruise",
-            "Madonna",
-            "Jerry Hall",
-            "Joan Collins",
-            "Winona Ryder",
-            "Christina Applegate",
-            "Alyssa Milano",
-            "Molly Ringwald",
-            "Ally Sheedy",
-            "Debbie Harry",
-            "Olivia Newton-John",
-            "Elton John",
-            "Michael J. Fox",
-            "Axl Rose",
-            "Emilio Estevez",
-            "Ralph Macchio",
-            "Rob Lowe",
-            "Jennifer Grey",
-            "Mickey Rourke",
-            "John Cusack",
-            "Matthew Broderick",
-            "Justine Bateman",
-            "Lisa Bonet",
-        ]
-            .concat(query.length > 0 ? [query] : [])
-            .map((name, index) => ({ mentionLabel: name, id: index.toString() }))
-            .filter((item) =>
-                item.mentionLabel.toLowerCase().startsWith(query.toLowerCase())
-            )
-            .slice(0, 5),
+    items: ({ query, editor }): (MentionSuggestion | string)[] => {
+        let mentionSuggestion = parseMentions(editor.getJSON());
+        return mentionSuggestion.concat(query.length > 0 ? [query] : [])
+            .filter((mentionSuggestion: MentionSuggestion | string ) => {
+                if (typeof mentionSuggestion === "string") {
+                    return (mentionSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
+                } else {
+                    return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
+                }
+            })
+            .slice(0, 5)
+    },
     render: () => {
         let component: ReactRenderer<MentionRef> | undefined;
         let popup: TippyInstance | undefined;
@@ -114,6 +92,21 @@ type MentionRef = {
 
 interface MentionProps extends SuggestionProps {
     items: MentionSuggestion[];
+}
+
+const parseMentions = (data: any) => {
+    const mentions = (data.content || []).flatMap(parseMentions)
+    if (data.type === 'mention') {
+        const mentionSuggestion: MentionSuggestion = {
+            id: data.attrs.id,
+            mentionLabel: data.attrs.label
+        }
+        mentions.push(mentionSuggestion)
+        console.log("data", data)
+    }
+    const uniqueMentions: (MentionSuggestion | string)[] = [...new Set(mentions)] as MentionSuggestion[]
+
+    return uniqueMentions
 }
 
 const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
