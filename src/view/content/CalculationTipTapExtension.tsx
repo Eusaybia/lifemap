@@ -4,11 +4,11 @@ import { NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule, NodeViewContent 
 import { MathfieldElement, MathfieldOptions } from "mathlive";
 import { Math } from "../content/Math"
 import { BoxedExpression, ComputeEngine } from '@cortex-js/compute-engine';
+import { Calculation } from "./Calculation";
 
-const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$(.*?)\$\$/;
+const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$.*\$\$/;
 
-
-export const CalculationExtension = Mark.create({
+export const CalculationExtension = Node.create({
   name: "calculation",
   group: "(block | inline)",
   content: "text*",
@@ -34,7 +34,7 @@ export const CalculationExtension = Mark.create({
         default: 'natural'
       },
       lensEvaluation1: {
-        default: 'evaluate'
+        default: 'identity'
       },
       equationValue1: {
         default: ''
@@ -52,10 +52,9 @@ export const CalculationExtension = Mark.create({
   },
   addInputRules() {
     return [
-      markInputRule({
+      wrappingInputRule({
         find: REGEX_BLOCK_MATH_DOLLARS,
         type: this.type,
-        getAttributes: ({ groups }) => groups,
       }),
     ]
   },
@@ -79,22 +78,21 @@ export const CalculationExtension = Mark.create({
 
       return (
         <NodeViewWrapper>
-          <div style={{padding: "5px"}}>
-            <Math
-              style={"flat"}
-              equationString={props.node.attrs.equationValue}
-              lensEvaluation={props.node.attrs.lensEvaluation}
-              lensDisplay={props.node.attrs.lensDisplay}
-              updateContent={updateContent1}
-            />
-            <Math
-              style={"flat"}
-              equationString={props.node.attrs.equationValue}
-              lensEvaluation={props.node.attrs.lensEvaluation}
-              lensDisplay={props.node.attrs.lensDisplay}
-              updateContent={updateContent2}
-            />
-          </div>
+          <Calculation
+            inputMaths={{
+              style: "cards",
+              equationString: props.node.attrs.equationValue1,
+              lensDisplay: props.node.attrs.lensDisplay1,
+              lensEvaluation: props.node.attrs.lensEvaluation1,
+              updateContent: updateContent1
+            }} 
+            outputMath={{
+              style: "cards",
+              equationString: "",
+              lensDisplay: "natural",
+              lensEvaluation: "evaluate",
+              updateContent: updateContent2
+            }} />
         </NodeViewWrapper>
       );
     });

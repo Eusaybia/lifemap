@@ -4,7 +4,6 @@ import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Math } from "../content/Math"
 import { NodeViewProps } from '@tiptap/core'
 
-const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
 const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
 
 export const MathExtension = Node.create({
@@ -43,10 +42,6 @@ export const MathExtension = Node.create({
     return [
       wrappingInputRule({
         find: REGEX_INLINE_MATH_DOLLARS,
-        type: this.type,
-      }),
-      wrappingInputRule({
-        find: REGEX_BLOCK_MATH_DOLLARS,
         type: this.type,
       }),
     ];
