@@ -27,7 +27,7 @@ import UniqueID from '@tiptap-pro/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { debounce } from 'lodash'
-import { QiC, QiT, TextSectionLens, RichTextT } from '../../core/Model'
+import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
 import { lowlight } from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
@@ -35,7 +35,7 @@ import { Indent } from '../../utils/Indent'
 import TextAlign from '@tiptap/extension-text-align'
 import { FlowMenu } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
-import { QiStoreContext } from '../../backend/QiStore'
+import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
 import { mentionSuggestionOptions } from './TagTipTapExtension'
 import BubbleMenu from '@tiptap/extension-bubble-menu'
@@ -59,17 +59,17 @@ lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
-export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly?: boolean) => {
-  let qi = React.useContext(QiStoreContext)
-  console.log("qiId", qi.id)
+export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
+  let quanta = React.useContext(QuantaStoreContext)
+  console.log("quantaId", quanta.id)
 
-  const informationType = isQi ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
+  const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
   console.log("informationType", informationType)
 
   const officalExtensions: Extensions = [
     // Add official extensions
     BubbleMenu.configure({
-      pluginKey: `bubbleMenu${qi.id}`,
+      pluginKey: `bubbleMenu${quanta.id}`,
       updateDelay: 100,
     }),
     CodeBlockLowlight.configure({
@@ -108,7 +108,7 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
       showOnlyWhenEditable: false,
       // Use different placeholders depending on the node type:
       placeholder: ({ node }) => {
-        // TODO: This doesn't work because the group renders qi, which is a paragraph
+        // TODO: This doesn't work because the group renders quanta, which is a paragraph
         if (node.type.name === "paragraph") {
           return 'Write something...'
         } else {
@@ -180,7 +180,7 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
     console.log("infoType", informationType)
     officalExtensions.push(
       Collaboration.configure({
-        document: qi.information,
+        document: quanta.information,
         field: 'default',
       }),
     )
@@ -215,7 +215,7 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
 }
 
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
-export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
+export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
 
   switch (props.lenses[0]) {
@@ -241,8 +241,8 @@ export const RichText = observer((props: { qi?: QiT, text: RichTextT, lenses: [T
     }
 
     return (
-      <div key={props.qi?.id}>
-        <div key={`bubbleMenu${props.qi?.id}`}>
+      <div key={props.quanta?.id}>
+        <div key={`bubbleMenu${props.quanta?.id}`}>
           <FlowMenu editor={editor} />
         </div>
         <EditorContent editor={editor} />
@@ -300,7 +300,7 @@ export const RichTextCodeExample = () => {
   </div>
   </group>
 `
-  return (<RichText qi={new QiC()} text={content} lenses={["code"]} onChange={() => {
+  return (<RichText quanta={new QuantaClass()} text={content} lenses={["code"]} onChange={() => {
   }} />)
 }
 

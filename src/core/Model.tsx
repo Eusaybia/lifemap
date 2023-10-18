@@ -4,23 +4,23 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 import { computed, makeAutoObservable, makeObservable, observable } from "mobx";
 import * as Y from 'yjs'
 
-// Shen represents the store that holds all other Qi
+// SunT represents the store that holds all other Quanta
 // It's similar to the root and subdocuments model referenced in Y.js 
-export type ShenT = QiT
+export type SunT = QuantaType
 
-export type QiId = string;
-export type QiT = {
+export type QuantaId = string;
+export type QuantaType = {
     information: Doc, 
     informationText: string,
     informationTypeName: TypeName, 
     loupe: Loupe,
     lens: Lens,
-    id: QiId, 
+    id: QuantaId, 
     // userId: string, // Ignore user authentication for now
-    relations: Set<QiId>, // Just parse the doc for relations
+    relations: Set<QuantaId>, // Just parse the doc for relations
     // maybe caching for calculations
 }
-export class QiC implements QiT {
+export class QuantaClass implements QuantaType {
     information: Doc = new Y.Doc();
     informationTypeName: TypeName = "jsonContent";
     lens: Lens = "normalText";

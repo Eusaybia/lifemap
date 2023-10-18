@@ -2,7 +2,7 @@ import React from "react";
 import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
-import { Qi } from "../../core/Qi";
+import { Quanta } from "../../core/Quanta";
 import { group } from "console";
 import { Message } from "../content/Message";
 
@@ -42,7 +42,7 @@ export const ConversationExtension = Node.create({
         <NodeViewWrapper>
           <>
           </>
-          <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
+          <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
             <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
               Group Chat
             </div>

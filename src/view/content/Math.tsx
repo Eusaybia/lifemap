@@ -1,10 +1,10 @@
 import React, { DetailedHTMLProps, HTMLAttributes, useCallback, useEffect, useState } from 'react'
 import { BoxedExpression, ComputeEngine } from '@cortex-js/compute-engine';
-import { DisplayLens, EvaluationLens, MathLens, MathsLoupe, MathsLoupeC, QiC, QiT } from '../../core/Model';
+import { DisplayLens, EvaluationLens, MathLens, MathsLoupe, MathsLoupeC, QuantaClass, QuantaType } from '../../core/Model';
 import { RichText } from './RichText';
 import { convertLatexToAsciiMath } from 'mathlive';
 import { JSONContent } from '@tiptap/react';
-import { Qi } from '../../core/Qi';
+import { Quanta } from '../../core/Quanta';
 import { DOMAttributes } from "react";
 import { MathfieldElementAttributes } from 'mathlive'
 import { Group } from '../structure/Group';
@@ -135,7 +135,7 @@ export const Math = (props: MathProps) => {
     )
 }
 
-export const MathsWithoutQi = (props: { equation: string }) => {
+export const MathsWithoutQuanta = (props: { equation: string }) => {
     const [equation, setEquation] = React.useState(props.equation)
 
     return (
@@ -147,14 +147,14 @@ export const MathsWithoutQi = (props: { equation: string }) => {
     )
 }
 
-export const MathWithQiExample = () => {
+export const MathWithQuantaExample = () => {
     const computation = `10 * 12`
     const quadraticFormula = String.raw`x=\frac{-b\pm \sqrt{b^2-4ac}}{2a}`
-    let qi: QiT = new QiC()
-    qi.informationTypeName = "latex"
+    let quanta: QuantaType = new QuantaClass()
+    quanta.informationTypeName = "latex"
     let mathsLoupe = new MathsLoupeC()
     let equationString = computation;
     return (
-        <Qi qiId={'000000'} userId={'000000'} loupe={mathsLoupe} />
+        <Quanta quantaId={'000000'} userId={'000000'} loupe={mathsLoupe} />
     )
 }

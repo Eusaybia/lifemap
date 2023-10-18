@@ -1,19 +1,19 @@
 import { motion } from 'framer-motion'
-import { Qi } from '../../core/Qi';
-import { QiId } from '../../core/Model';
+import { Quanta } from '../../core/Quanta';
+import { QuantaId } from '../../core/Model';
 import React from 'react'
 import { white } from '../Theme';
 
 export type GroupLenses = "verticalArray";
 
-export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) => {
+export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId }) => {
 
     // TODO: Exit animation doesn't work
     // TODO: Fix stretchy border: https://github.com/framer/motion/issues/1249
     return (
         <motion.div
             key="group"
-            layoutId={props.qid}
+            layoutId={props.quantaId}
             className="group"
             initial={{
                 scale: 0,
@@ -65,8 +65,8 @@ export const Group = (props: { children: any, lens: GroupLenses, qid: QiId }) =>
 
 export const GroupExample = () => {
     return (
-        <Group lens={"verticalArray"} qid={"000001"}>
-            <Qi qiId={'000001'} userId={''} />
+        <Group lens={"verticalArray"} quantaId={"000001"}>
+            <Quanta quantaId={'000001'} userId={''} />
         </Group>
     )
 }

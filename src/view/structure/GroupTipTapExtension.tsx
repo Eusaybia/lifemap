@@ -2,7 +2,7 @@ import React from "react";
 import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
-import { Qi } from "../../core/Qi";
+import { Quanta } from "../../core/Quanta";
 import { group } from "console";
 
 // TODO: Match for brackets with text in between
@@ -39,7 +39,7 @@ export const GroupExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
+          <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
             <NodeViewContent />
           </Group>
         </NodeViewWrapper>

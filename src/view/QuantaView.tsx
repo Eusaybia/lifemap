@@ -1,6 +1,6 @@
 import React from "react";
-import { QiStoreContext } from "../backend/QiStore";
-import { MathsLoupeC, QiT, ShenT } from "../core/Model";
+import { QuantaStoreContext } from "../backend/QuantaStore";
+import { MathsLoupeC, QuantaType, SunT } from "../core/Model";
 import RichText from "./content/RichText";
 import { Math } from "./content/Math";
 import { JSONContent } from "@tiptap/core";
@@ -8,17 +8,17 @@ import { observer } from "mobx-react-lite";
 
 // Handles different views of a single qi
 // This view is the equivalent of a single window in the app and design
-export const QiView = observer((props: { qi: QiT | ShenT }) => {
-  let qi = React.useContext(QiStoreContext)
+export const QuantaView = observer((props: { quanta: QuantaType | SunT }) => {
+  let quanta = React.useContext(QuantaStoreContext)
 
   // Create a Lens selector
   const Lens = () => {
-    console.log("type", qi.informationTypeName)
-    switch (qi.informationTypeName) {
+    console.log("type", quanta.informationTypeName)
+    switch (quanta.informationTypeName) {
       case 'jsonContent':
         return <RichText
-          qi={qi}
-          text={props.qi.information}
+          quanta={quanta}
+          text={props.quanta.information}
           lenses={["text"]}
           onChange={(change) => { 
             console.log(change) 
@@ -31,7 +31,7 @@ export const QiView = observer((props: { qi: QiT | ShenT }) => {
         const loupe = new MathsLoupeC()
         return
       default:
-        throw Error("Qi does not fall into any existing informationTypes")
+        throw Error("Quanta not fall into any existing informationTypes")
     }
   };
 
