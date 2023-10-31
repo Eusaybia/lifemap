@@ -50,12 +50,9 @@ yarn install
 yarn dev-web 
 ```
 
+### 4. Run tests 
+```bash
+yarn test
 ```
-## Engineering design decisions
-- Language
-    - While this project uses TypeScript, the way it is written takes some inspiration from Haskell. Namely minimising side effects, pattern matching*, QuickCheck*, strict typing, abstract data types, immutable data, and union types. Exceptions have been made where necessary. For example, graph operations are simpler, clearer and faster when written in an iterative style utilising mutability.
-    - While functional languages like ReasonML, and Elixir were considered, they don't interface very elegantly with the vast eco-system of useful JavaScript and React libraries out there.
-- Backend and Database
-    - The backend has to be simple and real-time. There should be a minimal distinction between backend (which includes the database) and frontend. You should be able to access data from the backend without writing new endpoints or updating the server image. For this reason, Google Firebase Realtime Database was chosen.
 
-
+```
