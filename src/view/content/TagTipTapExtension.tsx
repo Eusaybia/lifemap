@@ -20,12 +20,14 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
         return mentionSuggestion.concat(query.length > 0 ? [query] : [])
             .filter((mentionSuggestion: MentionSuggestion | string ) => {
                 if (typeof mentionSuggestion === "string") {
+                    // This is referring to key value pairs, which have the node name "keyValuePair"
                     return (mentionSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
                 } else {
+                    // This is referring to tags, which have the node name "mention"
                     return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
                 }
             })
-            .slice(0, 5)
+            .slice(0, 10)
     },
     render: () => {
         let component: ReactRenderer<MentionRef> | undefined;
