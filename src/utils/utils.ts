@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MathsLoupeC } from '../core/Model';
 import { JSONContent } from '@tiptap/core';
 
+var stringSimilarity = require("string-similarity");
+
 export const generateUniqueID = () => uuidv4()
 
 export const getMathsLoupeFromAttributes = (attrs: Attrs) => {
@@ -70,4 +72,16 @@ export const backup = (content: JSONContent) => {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+export const similarityBetweenWordEmbeddings = (word1: string, word2: string) => {
+  return stringSimilarity.compareTwoStrings(word1, word2)
+}
+
+export const isWordEmotionRelated = (word: string) => {
+  const similarityOfWordToEmotions = stringSimilarity.compareTwoStrings(word, "emotional")
+  console.log("Similarity of Words to Emotions", similarityOfWordToEmotions)
+  const similarityThreshold = 0.75
+  if (similarityOfWordToEmotions > similarityThreshold) return true
+  else return false
 }

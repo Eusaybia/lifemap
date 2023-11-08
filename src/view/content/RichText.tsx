@@ -51,9 +51,10 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup } from '../../utils/utils'
+import { backup } from '../../utils/Utils'
 import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
+import { Finesse } from '../../agents/Finesse'
 
 lowlight.registerLanguage('js', js)
 
@@ -174,6 +175,7 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
 
   const agents: Extensions = [
     SophiaAI,
+    Finesse,
   ]
 
   if (informationType === "yDoc") {
