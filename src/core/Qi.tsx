@@ -5,6 +5,9 @@ import { QiView } from "../view/QiView";
 import NoSSR from "../utils/NoSSR";
 
 export const Qi = (props: { qiId: QiId; userId: string, loupe?: Loupe }) => {
+  const context = React.useContext(QiStoreContext)
+  let qi = context.qi
+
   return (
     // This store is not visual, it is purely to feed information
     // @ts-ignore
@@ -14,7 +17,7 @@ export const Qi = (props: { qiId: QiId; userId: string, loupe?: Loupe }) => {
       This seemingly gets the wrong qi, the default value, rather than
       the store provided one
       */}
-        <QiView qi={React.useContext(QiStoreContext)} />
+        <QiView qi={qi} />
       </QiStore>
     </NoSSR>
   );

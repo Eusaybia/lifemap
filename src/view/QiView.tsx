@@ -9,7 +9,8 @@ import { observer } from "mobx-react-lite";
 // Handles different views of a single qi
 // This view is the equivalent of a single window in the app and design
 export const QiView = observer((props: { qi: QiT | ShenT }) => {
-  let qi = React.useContext(QiStoreContext)
+  const context = React.useContext(QiStoreContext)
+  let qi = context.qi
 
   // Create a Lens selector
   const Lens = () => {

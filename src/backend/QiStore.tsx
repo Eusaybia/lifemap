@@ -9,10 +9,20 @@ import { functions } from "./Firebase";
 
 type QiStoreContextType = {
   qi: QiT,
-  provider: TiptapCollabProvider
+  provider?: TiptapCollabProvider
 }
+const dummyQiStoreContext = {
+  qi: new QiC(),
+  provider: new TiptapCollabProvider({ 
+    appId: 'zxcb123',// get this at collab.tiptap.dev
+    name: "example", // e.g. a uuid uuidv4();
+    token: "",
+    document: new QiC().information 
+  })
+}
+
 // Handles storing and syncing information from a single qi to the database
-export const QiStoreContext = React.createContext<QiStoreContextType>(new QiC());
+export const QiStoreContext = React.createContext<QiStoreContextType>(dummyQiStoreContext);
 
 export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Element}) => {
   // Initialise an empty yDoc to fill with data from TipTap Collab (online) and IndexedDB (offline)
