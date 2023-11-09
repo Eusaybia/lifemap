@@ -13,7 +13,8 @@ export const Finesse = Extension.create({
 });
 
 
-const wordsCloselyRelatedToEmotions = ['excited', 'excite']; 
+// TODO: Detect grammatical variants of words, so I don't have to hardcode variants
+const wordsCloselyRelatedToEmotions = ['excited', 'excite', 'magical']; 
 
 let debounceTimeout: any = null;
 
@@ -31,27 +32,61 @@ const FinesseAgent = new Plugin({
         const { schema } = state;
         const highlightMarkType = state.schema.marks.highlight;
 
-        // Find all message nodes with a mention tag with the label "needs-reply"
-        state.doc.descendants((node, pos) => {
-          if (node.isText && !node.marks.some(mark => mark.type === highlightMarkType)) {
-            wordsCloselyRelatedToEmotions.forEach((word) => {
-              const regex = new RegExp(`\\b${word}\\b`, 'gi');
-              let match;
+          state.doc.descendants((node, pos) => {
+              // Find all text strings that are related to emotions, and highlight them
+              if (node.isText && !node.marks.some(mark => mark.type === highlightMarkType)) {
+                  wordsCloselyRelatedToEmotions.forEach((word) => {
+                      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                      let match;
 
-              while ((match = regex.exec(node.text!)) !== null) {
-                const from = pos + match.index;
-                const to = from + match[0].length;
+                      while ((match = regex.exec(node.text!)) !== null) {
+                          const from = pos + match.index;
+                          const to = from + match[0].length;
 
-                dispatch(
-                  state.tr
-                    .setSelection(TextSelection.create(state.doc, from, to))
-                    .addMark(from, to, schema.marks.highlight.create())
-                );
+                          dispatch(
+                              state.tr
+                                  .setSelection(TextSelection.create(state.doc, from, to))
+                                  .addMark(from, to, schema.marks.highlight.create())
+                          );
+                      }
+                  });
               }
-            });
-          }
-        });
+
+              // Find all "important" tags and highlight them
+              if (node.type.name) {
+                  let importantMentionPos: any = null;
+                  let importantMentionSize: any = null;
+
+                  node.content.forEach((child, offset) => {
+                      if (child.type.name === 'mention' && child.attrs.label.includes('important')) {
+                          importantMentionPos = pos + 1 + offset;
+                          importantMentionSize = child.nodeSize;
+                      }
+                  });
+
+                  // Wrap this node with the highlight tag
+                  if (importantMentionPos !== null) {
+                      const from = importantMentionPos;
+                      const to = from + importantMentionSize;
+                      const highlightMark = schema.marks.highlight.create();
+
+                      // Check if the "important" tag is already highlighted
+                      const isAlreadyHighlighted = node.marks.some(mark => mark.type === highlightMarkType);
+
+                      if (!isAlreadyHighlighted) {
+
+                          dispatch(
+                              state.tr
+                                  .setSelection(TextSelection.create(state.doc, from, to))
+                                  .addMark(from, to, highlightMark)
+                          );
+                      }
+
+
+                  }
+              }
+          });
       }, 1000);
-    },
-  }),
+        },
+    }),
 });
