@@ -176,7 +176,7 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
 
   const agents: Extensions = [
     SophiaAI,
-    Finesse,
+    // Finesse,
   ]
 
   if (informationType === "yDoc") {
