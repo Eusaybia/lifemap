@@ -1133,6 +1133,14 @@
     "@tiptap/core" "^2.0.3"
     "@tiptap/starter-kit" "^2.0.3"
 
+"@hocuspocus/transformer@^2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/transformer/-/transformer-2.7.1.tgz#fcfb82719ddc8ba8797fb32e53defe6217fee664"
+  integrity sha512-JUpqTDMTUPOVgyzZI4EH8jMwDdbKwO+1d3fuXLddYczl9/hi4/ydw0UikvhfYhQl2GPj5P0kNEDt+W9zbM021g==
+  dependencies:
+    "@tiptap/core" "^2.0.3"
+    "@tiptap/starter-kit" "^2.0.3"
+
 "@humanwhocodes/config-array@^0.11.10":
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.10.tgz#5a3ffe32cc9306365fb3fd572596cd602d5e12d2"
@@ -2029,6 +2037,11 @@
   integrity sha512-StlNdKHp2Rpb7yrny/5/CGpz8bR3jLa1Ge59ODGU6TmAhkrxSpvR6tCD1gaMFkkjEUWkmmye8BaXsZPcaiJ6Ug==
   dependencies:
     "@babel/runtime" "^7.10.2"
+
+"@tiptap-pro/extension-collaboration-history@^2.3.3":
+  version "2.3.3"
+  resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-collaboration-history/-/extension-collaboration-history-2.3.3.tgz#324be57fc8cade9504cb1cf5cbb596367119bdb4"
+  integrity sha512-ZSq6U5ZE9XTcd+OSGBokSE0y2fRyquEFtf+C5i9QybxqquXdoQgC9GkVNmtTZ2kFgtKChstR2y2C8xJdSqNV6Q==
 
 "@tiptap-pro/extension-details-content@^2.1.0":
   version "2.1.0"
@@ -5773,11 +5786,6 @@ language-tags@=1.0.5:
   dependencies:
     language-subtag-registry "~0.3.2"
 
-levenshtein-edit-distance@^2.0.0:
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/levenshtein-edit-distance/-/levenshtein-edit-distance-2.0.5.tgz#a066eca8afb350e4d9054aed9ffeef66e78ffc83"
-  integrity sha512-Yuraz7QnMX/JENJU1HA6UtdsbhRzoSFnGpVGVryjQgHtl2s/YmVgmNYkVs5yzVZ9aAvQR9wPBUH3lG755ylxGA==
-
 levn@^0.4.1:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/levn/-/levn-0.4.1.tgz#ae4562c007473b932a6200d403268dd2fffc6ade"
@@ -7590,13 +7598,6 @@ signal-exit@^3.0.0, signal-exit@^3.0.2, signal-exit@^3.0.3, signal-exit@^3.0.7:
   version "3.0.7"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.7.tgz#a9a1767f8af84155114eaabd73f99273c8f59ad9"
   integrity sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==
-
-similarity@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/similarity/-/similarity-1.2.1.tgz#58eed40bc90742434abcf1b8e0b9af63241fb3dd"
-  integrity sha512-lMOpWVaWrTnyL+tkvDs8oGV/KAUBQ3wfbZtdiwDcC+KYGlwO8kgtiyag1B6akAjALDMwn5rN5YHHei1hr4X7nw==
-  dependencies:
-    levenshtein-edit-distance "^2.0.0"
 
 simple-peer@^9.11.0:
   version "9.11.1"

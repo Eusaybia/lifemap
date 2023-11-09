@@ -19,6 +19,7 @@ import Image from '@tiptap/extension-image'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
+import CollaborationHistory from '@tiptap-pro/extension-collaboration-history'
 import Mention from '@tiptap/extension-mention'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
@@ -61,7 +62,7 @@ lowlight.registerLanguage('js', js)
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
 export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly?: boolean) => {
-  let qi = React.useContext(QiStoreContext)
+  const { qi, provider } = React.useContext(QiStoreContext)
   console.log("qiId", qi.id)
 
   const informationType = isQi ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
@@ -185,6 +186,9 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
         document: qi.information,
         field: 'default',
       }),
+      CollaborationHistory.configure({
+        provider
+      })
     )
   } 
 

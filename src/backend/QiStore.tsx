@@ -7,8 +7,12 @@ import { QiC, QiId, QiT } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
 
+type QiStoreContextType = {
+  qi: QiT,
+  provider: TiptapCollabProvider
+}
 // Handles storing and syncing information from a single qi to the database
-export const QiStoreContext = React.createContext<QiT>(new QiC());
+export const QiStoreContext = React.createContext<QiStoreContextType>(new QiC());
 
 export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Element}) => {
   // Initialise an empty yDoc to fill with data from TipTap Collab (online) and IndexedDB (offline)
@@ -37,7 +41,7 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   });
 
   // Sync the document using the cloud provider
-  new TiptapCollabProvider({ 
+  const provider = new TiptapCollabProvider({ 
     appId: appId,// get this at collab.tiptap.dev
     name: roomName, // e.g. a uuid uuidv4();
     token: jwt,
@@ -47,7 +51,7 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   console.log("roomName", roomName)
 
   return (
-    <QiStoreContext.Provider value={qi}>
+    <QiStoreContext.Provider value={{ qi, provider }}>
       {props.children}
     </QiStoreContext.Provider>
   );
