@@ -19,6 +19,7 @@ import Image from '@tiptap/extension-image'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
+import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
 import Mention from '@tiptap/extension-mention'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
@@ -51,17 +52,25 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup } from '../../utils/utils'
+import { backup } from '../../utils/Utils'
 import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
+import { Finesse } from '../../agents/Finesse'
 
 lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
 export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
-  let quanta = React.useContext(QuantaStoreContext)
+  const { quanta, provider } = React.useContext(QuantaStoreContext)
   console.log("quantaId", quanta.id)
+
+  const [latestVersion, setLatestVersion] = React.useState<number>(0)
+  const [currentVersion, setCurrentVersion] = React.useState<number>(0)
+  const [versions, setVersions] = React.useState<CollabHistoryVersion[]>([])
+  const [isAutoVersioning, setIsAutoVersioning] = React.useState(false)
+  const [versioningModalOpen, setVersioningModalOpen] = React.useState(false)
+  const [hasChanges, setHasChanges] = React.useState(false)
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
   console.log("informationType", informationType)
@@ -174,6 +183,7 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
 
   const agents: Extensions = [
     SophiaAI,
+    // Finesse,
   ]
 
   if (informationType === "yDoc") {
@@ -183,6 +193,15 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
         document: quanta.information,
         field: 'default',
       }),
+      CollaborationHistory.configure({
+        provider,
+        onUpdate: data => {
+          setVersions(data.versions)
+          setIsAutoVersioning(data.versioningEnabled)
+          setLatestVersion(data.version)
+          setCurrentVersion(data.currentVersion)
+        },
+      })
     )
   } 
 

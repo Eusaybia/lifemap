@@ -1133,6 +1133,14 @@
     "@tiptap/core" "^2.0.3"
     "@tiptap/starter-kit" "^2.0.3"
 
+"@hocuspocus/transformer@^2.7.1":
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/transformer/-/transformer-2.7.1.tgz#fcfb82719ddc8ba8797fb32e53defe6217fee664"
+  integrity sha512-JUpqTDMTUPOVgyzZI4EH8jMwDdbKwO+1d3fuXLddYczl9/hi4/ydw0UikvhfYhQl2GPj5P0kNEDt+W9zbM021g==
+  dependencies:
+    "@tiptap/core" "^2.0.3"
+    "@tiptap/starter-kit" "^2.0.3"
+
 "@humanwhocodes/config-array@^0.11.10":
   version "0.11.10"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.10.tgz#5a3ffe32cc9306365fb3fd572596cd602d5e12d2"
@@ -2029,6 +2037,11 @@
   integrity sha512-StlNdKHp2Rpb7yrny/5/CGpz8bR3jLa1Ge59ODGU6TmAhkrxSpvR6tCD1gaMFkkjEUWkmmye8BaXsZPcaiJ6Ug==
   dependencies:
     "@babel/runtime" "^7.10.2"
+
+"@tiptap-pro/extension-collaboration-history@^2.3.3":
+  version "2.3.3"
+  resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-collaboration-history/-/extension-collaboration-history-2.3.3.tgz#324be57fc8cade9504cb1cf5cbb596367119bdb4"
+  integrity sha512-ZSq6U5ZE9XTcd+OSGBokSE0y2fRyquEFtf+C5i9QybxqquXdoQgC9GkVNmtTZ2kFgtKChstR2y2C8xJdSqNV6Q==
 
 "@tiptap-pro/extension-details-content@^2.1.0":
   version "2.1.0"
@@ -7782,6 +7795,11 @@ streamsearch@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/streamsearch/-/streamsearch-1.1.0.tgz#404dd1e2247ca94af554e841a8ef0eaa238da764"
   integrity sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg==
+
+string-similarity@^4.0.4:
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/string-similarity/-/string-similarity-4.0.4.tgz#42d01ab0b34660ea8a018da8f56a3309bb8b2a5b"
+  integrity sha512-/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ==
 
 "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"

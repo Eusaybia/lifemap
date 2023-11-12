@@ -7,8 +7,22 @@ import { QuantaClass, QuantaId, QuantaType } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
 
+type QuantaStoreContextType = {
+  quanta: QuantaType,
+  provider?: TiptapCollabProvider
+}
+const dummyQuantaStoreContext = {
+  quanta: new QuantaClass(),
+  provider: new TiptapCollabProvider({ 
+    appId: 'zxcb123',// get this at collab.tiptap.dev
+    name: "example", // e.g. a uuid uuidv4();
+    token: "",
+    document: new QuantaClass().information 
+  })
+}
+
 // Handles storing and syncing information from a single quanta to the database
-export const QuantaStoreContext = React.createContext<QuantaType>(new QuantaClass());
+export const QuantaStoreContext = React.createContext<QuantaStoreContextType>(dummyQuantaStoreContext);
 
 export const QuantaStore = (props: { quantaId: QuantaId, userId: string, children: JSX.Element}) => {
   // Initialise an empty yDoc to fill with data from TipTap Collab (online) and IndexedDB (offline)
@@ -37,7 +51,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   });
 
   // Sync the document using the cloud provider
-  new TiptapCollabProvider({ 
+  const provider = new TiptapCollabProvider({ 
     appId: appId,// get this at collab.tiptap.dev
     name: roomName, // e.g. a uuid uuidv4();
     token: jwt,
@@ -47,7 +61,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   console.log("roomName", roomName)
 
   return (
-    <QuantaStoreContext.Provider value={quanta}>
+    <QuantaStoreContext.Provider value={{ quanta, provider }}>
       {props.children}
     </QuantaStoreContext.Provider>
   );

@@ -14,7 +14,7 @@ export const Quanta = (props: { quantaId: QuantaId; userId: string, loupe?: Loup
       This seemingly gets the wrong qi, the default value, rather than
       the store provided one
       */}
-        <QuantaView quanta={React.useContext(QuantaStoreContext)} />
+        <QuantaView quanta={React.useContext(QuantaStoreContext).quanta} />
       </QuantaStore>
     </NoSSR>
   );

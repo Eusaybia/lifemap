@@ -41,6 +41,13 @@ yarn install
 yarn dev-web 
 ```
 
+### 4. Run tests 
+```bash
+yarn test
+```
+
+```
+
 # Technical design document
 Refer to this design in Framer for the rationale behind architectural decisions. Click on the "Fundamental Constructs" page.
 https://framer.com/projects/Eusaybia-Design-Framework--oevUQ8SkUW1pecQ2lhXA-e0Fek

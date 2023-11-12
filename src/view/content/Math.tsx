@@ -11,7 +11,7 @@ import { Group } from '../structure/Group';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'framer-motion';
 import { Attrs } from 'prosemirror-model';
-import { getMathsLoupeFromAttributes } from '../../utils/utils';
+import { getMathsLoupeFromAttributes } from '../../utils/Utils';
 
 type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 

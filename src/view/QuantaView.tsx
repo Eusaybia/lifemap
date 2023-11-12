@@ -9,7 +9,8 @@ import { observer } from "mobx-react-lite";
 // Handles different views of a single qi
 // This view is the equivalent of a single window in the app and design
 export const QuantaView = observer((props: { quanta: QuantaType | SunT }) => {
-  let quanta = React.useContext(QuantaStoreContext)
+  const context = React.useContext(QuantaStoreContext)
+  let quanta = context.quanta
 
   // Create a Lens selector
   const Lens = () => {
