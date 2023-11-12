@@ -359,6 +359,16 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </IconButton>
                         </Option>
                     </FlowSwitch>
+                    <FlowSwitch value={props.editor.storage.collabHistory.currentVersion}>
+                        {props.editor.storage.collabHistory.versions.map((version: number) => (<>
+                            <Option
+                                value={version}
+                                onClick={() => props.editor.commands.revertToVersion(version)}
+                            >
+                                {version}
+                            </Option>
+                        </>))}
+                    </FlowSwitch>
                 </div> : <div
                     style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
                     <Tag>

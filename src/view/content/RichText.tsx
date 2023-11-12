@@ -19,7 +19,7 @@ import Image from '@tiptap/extension-image'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
-import CollaborationHistory from '@tiptap-pro/extension-collaboration-history'
+import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
 import Mention from '@tiptap/extension-mention'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
@@ -63,10 +63,15 @@ export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid"
 
 export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly?: boolean) => {
   const { qi, provider } = React.useContext(QiStoreContext)
-  console.log("qiId", qi.id)
+
+  const [latestVersion, setLatestVersion] = React.useState<number>(0)
+  const [currentVersion, setCurrentVersion] = React.useState<number>(0)
+  const [versions, setVersions] = React.useState<CollabHistoryVersion[]>([])
+  const [isAutoVersioning, setIsAutoVersioning] = React.useState(false)
+  const [versioningModalOpen, setVersioningModalOpen] = React.useState(false)
+  const [hasChanges, setHasChanges] = React.useState(false)
 
   const informationType = isQi ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
-  console.log("informationType", informationType)
 
   const officalExtensions: Extensions = [
     // Add official extensions
@@ -187,7 +192,13 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
         field: 'default',
       }),
       CollaborationHistory.configure({
-        provider
+        provider,
+        onUpdate: data => {
+          setVersions(data.versions)
+          setIsAutoVersioning(data.versioningEnabled)
+          setLatestVersion(data.version)
+          setCurrentVersion(data.currentVersion)
+        },
       })
     )
   } 
