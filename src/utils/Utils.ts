@@ -18,7 +18,7 @@ export const getMathsLoupeFromAttributes = (attrs: Attrs) => {
 export const generatePrompt = (text: string, mode?: 'localise' | 'guide' | 'translate') => {
   switch (mode) {
     case 'guide':
-      return `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation, but only show your response: ${text}`
+      return `You're a wise yet friendly AI guide named Sophia that helps the user complete tasks. Complete the following chat conversation, but only show your response: ${text}.`
     case 'translate':
       return `You're a wise yet friendly AI tutor guide named Sophia that helps the user by translating the phrase into Mandarin but in a formal way, such that the professionals would say something similar. Translate the following message: ${text}`
     case 'localise':
