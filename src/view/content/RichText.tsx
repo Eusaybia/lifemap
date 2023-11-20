@@ -5,7 +5,7 @@ import React, { useEffect, useRef } from 'react'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Color } from '@tiptap/extension-color'
 import { Highlight } from '@tiptap/extension-highlight'
-import { EditorContent, Extensions, JSONContent, Editor, useEditor } from '@tiptap/react'
+import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
@@ -20,7 +20,7 @@ import Gapcursor from '@tiptap/extension-gapcursor'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
-import Mention from '@tiptap/extension-mention'
+import { watchPreviewContent } from '@tiptap-pro/extension-collaboration-history'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import DetailsContent from '@tiptap-pro/extension-details-content'
@@ -34,7 +34,7 @@ import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import { Indent } from '../../utils/Indent'
 import TextAlign from '@tiptap/extension-text-align'
-import { FlowMenu } from '../structure/FlowMenu'
+import { FlowMenu, flowMenuStyle } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
@@ -52,10 +52,13 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup } from '../../utils/Utils'
+import { backup, renderDate } from '../../utils/Utils'
 import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { Finesse } from '../../agents/Finesse'
+import { Group } from '../structure/Group'
+import { motion } from 'framer-motion'
+import { FlowSwitch, Option } from '../structure/FlowSwitch'
 
 lowlight.registerLanguage('js', js)
 
@@ -63,17 +66,8 @@ export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid"
 
 export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
-  console.log("quantaId", quanta.id)
-
-  const [latestVersion, setLatestVersion] = React.useState<number>(0)
-  const [currentVersion, setCurrentVersion] = React.useState<number>(0)
-  const [versions, setVersions] = React.useState<CollabHistoryVersion[]>([])
-  const [isAutoVersioning, setIsAutoVersioning] = React.useState(false)
-  const [versioningModalOpen, setVersioningModalOpen] = React.useState(false)
-  const [hasChanges, setHasChanges] = React.useState(false)
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
-  console.log("informationType", informationType)
 
   const officalExtensions: Extensions = [
     // Add official extensions
@@ -195,15 +189,10 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
       }),
       CollaborationHistory.configure({
         provider,
-        onUpdate: data => {
-          setVersions(data.versions)
-          setIsAutoVersioning(data.versioningEnabled)
-          setLatestVersion(data.version)
-          setCurrentVersion(data.currentVersion)
-        },
       })
     )
   } 
+
 
   // TODO: This breaks transclusion, possible solution is to use hook for the main editor, and new Editor objects for transclusions
   const editor = useEditor({
@@ -230,6 +219,16 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
     }
   })
 
+  // Watch for content changes from TipTap Collab Cloud
+  const unbindWatchContent = watchPreviewContent(provider, (content: Content) => {
+    // set your editors content
+    if (editor) {
+      editor.commands.setContent(content)
+    }
+  })
+  
+  // TODO: When to unbind the watchContent?
+
   return editor
 }
 
@@ -252,15 +251,64 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }
 
   let editor = CustomisedEditor(content, true)
+  // These functions are memoised for performance reasons
+  const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
+    const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
+
+    editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
+  }, [editor])
+  const reversedVersions = React.useMemo(() => editor?.storage.collabHistory.versions.slice().reverse(), [editor?.storage.collabHistory.versions])
+  console.log("reversed versions", reversedVersions)
+
+  const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
+  console.log("autoversioning", autoversioningEnabled)
+
+
+
+
   if (editor) {
     if (process.env.NODE_ENV === 'development') {
-      if (editor) {
-        // console.debug(editor.schema)
-      }
+      // console.debug(editor.schema)
     }
 
     return (
       <div key={props.quanta?.id}>
+        <motion.div id={"doc handle"} data-drag-handle
+          onMouseLeave={(event) => {
+            event.currentTarget.style.cursor = "grab";
+          }}
+          onMouseDown={(event) => {
+            event.currentTarget.style.cursor = "grabbing";
+          }}
+          onMouseUp={(event) => {
+            event.currentTarget.style.cursor = "grab";
+          }}
+          style={{ position: "absolute", right: 10, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+          contentEditable="false"
+          // onClick={Open the main document flow menu}
+          >
+          ⠿
+        </motion.div>
+
+        <motion.div style={flowMenuStyle()}>
+          <FlowSwitch value={editor.storage.collabHistory.currentVersion}>
+            {
+              reversedVersions.map((version: CollabHistoryVersion) => (
+                <>
+                  <Option value={version.version.toString()} onClick={() => editor!.chain().focus().setFontFamily('EB Garamond').run()}>
+                    <motion.div>
+                      <span>
+                        {`Version sssssssssssss${version.version}`}
+                      </span>
+                    </motion.div>
+                  </Option>
+                </>
+              )
+              )
+            }
+          </FlowSwitch>
+        </motion.div>
+
         <div key={`bubbleMenu${props.quanta?.id}`}>
           <FlowMenu editor={editor} />
         </div>

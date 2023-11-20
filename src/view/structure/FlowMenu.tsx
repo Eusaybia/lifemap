@@ -22,7 +22,7 @@ import { Lens, MathLens, displayLenses } from "../../core/Model";
 import { Icon, Select } from "@mui/material";
 import { observer } from "mobx-react-lite";
 
-const flowMenuStyle = (): React.CSSProperties => {
+export const flowMenuStyle = (): React.CSSProperties => {
     return {
         boxSizing: "border-box",
         flexShrink: 0,

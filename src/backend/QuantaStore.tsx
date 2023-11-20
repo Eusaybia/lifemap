@@ -3,13 +3,14 @@
 import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { TiptapCollabProvider } from '@hocuspocus/provider'
-import { QuantaClass, QuantaId, QuantaType } from "../core/Model";
+import { Content, QuantaClass, QuantaId, QuantaType } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
 
 type QuantaStoreContextType = {
   quanta: QuantaType,
-  provider?: TiptapCollabProvider
+  provider: TiptapCollabProvider
+  requestVersionPreviewFromCloud: (version: Content) => void
 }
 const dummyQuantaStoreContext = {
   quanta: new QuantaClass(),
@@ -18,10 +19,11 @@ const dummyQuantaStoreContext = {
     name: "example", // e.g. a uuid uuidv4();
     token: "",
     document: new QuantaClass().information 
-  })
+  }),
+  requestVersionPreviewFromCloud: (version: Content) => {}
 }
 
-// Handles storing and syncing information from a single quanta to the database
+// Handles storing and syncing information between a single quanta to the remote cloud store
 export const QuantaStoreContext = React.createContext<QuantaStoreContextType>(dummyQuantaStoreContext);
 
 export const QuantaStore = (props: { quantaId: QuantaId, userId: string, children: JSX.Element}) => {
@@ -58,10 +60,21 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
     document: quanta.information
   });
 
-  console.log("roomName", roomName)
+  // Define a function that sends a version.preview request to the provider
+  const requestVersionPreviewFromCloud = (version: Content) => {
+    provider.sendStateless(JSON.stringify({
+      action: 'version.preview',
+      // Include your version number here
+      version,
+    }))
+  }
+
+  const quantaStoreContext = {
+    quanta, provider, requestVersionPreviewFromCloud
+  }
 
   return (
-    <QuantaStoreContext.Provider value={{ quanta, provider }}>
+    <QuantaStoreContext.Provider value={quantaStoreContext}>
       {props.children}
     </QuantaStoreContext.Provider>
   );
