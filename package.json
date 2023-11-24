@@ -105,6 +105,7 @@
     "yjs": "^13.5.44"
   },
   "scripts": {
+    "deploy": "firebase deploy",
     "test": "vitest",
     "initialise-mobile-native": "yarn next build && npx cap add android && npx cap add ios",
     "dev-web": "yarn concurrently -n NEXT,TS -c magenta,cyan \"yarn next dev -p 3000\" \"yarn tsc --watch\"",

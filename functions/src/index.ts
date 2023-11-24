@@ -7,7 +7,6 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
@@ -39,7 +38,7 @@ export const generateAuthenticationToken = functions.https.onCall(async (data, c
     return { token };
 });
 
-export const helloWorld = onRequest((request, response) => {
+export const helloWorld = functions.runWith({maxInstances: 10}).https.onRequest((request, response) => {
     logger.info("Hello logs!", { structuredData: true });
     response.send("Hello from Firebase!");
 });
