@@ -3,13 +3,13 @@ import { getFunctions } from 'firebase/functions';
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCGLRLJdTbxxjZQWz4jSpnEbo7dE-pleqw",
-    authDomain: "lifemap-8a767.firebaseapp.com",
-    projectId: "lifemap-8a767",
-    storageBucket: "lifemap-8a767.appspot.com",
-    messagingSenderId: "167393207418",
-    appId: "1:167393207418:web:369e66d09be9ea3ceb47c3",
-    measurementId: "G-HSZDQYF07S"
+    apiKey: "FIREBASE_KEY_REMOVED",
+    authDomain: "eusaybia-lifemap.firebaseapp.com",
+    projectId: "eusaybia-lifemap",
+    storageBucket: "eusaybia-lifemap.appspot.com",
+    messagingSenderId: "426360776379",
+    appId: "1:426360776379:web:bc6bace66e3dda77566b9e",
+    measurementId: "G-W3WPLFWDKP"
 };
 
 // Initialize Firebase

@@ -14,7 +14,7 @@ type QiStoreContextType = {
 const dummyQiStoreContext = {
   qi: new QiC(),
   provider: new TiptapCollabProvider({ 
-    appId: 'zxcb123',// get this at collab.tiptap.dev
+    appId: 'dy9wzo9x',// get this at collab.tiptap.dev
     name: "example", // e.g. a uuid uuidv4();
     token: "",
     document: new QiC().information 
@@ -25,6 +25,13 @@ const dummyQiStoreContext = {
 export const QiStoreContext = React.createContext<QiStoreContextType>(dummyQiStoreContext);
 
 export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Element}) => {
+
+   // Generate a JWT Auth Token to verify the user 
+   const [jwt, setJwt] = React.useState("")
+ 
+   // Sync the document using the cloud provider
+   const [provider, setProvider] = React.useState<TiptapCollabProvider | undefined>(undefined);
+
   // Initialise an empty yDoc to fill with data from TipTap Collab (online) and IndexedDB (offline)
   const qi = new QiC()
 
@@ -37,28 +44,39 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
   //  Sync the document locally
   new IndexeddbPersistence(roomName, qi.information)
 
-  // Generate a JWT Auth Token to verify the user 
-  let jwt = ""
-  const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
-  generateAuthenticationToken().then((result) => {
-    // Read result of the Cloud Function.
-    console.log("result", result)
-    const data: any = result.data;
-    jwt = data.token;
-    console.log("jwt", jwt)
-  }).catch((error) => {
-    console.error(error)
-  });
-
-  // Sync the document using the cloud provider
-  const provider = new TiptapCollabProvider({ 
-    appId: appId,// get this at collab.tiptap.dev
-    name: roomName, // e.g. a uuid uuidv4();
-    token: jwt,
-    document: qi.information
-  });
-
   console.log("roomName", roomName)
+
+  // Connect to TipTap Cloud on load, once
+  React.useEffect(() => {
+    const fetchData = async () => {
+      // Generate a JWT Auth Token to verify the user 
+      const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
+      try {
+        const result = await generateAuthenticationToken();
+        // Read result of the Cloud Function.
+        console.log("result", result)
+        const data: any = result.data;
+        setJwt(data.token);
+        console.log("jwt", data.token)
+
+        const providerConfiguration = {
+          appId: appId,// get this at collab.tiptap.dev
+          name: roomName, // e.g. a uuid uuidv4();
+          token: data.token,
+          document: qi.information
+        }
+        console.log("provider config", providerConfiguration)
+
+        const provider = new TiptapCollabProvider(providerConfiguration)
+
+        setProvider(provider);
+      } catch (error) {
+        console.error(error)
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <QiStoreContext.Provider value={{ qi, provider }}>
