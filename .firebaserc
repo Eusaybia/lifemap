@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "lifemap-8a767"
-  }
+    "default": "eusaybia-lifemap"
+  },
+  "targets": {},
+  "etags": {}
 }
