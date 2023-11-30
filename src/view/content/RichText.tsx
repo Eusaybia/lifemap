@@ -185,7 +185,6 @@ export const CustomisedEditor = (information: RichTextT, isQi: boolean, readOnly
   ]
 
   if (informationType === "yDoc") {
-    console.log("infoType", informationType)
     officalExtensions.push(
       Collaboration.configure({
         document: qi.information,

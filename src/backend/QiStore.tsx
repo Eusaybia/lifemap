@@ -2,7 +2,7 @@
 
 import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
-import { TiptapCollabProvider } from '@hocuspocus/provider'
+import { TiptapCollabProvider, TiptapCollabProviderConfiguration } from '@hocuspocus/provider'
 import { QiC, QiId, QiT } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
@@ -13,12 +13,7 @@ type QiStoreContextType = {
 }
 const dummyQiStoreContext = {
   qi: new QiC(),
-  provider: new TiptapCollabProvider({ 
-    appId: 'dy9wzo9x',// get this at collab.tiptap.dev
-    name: "example", // e.g. a uuid uuidv4();
-    token: "",
-    document: new QiC().information 
-  })
+  provider: undefined
 }
 
 // Handles storing and syncing information from a single qi to the database
@@ -59,7 +54,7 @@ export const QiStore = (props: { qiId: QiId, userId: string, children: JSX.Eleme
         setJwt(data.token);
         console.log("jwt", data.token)
 
-        const providerConfiguration = {
+        const providerConfiguration: TiptapCollabProviderConfiguration = {
           appId: appId,// get this at collab.tiptap.dev
           name: roomName, // e.g. a uuid uuidv4();
           token: data.token,
