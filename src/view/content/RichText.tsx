@@ -12,7 +12,6 @@ import TaskList from '@tiptap/extension-task-list'
 import { Markdown } from 'tiptap-markdown';
 import FontFamily from '@tiptap/extension-font-family'
 import Focus from '@tiptap/extension-focus'
-import Link from '@tiptap/extension-link'
 import TextStyle from '@tiptap/extension-text-style'
 import Underline from '@tiptap/extension-underline'
 import Image from '@tiptap/extension-image'
@@ -270,42 +269,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     return (
       <div key={props.quanta?.id}>
-        <motion.div id={"doc handle"} data-drag-handle
-          onMouseLeave={(event) => {
-            event.currentTarget.style.cursor = "grab";
-          }}
-          onMouseDown={(event) => {
-            event.currentTarget.style.cursor = "grabbing";
-          }}
-          onMouseUp={(event) => {
-            event.currentTarget.style.cursor = "grab";
-          }}
-          style={{ position: "absolute", right: 10, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
-          contentEditable="false"
-          // onClick={Open the main document flow menu}
-          >
-          ⠿
-        </motion.div>
-
-        <motion.div style={flowMenuStyle()}>
-          <FlowSwitch value={editor.storage.collabHistory.currentVersion}>
-            {
-              reversedVersions.map((version: CollabHistoryVersion) => (
-                <>
-                  <Option value={version.version.toString()} onClick={() => editor!.chain().focus().setFontFamily('EB Garamond').run()}>
-                    <motion.div>
-                      <span>
-                        {`Version sssssssssssss${version.version}`}
-                      </span>
-                    </motion.div>
-                  </Option>
-                </>
-              )
-              )
-            }
-          </FlowSwitch>
-        </motion.div>
-
         <div key={`bubbleMenu${props.quanta?.id}`}>
           <FlowMenu editor={editor} />
         </div>
