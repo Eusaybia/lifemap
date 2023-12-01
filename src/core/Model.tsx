@@ -1,3 +1,5 @@
+'use client'
+
 import { Doc } from 'yjs'
 import { JSONContent } from "@tiptap/react";
 import { TiptapTransformer } from '@hocuspocus/transformer'

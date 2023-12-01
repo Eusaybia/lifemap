@@ -265,6 +265,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         <IconButton
                             style={{ color: props.editor!.isActive('bold') ? white : black }}
                             size="sm"
+                            // @ts-ignore
                             onClick={() => props.editor!.chain().focus().toggleBold().run()}
                             variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
                             <FormatBoldIcon />
@@ -272,6 +273,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         <IconButton
                             style={{ color: props.editor!.isActive('italic') ? white : black }}
                             size="sm"
+                            // @ts-ignore
                             onClick={() => props.editor!.chain().focus().toggleItalic().run()}
                             variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
                             <FormatItalicIcon />
@@ -286,6 +288,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         <IconButton
                             style={{ color: props.editor!.isActive('strike') ? white : black }}
                             size="sm"
+                            // @ts-ignore
                             onClick={() => props.editor!.chain().focus().toggleStrike().run()}
                             variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
                             <FormatStrikethrough />
@@ -362,10 +365,12 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     <FlowSwitch value={props.editor.storage.collabHistory.currentVersion}>
                         {props.editor.storage.collabHistory.versions.map((version: number) => (<>
                             <Option
-                                value={version}
+                                value={version.toString()}
                                 onClick={() => props.editor.commands.revertToVersion(version)}
                             >
-                                {version}
+                                <>
+                                    {version.toString()}
+                                </>
                             </Option>
                         </>))}
                     </FlowSwitch>

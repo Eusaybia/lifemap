@@ -10,6 +10,7 @@
 import * as logger from "firebase-functions/logger";
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { setGlobalOptions } from "firebase-functions/v2/options";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -18,6 +19,7 @@ const appSecret = "Q3rV5UXb8C6ostOsYvzYWw8KGWjrDUWtWNHrsyinSULbOQQ1JQzwBllViSYB3
 
 
 admin.initializeApp();
+setGlobalOptions({maxInstances: 10})
 
 export const generateAuthenticationToken = functions.https.onCall(async (data, context) => {
     var jwt = require('jsonwebtoken');
