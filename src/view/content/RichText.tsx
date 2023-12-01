@@ -96,7 +96,6 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
       mode: 'deepest',
     }),
     FontSize,
-    Gapcursor,
     Heading.configure({
       levels: [1, 2, 3, 4],
     }),
