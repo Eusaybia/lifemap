@@ -54,6 +54,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
                 }}
                 style={{ position: "absolute", right: -5, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
                 contentEditable="false"
+                suppressContentEditableWarning={true}
                 initial={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}>
                 ⠿
