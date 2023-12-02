@@ -47,12 +47,62 @@ export const flowMenuStyle = (): React.CSSProperties => {
     }
 }
 
+const handleCopyQuantaIdAction = (editor: Editor) => {
+
+    const selection = editor!.view.state.selection
+    // @ts-ignore
+    const selectedNode = selection.node
+    const quantaId = selectedNode.attrs.quantaId
+
+    if (selectedNode) {
+        navigator.clipboard.writeText(JSON.stringify(quantaId)).then(() => {
+            console.log('Copying to clipboard was successful!');
+            return true
+        }, (err) => {
+            console.error('Could not copy text: ', err);
+            return false
+        });
+    } else {
+        console.error('Attempted to invoke copy quanta id action when a node was not selected. ', err);
+        return false
+    }
+    return false
+}
+
+const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
+
+    return (
+        <FlowSwitch value={props.selectedAction} isLens>
+            <Option 
+                value={"Copy content"} 
+                onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}
+            >
+                <motion.div>
+                    <span style={{ }}>
+                        📑 Copy content
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
+                value={"Copy quanta id"}
+                onClick={() => handleCopyQuantaIdAction(props.editor)}
+            >
+                <motion.div>
+                    <span>
+                        🆔 Copy quanta id
+                    </span>
+                </motion.div>
+            </Option>
+        </FlowSwitch>
+    )
+}
+
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
 
+    const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
-
 
     // If I hard code a value for the FlowSwitch associated with the maths lenses, even that doesn't change them
     // TODO: First, make sure that the font lenses are controlled
@@ -61,6 +111,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     console.log("fontSize", props.editor.getAttributes('textStyle').fontSize)
 
     const selection = props.editor!.view.state.selection
+    console.log("selection", selection)
 
     React.useEffect(() => {
         // Typing is wrong, selection does have node field
@@ -79,7 +130,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
             console.log('lensEvaluation', lensEvaluation);
         }
 
-    }, [])
+    }, [selection])
 
     // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
     const setDisplayLensLatex = () => {
@@ -120,7 +171,9 @@ export const FlowMenu = (props: { editor: Editor }) => {
             }}>
             <motion.div
                 // ref={elementRef}
-                style={flowMenuStyle()}>
+                style={flowMenuStyle()}
+            >
+                <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
                 {!props.editor!.isActive('math') ? <div
                     style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
                     <Tag>

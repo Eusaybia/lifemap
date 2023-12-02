@@ -50,7 +50,7 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup, renderDate } from '../../utils/utils'
+import { backup, generateUniqueID, renderDate } from '../../utils/utils'
 import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { Finesse } from '../../agents/Finesse'
@@ -136,12 +136,13 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
     }),
     TextStyle,
     Underline,
-     UniqueID.configure({
+    UniqueID.configure({
       // TODO: Add more nodes
-       types: ['paragraph', 'mention', 'group'],
-       filterTransaction: transaction => !isChangeOrigin(transaction),
-       attributeName: 'qiId',
-     }),
+      types: ['paragraph', 'mention', 'group'],
+      filterTransaction: transaction => !isChangeOrigin(transaction),
+      generateID: generateUniqueID,
+      attributeName: 'quantaId',
+    }),
   ]
   
   const customExtensions: Extensions = [

@@ -23,7 +23,7 @@ const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => 
             let referencedNode: ProseMirrorNode | undefined = undefined;
 
             props.editor.state.doc.descendants(descendant => {
-                if (descendant.attrs.qiId === props.referencedQuantaId) {
+                if (descendant.attrs.quantaId === props.referencedQuantaId) {
                     referencedNode = descendant
                 }
             })
@@ -60,7 +60,7 @@ export const PortalExtension = Node.create({
     atom: true,
     addAttributes() {
         return {
-            referencedQiId: {
+            referencedQuantaId: {
                 default: null,
             },
         }
@@ -79,8 +79,7 @@ export const PortalExtension = Node.create({
     },
     renderHTML({ HTMLAttributes }) {
         return ['transclusion', HTMLAttributes]
-    },
-    addInputRules() {
+    }, addInputRules() {
         return [
             wrappingInputRule({
                 find: REGEX_BLOCK_TILDE,
@@ -92,7 +91,7 @@ export const PortalExtension = Node.create({
         return ReactNodeViewRenderer((props: NodeViewProps) => {
             return (
                 <NodeViewWrapper>
-                    <div style={{ border: `1.5px solid grey`, borderRadius: 4, padding: 10, marginBottom: 2 }}>
+                    <div style={{ border: `1.5px solid grey`, borderRadius: 4, padding: 10, marginBottom: 2, width: "100px", height: "10px", overflow: "hidden", fontSize: 12, flexWrap: "nowrap" }}>
                         <NodeViewContent />
                     </div>
                     <Portal editor={props.editor} referencedQuantaId={props.node.textContent} />
