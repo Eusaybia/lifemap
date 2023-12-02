@@ -62,124 +62,126 @@ lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
+export const officialExtensions = (quantaId: string) => {return [
+  // Add official extensions
+  BubbleMenu.configure({
+    pluginKey: `bubbleMenu${quantaId}`,
+    updateDelay: 100,
+  }),
+  CodeBlockLowlight.configure({
+    lowlight,
+  }),
+  Color.configure({
+    types: ['textStyle'],
+  }),
+  Details.configure({
+    persist: true,
+    HTMLAttributes: {
+      class: 'details',
+    },
+  }),
+  DetailsContent,
+  DetailsSummary,
+  FontFamily.configure({
+    types: ['textStyle'],
+  }),
+  Focus.configure({
+    className: 'has-focus',
+    mode: 'deepest',
+  }),
+  FontSize,
+  Heading.configure({
+    levels: [1, 2, 3, 4],
+  }),
+  Highlight.configure({
+    multicolor: true,
+  }),
+  Image,
+  Placeholder.configure({
+    includeChildren: true,
+    showOnlyCurrent: true,
+    showOnlyWhenEditable: false,
+    // Use different placeholders depending on the node type:
+    placeholder: ({ node }) => {
+      // TODO: This doesn't work because the group renders quanta, which is a paragraph
+      if (node.type.name === "paragraph") {
+        return 'Write something...'
+      } else {
+        return ''
+      }
+    },
+  }),
+  // @ts-ignore
+  StarterKit.configure({
+    // Here undefined is the equivalent of true
+    // TODO: Problem, it looks like when setting this to false
+    // collaboration history doesn't take over...
+    // history: isYDoc ? false : undefined
+    history: false,
+    // Disable provided extensions so they don't load twice
+    heading: false,
+    codeBlock: false,
+  }),
+  TaskItem.configure({
+    nested: true,
+  }),
+  TaskList,
+  TextAlign.configure({
+    types: ['heading', 'paragraph'],
+  }),
+  TextStyle,
+  Underline,
+  UniqueID.configure({
+    // TODO: Add more nodes
+    types: ['paragraph', 'mention', 'group'],
+    filterTransaction: transaction => !isChangeOrigin(transaction),
+    generateID: generateUniqueID,
+    attributeName: 'quantaId',
+  }),
+] as Extensions}
+
+export const customExtensions: Extensions = [
+  CalculationExtension,
+  CommentExtension,
+  ConversationExtension,
+  CustomLink.configure({
+    openOnClick: true,
+  }),
+  CustomMention.configure(
+    {
+      HTMLAttributes: {
+        class: 'mention',
+      },
+      suggestion: mentionSuggestionOptions,
+    }
+  ),
+  FadeIn,
+  GroupExtension,
+  Indent,
+  KeyValuePairExtension,
+  LocationExtension,
+  Markdown,
+  MathExtension,
+  MessageExtension,
+  PortalExtension,
+  QuoteExtension,
+  ThreeDExtension
+]
+
+export const agents: Extensions = [
+  SophiaAI,
+  // Finesse,
+]
+
 export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
 
-  const officalExtensions: Extensions = [
-    // Add official extensions
-    BubbleMenu.configure({
-      pluginKey: `bubbleMenu${quanta.id}`,
-      updateDelay: 100,
-    }),
-    CodeBlockLowlight.configure({
-      lowlight,
-    }),
-    Color.configure({
-      types: ['textStyle'],
-    }),
-    Details.configure({
-      persist: true,
-      HTMLAttributes: {
-        class: 'details',
-      },
-    }),
-    DetailsContent,
-    DetailsSummary,
-    FontFamily.configure({
-      types: ['textStyle'],
-    }),
-    Focus.configure({
-      className: 'has-focus',
-      mode: 'deepest',
-    }),
-    FontSize,
-    Heading.configure({
-      levels: [1, 2, 3, 4],
-    }),
-    Highlight.configure({
-      multicolor: true,
-    }),
-    Image,
-    Placeholder.configure({
-      includeChildren: true,
-      showOnlyCurrent: true,
-      showOnlyWhenEditable: false,
-      // Use different placeholders depending on the node type:
-      placeholder: ({ node }) => {
-        // TODO: This doesn't work because the group renders quanta, which is a paragraph
-        if (node.type.name === "paragraph") {
-          return 'Write something...'
-        } else {
-          return ''
-        }
-      },
-    }),
-    // @ts-ignore
-    StarterKit.configure({
-      // Here undefined is the equivalent of true
-      // TODO: Problem, it looks like when setting this to false
-      // collaboration history doesn't take over...
-      // history: isYDoc ? false : undefined
-      history: false,
-      // Disable provided extensions so they don't load twice
-      heading: false,
-      codeBlock: false,
-    }),
-    TaskItem.configure({
-      nested: true,
-    }),
-    TaskList,
-    TextAlign.configure({
-      types: ['heading', 'paragraph'],
-    }),
-    TextStyle,
-    Underline,
-    UniqueID.configure({
-      // TODO: Add more nodes
-      types: ['paragraph', 'mention', 'group'],
-      filterTransaction: transaction => !isChangeOrigin(transaction),
-      generateID: generateUniqueID,
-      attributeName: 'quantaId',
-    }),
-  ]
-  
-  const customExtensions: Extensions = [
-   CalculationExtension,
-   CommentExtension,
-   ConversationExtension,
-   CustomLink.configure({
-     openOnClick: true,
-   }),
-   CustomMention.configure(
-     {
-       HTMLAttributes: {
-         class: 'mention',
-       },
-       suggestion: mentionSuggestionOptions,
-     }
-   ),
-   FadeIn,
-   GroupExtension,
-   Indent,
-   KeyValuePairExtension,
-   LocationExtension,
-   Markdown,
-   MathExtension,
-   MessageExtension,
-   PortalExtension,
-   QuoteExtension,
-   ThreeDExtension
-  ]
-
-  const agents: Extensions = [
-    SophiaAI,
-    // Finesse,
-  ]
+  let generatedOfficialExtensions = officialExtensions(quanta.id)
 
   if (informationType === "yDoc") {
-    officalExtensions.push(
+    generatedOfficialExtensions.push(
       Collaboration.configure({
         document: quanta.information,
         field: 'default',
@@ -190,10 +192,9 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
     )
   } 
 
-
   // TODO: This breaks transclusion, possible solution is to use hook for the main editor, and new Editor objects for transclusions
   const editor = useEditor({
-    extensions: [...officalExtensions, ...customExtensions, ...agents],
+    extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly,
     editorProps: {
       attributes: {

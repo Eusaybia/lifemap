@@ -1,6 +1,6 @@
-import { Editor } from "@tiptap/core"
+import { Editor, generateHTML } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
-import { RichTextCodeExample } from "../content/RichText"
+import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion } from "framer-motion"
 import IconButton from '@mui/joy/IconButton';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
@@ -19,8 +19,7 @@ import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
 import React from "react"
 import { NodeSelection } from "prosemirror-state";
 import { Lens, MathLens, displayLenses } from "../../core/Model";
-import { Icon, Select } from "@mui/material";
-import { observer } from "mobx-react-lite";
+import { officialExtensions } from "../content/RichText";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -47,7 +46,32 @@ export const flowMenuStyle = (): React.CSSProperties => {
     }
 }
 
-const handleCopyQuantaIdAction = (editor: Editor) => {
+type Action = (editor: Editor) => boolean
+
+const handleCopyContentAction: Action = (editor: Editor) => {
+    // None of these work, all that's needed to to emulate the copy command exactly, 
+    // in order to paste nodes or selections
+    // // Execute the copy command:
+    // document.execCommand('copy');   
+
+    // // Get the currently selected text
+    // const selection = editor!.view.state.selection
+
+    // const html = generateHTML(selection.toJSON(), [...officialExtensions("..."), ...customExtensions])
+
+    // // Copy the HTML of the selected node to the clipboard
+    // navigator.clipboard.write(html).then(() => {
+    //     console.log('Copying to clipboard was successful!');
+    //     return true;
+    // }, (err) => {
+    //     console.error('Could not copy text: ', err);
+    //     return false;
+    // })
+
+    return false;
+}
+
+const handleCopyQuantaIdAction: Action = (editor: Editor) => {
 
     const selection = editor!.view.state.selection
     // @ts-ignore
@@ -75,7 +99,7 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
         <FlowSwitch value={props.selectedAction} isLens>
             <Option 
                 value={"Copy content"} 
-                onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}
+                onClick={() => handleCopyContentAction(props.editor)}
             >
                 <motion.div>
                     <span style={{ }}>
