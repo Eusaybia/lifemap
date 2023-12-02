@@ -196,6 +196,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
             <motion.div
                 // ref={elementRef}
                 style={flowMenuStyle()}
+                className="flow-menu"
             >
                 <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
                 {!props.editor!.isActive('math') ? <div

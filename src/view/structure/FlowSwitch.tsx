@@ -1,4 +1,4 @@
-// import './styles.scss'
+import './styles.scss'
 import { motion } from "framer-motion"
 import { release } from "os"
 import React from "react"
@@ -135,9 +135,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 alignItems: "center",
                 color: props.isLens ? "#333333": "#222222",
                 padding: "5px 10px 5px 10px",
-                msOverflowStyle: "none",
                 overflow: "scroll",
-                scrollbarColor: "transparent transparent",
                 boxShadow: "0px 0.6021873017743928px 3.010936508871964px -0.9166666666666666px rgba(0, 0, 0, 0.14), 0px 2.288533303243457px 11.442666516217285px -1.8333333333333333px rgba(0, 0, 0, 0.13178), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.1125)",
                 backgroundColor: props.isLens ? "rgba(217, 217, 217, 0.22)" : "rgba(250, 250, 250, 0.95)",
                 backdropFilter: props.isLens ? `blur(3px)` : ``,
