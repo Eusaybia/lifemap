@@ -50,7 +50,7 @@ const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => 
         updateContent()
 
         // Subscribe to changes in the editor state and update the content whenever the state changes
-        const debouncedUpdateContent = debounce(updateContent, 2000)
+        const debouncedUpdateContent = debounce(updateContent, 1000)
         props.editor.on('update', debouncedUpdateContent)
 
     }, [props.editor, props.referencedQuantaId])
