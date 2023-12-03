@@ -76,10 +76,11 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
     const selection = editor!.view.state.selection
     // @ts-ignore
     const selectedNode = selection.node
-    const quantaId = selectedNode.attrs.quantaId
+    const quantaId: string = selectedNode.attrs.quantaId
+    const quantaIdWithoutQuotes = JSON.stringify(quantaId).slice(1, -1)
 
     if (selectedNode) {
-        navigator.clipboard.writeText(JSON.stringify(quantaId)).then(() => {
+        navigator.clipboard.writeText(quantaIdWithoutQuotes).then(() => {
             console.log('Copying to clipboard was successful!');
             return true
         }, (err) => {
@@ -121,10 +122,48 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     )
 }
 
+const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: Editor }) => {
+    const versions = props.editor.storage.collabHistory.versions
+
+    return (<FlowSwitch value={props.editor.storage.collabHistory.currentVersion}>
+        {versions ? versions.map((version: number) => (
+            <>
+                <Option
+                    value={version.toString()}
+                    onClick={() => props.editor.commands.revertToVersion(version)}
+                >
+                    <>
+                        {version.toString()}
+                    </>
+                </Option>
+            </>)) :
+            <>
+                <Option
+                    value={"000000"}
+                    onClick={() => { }}
+                >
+                    <>
+                        {"No version history available"}
+                    </>
+                </Option>
+                <Option
+                    value={"000000"}
+                    onClick={() => { }}
+                >
+                    <>
+                        {"No version history available"}
+                    </>
+                </Option>
+            </>
+        }
+    </FlowSwitch>)
+}
+
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
 
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
+    const [selectedVersionHistory, setSelectedVersionHistory] = React.useState<string>("No Version Initialised")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
@@ -440,18 +479,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             </IconButton>
                         </Option>
                     </FlowSwitch>
-                    <FlowSwitch value={props.editor.storage.collabHistory.currentVersion}>
-                        {props.editor.storage.collabHistory.versions.map((version: number) => (<>
-                            <Option
-                                value={version.toString()}
-                                onClick={() => props.editor.commands.revertToVersion(version)}
-                            >
-                                <>
-                                    {version.toString()}
-                                </>
-                            </Option>
-                        </>))}
-                    </FlowSwitch>
+                    {/* <VersionHistorySwitch editor={props.editor} selectedVersionHistory={selectedVersionHistory}/> */}
                 </div> : <div
                     style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
                     <Tag>

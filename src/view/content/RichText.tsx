@@ -173,7 +173,34 @@ export const agents: Extensions = [
   // Finesse,
 ]
 
-export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
+// This TransclusionEditor merely needs to display a copy of the node being synced in the main editor
+// Therefore it needs no syncing capabilities.
+// If editing is enabled on the transcluded node, then edits should be propagated back to the main editor for syncing
+export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
+  const { quanta, provider } = React.useContext(QuantaStoreContext)
+
+  const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
+
+  let generatedOfficialExtensions = officialExtensions(quanta.id)
+
+  const editor = new Editor({
+    extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
+    editable: !readOnly,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+      },
+    },
+    content: (informationType === "yDoc") ? null : information,
+    onUpdate: ({ editor }) => {
+
+    }
+  })
+
+  return editor
+}
+
+export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
@@ -192,7 +219,6 @@ export const CustomisedEditor = (information: RichTextT, isQuanta: boolean, read
     )
   } 
 
-  // TODO: This breaks transclusion, possible solution is to use hook for the main editor, and new Editor objects for transclusions
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly,
@@ -248,7 +274,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       break;
   }
 
-  let editor = CustomisedEditor(content, true)
+  let editor = MainEditor(content, true)
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
