@@ -1,6 +1,6 @@
-// import './MentionList.scss'
+import './MentionList.scss'
 import { MentionOptions } from "@tiptap/extension-mention";
-import { ReactRenderer } from "@tiptap/react";
+import { JSONContent, ReactRenderer } from "@tiptap/react";
 import { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 import React from "react";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
@@ -11,6 +11,36 @@ export type MentionSuggestion = {
     id: string;
     mentionLabel: string;
 };
+
+interface MentionProps extends SuggestionProps {
+    items: MentionSuggestion[];
+}
+
+const parseMentions = (jsonContentOfEntireEditor: JSONContent) => {
+    const mentions = (jsonContentOfEntireEditor.content || []).flatMap(parseMentions)
+    if (jsonContentOfEntireEditor.attrs && jsonContentOfEntireEditor.type === 'mention') {
+        const mentionSuggestion: MentionSuggestion = {
+            id: jsonContentOfEntireEditor.attrs.id,
+            mentionLabel: jsonContentOfEntireEditor.attrs.label
+        }
+        mentions.push(mentionSuggestion)
+        console.log("data", jsonContentOfEntireEditor)
+    }
+    const uniqueMentions: (MentionSuggestion | string)[] = [...new Set(mentions)] as MentionSuggestion[]
+
+    if (uniqueMentions.length === 0) {
+        const mentionSuggestion: MentionSuggestion = {
+            id: "000000",
+            mentionLabel: "No suggestions" 
+        }
+        uniqueMentions.push(mentionSuggestion)
+
+    }
+
+    console.log("unique mentions list", uniqueMentions)
+
+    return uniqueMentions
+}
 
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
     char: "#",
@@ -27,7 +57,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                     return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
                 }
             })
-            .slice(0, 10)
+            .slice(0, 5)
     },
     render: () => {
         let component: ReactRenderer<MentionRef> | undefined;
@@ -92,24 +122,6 @@ type MentionRef = {
     onKeyDown: (props: SuggestionKeyDownProps) => boolean;
 };
 
-interface MentionProps extends SuggestionProps {
-    items: MentionSuggestion[];
-}
-
-const parseMentions = (data: any) => {
-    const mentions = (data.content || []).flatMap(parseMentions)
-    if (data.type === 'mention') {
-        const mentionSuggestion: MentionSuggestion = {
-            id: data.attrs.id,
-            mentionLabel: data.attrs.label
-        }
-        mentions.push(mentionSuggestion)
-        console.log("data", data)
-    }
-    const uniqueMentions: (MentionSuggestion | string)[] = [...new Set(mentions)] as MentionSuggestion[]
-
-    return uniqueMentions
-}
 
 const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
