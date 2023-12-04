@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import tippy, { Instance as TippyInstance } from "tippy.js";
 import { motion } from "framer-motion";
 
+
 export type MentionSuggestion = {
     id: string;
     mentionLabel: string;
@@ -28,15 +29,6 @@ const parseMentions = (jsonContentOfEntireEditor: JSONContent) => {
     }
     const uniqueMentions: (MentionSuggestion | string)[] = [...new Set(mentions)] as MentionSuggestion[]
 
-    if (uniqueMentions.length === 0) {
-        const mentionSuggestion: MentionSuggestion = {
-            id: "000000",
-            mentionLabel: "No suggestions" 
-        }
-        uniqueMentions.push(mentionSuggestion)
-
-    }
-
     console.log("unique mentions list", uniqueMentions)
 
     return uniqueMentions
@@ -53,7 +45,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                     // This is referring to key value pairs, which have the node name "keyValuePair"
                     return (mentionSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
                 } else {
-                    // This is referring to tags, which have the node name "mention"
+                    // This is referring to tags, whichave the node name "mention"
                     return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
                 }
             })
@@ -123,6 +115,8 @@ type MentionRef = {
 };
 
 
+// Based off the following:
+// https://github.com/ueberdosis/tiptap/blob/fc67cb1b7166c1ab6b6e0174539c9e29c364eace/demos/src/Nodes/Mention/React/MentionList.jsx#L66
 const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -185,9 +179,9 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
         },
     }));
 
-    return props.items.length > 0 ? (
+    return (
         <div className="items">
-            {props.items.map((item, index) => (
+            {props.items.length > 0 ? props.items.map((item, index) => (
                 <motion.div
                     className={`item ${index === selectedIndex ? "is-selected" : ""}`}
                     key={index}
@@ -195,9 +189,11 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
                 >
                     {item.mentionLabel}
                 </motion.div>
-            ))}
+            )) :
+                <div className="item">No result</div>
+            }
         </div>
-    ) : null;
-});
+    );
+})
 
-MentionList.displayName = "MentionList";
+MentionList.displayName = "MentionList"
