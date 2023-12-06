@@ -27,7 +27,11 @@ const parseMentionsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) =>
         mentions.push(mentionSuggestion)
         console.log("data", jsonContentOfEntireEditor)
     }
-    const uniqueMentions: (MentionSuggestion)[] = [...new Set(mentions)] as MentionSuggestion[]
+    const uniqueMentions: (MentionSuggestion)[] = mentions.filter((mention, index, self) =>
+        index === self.findIndex((m) => (
+            m.id === mention.id && m.mentionLabel === mention.mentionLabel
+        ))
+    );
 
     console.log("unique mentions list", uniqueMentions)
 
