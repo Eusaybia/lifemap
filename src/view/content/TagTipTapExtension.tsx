@@ -17,8 +17,8 @@ interface MentionProps extends SuggestionProps {
     items: MentionSuggestion[];
 }
 
-const parseMentions = (jsonContentOfEntireEditor: JSONContent) => {
-    const mentions = (jsonContentOfEntireEditor.content || []).flatMap(parseMentions)
+const parseMentionsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) => {
+    const mentions = (jsonContentOfEntireEditor.content || []).flatMap(parseMentionsAndKeyValueTags)
     if (jsonContentOfEntireEditor.attrs && jsonContentOfEntireEditor.type === 'mention') {
         const mentionSuggestion: MentionSuggestion = {
             id: jsonContentOfEntireEditor.attrs.id,
@@ -27,7 +27,7 @@ const parseMentions = (jsonContentOfEntireEditor: JSONContent) => {
         mentions.push(mentionSuggestion)
         console.log("data", jsonContentOfEntireEditor)
     }
-    const uniqueMentions: (MentionSuggestion | string)[] = [...new Set(mentions)] as MentionSuggestion[]
+    const uniqueMentions: (MentionSuggestion)[] = [...new Set(mentions)] as MentionSuggestion[]
 
     console.log("unique mentions list", uniqueMentions)
 
@@ -37,19 +37,29 @@ const parseMentions = (jsonContentOfEntireEditor: JSONContent) => {
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
     char: "#",
     allowSpaces: true,
-    items: ({ query, editor }): (MentionSuggestion | string)[] => {
-        let mentionSuggestion = parseMentions(editor.getJSON());
-        return mentionSuggestion.concat(query.length > 0 ? [query] : [])
-            .filter((mentionSuggestion: MentionSuggestion | string ) => {
+    items: ({ query, editor }): (MentionSuggestion)[] => {
+        let mentions = parseMentionsAndKeyValueTags(editor.getJSON());
+
+        const queryMentionSelection: MentionSuggestion = {
+            id: "000000",
+            mentionLabel: query
+        };
+
+        let mentionSuggestions: MentionSuggestion[] = mentions.concat(query.length > 0 ? [queryMentionSelection] : [])
+            // Filter for suggestions that start with the query
+            .filter((mentionSuggestion) => {
                 if (typeof mentionSuggestion === "string") {
                     // This is referring to key value pairs, which have the node name "keyValuePair"
                     return (mentionSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
                 } else {
-                    // This is referring to tags, whichave the node name "mention"
+                    // This is referring to tags, which have the node name "mention"
                     return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
                 }
             })
             .slice(0, 5)
+
+            console.log("mentions", mentionSuggestions)
+        return mentionSuggestions
     },
     render: () => {
         let component: ReactRenderer<MentionRef> | undefined;
@@ -181,7 +191,7 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
 
     return (
         <div className="items">
-            {props.items.length > 0 ? props.items.map((item, index) => (
+            {props.items.length > 0 ? props.items.map((item: MentionSuggestion, index) => (
                 <motion.div
                     className={`item ${index === selectedIndex ? "is-selected" : ""}`}
                     key={index}
