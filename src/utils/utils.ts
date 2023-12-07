@@ -90,6 +90,29 @@ export const similarityBetweenWordEmbeddings = (word1: string, word2: string) =>
   return stringSimilarity.compareTwoStrings(word1, word2)
 }
 
+// Used like so:
+// {isActualUrl(item.mentionLabel) ? 
+//   <>
+//       {item.mentionLabel}
+//   </> : <>
+//           <a href={item.mentionLabel} target="_blank" rel="noopener noreferrer">
+//               {item.mentionLabel}
+//           </a>
+//       </>
+
+export const isActualUrl = (url: string) => {
+    try {
+      new URL(url)
+      return true
+    }
+    catch (_) {
+      return false
+    }
+    return false
+}
+
+
+
 export const isWordEmotionRelated = (word: string) => {
   const similarityOfWordToEmotions = stringSimilarity.compareTwoStrings(word, "emotional")
   console.log("Similarity of Words to Emotions", similarityOfWordToEmotions)
