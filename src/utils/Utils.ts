@@ -90,6 +90,16 @@ export const similarityBetweenWordEmbeddings = (word1: string, word2: string) =>
   return stringSimilarity.compareTwoStrings(word1, word2)
 }
 
+// Used like so:
+// {isActualUrl(item.mentionLabel) ? 
+//   <>
+//       {item.mentionLabel}
+//   </> : <>
+//           <a href={item.mentionLabel} target="_blank" rel="noopener noreferrer">
+//               {item.mentionLabel}
+//           </a>
+//       </>
+
 export const isActualUrl = (url: string) => {
     try {
       new URL(url)

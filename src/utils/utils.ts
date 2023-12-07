@@ -111,8 +111,6 @@ export const isActualUrl = (url: string) => {
     return false
 }
 
-
-
 export const isWordEmotionRelated = (word: string) => {
   const similarityOfWordToEmotions = stringSimilarity.compareTwoStrings(word, "emotional")
   console.log("Similarity of Words to Emotions", similarityOfWordToEmotions)
