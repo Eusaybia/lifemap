@@ -12,7 +12,6 @@ const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 const sharedBorderRadius = 15
 
-// TODO: Ideally, there shouldn't be a CoreEditor and Editor, it should be the same time. Mismatch should not be happening
 const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => {
     const [transclusionEditor, setEditor] = React.useState(TransclusionEditor("Content has not been updated to match the referenced node.", true, true))
 
@@ -75,11 +74,13 @@ export const PortalExtension = Node.create({
     group: 'block',
     content: "block*",
     atom: true,
+    selectable: true,
     addAttributes() {
         return {
             referencedQuantaId: {
                 default: undefined,
             },
+            text: ""
         }
     },
     parseHTML() {
@@ -95,7 +96,7 @@ export const PortalExtension = Node.create({
         ]
     },
     renderHTML({ HTMLAttributes }) {
-        return ['transclusion', HTMLAttributes]
+        return ['transclusion', HTMLAttributes, 0]
     }, addInputRules() {
         return [
             wrappingInputRule({
@@ -115,6 +116,10 @@ export const PortalExtension = Node.create({
                 setReferencedQuantaId(event.target.value);
                 props.updateAttributes({ referencedQuantaId: event.target.value });
             };
+
+            // get node with id, referencedQuantaId
+            // node.textContent
+            // set attrs
 
             return (
                 <NodeViewWrapper>
