@@ -24,7 +24,7 @@ export const GroupExtension = Node.create({
       },
     ];
   },
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ node, HTMLAttributes }) {
     return ["group", HTMLAttributes, 0];
   },
   addInputRules() {

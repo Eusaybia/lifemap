@@ -57,6 +57,7 @@ import { Finesse } from '../../agents/Finesse'
 import { Group } from '../structure/Group'
 import { motion } from 'framer-motion'
 import { FlowSwitch, Option } from '../structure/FlowSwitch'
+import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -164,6 +165,7 @@ export const customExtensions: Extensions = [
   MathExtension,
   MessageExtension,
   PortalExtension,
+  ExperimentalPortalExtension,
   QuoteExtension,
   ThreeDExtension
 ]
@@ -219,6 +221,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     )
   } 
 
+  
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly,
@@ -258,6 +261,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
+
   let content = props.text
 
   switch (props.lenses[0]) {
@@ -306,6 +310,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   } else {
     return <>Editor is loading... 🙂</>
   }
+  
 })
 
 export const issue123Example = () => {

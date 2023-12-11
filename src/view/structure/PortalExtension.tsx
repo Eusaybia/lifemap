@@ -1,4 +1,4 @@
-import { Editor, EditorContent, NodeViewContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
+import { Editor, EditorContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Node, NodeViewRenderer, NodeViewRendererProps } from '@tiptap/react'
 import { Editor as CoreEditor } from '@tiptap/core'
@@ -14,6 +14,7 @@ const sharedBorderRadius = 15
 
 const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => {
     const [transclusionEditor, setEditor] = React.useState(TransclusionEditor("Content has not been updated to match the referenced node.", true, true))
+    const [referencedNode, setReferencedNode] = React.useState<ProseMirrorNode>()
 
     const updateContent = () => {
         if (transclusionEditor) {
@@ -97,7 +98,8 @@ export const PortalExtension = Node.create({
     },
     renderHTML({ HTMLAttributes }) {
         return ['transclusion', HTMLAttributes, 0]
-    }, addInputRules() {
+    }, 
+    addInputRules() {
         return [
             wrappingInputRule({
                 find: REGEX_BLOCK_TILDE,
