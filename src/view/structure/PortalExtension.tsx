@@ -38,7 +38,9 @@ const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => 
             else {
                 // Copy the referencedNode
                 const nodeContent = (referencedNode as ProseMirrorNode).toJSON()
-                transclusionEditor.commands.setContent(nodeContent)
+                Promise.resolve().then(() => {
+                    transclusionEditor.commands.setContent(nodeContent)
+                });
             }
         } else {
             console.error("TransclusionEditor in Portal was unable to initialise.")
