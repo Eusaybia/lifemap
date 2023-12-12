@@ -2015,6 +2015,15 @@
   resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-details/-/extension-details-2.1.0.tgz#37908bfa4a16a017c87ec6777e517e22c238a573"
   integrity sha512-/86vHBBvuiZEOS0UM+52W3d3XYaz6iGukI7D6UtLoK2F8r8LTu0CY3J+ENa4epF5EWARblHOj5oxBAY86WAXHA==
 
+"@tiptap-pro/extension-emoji@^2.5.1":
+  version "2.5.1"
+  resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-emoji/-/extension-emoji-2.5.1.tgz#6b4b6ba5f2d32bb8f33619550be447cf9c7dc64b"
+  integrity sha512-D60DzjT/cKuiQ62LUEriHdfCgGtVJqsJx2opKuXQUlYo5cfPM09kEorExOiNb/06drtzSKZegApMU+W3pXyb4Q==
+  dependencies:
+    emoji-regex "^10.0.0"
+    emojibase-data "^7.0.1"
+    is-emoji-supported "^0.0.5"
+
 "@tiptap-pro/extension-mathematics@2.0.2":
   version "2.0.2"
   resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-mathematics/-/extension-mathematics-2.0.2.tgz#bce5e0de5ece2094fd1a2678b3863ae90aa2861c"
@@ -3920,6 +3929,11 @@ elementtree@^0.1.7:
   dependencies:
     sax "1.1.4"
 
+emoji-regex@^10.0.0:
+  version "10.3.0"
+  resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-10.3.0.tgz#76998b9268409eb3dae3de989254d456e70cfe23"
+  integrity sha512-QpLs9D9v9kArv4lfDEgg1X/gN5XLnf/A6l9cs8SPZLRZR3ZkY9+kwIQTxm+fsSej5UMYGE8fdoaZVIBlqG0XTw==
+
 emoji-regex@^8.0.0:
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-8.0.0.tgz#e818fd69ce5ccfcb404594f842963bf53164cc37"
@@ -3929,6 +3943,11 @@ emoji-regex@^9.2.2:
   version "9.2.2"
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-9.2.2.tgz#840c8803b0d8047f4ff0cf963176b32d4ef3ed72"
   integrity sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==
+
+emojibase-data@^7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/emojibase-data/-/emojibase-data-7.0.1.tgz#a81d7fcd12247f7d94a96dcbdb143e6b6dd5c328"
+  integrity sha512-BLZpOdwyFpZ7lzBWyDtnxmKVm/SJMYgAfp1if3o6n1TVUMSXAf0nikONXl90LZuJ/m3XWPBkkubgCet2BsCGGQ==
 
 encoding@^0.1.12:
   version "0.1.13"
@@ -5163,6 +5182,11 @@ is-docker@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/is-docker/-/is-docker-3.0.0.tgz#90093aa3106277d8a77a5910dbae71747e15a200"
   integrity sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==
+
+is-emoji-supported@^0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/is-emoji-supported/-/is-emoji-supported-0.0.5.tgz#f22301b22c63d6322935e829f39dfa59d03a7fe2"
+  integrity sha512-WOlXUhDDHxYqcSmFZis+xWhhqXiK2SU0iYiqmth5Ip0FHLZQAt9rKL5ahnilE8/86WH8tZ3bmNNNC+bTzamqlw==
 
 is-extendable@^0.1.0, is-extendable@^0.1.1:
   version "0.1.1"

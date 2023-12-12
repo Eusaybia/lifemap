@@ -1,8 +1,9 @@
 import './MentionList.scss';
 import { Mention, MentionOptions } from '@tiptap/extension-mention';
-import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
-import { Tag, TypeTag } from './Tag';
+import { Plugin, PluginKey } from 'prosemirror-state';
+import { InputRule } from 'prosemirror-inputrules'
+import { nodeInputRule, textblockTypeInputRule } from '@tiptap/core';
 
 export const CustomMention = Mention.extend({
   addOptions(): MentionOptions {
@@ -15,6 +16,11 @@ export const CustomMention = Mention.extend({
   selectable: true,
   // content: "inline",
   inline: true,
+  addInputRules() {
+    return [
+      nodeInputRule({ find: /!!!$/, type: this.type, getAttributes: () => ({ label: '⭐️ important' }) }),
+    ]
+  },
   // TODO: Problem with this is the following: when enabled, the tags go block
   // addNodeView() {
   //   return ReactNodeViewRenderer((props: NodeViewProps) => {
