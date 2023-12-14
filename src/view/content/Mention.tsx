@@ -19,6 +19,7 @@ export const CustomMention = Mention.extend({
   addInputRules() {
     return [
       nodeInputRule({ find: /!!!$/, type: this.type, getAttributes: () => ({ label: '⭐️ important' }) }),
+      nodeInputRule({ find: /\\\/.*$/, type: this.type, getAttributes: () => ({ label: '️✅ complete' }) }),
     ]
   },
   // TODO: Problem with this is the following: when enabled, the tags go block
