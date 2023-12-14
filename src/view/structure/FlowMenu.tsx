@@ -76,10 +76,10 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
     const selection = editor!.view.state.selection
     // @ts-ignore
     const selectedNode = selection.node
-    const quantaId: string = selectedNode.attrs.quantaId
-    const quantaIdWithoutQuotes = JSON.stringify(quantaId).slice(1, -1)
 
     if (selectedNode) {
+        const quantaId: string = selectedNode.attrs.quantaId
+        const quantaIdWithoutQuotes = JSON.stringify(quantaId).slice(1, -1)
         navigator.clipboard.writeText(quantaIdWithoutQuotes).then(() => {
             console.log('Copying to clipboard was successful!');
             return true
@@ -88,7 +88,7 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
             return false
         });
     } else {
-        console.error('Attempted to invoke copy quanta id action when a node was not selected. ', err);
+        console.error('Attempted to invoke copy quanta id action when a node was not selected. ');
         return false
     }
     return false
@@ -115,6 +115,16 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
                 <motion.div>
                     <span>
                         🆔 Copy quanta id
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
+                value={"Add details"}
+                onClick={() => props.editor.commands.setDetails()}
+            >
+                <motion.div>
+                    <span>
+                        ▶ Add details 
                     </span>
                 </motion.div>
             </Option>
