@@ -54,6 +54,7 @@ import { backup, generateUniqueID, renderDate } from '../../utils/utils'
 import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
+import { WarningExtension } from '../structure/WarningTipTapExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -163,7 +164,8 @@ export const customExtensions: Extensions = [
   PortalExtension,
   ExperimentalPortalExtension,
   QuoteExtension,
-  ThreeDExtension
+  ThreeDExtension,
+  WarningExtension
 ]
 
 export const agents: Extensions = [

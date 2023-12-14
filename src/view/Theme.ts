@@ -5,6 +5,8 @@ export const blue = "#2196f3"
 export const white = "#FFFFFF"
 export const highlightYellow = "#ffea00"
 export const purple = "#4455BB"
+export const grey = "#D9D9D9"
+export const red = "#B30000"
 export const highlightGreen = "#00E676"
 export const parchment = "#FFF8EB"
 
