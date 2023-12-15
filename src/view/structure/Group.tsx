@@ -34,6 +34,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
                 position: "relative",
                 backgroundColor: white,
                 minHeight: 20,
+                overflow: "hidden",
                 // width: "fit-content",
                 borderRadius: `10px`,
                 // border: `2px solid var(--Light_Grey, #dddddd)`,

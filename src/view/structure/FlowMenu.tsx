@@ -94,6 +94,17 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
     return false
 }
 
+const handleAddImage = (editor: Editor) => {
+    const url = window.prompt('URL')
+
+    if (url) {
+        editor.chain().focus().setImage({ src: url }).run()
+        return true
+    } else {
+        return false
+    }
+}
+
 const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
 
     return (
@@ -125,6 +136,16 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
                 <motion.div>
                     <span>
                         ▶ Add Details 
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
+                value={"Add image"}
+                onClick={() => {handleAddImage(props.editor)}}
+            >
+                <motion.div>
+                    <span>
+                        🌁 Add image 
                     </span>
                 </motion.div>
             </Option>
