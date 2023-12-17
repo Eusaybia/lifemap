@@ -13,11 +13,12 @@ export const CustomMention = Mention.extend({
   },
   renderHTML({ node, HTMLAttributes }) {
     // Add a class based on the 'data' attribute
-      let classes =  'mention'
-    if (node.attrs.label === '⭐️ important') {
-      classes =  'glow mention'
-    } else if (node.attrs.label === '✅ complete') {
-      classes =  'green-glow mention'
+    let classes = 'mention'
+    console.log("label", node.attrs.label)
+    if ((node.attrs.label as string).includes('⭐️ important')) {
+      classes = 'glow mention'
+    } else if ((node.attrs.label as string).includes('✅ complete')) {
+      classes = 'green-glow mention'
     }
 
     return [
