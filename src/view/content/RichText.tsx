@@ -55,6 +55,7 @@ import { ThreeDExtension } from './ThreeDExtension'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
+import { driver } from 'driver.js'
 
 lowlight.registerLanguage('js', js)
 
@@ -229,18 +230,27 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       },
     },
     content: (informationType === "yDoc") ? null : information,
+    onSelectionUpdate: ({ editor }) => {
+      // Highlight the focused node
+      const driverObj = driver({
+        animate: true, 
+        disableActiveInteraction: false,
+        stageRadius: 15,
+        allowClose: true,  
+      })
+
+      var elements = document.querySelectorAll('.attention-highlight');
+      elements.forEach((element) => {
+        driverObj.highlight({
+          element: element,
+        });
+      });
+    },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       console.log("active", editor.state.selection)
-      
-      // Backup every minute
-      const performBackup = () => {
-        backup(editor.getJSON())
-      }
-
-      debounce(performBackup, 10000)
     }
   })
 
