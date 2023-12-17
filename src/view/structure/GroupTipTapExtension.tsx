@@ -1,9 +1,8 @@
 import React from "react";
-import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { Node, NodeViewProps, mergeAttributes, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
-import { Quanta } from "../../core/Quanta";
-import { group } from "console";
+import './styles.scss';
 
 // TODO: Match for brackets with text in between
 export const groupInputRegex = /{([^{}]*)}/;
@@ -37,11 +36,29 @@ export const GroupExtension = Node.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      let node = props.node
+      let containsCompleteMention = false;
+      let classes = ''
+
+      node.descendants((childNode) => {
+        if (childNode.type.name === 'mention' && (childNode.attrs.label as string).includes('✅ complete')) {
+          containsCompleteMention = true;
+        }
+      });
+
+      if (containsCompleteMention) {
+        classes = 'green-glow'
+      } else {
+        console.log("The node does not contain a mention node.");
+      }
+
       return (
         <NodeViewWrapper>
-          <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
-            <NodeViewContent />
-          </Group>
+          <div className={classes} style={{borderRadius: 10}}>
+            <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
+              <NodeViewContent />
+            </Group>
+          </div>
         </NodeViewWrapper>
       );
     });

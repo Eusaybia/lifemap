@@ -36,6 +36,7 @@
     font-family: 'Inter';
   }
 
+
   ul[data-type="taskList"] {
     list-style: none;
     padding: 0;
@@ -69,6 +70,7 @@
       }
     }
   }
+
 
   pre {
     background: #0d0d0d;
@@ -169,6 +171,41 @@
 .ProseMirror-selectednode {
   outline: 1px solid grey;
 }
+
+/* Reset the appearance */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Orange border for unchecked items */
+.ProseMirror input[type="checkbox"]::before {
+  content: "";
+  margin-top: 1px;
+  display: inline-block;
+  width: 1em;
+  transform: scale(1.4);
+  height: 1em;
+  border: 1.25px solid orange;
+  border-radius: 1px;
+  box-sizing: border-box;
+}
+
+/* Green checkbox for checked items */
+.ProseMirror input[type="checkbox"]:checked::before {
+  content: "✔";
+  color: green;
+  display: inline-block;
+  width: 1em;
+  transform: scale(1.4);
+  height: 1em;
+  border: 1.25px solid green;
+  border-radius: 1px;
+  box-sizing: border-box;
+  line-height: 0.9; /* Adjust this value to offset the tick vertically */
+}
+
 
 
 .ProseMirror span {
