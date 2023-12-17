@@ -84,8 +84,8 @@ export const officialExtensions = (quantaId: string) => {return [
     types: ['textStyle'],
   }),
   Focus.configure({
-    className: 'has-focus',
-    mode: 'deepest',
+    className: 'attention-highlight',
+    mode: 'shallowest',
   }),
   FontSize,
   Heading.configure({

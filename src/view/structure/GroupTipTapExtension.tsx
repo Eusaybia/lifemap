@@ -77,7 +77,6 @@ export const GroupExtension = Node.create({
         }
       }
 
-
       return (
         <NodeViewWrapper>
           <motion.div style={{ borderRadius: 10 }} animate={{ boxShadow: glowStyles.join(',') }} transition={{ duration: 0.5, ease: "circOut" }}>

@@ -206,7 +206,21 @@ input[type="checkbox"] {
   line-height: 0.9; /* Adjust this value to offset the tick vertically */
 }
 
+.attention-highlight { position: relative;
+  z-index: 1;
+}
 
+.attention-highlight::after {
+  content: "";
+  position: absolute;
+  border-radius: 10px;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-shadow: 0px 0px 1000px 50px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
 
 .ProseMirror span {
   animation: fadeIn 0.7s;
