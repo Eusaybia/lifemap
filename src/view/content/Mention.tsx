@@ -1,20 +1,34 @@
 import './MentionList.scss';
+import './styles.scss';
 import { Mention, MentionOptions } from '@tiptap/extension-mention';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
-import { Plugin, PluginKey } from 'prosemirror-state';
-import { InputRule } from 'prosemirror-inputrules'
-import { nodeInputRule, textblockTypeInputRule } from '@tiptap/core';
+import { mergeAttributes, nodeInputRule } from '@tiptap/core';
 
 export const CustomMention = Mention.extend({
   addOptions(): MentionOptions {
     return {
       ...this.parent?.(),
-      renderLabel: ({ node }: { node: ProsemirrorNode }) => node.attrs.label,
+      renderLabel: ({ node }: { node: ProsemirrorNode }) => ( node.attrs.label ),
     };
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    // Add a class based on the 'data' attribute
+      let classes =  'mention'
+    if (node.attrs.label === '⭐️ important') {
+      classes =  'glow mention'
+    } else if (node.attrs.label === '✅ complete') {
+      classes =  'green-glow mention'
+    }
+
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, { class: classes }),
+      `${node.attrs.label}`
+    ]
   },
   draggable: true,
   selectable: true,
-  // content: "inline",
+  group: "inline",
   inline: true,
   addInputRules() {
     return [
@@ -27,7 +41,10 @@ export const CustomMention = Mention.extend({
   //   return ReactNodeViewRenderer((props: NodeViewProps) => {
   //     return (
   //       <NodeViewWrapper>
+  //         <span>
+
   //         <TypeTag label={props.node.attrs.label} />
+  //         </span>
   //       </NodeViewWrapper>
   //     );
   //   });
