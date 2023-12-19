@@ -2,7 +2,7 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Extension } from '@tiptap/core';
 import { openai } from './AI';
 import { highlightGreen, purple } from '../view/Theme';
-import { generatePrompt } from '../utils/utils';
+import { generatePrompt } from '../utils/Utils';
 
 // The Finesse agent scans every added word to see if it's related to emotions.
 export const Finesse = Extension.create({

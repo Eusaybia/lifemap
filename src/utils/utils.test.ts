@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { isValidUrl, isWordEmotionRelated, similarityBetweenWordEmbeddings } from './utils'
+import { isValidUrl, isWordEmotionRelated, similarityBetweenWordEmbeddings } from './Utils'
 
 test('that commonsense embeddings are valid', () => {
 
