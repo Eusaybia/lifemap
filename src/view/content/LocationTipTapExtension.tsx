@@ -4,7 +4,7 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap
 import { Math } from "./Math"
 import { MathsLoupeC } from "../../core/Model";
 import { NodeViewProps } from '@tiptap/core'
-import { getMathsLoupeFromAttributes } from "../../utils/Utils";
+import { getMathsLoupeFromAttributes } from "../../utils/utils";
 import { Tag } from "./Tag";
 import { FlowSwitch } from "../structure/FlowSwitch";
 import { motion } from "framer-motion";
