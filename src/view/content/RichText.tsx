@@ -186,7 +186,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 
   const editor = new Editor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
-    editable: !readOnly,
+    editable: false,
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
@@ -231,20 +231,24 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     content: (informationType === "yDoc") ? null : information,
     onSelectionUpdate: ({ editor }) => {
-      // Highlight the focused node
-      const driverObj = driver({
-        animate: true, 
-        disableActiveInteraction: false,
-        stageRadius: 15,
-        allowClose: true,  
-      })
+      const highlightsOn = false
 
-      var elements = document.querySelectorAll('.attention-highlight');
-      elements.forEach((element) => {
-        driverObj.highlight({
-          element: element,
+      // Highlight the focused node
+      if (highlightsOn) {
+        const driverObj = driver({
+          animate: true,
+          disableActiveInteraction: false,
+          stageRadius: 15,
+          allowClose: true,
+        })
+
+        var elements = document.querySelectorAll('.attention-highlight');
+        elements.forEach((element) => {
+          driverObj.highlight({
+            element: element,
+          });
         });
-      });
+      }
     },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())
