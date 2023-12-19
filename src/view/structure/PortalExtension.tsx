@@ -1,7 +1,7 @@
-import { Editor, EditorContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
+import { Editor as CoreEditor, EditorContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Node, NodeViewRenderer, NodeViewRendererProps } from '@tiptap/react'
-import { Editor as CoreEditor } from '@tiptap/core'
+import { Content, Editor } from '@tiptap/core'
 import React, { useEffect, useState } from 'react'
 import { Attrs, Node as ProseMirrorNode } from 'prosemirror-model'
 import { QuantaId } from '../../core/Model'
@@ -12,6 +12,21 @@ const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 const sharedBorderRadius = 15
 
+const findNode = (referencedQuantaId: string, editor: CoreEditor) => {
+    let referencedNode: ProseMirrorNode | undefined = undefined;
+
+    // Check all the nodes of the parent editor to see which one matches
+    editor.state.doc.descendants(descendant => {
+        // A match was found
+        if (descendant.attrs.quantaId === referencedQuantaId) {
+            referencedNode = descendant
+            referencedNode.textContent
+        }
+    })
+
+    return referencedNode
+}
+
 const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => {
     const [transclusionEditor, setEditor] = React.useState(TransclusionEditor("Content has not been updated to match the referenced node.", true, true))
     const [referencedNode, setReferencedNode] = React.useState<ProseMirrorNode>()
@@ -20,15 +35,7 @@ const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => 
         if (transclusionEditor) {
             console.log("portal has editor")
 
-            let referencedNode: ProseMirrorNode | undefined = undefined;
-
-            // Check all the nodes of the parent editor to see which one matches
-            props.editor.state.doc.descendants(descendant => {
-                // A match was found
-                if (descendant.attrs.quantaId === props.referencedQuantaId) {
-                    referencedNode = descendant
-                }
-            })
+            let referencedNode = findNode(props.referencedQuantaId, props.editor)
 
             // No match was found
             if (!referencedNode) {
@@ -37,7 +44,7 @@ const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => 
             // A match was found
             else {
                 // Copy the referencedNode
-                const nodeContent = (referencedNode as ProseMirrorNode).toJSON()
+                const nodeContent: Content = (referencedNode as ProseMirrorNode).toJSON()
                 Promise.resolve().then(() => {
                     transclusionEditor.commands.setContent(nodeContent)
                 });
@@ -98,8 +105,12 @@ export const PortalExtension = Node.create({
             },
         ]
     },
-    renderHTML({ HTMLAttributes }) {
-        return ['transclusion', HTMLAttributes, 0]
+    renderHTML({ node, HTMLAttributes }) {
+        let transcludedTextContent = ""
+        let referencedNode = findNode(node.attrs.referencedQuantaId, editor )
+        node.attrs.referencedQuantaId
+
+        return ['transclusion', HTMLAttributes, transcludedTextContent]
     }, 
     addInputRules() {
         return [
