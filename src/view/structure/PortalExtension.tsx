@@ -106,11 +106,7 @@ export const PortalExtension = Node.create({
         ]
     },
     renderHTML({ node, HTMLAttributes }) {
-        let transcludedTextContent = ""
-        let referencedNode = findNode(node.attrs.referencedQuantaId, editor )
-        node.attrs.referencedQuantaId
-
-        return ['transclusion', HTMLAttributes, transcludedTextContent]
+        return ['transclusion', HTMLAttributes, 0]
     }, 
     addInputRules() {
         return [
