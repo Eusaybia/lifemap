@@ -1,4 +1,4 @@
-import { Editor as CoreEditor, EditorContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
+import { EditorContent, NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, wrappingInputRule } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Node, NodeViewRenderer, NodeViewRendererProps } from '@tiptap/react'
 import { Content, Editor } from '@tiptap/core'
@@ -12,7 +12,7 @@ const REGEX_BLOCK_TILDE = /~[^~]+~/
 
 const sharedBorderRadius = 15
 
-const findNode = (referencedQuantaId: string, editor: CoreEditor) => {
+const findNode = (referencedQuantaId: string, editor: Editor) => {
     let referencedNode: ProseMirrorNode | undefined = undefined;
 
     // Check all the nodes of the parent editor to see which one matches
@@ -27,7 +27,7 @@ const findNode = (referencedQuantaId: string, editor: CoreEditor) => {
     return referencedNode
 }
 
-const Portal = (props: { editor: CoreEditor, referencedQuantaId: QuantaId }) => {
+const Portal = (props: { editor: Editor, referencedQuantaId: QuantaId }) => {
     const [transclusionEditor, setEditor] = React.useState(TransclusionEditor("Content has not been updated to match the referenced node.", true, true))
     const [referencedNode, setReferencedNode] = React.useState<ProseMirrorNode>()
 
