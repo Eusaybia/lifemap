@@ -56,6 +56,7 @@ import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { driver } from 'driver.js'
+import { TwoDGraphExtension } from '../structure/TwoDGraphTipTapExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -165,6 +166,7 @@ export const customExtensions: Extensions = [
   PortalExtension,
   ExperimentalPortalExtension,
   QuoteExtension,
+  TwoDGraphExtension,
   ThreeDExtension,
   WarningExtension
 ]
