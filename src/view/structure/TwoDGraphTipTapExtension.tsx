@@ -13,7 +13,7 @@ export const TwoDGraphExtension = Node.create({
   group: "block",
   content: "block",
   inline: false,
-  selectable: true,
+  selectable: false,
   draggable: true,
   atom: true,
   parseHTML() {
