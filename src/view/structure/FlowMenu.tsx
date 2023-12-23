@@ -110,6 +110,16 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     return (
         <FlowSwitch value={props.selectedAction} isLens>
             <Option 
+                value={"Insert columns"} 
+                onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 3, withHeaderRow: false }))}
+            >
+                <motion.div>
+                    <span style={{ }}>
+                        🏛️ Insert columns
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
                 value={"Copy content"} 
                 onClick={() => handleCopyContentAction(props.editor)}
             >

@@ -57,6 +57,11 @@ import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExte
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { driver } from 'driver.js'
 import { TwoDGraphExtension } from '../structure/TwoDGraphTipTapExtension'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
+import Table from '@tiptap/extension-table'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+import TableRow from '@tiptap/extension-table-row'
 
 lowlight.registerLanguage('js', js)
 
@@ -96,6 +101,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Highlight.configure({
     multicolor: true,
   }),
+  HorizontalRule,
   Image,
   Placeholder.configure({
     includeChildren: true,
@@ -122,6 +128,12 @@ export const officialExtensions = (quantaId: string) => {return [
     heading: false,
     codeBlock: false,
   }),
+  Table.configure({
+    resizable: true,
+  }),
+  TableRow,
+  TableHeader,
+  TableCell,
   TaskItem.configure({
     nested: true,
   }),
@@ -254,7 +266,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())
-      // console.log("HTML Output", editor.getHTML())
+      console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       console.log("active", editor.state.selection)
     }
