@@ -110,12 +110,22 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     return (
         <FlowSwitch value={props.selectedAction} isLens>
             <Option 
-                value={"Insert columns"} 
+                value={"Insert 2 columns"} 
+                onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 2, withHeaderRow: false }))}
+            >
+                <motion.div>
+                    <span style={{ }}>
+                        🏛️ Insert 2 columns
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
+                value={"Insert 3 columns"} 
                 onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 3, withHeaderRow: false }))}
             >
                 <motion.div>
                     <span style={{ }}>
-                        🏛️ Insert columns
+                        🏛️ Insert 3 columns
                     </span>
                 </motion.div>
             </Option>
