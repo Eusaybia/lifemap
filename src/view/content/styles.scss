@@ -203,7 +203,8 @@ input[type="checkbox"] {
   border: 1.25px solid green;
   border-radius: 1px;
   box-sizing: border-box;
-  line-height: 0.9; /* Adjust this value to offset the tick vertically */
+  line-height: 0.9;
+  /* Adjust this value to offset the tick vertically */
 }
 
 .ProseMirror span {
@@ -266,21 +267,25 @@ input[type="checkbox"] {
 .tiptap {
   table {
     border-collapse: collapse;
+    border-radius: 5px;
     margin: 0;
-    overflow: hidden;
+    overflow: visible;
     table-layout: fixed;
     width: 100%;
 
     td,
     th {
-      border: 2px solid #ced4da;
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      border-left: none;
       box-sizing: border-box;
       min-width: 1em;
-      padding: 3px 5px;
+      padding: 0px 15px;
       position: relative;
       vertical-align: top;
 
-      > * {
+      >* {
         margin-bottom: 0;
       }
     }
@@ -289,6 +294,17 @@ input[type="checkbox"] {
       background-color: #f1f3f5;
       font-weight: bold;
       text-align: left;
+    }
+
+    // This makes sure there is no padding on the left and right sides of the table
+    td:first-child,
+    th:first-child {
+      padding-left: 0;
+    }
+
+    td:last-child,
+    th:last-child {
+      padding-right: 0;
     }
 
     .selectedCell:after {

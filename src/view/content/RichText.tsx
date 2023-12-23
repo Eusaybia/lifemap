@@ -129,6 +129,7 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   Table.configure({
     resizable: true,
+    cellMinWidth: 350
   }),
   TableRow,
   TableHeader,
