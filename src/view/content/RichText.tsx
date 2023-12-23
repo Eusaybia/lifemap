@@ -101,7 +101,6 @@ export const officialExtensions = (quantaId: string) => {return [
   Highlight.configure({
     multicolor: true,
   }),
-  HorizontalRule,
   Image,
   Placeholder.configure({
     includeChildren: true,
