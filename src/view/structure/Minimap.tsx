@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import "./minimap.scss";
-import html2canvas from 'html2canvas';
+// @ts-ignore
+import domtoimage from 'dom-to-image';
 
 export const Minimap = () => {
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -19,10 +20,10 @@ export const Minimap = () => {
     const body = doc.body;
 
     // Capture the webpage with html2canvas
-    html2canvas(document.body).then(canvas => {
+    domtoimage.toPng(body).then((dataURL: string) => {
       // Create an image from the canvas
-      const img = document.createElement('img');
-      img.src = canvas.toDataURL();
+      var img = new Image();
+      img.src = dataURL;
 
       // Get the document of the iframe
       const iframeDoc = sliderContentRef.current?.contentWindow?.document;
