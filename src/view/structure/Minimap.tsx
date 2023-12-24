@@ -19,7 +19,9 @@ export const Minimap = () => {
   useEffect(() => {
     // I can't figure out why it won't render on first load
     const timer = setTimeout(() => {
-      setCounter(counter + 1);  // Updating state will cause a re-render
+      if (counter === 0) {
+        setCounter(counter + 1);  // Updating state will cause a re-render
+      }
     }, 1000);
 
 
