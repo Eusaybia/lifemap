@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { Quanta } from '../../core/Quanta';
 import { QuantaId } from '../../core/Model';
 import React from 'react'
-import { white } from '../Theme';
+import { offWhite, purple } from '../Theme';
 
 export type GroupLenses = "verticalArray";
 
@@ -16,23 +16,20 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             layoutId={props.quantaId}
             className="group"
             initial={{
-                scale: 0,
                 opacity: 0,
-                originX: 0,
-                originY: 0
             }}
-            animate={{ scale: 1, opacity: 1 }}
+            animate={{ opacity: 1 }}
             exit={{
-                scale: 0,
                 opacity: 0,
             }}
             transition={{
                 type: "ease",
-                duration: 0.4
+                duration: 0.4,
+                delay: Math.random() / 2
             }}
             style={{
                 position: "relative",
-                backgroundColor: white,
+                backgroundColor: offWhite,
                 minHeight: 20,
                 overflow: "hidden",
                 // width: "fit-content",

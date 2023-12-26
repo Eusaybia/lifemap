@@ -334,7 +334,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       </div>
     )
   } else {
-    return <>Editor is loading... 🙂</>
+    return <></>
   }
   
 })

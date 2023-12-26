@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import "./minimap.scss";
 // @ts-ignore
 import domtoimage from 'dom-to-image';
+import { easeIn, motion } from 'framer-motion';
 
 export const Minimap = () => {
   const [counter, setCounter] = React.useState(0);
@@ -22,7 +23,7 @@ export const Minimap = () => {
       if (counter === 0) {
         setCounter(counter + 1);  // Updating state will cause a re-render
       }
-    }, 1000);
+    }, 800);
 
 
     const win = window;
@@ -145,10 +146,11 @@ export const Minimap = () => {
   }, [counter]);
 
   return (
-    <div className="slider" ref={sliderRef}>
+    // The effect is to have components fade in one by one, which creates a visual sense of momentum, even though loading is slow
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ duration: 1, delay: 1.1 }} whileHover={{ opacity: 1 }} className="slider" ref={sliderRef}>
       <div className="slider__size" ref={sliderSizeRef}></div>
-      <div className="slider__controller" ref={controllerRef}></div>
-      <div className="slider__content" ref={sliderContentRef}></div>
-    </div>
+      <motion.div className="slider__controller" ref={controllerRef}></motion.div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1.3 }} className="slider__content" ref={sliderContentRef}></motion.div>
+    </motion.div>
   );
 };
