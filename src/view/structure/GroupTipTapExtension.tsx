@@ -95,6 +95,7 @@ export const GroupExtension = Node.create({
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
+      // I think there's a bug where attention = 0, gets parsed into luminance = 100
       const convertAttentionToBrightness = (attention: number) => {
         // Make 100 the limit for luminance, with log scaling towards that ceiling
         let rawLuminance = 100 - (50 / Math.log(attention))
@@ -121,7 +122,7 @@ export const GroupExtension = Node.create({
           timer = setInterval(() => {
             let newAttention = 0
             setAttention((prevAttention: number) => {
-              newAttention = prevAttention + (50 / refreshRate) * peripheralScaleFactor
+              newAttention = prevAttention + (20 / refreshRate) * peripheralScaleFactor
               props.updateAttributes({ attention: newAttention })
               console.log("new attention", newAttention)
               return newAttention
@@ -139,7 +140,8 @@ export const GroupExtension = Node.create({
           }
         }
       }, [isInView])
-      
+
+      const luminance = convertAttentionToBrightness(props.node.attrs.attention)
 
       return (
         <NodeViewWrapper>
@@ -148,7 +150,7 @@ export const GroupExtension = Node.create({
             style={{ borderRadius: 10 }}
             animate={{
               boxShadow: glowStyles.join(','),
-              filter: `brightness(${props.node.attrs.attention}%)`
+              filter: `brightness(${luminance}%)`
             }}
             transition={{ duration: 0.5, ease: "circOut" }}>
             <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
