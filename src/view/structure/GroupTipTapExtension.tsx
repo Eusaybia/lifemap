@@ -113,7 +113,7 @@ export const GroupExtension = Node.create({
         return truncatedLuminance 
       }
 
-              // props.updateAttributes({ attention: 0 })
+      // props.updateAttributes({ attention: 0 })
 
       React.useEffect(() => {
         let timer: NodeJS.Timer | undefined;
