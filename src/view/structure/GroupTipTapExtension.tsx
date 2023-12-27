@@ -1,9 +1,10 @@
 import React from "react";
-import { Node, NodeViewProps, mergeAttributes, wrappingInputRule } from "@tiptap/core";
+import { Attributes, Node, NodeViewProps, mergeAttributes, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
 import { motion, useInView } from "framer-motion";
+import { e } from "vitest/dist/reporters-2ff87305";
 
 // TODO: Match for brackets with text in between
 export const groupInputRegex = /{([^{}]*)}/;
@@ -87,15 +88,69 @@ export const GroupExtension = Node.create({
 
       // If this group is in the viewport, then add to attention
       const ref = React.useRef<HTMLDivElement | null>(null);
+      const isInView = useInView(ref)
+      const peripheralScaleFactor = 0.25
+      const refreshRate = 1
+      const focalScaleFactor = 1
+
+      const [attention, setAttention] = React.useState(props.node.attrs.attention);
+
+      const convertAttentionToBrightness = (attention: number) => {
+        // Make 100 the limit for luminance, with log scaling towards that ceiling
+        let rawLuminance = 100 - (50 / Math.log(attention))
+        console.log("raw luminance", rawLuminance)
+
+        // e.g. 75.4325435435435
+        const luminance = Math.min(0, rawLuminance)
+        console.log("luminance", luminance)
+
+        // e.g. 75
+        const truncatedLuminance = Math.floor(rawLuminance)
+
+        console.log("trunc luminance", truncatedLuminance)
+
+        return truncatedLuminance 
+      }
+
+              // props.updateAttributes({ attention: 0 })
+
       React.useEffect(() => {
-        props.updateAttributes({ attention: props.node.attrs.attention + 1 })
-      }, [
-        useInView
-      ])
+        let timer: NodeJS.Timer | undefined;
+        if (isInView) {
+          console.log("isInView")
+          timer = setInterval(() => {
+            let newAttention = 0
+            setAttention((prevAttention: number) => {
+              newAttention = prevAttention + (50 / refreshRate) * peripheralScaleFactor
+              props.updateAttributes({ attention: newAttention })
+              console.log("new attention", newAttention)
+              return newAttention
+            });
+          }, 1000 / refreshRate);
+        } else {
+          if (timer) {
+            clearInterval(timer)
+          }
+        }
+      
+        return () => {
+          if (timer) {
+            clearInterval(timer)
+          }
+        }
+      }, [isInView])
+      
 
       return (
         <NodeViewWrapper>
-          <motion.div ref={ref} style={{ borderRadius: 10 }} animate={{ boxShadow: glowStyles.join(','), filter: `brightness(${props.node.attrs.attention}%)` }} transition={{ duration: 0.5, ease: "circOut" }}>
+          <motion.div
+            ref={ref}
+            style={{ borderRadius: 10 }}
+            animate={{
+              boxShadow: glowStyles.join(','),
+              filter: `brightness(${props.node.attrs.attention}%)`
+            }}
+            transition={{ duration: 0.5, ease: "circOut" }}>
             <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
               <NodeViewContent />
             </Group>
