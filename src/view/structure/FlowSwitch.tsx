@@ -1,6 +1,5 @@
 import './styles.scss'
 import { motion } from "framer-motion"
-import { release } from "os"
 import React from "react"
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {

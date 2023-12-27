@@ -3,8 +3,7 @@ import { Node, NodeViewProps, mergeAttributes, wrappingInputRule } from "@tiptap
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
-import { orange } from "@mui/material/colors";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 
 // TODO: Match for brackets with text in between
 export const groupInputRegex = /{([^{}]*)}/;
@@ -24,6 +23,14 @@ export const GroupExtension = Node.create({
         tag: "group",
       },
     ];
+  },
+  addAttributes() {
+    return {
+      attention: { default: 0 }, // if the viewport displays this specific group
+      refinement: { default: 0 }, // if the user interacts via onHover, onClick
+      pathos: { default: 0 } // the emotional content of the group and children
+      // experimental: density: amount of qi in this group (amount of people in this group)
+    }
   },
   renderHTML({ node, HTMLAttributes }) {
     return ["group", HTMLAttributes, 0];
@@ -77,9 +84,18 @@ export const GroupExtension = Node.create({
         }
       }
 
+
+      // If this group is in the viewport, then add to attention
+      const ref = React.useRef<HTMLDivElement | null>(null);
+      React.useEffect(() => {
+        props.updateAttributes({ attention: props.node.attrs.attention + 1 })
+      }, [
+        useInView
+      ])
+
       return (
         <NodeViewWrapper>
-          <motion.div style={{ borderRadius: 10 }} animate={{ boxShadow: glowStyles.join(',') }} transition={{ duration: 0.5, ease: "circOut" }}>
+          <motion.div ref={ref} style={{ borderRadius: 10 }} animate={{ boxShadow: glowStyles.join(','), filter: `brightness(${props.node.attrs.attention}%)` }} transition={{ duration: 0.5, ease: "circOut" }}>
             <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
               <NodeViewContent />
             </Group>
