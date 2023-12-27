@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { isValidUrl, isWordEmotionRelated, similarityBetweenWordEmbeddings } from './utils'
+import { isActualUrl, isWordEmotionRelated, similarityBetweenWordEmbeddings } from './utils'
 
 test('that commonsense embeddings are valid', () => {
 
@@ -28,7 +28,7 @@ test('that words related to emotion are correctly identified', () => {
 
 test('that urls and non-urls are correctly identified', () => {
 
-    expect(isValidUrl("www.google.com")).toBe(true)
-    expect(isValidUrl("apple")).toBe(false)
+    expect(isActualUrl("www.google.com")).toBe(true)
+    expect(isActualUrl("apple")).toBe(false)
 
 })
