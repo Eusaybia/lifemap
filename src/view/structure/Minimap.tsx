@@ -22,7 +22,7 @@ export const Minimap = () => {
     timer = setInterval(() => {
       // Update the minimap every 2 seconds
       setCounter(counter + 1)
-    }, 2000);
+    }, 4000);
 
 
     const win = window;
