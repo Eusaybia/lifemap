@@ -105,7 +105,7 @@ export const GroupExtension = Node.create({
         // Make 100 the limit for luminance, with inverse exponential scaling towards that ceiling
         // Type this equation into this calculator to visualise the scaling
         // https://www.desmos.com/calculator
-        let rawLuminance = -(1 / (0.02 * attention)) + 100
+        let rawLuminance = -(1 / (0.05 * attention)) + 100
         // console.log("raw luminance", rawLuminance)
 
         // e.g. 75.4325435435435
@@ -124,6 +124,7 @@ export const GroupExtension = Node.create({
         return ceilingLuminance 
       }
 
+      // Uncomment this to reset attention 
       // props.updateAttributes({ attention: 0 })
 
       React.useEffect(() => {

@@ -18,12 +18,11 @@ export const Minimap = () => {
   let mouseY = 0;
 
   useEffect(() => {
-    // I can't figure out why it won't render on first load
-    const timer = setTimeout(() => {
-      if (counter === 0) {
-        setCounter(counter + 1);  // Updating state will cause a re-render
-      }
-    }, 800);
+    let timer: NodeJS.Timer | undefined;
+    timer = setInterval(() => {
+      // Update the minimap every 1 second
+      setCounter(counter + 1)
+    }, 1000);
 
 
     const win = window;
@@ -31,27 +30,31 @@ export const Minimap = () => {
     const body = doc.body;
 
     // Capture the webpage and place it into the minimap content
-    domtoimage.toPng(window.document.body).then((dataURL: string) => {
-      // Create an image from the canvas
-      var img = new Image();
-      img.src = dataURL;
+    const updateMinimapContent = () => {
+      domtoimage.toPng(window.document.body).then((dataURL: string) => {
+        // Create an image from the canvas
+        var img = new Image();
+        img.src = dataURL;
 
-      // Get the document of the iframe
-      const sliderContent = sliderContentRef.current
+        // Get the document of the iframe
+        const sliderContent = sliderContentRef.current
 
-      if (sliderContent) {
-        // Get the existing image in the iframe, if any
-        const existingImg = sliderContent.querySelector('img');
+        if (sliderContent) {
+          // Get the existing image in the iframe, if any
+          const existingImg = sliderContent.querySelector('img');
 
-        if (existingImg) {
-          // If an image already exists, replace it with the new image
-          existingImg.replaceWith(img);
-        } else {
-          // If no image exists, append the new image
-          sliderContent.appendChild(img);
+          if (existingImg) {
+            // If an image already exists, replace it with the new image
+            existingImg.replaceWith(img);
+          } else {
+            // If no image exists, append the new image
+            sliderContent.appendChild(img);
+          }
         }
-      }
-    });
+      });
+    }
+
+    updateMinimapContent()
 
     function getDimensions() {
       const bodyWidth = body.clientWidth;
