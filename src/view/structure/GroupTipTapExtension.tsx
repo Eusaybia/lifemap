@@ -27,9 +27,9 @@ export const GroupExtension = Node.create({
   },
   addAttributes() {
     return {
-      attention: { default: 0 }, // if the viewport displays this specific group
-      refinement: { default: 0 }, // if the user interacts via onHover, onClick
-      pathos: { default: 0 } // the emotional content of the group and children
+      attention: { default: 0 }, // if the viewport displays this specific group - in seconds
+      refinement: { default: 0 }, // if the user interacts via onHover, onClick - actions taken
+      pathos: { default: 0 } // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
     }
   },
@@ -89,28 +89,39 @@ export const GroupExtension = Node.create({
       // If this group is in the viewport, then add to attention
       const ref = React.useRef<HTMLDivElement | null>(null);
       const isInView = useInView(ref)
+      const attentionUnitsPerSecond = 1
       const peripheralScaleFactor = 0.25
-      const refreshRate = 1
+      const refreshRate = 60
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
       // I think there's a bug where attention = 0, gets parsed into luminance = 100
       const convertAttentionToBrightness = (attention: number) => {
-        // Make 100 the limit for luminance, with log scaling towards that ceiling
-        let rawLuminance = 100 - (50 / Math.log(attention))
-        console.log("raw luminance", rawLuminance)
+        if (attention <= 0) {
+          return 0
+        }
+
+        // Make 100 the limit for luminance, with inverse exponential scaling towards that ceiling
+        // Type this equation into this calculator to visualise the scaling
+        // https://www.desmos.com/calculator
+        let rawLuminance = -(1 / (0.02 * attention)) + 100
+        // console.log("raw luminance", rawLuminance)
 
         // e.g. 75.4325435435435
-        const luminance = Math.min(0, rawLuminance)
-        console.log("luminance", luminance)
+        // Brightness must be higher than 0, must set a floor
+        const luminance = Math.max(0, rawLuminance)
+        // console.log("luminance", luminance)
 
         // e.g. 75
         const truncatedLuminance = Math.floor(rawLuminance)
 
-        console.log("trunc luminance", truncatedLuminance)
+        // Brightness must be lower than 100
+        const ceilingLuminance = Math.min(100, truncatedLuminance)
 
-        return truncatedLuminance 
+        // console.log("trunc luminance", truncatedLuminance)
+
+        return ceilingLuminance 
       }
 
       // props.updateAttributes({ attention: 0 })
@@ -122,9 +133,8 @@ export const GroupExtension = Node.create({
           timer = setInterval(() => {
             let newAttention = 0
             setAttention((prevAttention: number) => {
-              newAttention = prevAttention + (20 / refreshRate) * peripheralScaleFactor
+              newAttention = prevAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
               props.updateAttributes({ attention: newAttention })
-              console.log("new attention", newAttention)
               return newAttention
             });
           }, 1000 / refreshRate);
