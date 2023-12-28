@@ -88,7 +88,10 @@ export const GroupExtension = Node.create({
 
       // If this group is in the viewport, then add to attention
       const ref = React.useRef<HTMLDivElement | null>(null);
-      const isInView = useInView(ref)
+      const isInView = useInView(ref, {
+        // This means that the viewport is effectively shrunken by this size
+        margin: "-250px 0px -250px 0px"
+      })
       const attentionUnitsPerSecond = 1
       const peripheralScaleFactor = 0.25
       const refreshRate = 60
