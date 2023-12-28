@@ -96,6 +96,9 @@ export const GroupExtension = Node.create({
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
+      // Uncomment this to reset attention 
+      // props.updateAttributes({ attention: 0 })
+
       // I think there's a bug where attention = 0, gets parsed into luminance = 100
       const convertAttentionToBrightness = (attention: number) => {
         if (attention <= 0) {
@@ -114,7 +117,7 @@ export const GroupExtension = Node.create({
         // console.log("luminance", luminance)
 
         // e.g. 75
-        const truncatedLuminance = Math.floor(rawLuminance)
+        const truncatedLuminance = Math.floor(luminance)
 
         // Brightness must be lower than 100
         const ceilingLuminance = Math.min(100, truncatedLuminance)
@@ -124,13 +127,9 @@ export const GroupExtension = Node.create({
         return ceilingLuminance 
       }
 
-      // Uncomment this to reset attention 
-      // props.updateAttributes({ attention: 0 })
-
       React.useEffect(() => {
         let timer: NodeJS.Timer | undefined;
         if (isInView) {
-          console.log("isInView")
           timer = setInterval(() => {
             let newAttention = 0
             setAttention((prevAttention: number) => {
