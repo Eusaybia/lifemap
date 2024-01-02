@@ -94,7 +94,7 @@ export const GroupExtension = Node.create({
       })
       const attentionUnitsPerSecond = 1
       const peripheralScaleFactor = 0.25
-      const refreshRate = 60
+      const refreshRate = 1 // Reducing this improves performance drastically
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
