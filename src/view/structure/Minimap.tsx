@@ -20,9 +20,9 @@ export const Minimap = () => {
   useEffect(() => {
     let timer: NodeJS.Timer | undefined;
     timer = setInterval(() => {
-      // Update the minimap every 2 seconds
+      // Update the minimap every 5 seconds
       setCounter(counter + 1)
-    }, 4000);
+    }, 5000);
 
 
     const win = window;
