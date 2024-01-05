@@ -1,10 +1,9 @@
 import React from "react";
-import { Attributes, Editor, Node, NodeViewProps, mergeAttributes, wrappingInputRule } from "@tiptap/core";
-import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
-import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
+import { Editor, Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 
 
 export type InteractionType = "onHover" | "onClick" | "onSelectionChanged" | "onMarkChange" | "onTextChange"
@@ -34,7 +33,7 @@ const increaseRefinement = (interactionType: InteractionType, editor: Editor, no
       break;
   }
 
-  editor.commands.updateAttributes(nodeName, { refinement: node.attrs.refinement + refinementIncrement })
+  // editor.commands.updateAttributes(nodeName, { refinement: node.attrs.refinement + refinementIncrement })
 }
 
 // TODO: Match for brackets with text in between
@@ -49,6 +48,15 @@ export const GroupExtension = Node.create({
   selectable: true,
   draggable: true,
   atom: true,
+  onUpdate() {
+    // If there is a selection inside the node, don't update the node
+    // Updating the node will cause the selection to disappear
+    if (this.editor.state.selection) {
+      return true
+    }
+
+    return false
+  },
   parseHTML() {
     return [
       {
@@ -77,7 +85,19 @@ export const GroupExtension = Node.create({
     ]
   },
   onSelectionUpdate() {
-    increaseRefinement("onSelectionChanged", this.editor, this.name)
+    console.log("group had selection")
+    // Get the current node
+    // const node = this.editor.state.selection.$head.parent;
+  
+    // // Check if the node is of the correct type
+    // if (node.type.name === this.name) {
+    //   // Calculate the new refinement value
+    //   const refinementIncrement = calculateRefinementIncrement("onSelectionChanged");
+    //   const newRefinement = node.attrs.refinement + refinementIncrement;
+  
+    //   // Update the refinement attribute
+    //   this.editor.commands.updateAttributes(this.name, { refinement: newRefinement });
+    // }
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
@@ -152,18 +172,15 @@ export const GroupExtension = Node.create({
         props.updateAttributes({refinement: node.attrs.refinement + refinementIncrement})
       }
 
-
-
-
       // If this group is in the viewport, then add to attention
       const ref = React.useRef<HTMLDivElement | null>(null);
       const isInView = useInView(ref, {
         // This means that the viewport is effectively shrunken by this size
         margin: "-250px 0px -250px 0px"
       })
-      const attentionUnitsPerSecond = 1
-      const peripheralScaleFactor = 0.25
-      const refreshRate = 5 // Reducing this improves performance drastically
+      const attentionUnitsPerSecond = 100
+      const peripheralScaleFactor = 0.3
+      const refreshRate = 60
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
@@ -171,79 +188,75 @@ export const GroupExtension = Node.create({
       // Uncomment this to reset attention 
       // props.updateAttributes({ attention: 0 })
 
-      // I think there's a bug where attention = 0, gets parsed into luminance = 100
-      const convertAttentionToBrightness = (attention: number) => {
-        if (attention <= 0) {
-          return 0
-        }
-
-        // Make 100 the limit for luminance, with inverse exponential scaling towards that ceiling
-        // Type this equation into this calculator to visualise the scaling
-        // https://www.desmos.com/calculator
-        let rawLuminance = -(1 / (0.05 * attention)) + 100
-        // console.log("raw luminance", rawLuminance)
-
-        // e.g. 75.4325435435435
-        // Brightness must be higher than 0, must set a floor
-        const luminance = Math.max(0, rawLuminance)
-        // console.log("luminance", luminance)
-
-        // e.g. 75
-        const truncatedLuminance = Math.floor(luminance)
-
-        // Brightness must be lower than 100
-        const ceilingLuminance = Math.min(100, truncatedLuminance)
-
-        // console.log("trunc luminance", truncatedLuminance)
-
-        return ceilingLuminance 
-      }
+      // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
+      const attentionProxy = useMotionValue(props.node.attrs.attention)
 
       React.useEffect(() => {
-        let timer: NodeJS.Timer | undefined;
+        let motionValueUpdateTimer: NodeJS.Timer | undefined;
+        let nodeAttrsUpdateTimer: NodeJS.Timer | undefined;
         if (isInView) {
           // Maybe it's better to use a Framer Motion primitive since it runs outside the React render loop
           // https://arc.net/l/quote/tsaviucv
-          timer = setInterval(() => {
-            let newAttention = 0
-            setAttention((prevAttention: number) => {
-              newAttention = prevAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
-              props.updateAttributes({ attention: newAttention })
-              return newAttention
-            });
+          motionValueUpdateTimer = setInterval(() => {
+            const currentAttention = attentionProxy.get()
+
+            let newAttention = currentAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
+
+            // Use motion value updates to maintain performance
+            attentionProxy.set(newAttention)
+
           }, 1000 / refreshRate);
+
+          // Every so often, update the actual attention value associated with the group
+          // This is done for performance reasons, as well as the fact that updatingAttributes causes a re-render of the node
+          // This re-render wipes any text selections, which is undesireable
+          // Still kind of hacky, a real solution would maybe
+          // Prevent re-rendering if there is a selection
+          // Even better solution would be to somehow remember the selection, and then re-apply it after an update
+          nodeAttrsUpdateTimer = setInterval(() => {
+            props.updateAttributes({ attention: attentionProxy.get() })
+          }, 10000)
+
         } else {
-          if (timer) {
-            clearInterval(timer)
+          if (motionValueUpdateTimer) {
+            clearInterval(motionValueUpdateTimer)
+          }
+          if (nodeAttrsUpdateTimer) {
+            clearInterval(nodeAttrsUpdateTimer)
           }
         }
       
         return () => {
-          if (timer) {
-            clearInterval(timer)
+          if (motionValueUpdateTimer) {
+            clearInterval(motionValueUpdateTimer)
+          }
+          if (nodeAttrsUpdateTimer) {
+            clearInterval(nodeAttrsUpdateTimer)
           }
         }
       }, [isInView])
 
-      const luminance = convertAttentionToBrightness(props.node.attrs.attention)
-
+      // Have an exponentially growing attention to brightness curve
+      // For a little bit of increase in attention, have a large initial increase in brightness
+      // Make it hard to reach maximum brightness
+      // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
+      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 100, 800, 1000], [0, 70, 100, 110])}%)`
 
       return (
         <NodeViewWrapper>
           <motion.div
             onHoverStart={() => {
-              increaseAttention("onHover")
-              increaseRefinement("onHover")
+              // increaseAttention("onHover")
+              // increaseRefinement("onHover")
             }}
             onClick={() => {
-              increaseAttention("onClick")
-              increaseRefinement("onClick")
+              // increaseAttention("onClick")
+              // increaseRefinement("onClick")
             }}
             ref={ref}
-            style={{ borderRadius: 10 }}
+            style={{ borderRadius: 10, filter: brightnessStyle }}
             animate={{
               boxShadow: glowStyles.join(','),
-              filter: `brightness(${luminance}%)`
             }}
             transition={{ duration: 0.5, ease: "circOut" }}>
             <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
