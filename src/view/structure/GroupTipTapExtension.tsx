@@ -240,10 +240,11 @@ export const GroupExtension = Node.create({
       // For a little bit of increase in attention, have a large initial increase in brightness
       // Make it hard to reach maximum brightness
       // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
-      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 100, 800, 1000], [0, 70, 100, 110])}%)`
+      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 60, 500, 1000], [0, 80, 90, 105])}%)`
 
       return (
         <NodeViewWrapper>
+          
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
