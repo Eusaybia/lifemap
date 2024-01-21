@@ -9,7 +9,7 @@ const App = () => {
   return (
     <React.StrictMode>
       <motion.div style={{ padding: `45px`, backgroundColor: offWhite }}>
-        <Quanta quantaId={'000000'} userId={'000000'} />
+        Welcome to Eusaybia Lifemap. You need to be on a specific quanta. e.g. /q/999997
       </motion.div>
     </React.StrictMode>
   );

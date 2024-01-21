@@ -16,7 +16,7 @@ import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
-import React from "react"
+import React, { CSSProperties } from "react"
 import { NodeSelection } from "prosemirror-state";
 import { Lens, MathLens, displayLenses } from "../../core/Model";
 import { officialExtensions } from "../content/RichText";
@@ -219,6 +219,42 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
             </>
         }
     </FlowSwitch>)
+}
+
+export const DocumentFlowMenu = (props: {editor: Editor}) => {
+    const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
+    const [selectedDocumentLens, setSelectedDocumentLens] = React.useState<string>("Focus mode")
+
+    let documentMenuStyle: CSSProperties = flowMenuStyle()
+    documentMenuStyle.width = "80%"
+
+    return (
+        <motion.div style={documentMenuStyle}>
+            <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
+                    <FlowSwitch value={selectedDocumentLens} isLens>
+                        <Option
+                            value={"Editing view"}
+                            onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
+                        >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    ✏️ Editing view
+                                </span>
+                            </motion.div>
+                        </Option>
+                        <Option
+                            value={"Focus view"}
+                            onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
+                        >
+                            <motion.div>
+                                <span style={{ fontFamily: 'Inter' }}>
+                                    🧘🏻‍♀️ Focus view
+                                </span>
+                            </motion.div>
+                        </Option>
+                    </FlowSwitch>
+        </motion.div>
+    )
 }
 
 export const FlowMenu = (props: { editor: Editor }) => {
