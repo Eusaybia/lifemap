@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import "./minimap.scss";
 // @ts-ignore
-import domtoimage from 'dom-to-image';
-import { easeIn, motion } from 'framer-motion';
+import { domToPng } from 'modern-screenshot'
+import { motion } from 'framer-motion';
 
 export const Minimap = () => {
   const [counter, setCounter] = React.useState(0);
@@ -31,7 +31,12 @@ export const Minimap = () => {
 
     // Capture the webpage and place it into the minimap content
     const updateMinimapContent = () => {
-      domtoimage.toPng(window.document.body).then((dataURL: string) => {
+      let options = {
+        features: {
+          removeControlCharacter: false
+        }
+      }
+      domToPng(window.document.body, options).then((dataURL: string) => {
         // Create an image from the canvas
         var img = new Image();
         img.src = dataURL;
