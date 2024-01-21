@@ -150,10 +150,10 @@ export const Minimap = () => {
 
   return (
     // The effect is to have components fade in one by one, which creates a visual sense of momentum, even though loading is slow
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ duration: 1, delay: 1.1 }} whileHover={{ opacity: 1 }} className="slider" ref={sliderRef}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.7 }} transition={{ duration: 0.5 }} whileHover={{ opacity: 1 }} className="slider" ref={sliderRef}>
       <div className="slider__size" ref={sliderSizeRef}></div>
       <motion.div className="slider__controller" ref={controllerRef}></motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 1.3 }} className="slider__content" ref={sliderContentRef}></motion.div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="slider__content" ref={sliderContentRef}></motion.div>
     </motion.div>
   );
 };
