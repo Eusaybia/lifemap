@@ -62,6 +62,7 @@ import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
+import { FocusModePlugin } from '../plugins/FocusModePlugin'
 
 lowlight.registerLanguage('js', js)
 
@@ -168,6 +169,7 @@ export const customExtensions: Extensions = [
     }
   ),
   FadeIn,
+  FocusModePlugin,
   GroupExtension,
   Indent,
   KeyValuePairExtension,
@@ -245,24 +247,27 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     content: (informationType === "yDoc") ? null : information,
     onSelectionUpdate: ({ editor }) => {
-      const highlightsOn = false
+      // @ts-ignore
+      // const focusModeEnabled = editor.options.focusMode.focusModeEnabled
 
-      // Highlight the focused node
-      if (highlightsOn) {
-        const driverObj = driver({
-          animate: true,
-          disableActiveInteraction: false,
-          stageRadius: 15,
-          allowClose: true,
-        })
+      // console.log("fme", focusModeEnabled)
 
-        var elements = document.querySelectorAll('.attention-highlight');
-        elements.forEach((element) => {
-          driverObj.highlight({
-            element: element,
-          });
-        });
-      }
+      // // Highlight the focused node
+      // if (focusModeEnabled) {
+      //   const driverObj = driver({
+      //     animate: true,
+      //     disableActiveInteraction: false,
+      //     stageRadius: 15,
+      //     allowClose: true,
+      //   })
+
+      //   var elements = document.querySelectorAll('.attention-highlight');
+      //   elements.forEach((element) => {
+      //     driverObj.highlight({
+      //       element: element,
+      //     });
+      //   });
+      // }
     },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())

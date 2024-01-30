@@ -244,7 +244,8 @@ export const DocumentFlowMenu = (props: {editor: Editor}) => {
                         </Option>
                         <Option
                             value={"Focus view"}
-                            onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
+                            // @ts-ignore
+                            onClick={() => { props.editor!.toggleFocus()}}
                         >
                             <motion.div>
                                 <span style={{ fontFamily: 'Inter' }}>
