@@ -181,7 +181,6 @@ export const customExtensions: Extensions = [
   ExperimentalPortalExtension,
   QuoteExtension,
   TwoDGraphExtension,
-  ThreeDExtension,
   WarningExtension
 ]
 
