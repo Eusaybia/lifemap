@@ -6,7 +6,7 @@ import { offWhite, purple } from '../Theme';
 
 export type GroupLenses = "verticalArray";
 
-export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId }) => {
+export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string }) => {
 
     // TODO: Exit animation doesn't work
     // TODO: Fix stretchy border: https://github.com/framer/motion/issues/1249
@@ -29,7 +29,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             }}
             style={{
                 position: "relative",
-                backgroundColor: offWhite,
+                backgroundColor: props.backgroundColor || offWhite,
                 minHeight: 20,
                 overflow: "hidden",
                 // width: "fit-content",
@@ -50,7 +50,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
                 onMouseUp={(event) => {
                     event.currentTarget.style.cursor = "grab";
                 }}
-                style={{ position: "absolute", right: -5, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey" }}
+                style={{ position: "absolute", right: 0, top: 10, display: "flex", flexDirection: "column", cursor: "grab", fontSize: "24px", color: "grey", scale: 1.5 }}
                 contentEditable="false"
                 suppressContentEditableWarning={true}
                 initial={{ opacity: 0 }}

@@ -23,6 +23,11 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "incremental": false,
+    "paths": {
+      "@tiptap/core": [
+        "./node_modules/@tiptap/core/src/index"
+      ]
+    },
     "plugins": [
       {
         "name": "next"

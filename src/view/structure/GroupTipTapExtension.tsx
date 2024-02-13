@@ -1,9 +1,20 @@
 import React from "react";
-import { Editor, Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { Editor, Node, NodeViewProps, RawCommands, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
 import { motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
+import { offWhite } from "../Theme";
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    group: {
+      setBackgroundColor: (options: {
+        backgroundColor: string
+      }) => ReturnType
+    }
+  }
+}
 
 
 export type InteractionType = "onHover" | "onClick" | "onSelectionChanged" | "onMarkChange" | "onTextChange"
@@ -57,6 +68,17 @@ export const GroupExtension = Node.create({
 
     return false
   },
+  addCommands() {
+    return {
+      // Define your custom command name and function
+      // @ts-ignore - TipTap repo doesn't use ts directive noImplicitAny, and their tests pass so this should be fine
+      setBackgroundColor: ({ backgroundColor }) => ({ editor, node }) => {
+        // Use the existing setAttribute command to change the backgroundColor
+        // @ts-ignore
+        return editor.commands.setAttributes("group", "backgroundColor", node.attrs.backgroundColor);
+      },
+    }
+  },
   parseHTML() {
     return [
       {
@@ -68,9 +90,10 @@ export const GroupExtension = Node.create({
     return {
       attention: { default: 0 }, // if the viewport displays this specific group - in seconds
       refinement: { default: 0 }, // if the user interacts via onHover, onClick - actions taken
-      pathos: { default: 0 } // the emotional content of the group and children - basically a colour mixture of all emotions within
+      pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
+      backgroundColor: { default: offWhite }
     }
   },
   renderHTML({ node, HTMLAttributes }) {
@@ -186,7 +209,7 @@ export const GroupExtension = Node.create({
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
       // Uncomment this to reset attention 
-      props.updateAttributes({ attention: 0 })
+      // props.updateAttributes({ attention: 0 })
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
       const attentionProxy = useMotionValue(props.node.attrs.attention)
@@ -260,7 +283,11 @@ export const GroupExtension = Node.create({
               boxShadow: glowStyles.join(','),
             }}
             transition={{ duration: 0.5, ease: "circOut" }}>
-            <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
+            <Group 
+              lens={"verticalArray"} 
+              quantaId={props.node.attrs.qid} 
+              backgroundColor={props.node.attrs.backgroundColor}
+            >
               <NodeViewContent />
             </Group>
           </motion.div>
