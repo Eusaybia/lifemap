@@ -110,16 +110,6 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     return (
         <FlowSwitch value={props.selectedAction} isLens>
             <Option 
-                value={"Change background color to red"} 
-                onClick={() => (props.editor.commands.setBackgroundColor({ backgroundColor: "red" }))}
-            >
-                <motion.div>
-                    <span style={{ }}>
-                        🎨️ Change background color to red
-                    </span>
-                </motion.div>
-            </Option>
-            <Option 
                 value={"Insert 2 columns"} 
                 onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 2, withHeaderRow: false }))}
             >
