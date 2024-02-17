@@ -2093,7 +2093,12 @@
   dependencies:
     uuid "^8.3.2"
 
-"@tiptap/core@2.1.13", "@tiptap/core@^2.1.12", "@tiptap/core@^2.1.13":
+"@tiptap/core@2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-2.2.3.tgz#54375c27bcca81901e5316e056147ce0cbc89ba6"
+  integrity sha512-0l3p1/cuaQk8XFf+Ft/ExbUjReGes5Iep7y4nuL/Fzi2S92DZzozY6cosXBHC/Xsqzn6zIkl/gnQTgmTvlmhCQ==
+
+"@tiptap/core@^2.1.12", "@tiptap/core@^2.1.13":
   version "2.1.13"
   resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-2.1.13.tgz#e21f566e81688c826c6f26d2940886734189e193"
   integrity sha512-cMC8bgTN63dj1Mv82iDeeLl6sa9kY0Pug8LSalxVEptRmyFVsVxGgu2/6Y3T+9aCYScxfS06EkA8SdzFMAwYTQ==
