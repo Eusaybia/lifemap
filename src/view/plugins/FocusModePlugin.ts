@@ -3,8 +3,10 @@ import { Extension } from '@tiptap/core'
 export const FocusModePlugin = Extension.create({
     name: 'focusMode',
 
-    defaultOptions: {
-        focusModeEnabled: false,
+    addOptions() {
+        return {
+            focusModeEnabled: false,
+        }
     },
 
     // @ts-ignore
