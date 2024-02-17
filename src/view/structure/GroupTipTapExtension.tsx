@@ -1,5 +1,5 @@
 import React from "react";
-import { Editor, Node, NodeViewProps, RawCommands, wrappingInputRule } from "@tiptap/core";
+import { Editor, Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
