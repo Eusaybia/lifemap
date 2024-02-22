@@ -70,12 +70,16 @@ export const GroupExtension = Node.create({
   },
   addCommands() {
     return {
-      // Define your custom command name and function
-      // @ts-ignore - TipTap repo doesn't use ts directive noImplicitAny, and their tests pass so this should be fine
-      setBackgroundColor: ({ backgroundColor }) => ({ editor, node }) => {
-        // Use the existing setAttribute command to change the backgroundColor
-        // @ts-ignore
-        return editor.commands.setAttributes("group", "backgroundColor", node.attrs.backgroundColor);
+      setBackgroundColor: (attributes: { backgroundColor: string }) => ({ state, dispatch }) => {
+
+        const { selection } = state;
+        const groupNode = selection && selection.$from.depth > 0 && selection.$from.node(selection.$from.depth).type.name === this.name;
+
+        if (groupNode && dispatch) {
+          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "backgroundColor", attributes.backgroundColor));
+          return true; // Indicate that the command ran successfully
+        }
+        return false
       },
     }
   },
@@ -267,7 +271,6 @@ export const GroupExtension = Node.create({
 
       return (
         <NodeViewWrapper>
-          
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
@@ -288,6 +291,7 @@ export const GroupExtension = Node.create({
               quantaId={props.node.attrs.qid} 
               backgroundColor={props.node.attrs.backgroundColor}
             >
+              {/* {props.node.attrs.quantaId} */}
               <NodeViewContent />
             </Group>
           </motion.div>

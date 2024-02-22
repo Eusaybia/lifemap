@@ -1,4 +1,4 @@
-import { Editor, generateHTML } from "@tiptap/core"
+import { Editor, generateHTML, isNodeSelection, isTextSelection } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion } from "framer-motion"
@@ -17,7 +17,7 @@ import { black, blue, grey, highlightYellow, purple, red, offWhite } from "../Th
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
-import { NodeSelection } from "prosemirror-state";
+import { NodeSelection, Selection } from "prosemirror-state";
 import { Lens, MathLens, displayLenses } from "../../core/Model";
 import { officialExtensions } from "../content/RichText";
 
@@ -104,6 +104,31 @@ const handleAddImage = (editor: Editor) => {
         return false
     }
 }
+
+// For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
+const setDisplayLensLatex = (editor: Editor) => {
+    editor!.chain().focus().updateAttributes("math", { lensDisplay: "latex" }).run();
+}
+
+const setDisplayLensNatural = (editor: Editor) => {
+    editor!.chain().focus().updateAttributes("math", { lensDisplay: "natural" }).run();
+}
+
+const setEvaluationLens = (editor: Editor, mathLens: MathLens) => {
+    console.log("setting evaluation lens:", mathLens)
+    editor!.chain().focus().updateAttributes("math", { lensEvaluation: mathLens }).run();
+}
+
+const setMathsLens = (editor: Editor, mathLens: MathLens) => {
+    editor!.chain().focus().updateAttributes("math", { lensDisplay: mathLens }).run();
+
+    // Get the current selection
+    // Problem seems to be that when I interact with the flow switch, the selection changes to something other than the math node
+    // @ts-ignore
+
+    // Check if the selection is a node selection
+    console.log('selected node', props.editor!.view.state.selection);
+};
 
 const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
 
@@ -221,6 +246,26 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
     </FlowSwitch>)
 }
 
+// Written by examining the selection object when clicking on various node types
+const getSelectedNodeType = (editor: Editor) => {
+    const selection = editor.view.state.selection
+
+    if (isTextSelection(selection)) {
+        return "text"
+    } else if (isNodeSelection(selection)) {
+        switch (selection.node.type.name) {
+            case "group":
+                return "group"
+            default:
+                console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
+                return "invalid"
+        }
+    } else {
+        console.error("Selected a node that is neither text nor a node.")
+        return "invalid"
+    }
+}
+
 export const DocumentFlowMenu = (props: {editor: Editor}) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     const [selectedDocumentLens, setSelectedDocumentLens] = React.useState<string>("Focus mode")
@@ -255,6 +300,401 @@ export const DocumentFlowMenu = (props: {editor: Editor}) => {
                         </Option>
                     </FlowSwitch>
         </motion.div>
+    )
+}
+
+const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Math
+            </Tag>
+            <FlowSwitch value={props.selectedDisplayLens} isLens>
+                <Option value="natural" onClick={() => {
+                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                    // setMathsLens("latex")
+                    setDisplayLensNatural(props.editor)
+                }}>
+                    <motion.div>
+                        <div style={{ fontFamily: 'Inter' }}>
+                            Natural
+                        </div>
+                    </motion.div>
+                </Option>
+                <Option value="latex" onClick={() => {
+                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                    // setMathsLens("latex")
+                    setDisplayLensLatex(props.editor)
+                }}>
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Latex
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value="linear" onClick={() => {
+                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                    // setMathsLens("latex")
+                    setDisplayLensLatex(props.editor)
+                }}>
+                    <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Linear
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value="mathjson" onClick={() => {
+                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
+                    // setMathsLens("latex")
+                    setDisplayLensLatex(props.editor)
+                }}>
+                    <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            MathJSON
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <FlowSwitch value={"evaluate"} isLens >
+                <Option value="identity" onClick={() => { setEvaluationLens(props.editor, "identity") }} >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Identity
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value="simplify" onClick={() => { setEvaluationLens(props.editor, "simplify") }} >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Simplify
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value="evaluate" onClick={() => { setEvaluationLens(props.editor, "evaluate") }} >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Evaluate
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value="numeric" onClick={() => { setEvaluationLens(props.editor, "numeric") }} >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Numeric
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+        </div>
+    )
+}
+
+// Need to add additional state variables that currently have a placeholder using justification
+const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Rich Text
+            </Tag>
+            <FlowSwitch value={props.font} isLens>
+                <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
+                    <motion.div>
+                        <span style={{ fontFamily: 'EB Garamond' }}>
+                            EB Garamond
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value={"Inter"} onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            Inter
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value={"Arial"} onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
+                    <motion.div>
+                        <span style={{ fontFamily: 'Arial' }}>
+                            Arial
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <FlowSwitch value={props.fontSize} isLens>
+                <Option
+                    value={"36px"}
+                    onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            36 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"30px"}
+                    onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            30 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"24px"}
+                    onClick={() => props.editor!.chain().focus().setFontSize('24px').run()}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            24 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"20px"}
+                    onClick={() => props.editor!.chain().focus().setFontSize('20px').run()}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            20 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value={"18px"}
+                    onClick={() => props.editor!.chain().focus().setFontSize('18px').run()}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            18 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value={"16px"}
+                    onClick={() => props.editor!.chain().focus().setFontSize('16px').run()}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            16 px
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option value={"14px"}
+                    onClick={() => props.editor!.chain().focus().setFontSize('14px').run()}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            14 px
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <FlowSwitch value={props.justification} isLens>
+                {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
+                <Option value="left"
+                    onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
+                >
+                    <IconButton
+                        size="sm"
+                        className={props.editor.isActive('bold') ? 'is-active' : ''}
+                        variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
+                        <FormatAlignLeft />
+                    </IconButton>
+                </Option>
+                <Option value="center"
+                    onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
+                >
+                    <IconButton
+                        size="sm"
+                        className={props.editor.isActive('bold') ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatAlignCentre />
+                    </IconButton>
+                </Option>
+                <Option value="right"
+                    onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
+                >
+                    <IconButton
+                        size="sm"
+                        className={props.editor.isActive('bold') ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatAlignRight />
+                    </IconButton>
+                </Option>
+                <Option value="justify"
+                    onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
+                >
+                    <IconButton
+                        size="sm"
+                        className={props.editor.isActive('bold') ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatAlignJustify />
+                    </IconButton>
+                </Option>
+            </FlowSwitch>
+            <Tag isLens>
+                <IconButton
+                    style={{ color: props.editor!.isActive('bold') ? offWhite : black }}
+                    size="sm"
+                    // @ts-ignore
+                    onClick={() => props.editor!.chain().focus().toggleBold().run()}
+                    variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
+                    <FormatBoldIcon />
+                </IconButton>
+                <IconButton
+                    style={{ color: props.editor!.isActive('italic') ? offWhite : black }}
+                    size="sm"
+                    // @ts-ignore
+                    onClick={() => props.editor!.chain().focus().toggleItalic().run()}
+                    variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
+                    <FormatItalicIcon />
+                </IconButton>
+                <IconButton
+                    style={{ color: props.editor!.isActive('underline') ? offWhite : black }}
+                    size="sm"
+                    onClick={() => props.editor!.chain().focus().toggleUnderline().run()}
+                    variant={props.editor!.isActive('underline') ? "solid" : "plain"}>
+                    <FormatUnderlinedIcon />
+                </IconButton>
+                <IconButton
+                    style={{ color: props.editor!.isActive('strike') ? offWhite : black }}
+                    size="sm"
+                    // @ts-ignore
+                    onClick={() => props.editor!.chain().focus().toggleStrike().run()}
+                    variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
+                    <FormatStrikethrough />
+                </IconButton>
+            </Tag>
+            {/* Need to create a proper state variable for this */}
+            <FlowSwitch value={props.justification} isLens>
+                <Option
+                    value={"#121212"}
+                    onClick={() => props.editor.chain().focus().setColor('#121212').run()}
+                >
+                    <IconButton
+                        style={{ color: black }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
+                    <IconButton
+                        style={{ color: "#958DF1" }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={red} onClick={() => props.editor.chain().focus().setColor(red).run()}>
+                    <IconButton
+                        style={{ color: red }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: red }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={grey} onClick={() => props.editor.chain().focus().setColor(grey).run()}>
+                    <IconButton
+                        style={{ color: grey }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: grey }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+            </FlowSwitch>
+            {/* Need to create a proper state variable for this */}
+            <FlowSwitch value={props.justification} isLens>
+                <Option
+                    value={highlightYellow}
+                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
+                >
+                    <IconButton
+                        style={{ color: highlightYellow }}
+                        size="sm"
+                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                        className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatColorFill />
+                    </IconButton>
+                </Option>
+                <Option
+                    value={blue}
+                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: blue }).run()}
+                >
+                    <IconButton
+                        style={{ color: blue }}
+                        size="sm"
+                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                        className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatColorFill />
+                    </IconButton>
+                </Option>
+                <Option
+                    value={purple}
+                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: purple }).run()}
+                >
+                    <IconButton
+                        style={{ color: purple }}
+                        size="sm"
+                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                        className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatColorFill />
+                    </IconButton>
+                </Option>
+                <Option
+                    value={red}
+                    onClick={() => props.editor!.chain().focus().toggleHighlight({ color: red }).run()}
+                >
+                    <IconButton
+                        style={{ color: red }}
+                        size="sm"
+                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
+                        className={props.editor!.isActive('highlight', { color: red }) ? 'is-active' : ''}
+                        variant="plain">
+                        <FormatColorFill />
+                    </IconButton>
+                </Option>
+            </FlowSwitch>
+            {/* Need to create a proper state variable for this */}
+            <FlowSwitch value={props.justification}>
+                <Option
+                    value={"blue"}
+                    onClick={() => (props.editor.commands.setBackgroundColor({ backgroundColor: "blue" }))}
+                >
+                    <motion.div>
+                        <span style={{}}>
+                            🎨️ Change background color to blue
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"Change background color to white"}
+                    onClick={() => (props.editor.commands.setBackgroundColor({ backgroundColor: "white" }))}
+                >
+                    <motion.div>
+                        <span style={{}}>
+                            🎨️ Change background color to white
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+        </div>
     )
 }
 
@@ -294,31 +734,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     }, [selection])
 
-    // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
-    const setDisplayLensLatex = () => {
-        props.editor!.chain().focus().updateAttributes("math", { lensDisplay: "latex" }).run();
-    }
-
-    const setDisplayLensNatural = () => {
-        props.editor!.chain().focus().updateAttributes("math", { lensDisplay: "natural" }).run();
-    }
-
-    const setEvaluationLens = (mathLens: MathLens) => {
-        console.log("setting evaluation lens:", mathLens)
-        props.editor!.chain().focus().updateAttributes("math", { lensEvaluation: mathLens }).run();
-    }
-
-    const setMathsLens = (mathLens: MathLens) => {
-        props.editor!.chain().focus().updateAttributes("math", { lensDisplay: mathLens }).run();
-
-        // Get the current selection
-        // Problem seems to be that when I interact with the flow switch, the selection changes to something other than the math node
-        // @ts-ignore
-
-        // Check if the selection is a node selection
-        console.log('selected node', props.editor!.view.state.selection);
-    };
-
     // TODO: For some reason the FlowSwitch doesn't work properly when embedded into the BubbleMenu
     // TODO: For now, just use a normal MUI select
     const font = true ? "Arial" : props.editor.getAttributes('textStyle').fontFamily;
@@ -337,365 +752,14 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 className="flow-menu"
             >
                 <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
-                {!props.editor!.isActive('math') ? <div
-                    style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
-                    <Tag>
-                        Rich Text
-                    </Tag>
-                    <FlowSwitch value={font} isLens>
-                        <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
-                            <motion.div>
-                                <span style={{ fontFamily: 'EB Garamond' }}>
-                                    EB Garamond
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value={"Inter"} onClick={() => props.editor!.chain().focus().setFontFamily('Inter').run()}>
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Inter
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value={"Arial"} onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                            <motion.div>
-                                <span style={{ fontFamily: 'Arial' }}>
-                                    Arial
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
-                    <FlowSwitch value={fontSize} isLens>
-                        <Option
-                            value={"36px"}
-                            onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    36 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option
-                            value={"30px"}
-                            onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    30 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option
-                            value={"24px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('24px').run()}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    24 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option
-                            value={"20px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('20px').run()}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    20 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value={"18px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('18px').run()}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    18 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value={"16px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('16px').run()}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    16 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value={"14px"}
-                            onClick={() => props.editor!.chain().focus().setFontSize('14px').run()}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    14 px
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
-                    <FlowSwitch value={justification} isLens>
-                        {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
-                        <Option value="left"
-                            onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
-                        >
-                            <IconButton
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
-                                <FormatAlignLeft />
-                            </IconButton>
-                        </Option>
-                        <Option value="center"
-                            onClick={() => props.editor!.chain().focus().setTextAlign('center').run()}
-                        >
-                            <IconButton
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignCentre />
-                            </IconButton>
-                        </Option>
-                        <Option value="right"
-                            onClick={() => props.editor!.chain().focus().setTextAlign('right').run()}
-                        >
-                            <IconButton
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignRight />
-                            </IconButton>
-                        </Option>
-                        <Option value="justify"
-                            onClick={() => props.editor!.chain().focus().setTextAlign('justify').run()}
-                        >
-                            <IconButton
-                                size="sm"
-                                className={props.editor.isActive('bold') ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatAlignJustify />
-                            </IconButton>
-                        </Option>
-                    </FlowSwitch>
-                    <Tag isLens>
-                        <IconButton
-                            style={{ color: props.editor!.isActive('bold') ? offWhite : black }}
-                            size="sm"
-                            // @ts-ignore
-                            onClick={() => props.editor!.chain().focus().toggleBold().run()}
-                            variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
-                            <FormatBoldIcon />
-                        </IconButton>
-                        <IconButton
-                            style={{ color: props.editor!.isActive('italic') ? offWhite : black }}
-                            size="sm"
-                            // @ts-ignore
-                            onClick={() => props.editor!.chain().focus().toggleItalic().run()}
-                            variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
-                            <FormatItalicIcon />
-                        </IconButton>
-                        <IconButton
-                            style={{ color: props.editor!.isActive('underline') ? offWhite : black }}
-                            size="sm"
-                            onClick={() => props.editor!.chain().focus().toggleUnderline().run()}
-                            variant={props.editor!.isActive('underline') ? "solid" : "plain"}>
-                            <FormatUnderlinedIcon />
-                        </IconButton>
-                        <IconButton
-                            style={{ color: props.editor!.isActive('strike') ? offWhite : black }}
-                            size="sm"
-                            // @ts-ignore
-                            onClick={() => props.editor!.chain().focus().toggleStrike().run()}
-                            variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
-                            <FormatStrikethrough />
-                        </IconButton>
-                    </Tag>
-                    <FlowSwitch value={justification} isLens>
-                        <Option
-                            value={"#121212"}
-                            onClick={() => props.editor.chain().focus().setColor('#121212').run()}
-                        >
-                            <IconButton
-                                style={{ color: black }}
-                                size="sm"
-                                // @ts-ignore
-                                className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
-                                variant="plain"
-                            >
-                                <FormatColorTextIcon />
-                            </IconButton>
-                        </Option>
-                        <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
-                            <IconButton
-                                style={{ color: "#958DF1" }}
-                                size="sm"
-                                // @ts-ignore
-                                className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
-                                variant="plain"
-                            >
-                                <FormatColorTextIcon />
-                            </IconButton>
-                        </Option>
-                        <Option value={red} onClick={() => props.editor.chain().focus().setColor(red).run()}>
-                            <IconButton
-                                style={{ color: red }}
-                                size="sm"
-                                // @ts-ignore
-                                className={props.editor.isActive('textStyle', { color: red }) ? 'is-active' : ''}
-                                variant="plain"
-                            >
-                                <FormatColorTextIcon />
-                            </IconButton>
-                        </Option>
-                        <Option value={grey} onClick={() => props.editor.chain().focus().setColor(grey).run()}>
-                            <IconButton
-                                style={{ color: grey }}
-                                size="sm"
-                                // @ts-ignore
-                                className={props.editor.isActive('textStyle', { color: grey }) ? 'is-active' : ''}
-                                variant="plain"
-                            >
-                                <FormatColorTextIcon />
-                            </IconButton>
-                        </Option>
-                    </FlowSwitch>
-                    <FlowSwitch value={justification} isLens>
-                        <Option
-                            value={highlightYellow}
-                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: highlightYellow }).run()}
-                        >
-                            <IconButton
-                                style={{ color: highlightYellow }}
-                                size="sm"
-                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatColorFill />
-                            </IconButton>
-                        </Option>
-                        <Option
-                            value={blue}
-                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: blue }).run()}
-                        >
-                            <IconButton
-                                style={{ color: blue }}
-                                size="sm"
-                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatColorFill />
-                            </IconButton>
-                        </Option>
-                        <Option
-                            value={purple}
-                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: purple }).run()}
-                        >
-                            <IconButton
-                                style={{ color: purple }}
-                                size="sm"
-                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatColorFill />
-                            </IconButton>
-                        </Option>
-                        <Option
-                            value={red}
-                            onClick={() => props.editor!.chain().focus().toggleHighlight({ color: red }).run()}
-                        >
-                            <IconButton
-                                style={{ color: red }}
-                                size="sm"
-                                // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
-                                className={props.editor!.isActive('highlight', { color: red }) ? 'is-active' : ''}
-                                variant="plain">
-                                <FormatColorFill />
-                            </IconButton>
-                        </Option>
-                    </FlowSwitch>
-                    {/* <VersionHistorySwitch editor={props.editor} selectedVersionHistory={selectedVersionHistory}/> */}
-                </div> : <div
-                    style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-                    <Tag>
-                        Math
-                    </Tag>
-                    <FlowSwitch value={selectedDisplayLens} isLens>
-                        <Option value="natural" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensNatural()
-                        }}>
-                            <motion.div>
-                                <div style={{ fontFamily: 'Inter' }}>
-                                    Natural
-                                </div>
-                            </motion.div>
-                        </Option>
-                        <Option value="latex" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Latex
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="linear" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Linear
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="mathjson" onClick={() => {
-                            // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                            // setMathsLens("latex")
-                            setDisplayLensLatex()
-                        }}>
-                            <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    MathJSON
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
-                    <FlowSwitch value={"evaluate"} isLens >
-                        <Option value="identity" onClick={() => { setEvaluationLens("identity") }} >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Identity
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="simplify" onClick={() => { setEvaluationLens("simplify") }} >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Simplify
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="evaluate" onClick={() => { setEvaluationLens("evaluate") }} >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Evaluate
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option value="numeric" onClick={() => { setEvaluationLens("numeric") }} >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    Numeric
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
-                </div>}
+                {
+                    {
+                        'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
+                        'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
+                        'group': <MathLoupe editor={props.editor} selectedDisplayLens={selectedDisplayLens}/>,
+                        'invalid': <>Uh oh, seems like an unsupported node type was identified and the developer made a mistake</>
+                    }[getSelectedNodeType(props.editor)]
+                }
             </motion.div>
         </BubbleMenu>
     )
