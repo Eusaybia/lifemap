@@ -2,7 +2,7 @@ import { EditorView } from '@tiptap/pm/view';
 import { Attrs } from 'prosemirror-model';
 import { v4 as uuidv4 } from 'uuid';
 import { MathsLoupeC } from '../core/Model';
-import { JSONContent } from '@tiptap/core';
+import { Editor, JSONContent, isNodeSelection, isTextSelection } from '@tiptap/core';
 
 var stringSimilarity = require("string-similarity");
 
@@ -109,6 +109,26 @@ export const isActualUrl = (url: string) => {
       return false
     }
     return false
+}
+
+// Written by examining the selection object when clicking on various node types
+export const getSelectedNodeType = (editor: Editor) => {
+    const selection = editor.view.state.selection
+
+    if (isTextSelection(selection)) {
+        return "text"
+    } else if (isNodeSelection(selection)) {
+        switch (selection.node.type.name) {
+            case "group":
+                return "group"
+            default:
+                console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
+                return "invalid"
+        }
+    } else {
+        console.error("Selected a node that is neither text nor a node.")
+        return "invalid"
+    }
 }
 
 export const isWordEmotionRelated = (word: string) => {

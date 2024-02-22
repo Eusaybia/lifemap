@@ -1,4 +1,4 @@
-import { Editor, generateHTML, isNodeSelection, isTextSelection } from "@tiptap/core"
+import { Editor } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion } from "framer-motion"
@@ -15,11 +15,10 @@ import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
-import { FlowSwitch, FlowSwitchExample, Option } from "./FlowSwitch"
+import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
-import { NodeSelection, Selection } from "prosemirror-state";
-import { Lens, MathLens, displayLenses } from "../../core/Model";
-import { officialExtensions } from "../content/RichText";
+import { MathLens } from "../../core/Model";
+import { getSelectedNodeType } from "../../utils/utils";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -246,26 +245,6 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
     </FlowSwitch>)
 }
 
-// Written by examining the selection object when clicking on various node types
-const getSelectedNodeType = (editor: Editor) => {
-    const selection = editor.view.state.selection
-
-    if (isTextSelection(selection)) {
-        return "text"
-    } else if (isNodeSelection(selection)) {
-        switch (selection.node.type.name) {
-            case "group":
-                return "group"
-            default:
-                console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
-                return "invalid"
-        }
-    } else {
-        console.error("Selected a node that is neither text nor a node.")
-        return "invalid"
-    }
-}
-
 export const DocumentFlowMenu = (props: {editor: Editor}) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     const [selectedDocumentLens, setSelectedDocumentLens] = React.useState<string>("Focus mode")
@@ -300,6 +279,44 @@ export const DocumentFlowMenu = (props: {editor: Editor}) => {
                         </Option>
                     </FlowSwitch>
         </motion.div>
+    )
+}
+
+const GroupLoupe = (props: { editor: Editor }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Group
+            </Tag>
+            {/* May need to create a proper state variable for this */}
+            <FlowSwitch value={"blue"}>
+                <Option
+                    value={"blue"}
+                    onClick={() => {
+                        props.editor.commands.setBackgroundColor({ backgroundColor: blue })
+                    }}
+                >
+                    <motion.div>
+                        <span style={{}}>
+                            🎨️ Change background color to blue
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"Change background color to white"}
+                    onClick={() => { 
+                        props.editor.commands.setBackgroundColor({ backgroundColor: offWhite }); 
+                    }}
+                >
+                    <motion.div>
+                        <span style={{}}>
+                            🎨️ Change background color to white
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+        </div>
     )
 }
 
@@ -671,29 +688,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     </IconButton>
                 </Option>
             </FlowSwitch>
-            {/* Need to create a proper state variable for this */}
-            <FlowSwitch value={props.justification}>
-                <Option
-                    value={"blue"}
-                    onClick={() => (props.editor.commands.setBackgroundColor({ backgroundColor: "blue" }))}
-                >
-                    <motion.div>
-                        <span style={{}}>
-                            🎨️ Change background color to blue
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"Change background color to white"}
-                    onClick={() => (props.editor.commands.setBackgroundColor({ backgroundColor: "white" }))}
-                >
-                    <motion.div>
-                        <span style={{}}>
-                            🎨️ Change background color to white
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
         </div>
     )
 }
@@ -756,7 +750,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
-                        'group': <MathLoupe editor={props.editor} selectedDisplayLens={selectedDisplayLens}/>,
+                        'group': <GroupLoupe editor={props.editor}/>,
                         'invalid': <>Uh oh, seems like an unsupported node type was identified and the developer made a mistake</>
                     }[getSelectedNodeType(props.editor)]
                 }

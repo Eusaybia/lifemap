@@ -5,6 +5,7 @@ import { Group } from "./Group";
 import './styles.scss';
 import { motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
+import { getSelectedNodeType } from "../../utils/utils";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -70,12 +71,14 @@ export const GroupExtension = Node.create({
   },
   addCommands() {
     return {
-      setBackgroundColor: (attributes: { backgroundColor: string }) => ({ state, dispatch }) => {
+      setBackgroundColor: (attributes: { backgroundColor: string }) => ({ editor, state, dispatch }) => {
 
         const { selection } = state;
         const groupNode = selection && selection.$from.depth > 0 && selection.$from.node(selection.$from.depth).type.name === this.name;
 
-        if (groupNode && dispatch) {
+        const nodeType = getSelectedNodeType(editor)
+
+        if (nodeType === "group" && dispatch) {
           dispatch(state.tr.setNodeAttribute(selection.$from.pos, "backgroundColor", attributes.backgroundColor));
           return true; // Indicate that the command ran successfully
         }

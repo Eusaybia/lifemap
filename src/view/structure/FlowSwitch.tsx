@@ -25,7 +25,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             style={{
                 // TODO: Change this eventually
                 scrollSnapAlign: "none",
-                width: "fit-content"
+                width: "fit-content",
             }}
             viewport={{ root: flowSwitchContainerRef, margin: "-13px 0px -13px 0px" }}
             onViewportEnter={(entry) => {

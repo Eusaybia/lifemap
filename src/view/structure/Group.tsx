@@ -18,7 +18,10 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             initial={{
                 opacity: 0,
             }}
-            animate={{ opacity: 1 }}
+            animate={{
+                opacity: 1,
+                backgroundColor: props.backgroundColor || offWhite,
+            }}
             exit={{
                 opacity: 0,
             }}
@@ -29,7 +32,6 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             }}
             style={{
                 position: "relative",
-                backgroundColor: props.backgroundColor || offWhite,
                 minHeight: 20,
                 overflow: "hidden",
                 // width: "fit-content",
