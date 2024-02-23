@@ -54,11 +54,10 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         const index = props.children.findIndex(child => {
             return child.props.value === props.value
         })
-        console.log("attempting to find element with key", props.value)
-        console.log("refs", refs)
 
         if (index !== -1 && refs[index].current) {
-            console.log("found, and scrolling to", refs[index].current)
+            // Found
+            // TODO: Re-enable this
             // refs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
             // Scroll to the element

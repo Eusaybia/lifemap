@@ -269,9 +269,9 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())
-      console.log("HTML Output", editor.getHTML())
+      // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
-      console.log("active", editor.state.selection)
+      // console.log("active", editor.state.selection)
     }
   })
 
@@ -315,7 +315,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
   }, [editor])
   const reversedVersions = React.useMemo(() => editor?.storage.collabHistory.versions.slice().reverse(), [editor?.storage.collabHistory.versions])
-  console.log("reversed versions", reversedVersions)
+  // console.log("reversed versions", reversedVersions)
 
   const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
   console.log("autoversioning", autoversioningEnabled)

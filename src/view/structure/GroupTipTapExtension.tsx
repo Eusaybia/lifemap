@@ -210,7 +210,7 @@ export const GroupExtension = Node.create({
       })
       const attentionUnitsPerSecond = 100
       const peripheralScaleFactor = 0.3
-      const refreshRate = 60
+      const refreshRate = 1
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
