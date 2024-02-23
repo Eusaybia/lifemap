@@ -12,7 +12,8 @@ import { MainEditor } from "../../../src/view/content/RichText";
 export default function Page({ params }: { params: { slug: string } }) {
     return (
         <>
-            <Minimap />
+            {/* Remove for performance reasons */}
+            {/* <Minimap /> */}
             <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
                 <DocumentFlowMenu editor={MainEditor("", true)!}/>
             </motion.div>
