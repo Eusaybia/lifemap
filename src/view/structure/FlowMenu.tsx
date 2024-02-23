@@ -134,6 +134,16 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     return (
         <FlowSwitch value={props.selectedAction} isLens>
             <Option 
+                value={"Copy quanta id"}
+                onClick={() => handleCopyQuantaIdAction(props.editor)}
+            >
+                <motion.div>
+                    <span>
+                        🆔 Copy quanta id
+                    </span>
+                </motion.div>
+            </Option>
+            <Option 
                 value={"Insert 2 columns"} 
                 onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 2, withHeaderRow: false }))}
             >
@@ -160,16 +170,6 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
                 <motion.div>
                     <span style={{ }}>
                         📑 Copy content
-                    </span>
-                </motion.div>
-            </Option>
-            <Option 
-                value={"Copy quanta id"}
-                onClick={() => handleCopyQuantaIdAction(props.editor)}
-            >
-                <motion.div>
-                    <span>
-                        🆔 Copy quanta id
                     </span>
                 </motion.div>
             </Option>
