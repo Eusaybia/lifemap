@@ -14,6 +14,7 @@ import {
   officialExtensions,
 } from "../content/RichText";
 import { debounce } from "lodash";
+import { Grip } from "../content/Grip";
 
 const REGEX_BLOCK_TILDE = /~[^~]+~/;
 const sharedBorderRadius = 15;
@@ -47,6 +48,7 @@ const getQuantaHTML = (quantaId: string, editor: Editor): string | null => {
 
   return null;
 };
+
 const PortalView = (props: NodeViewProps) => {
   const [htmlContent, setHTMLContent] = React.useState(
     "<p>Content has not been updated to match the referenced node.</p>"
@@ -93,6 +95,7 @@ const PortalView = (props: NodeViewProps) => {
           zIndex: 1,
         }}
       />
+      <Grip/>
       <div
         style={{
           borderRadius: sharedBorderRadius,
@@ -105,10 +108,11 @@ const PortalView = (props: NodeViewProps) => {
         }}
         contentEditable="false"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
-      ></div>
+      />
     </NodeViewWrapper>
   );
 };
+
 const PortalExtension = Node.create({
   name: "portal",
   group: "block",
