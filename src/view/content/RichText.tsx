@@ -32,7 +32,7 @@ import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import { Indent } from '../../utils/Indent'
 import TextAlign from '@tiptap/extension-text-align'
-import { FlowMenu } from '../structure/FlowMenu'
+import { DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
@@ -61,6 +61,8 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
+import { DocumentExtension } from '../structure/DocumentTipTapExtension'
+import { motion } from 'framer-motion'
 
 lowlight.registerLanguage('js', js)
 
@@ -166,6 +168,7 @@ export const customExtensions: Extensions = [
       suggestion: mentionSuggestionOptions,
     }
   ),
+  DocumentExtension,
   FadeIn,
   FocusModePlugin,
   GroupExtension,
@@ -244,27 +247,29 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     content: (informationType === "yDoc") ? null : information,
     onSelectionUpdate: ({ editor }) => {
-      // @ts-ignore
-      // const focusModeEnabled = editor.options.focusMode.focusModeEnabled
+      const rootDocumentNode = editor.state.doc
+      const rootDocumentNodeAttributes = rootDocumentNode.attrs
 
-      // console.log("fme", focusModeEnabled)
+      // Attributes for the Document root node are defined in DocumentTipTapExtension.tsx
+      const focusLens = rootDocumentNodeAttributes.selectedFocusLens
 
-      // // Highlight the focused node
-      // if (focusModeEnabled) {
-      //   const driverObj = driver({
-      //     animate: true,
-      //     disableActiveInteraction: false,
-      //     stageRadius: 15,
-      //     allowClose: true,
-      //   })
+      // Highlight the focused node
+      if (focusLens === "focus") {
+        const driverObj = driver({
+          animate: true,
+          disableActiveInteraction: false,
+          stageRadius: 15,
+          allowClose: true,
+        })
 
-      //   var elements = document.querySelectorAll('.attention-highlight');
-      //   elements.forEach((element) => {
-      //     driverObj.highlight({
-      //       element: element,
-      //     });
-      //   });
-      // }
+        // Document here refers to the html document, not the document node of TipTap
+        var elements = document.querySelectorAll('.attention-highlight');
+        elements.forEach((element) => {
+          driverObj.highlight({
+            element: element,
+          });
+        });
+      }
     },
     onUpdate: ({ editor }) => {
       // console.log("JSON Output", editor.getJSON())
@@ -321,6 +326,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
 
 
+  // TODO: Change this to proper responsiveness for each screen size
+  const maxWidth = 1300
 
   if (editor) {
     if (process.env.NODE_ENV === 'development') {
@@ -328,12 +335,20 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
 
     return (
-      <div key={props.quanta?.id} style={{display: "flex", justifyContent: "center" }}>
-        <div key={`bubbleMenu${props.quanta?.id}`}>
-          <FlowMenu editor={editor} />
-        </div>
-        <div style={{ maxWidth: 1300 }}>
-          <EditorContent editor={editor} />
+      <div key={props.quanta?.id} style={{ display: "grid", placeItems: "center" }}>
+        {/* This menu is always fixed at the very top of the document */}
+        <div style={{maxWidth: maxWidth}}>
+
+          <motion.div style={{ display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4 }}>
+            <DocumentFlowMenu editor={editor} />
+          </motion.div>
+          <div key={`bubbleMenu${props.quanta?.id}`}>
+            {/* This menu floats above selected text or nodes */}
+            <FlowMenu editor={editor} />
+          </div>
+          <div>
+            <EditorContent editor={editor} />
+          </div>
         </div>
       </div>
     )

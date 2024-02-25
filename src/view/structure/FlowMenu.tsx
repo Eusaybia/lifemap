@@ -18,7 +18,8 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNodeType } from "../../utils/utils";
+import { getSelectedNodeType, updateDocumentAttributes } from "../../utils/utils";
+import { defaultDocumentAttributeValues } from "./DocumentTipTapExtension";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -133,7 +134,7 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
 
     return (
         <FlowSwitch value={props.selectedAction} isLens>
-            <Option 
+            <Option
                 value={"Copy quanta id"}
                 onClick={() => handleCopyQuantaIdAction(props.editor)}
             >
@@ -143,64 +144,64 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
                     </span>
                 </motion.div>
             </Option>
-            <Option 
-                value={"Insert 2 columns"} 
+            <Option
+                value={"Insert 2 columns"}
                 onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 2, withHeaderRow: false }))}
             >
                 <motion.div>
-                    <span style={{ }}>
+                    <span style={{}}>
                         🏛️ Insert 2 columns
                     </span>
                 </motion.div>
             </Option>
-            <Option 
-                value={"Insert 3 columns"} 
+            <Option
+                value={"Insert 3 columns"}
                 onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 3, withHeaderRow: false }))}
             >
                 <motion.div>
-                    <span style={{ }}>
+                    <span style={{}}>
                         🏛️ Insert 3 columns
                     </span>
                 </motion.div>
             </Option>
-            <Option 
-                value={"Copy content"} 
+            <Option
+                value={"Copy content"}
                 onClick={() => handleCopyContentAction(props.editor)}
             >
                 <motion.div>
-                    <span style={{ }}>
+                    <span style={{}}>
                         📑 Copy content
                     </span>
                 </motion.div>
             </Option>
-            <Option 
+            <Option
                 value={"Add Details"}
                 onClick={() => props.editor.commands.setDetails()}
             >
                 <motion.div>
                     <span>
-                        ▶ Add Details 
+                        ▶ Add Details
                     </span>
                 </motion.div>
             </Option>
-            <Option 
+            <Option
                 value={"Add image"}
-                onClick={() => {handleAddImage(props.editor)}}
+                onClick={() => { handleAddImage(props.editor) }}
             >
                 <motion.div>
                     <span>
-                        🌁 Add image 
+                        🌁 Add image
                     </span>
                 </motion.div>
             </Option>
-            <Option 
+            <Option
                 value={"Add Warning group"}
                 // Change this to a proper add warning command inside the extension
-                onClick={() => props.editor.commands.insertContent({type: "warning"})}
+                onClick={() => props.editor.commands.insertContent({ type: "warning" })}
             >
                 <motion.div>
                     <span>
-                        ⚠ Add Warning group 
+                        ⚠ Add Warning group
                     </span>
                 </motion.div>
             </Option>
@@ -245,39 +246,57 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
     </FlowSwitch>)
 }
 
-export const DocumentFlowMenu = (props: {editor: Editor}) => {
+export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
-    const [selectedDocumentLens, setSelectedDocumentLens] = React.useState<string>("Focus mode")
+    const [selectedFocusLens, setSelectedFocusLens] = React.useState<string>("edit")
 
     let documentMenuStyle: CSSProperties = flowMenuStyle()
     documentMenuStyle.width = "80%"
 
+    // TODO: [Current Focus] Document attributes are not populated, I believe it's to do with the new DocumentExtension not adding attributes to existing nodes
+    // updateDocumentAttributes(props.editor, defaultDocumentAttributeValues)
+
+    React.useEffect(() => {
+
+        const document = props.editor.state.doc
+        console.log("document", document)
+        const documentAttributes = document.attrs
+        console.log("documentAttributes", documentAttributes)
+
+        if (documentAttributes.selectedFocusLens) {
+            setSelectedFocusLens(documentAttributes.selectedFocusLens)
+        }
+
+    }, [])
+
     return (
         <motion.div style={documentMenuStyle}>
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
-                    <FlowSwitch value={selectedDocumentLens} isLens>
-                        <Option
-                            value={"Editing view"}
-                            onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    ✏️ Editing view
-                                </span>
-                            </motion.div>
-                        </Option>
-                        <Option
-                            value={"Focus view"}
-                            // @ts-ignore
-                            onClick={() => { props.editor!.toggleFocus()}}
-                        >
-                            <motion.div>
-                                <span style={{ fontFamily: 'Inter' }}>
-                                    🧘🏻‍♀️ Focus view
-                                </span>
-                            </motion.div>
-                        </Option>
-                    </FlowSwitch>
+            <FlowSwitch value={selectedFocusLens} isLens>
+                <Option
+                    value={"Editing view"}
+                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'edit' }).run();
+
+                
+                }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            ✏️ Editing view
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"Focus view"}
+                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'focus' }).run() }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🧘🏻‍♀️ Focus view
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
         </motion.div>
     )
 }
@@ -305,8 +324,8 @@ const GroupLoupe = (props: { editor: Editor }) => {
                 </Option>
                 <Option
                     value={"Change background color to white"}
-                    onClick={() => { 
-                        props.editor.commands.setBackgroundColor({ backgroundColor: offWhite }); 
+                    onClick={() => {
+                        props.editor.commands.setBackgroundColor({ backgroundColor: offWhite });
                     }}
                 >
                     <motion.div>
@@ -718,6 +737,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
             const lensDisplay: MathLens = node.attrs.lensDisplay
             const lensEvaluation: MathLens = node.attrs.lensEvaluation
 
+            // Change from default dummy value to the actual lens value embedded in the node
             setSelectedDisplayLens(node.attrs.lensDisplay)
             setSelectedEvaluationLens(node.attrs.lensEvaluation)
 
@@ -750,8 +770,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
-                        'group': <GroupLoupe editor={props.editor}/>,
-                        'invalid': <>Uh oh, seems like an unsupported node type was identified and the developer made a mistake</>
+                        'group': <GroupLoupe editor={props.editor} />,
+                        'invalid': <>Uh oh, seems like an unsupported node type was identified and the developer needs to support this.</>
                     }[getSelectedNodeType(props.editor)]
                 }
             </motion.div>
