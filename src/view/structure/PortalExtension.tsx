@@ -2,7 +2,7 @@ import {
   NodeViewProps,
   NodeViewWrapper,
   ReactNodeViewRenderer,
-  wrappingInputRule,
+  nodeInputRule,
 } from "@tiptap/react";
 import { Node } from "@tiptap/react";
 import { Editor, JSONContent, generateHTML } from "@tiptap/core";
@@ -95,7 +95,7 @@ const PortalView = (props: NodeViewProps) => {
           zIndex: 1,
         }}
       />
-      <Grip/>
+      <Grip />
       <div
         style={{
           borderRadius: sharedBorderRadius,
@@ -140,7 +140,7 @@ const PortalExtension = Node.create({
   },
   addInputRules() {
     return [
-      wrappingInputRule({
+      nodeInputRule({
         find: REGEX_BLOCK_TILDE,
         type: this.type,
       }),
