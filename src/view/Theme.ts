@@ -2,6 +2,7 @@
 
 export const black = "#1D1D1F"
 export const blue = "#2196f3"
+export const lightBlue = "#83B3E6"
 export const offWhite = "#ffedd520"
 export const absolulteWhite = "#FFFFFF"
 export const highlightYellow = "#ffea00"

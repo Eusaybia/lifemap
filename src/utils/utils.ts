@@ -111,6 +111,17 @@ export const isActualUrl = (url: string) => {
     return false
 }
 
+export const getSelectedNode = (editor: Editor) => {
+    const selection = editor.view.state.selection
+
+    if (selection) {
+      // @ts-ignore - Node does exist on Selection
+      return selection.node
+    } else {
+      return null
+    }
+}
+
 // Written by examining the selection object when clicking on various node types
 export const getSelectedNodeType = (editor: Editor) => {
     const selection = editor.view.state.selection

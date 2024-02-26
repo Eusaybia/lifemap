@@ -39,7 +39,7 @@ export const QuoteExtension = Node.create({
         <NodeViewWrapper>
           <motion.div style={{
             boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 5px 5px -3px rgba(0, 0, 0, 0.2)`,
-            backgroundColor: "#F3DFAB95", 
+            backgroundColor: "#F3DFAB", 
             borderRadius: 5, 
             padding: `20px 20px 20px 20px`, 
             color: "#222222", 
