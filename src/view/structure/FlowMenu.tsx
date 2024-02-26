@@ -1,4 +1,4 @@
-import { Editor } from "@tiptap/core"
+import { Editor, isNodeSelection } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion } from "framer-motion"
@@ -13,12 +13,12 @@ import FormatAlignRight from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import { Tag } from "../content/Tag"
-import { black, blue, grey, highlightYellow, purple, red, offWhite } from "../Theme"
+import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNodeType, updateDocumentAttributes } from "../../utils/utils";
+import { getSelectedNode, getSelectedNodeType, updateDocumentAttributes } from "../../utils/utils";
 import { defaultDocumentAttributeValues } from "./DocumentTipTapExtension";
 
 export const flowMenuStyle = (): React.CSSProperties => {
@@ -72,10 +72,7 @@ const handleCopyContentAction: Action = (editor: Editor) => {
 }
 
 const handleCopyQuantaIdAction: Action = (editor: Editor) => {
-
-    const selection = editor!.view.state.selection
-    // @ts-ignore
-    const selectedNode = selection.node
+    const selectedNode = getSelectedNode(editor)
 
     if (selectedNode) {
         const quantaId: string = selectedNode.attrs.quantaId
@@ -301,7 +298,12 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     )
 }
 
+// We assume that the currently selected node is a Group node
 const GroupLoupe = (props: { editor: Editor }) => {
+
+    const selectedNode = getSelectedNode(props.editor)
+    let backgroundColor = selectedNode.attrs.backgroundColor 
+
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
@@ -309,7 +311,43 @@ const GroupLoupe = (props: { editor: Editor }) => {
                 Group
             </Tag>
             {/* May need to create a proper state variable for this */}
-            <FlowSwitch value={"blue"}>
+            <FlowSwitch value={backgroundColor} isLens>
+                <Option
+                    value={"lightBlue"}
+                    onClick={() => {
+                        props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ backgroundColor: lightBlue, borderRadius: 3 }}>
+                            🎨️ Change background color to light blue
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"purple"}
+                    onClick={() => {
+                        props.editor.commands.setBackgroundColor({ backgroundColor: purple })
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ backgroundColor: purple, borderRadius: 3 }}>
+                            🎨️ Change background color to purple
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"parchment"}
+                    onClick={() => {
+                        props.editor.commands.setBackgroundColor({ backgroundColor: parchment })
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ backgroundColor: purple, borderRadius: 3 }}>
+                            🎨️ Change background color to parchment
+                        </span>
+                    </motion.div>
+                </Option>
                 <Option
                     value={"blue"}
                     onClick={() => {
@@ -317,7 +355,7 @@ const GroupLoupe = (props: { editor: Editor }) => {
                     }}
                 >
                     <motion.div>
-                        <span style={{}}>
+                        <span style={{ backgroundColor: blue, borderRadius: 3 }}>
                             🎨️ Change background color to blue
                         </span>
                     </motion.div>
@@ -329,7 +367,7 @@ const GroupLoupe = (props: { editor: Editor }) => {
                     }}
                 >
                     <motion.div>
-                        <span style={{}}>
+                        <span style={{ backgroundColor: offWhite, borderRadius: 3 }}>
                             🎨️ Change background color to white
                         </span>
                     </motion.div>
