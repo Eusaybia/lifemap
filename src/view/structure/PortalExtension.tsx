@@ -29,13 +29,16 @@ const sharedBorderRadius = 15;
 /**
  * Get HTML representation of a Quanta referenced by ID
  * @param quantaId - the quantaId to search for
- * @param editor - editor instance
+ * @param doc - the ProseMirrorNode
  * @returns - HTML string (if quanta was found)
  */
-const getQuantaHTML = (quantaId: string, editor: Editor): string | null => {
+const getQuantaHTML = (
+  quantaId: string,
+  doc: ProseMirrorNode
+): string | null => {
   let node: ProseMirrorNode | null = null;
 
-  editor.state.doc.descendants((descendant) => {
+  doc.descendants((descendant) => {
     if (descendant.attrs.quantaId === quantaId) {
       node = descendant;
     }
@@ -57,19 +60,22 @@ const getQuantaHTML = (quantaId: string, editor: Editor): string | null => {
 };
 
 const PortalView = (props: NodeViewProps) => {
-  const [htmlContent, setHTMLContent] = React.useState(
+  /*const [htmlContent, setHTMLContent] = React.useState(
     "<p>Content has not been updated to match the referenced node.</p>"
-  );
+  );*/
   const { referencedQuantaId, id } = props.node.attrs;
   const updateContent = () => {
-    const quantaHTML = getQuantaHTML(referencedQuantaId, props.editor);
+    const quantaHTML = getQuantaHTML(
+      referencedQuantaId,
+      props.editor.state.doc
+    );
 
     if (!quantaHTML) {
-      setHTMLContent(
+      /*setHTMLContent(
         "<p>Couldn't find referenced quanta. Are you sure the id you're using is a valid one?</p>"
-      );
+      );*/
     } else {
-      setHTMLContent(quantaHTML);
+      // setHTMLContent(quantaHTML);
       const pos = props.getPos();
 
       if (!pos) return;
@@ -78,27 +84,30 @@ const PortalView = (props: NodeViewProps) => {
         .chain()
         .setMeta("fromPortal", true)
         .updateAttributes("portal", {
-          referencedQuantaId,
           id: `${Math.random().toString(36).substring(2, 9)}`,
         })
-        .deleteRange({ from: pos + 1, to: pos + props.node.nodeSize - 1 })
-        .insertContentAt(pos + 1, quantaHTML)
+        .insertContentAt(
+          { from: pos + 1, to: pos + props.node.nodeSize },
+          quantaHTML
+        )
         .run();
     }
   };
 
   useEffect(() => {
     updateContent();
-
+  }, [props.editor, referencedQuantaId]);
+  useEffect(() => {
     const debouncedUpdateContent = debounce(updateContent, 1000);
-    props.editor.on("update", ({ transaction }) => {
-      if (!transaction.getMeta("fromPortal")) debouncedUpdateContent();
-    });
+    /*props.editor.on("update", ({ transaction }) => {
+      if (transaction.getMeta("fromPortal") || !transaction.docChanged) return;
+      debouncedUpdateContent();
+    });*/
 
     return () => {
       props.editor.off("update", debouncedUpdateContent);
     };
-  }, [props.editor, referencedQuantaId]);
+  }, []);
 
   return (
     <NodeViewWrapper>
@@ -107,7 +116,6 @@ const PortalView = (props: NodeViewProps) => {
         value={referencedQuantaId}
         onChange={(event) => {
           props.updateAttributes({
-            id,
             referencedQuantaId: event.target.value,
           });
         }}
@@ -193,7 +201,6 @@ const PortalExtension = Node.create({
     return ReactNodeViewRenderer(PortalView);
   },
   addProseMirrorPlugins() {
-    const editor = this.editor;
     return [
       new Plugin({
         key: new PluginKey("portal"),
@@ -208,11 +215,8 @@ const PortalExtension = Node.create({
             // Get all portals from the updated doc
             tr.doc.descendants((descendant) => {
               if (descendant.type.name === "portal") {
-                if (descendant.attrs.referencedQuantaId) {
-                  newPortals.set(
-                    descendant.attrs.referencedQuantaId,
-                    descendant
-                  );
+                if (descendant.attrs.id) {
+                  newPortals.set(descendant.attrs.id, descendant);
                 }
 
                 return false;
@@ -222,15 +226,16 @@ const PortalExtension = Node.create({
             });
             tr.before.descendants((descendant) => {
               if (descendant.type.name === "portal") {
-                const { referencedQuantaId } = descendant.attrs;
+                const { id } = descendant.attrs;
 
-                if (newPortals.has(referencedQuantaId)) {
-                  const newPortal = newPortals.get(referencedQuantaId);
+                if (newPortals.has(id)) {
+                  const newPortal = newPortals.get(id);
                   if (newPortal) {
                     // Block transactions changing the content of the portal
                     if (
                       descendant.textContent &&
-                      newPortal.textContent !== descendant.textContent
+                      JSON.stringify(newPortal.toJSON()) !==
+                        JSON.stringify(descendant.toJSON())
                     ) {
                       allowTransaction = false;
                       return false;
