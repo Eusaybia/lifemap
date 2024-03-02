@@ -27,18 +27,18 @@ const REGEX_BLOCK_TILDE = /(^~(.+?)~)/;
 const sharedBorderRadius = 15;
 
 /**
- * Get HTML representation of a Quanta referenced by ID
+ * Get JSON representation of a Quanta referenced by ID
  * @param quantaId - the quantaId to search for
  * @param doc - the ProseMirrorNode
- * @returns - HTML string (if quanta was found)
+ * @returns - JSON content (if quanta was found)
  */
-const getQuantaHTML = (
+const getQuantaJSON = (
   quantaId: string,
   doc: ProseMirrorNode
-): string | null => {
+): JSONContent | null => {
   let node: ProseMirrorNode | null = null;
 
-  doc.descendants((descendant) => {
+  doc.descendants((descendant, _pos, parent) => {
     if (descendant.attrs.quantaId === quantaId) {
       node = descendant;
     }
@@ -46,14 +46,8 @@ const getQuantaHTML = (
 
   if (node) {
     const jsonContent: JSONContent = (node as ProseMirrorNode).toJSON();
-    const generatedOfficialExtensions = officialExtensions(quantaId);
-    const extensions = [
-      ...generatedOfficialExtensions,
-      ...customExtensions,
-      ...agents,
-    ];
 
-    return generateHTML(jsonContent, extensions);
+    return jsonContent;
   }
 
   return null;
@@ -65,12 +59,12 @@ const PortalView = (props: NodeViewProps) => {
   );*/
   const { referencedQuantaId, id } = props.node.attrs;
   const updateContent = () => {
-    const quantaHTML = getQuantaHTML(
+    const quantaJSON = getQuantaJSON(
       referencedQuantaId,
       props.editor.state.doc
     );
 
-    if (!quantaHTML) {
+    if (!quantaJSON) {
       /*setHTMLContent(
         "<p>Couldn't find referenced quanta. Are you sure the id you're using is a valid one?</p>"
       );*/
@@ -88,7 +82,7 @@ const PortalView = (props: NodeViewProps) => {
         })
         .insertContentAt(
           { from: pos + 1, to: pos + props.node.nodeSize },
-          quantaHTML
+          quantaJSON
         )
         .run();
     }
