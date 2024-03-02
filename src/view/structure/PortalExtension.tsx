@@ -10,6 +10,8 @@ import {
   Editor,
   JSONContent,
   generateHTML,
+  isNodeSelection,
+  isTextSelection,
   mergeAttributes,
 } from "@tiptap/core";
 import React, { useEffect } from "react";
@@ -74,17 +76,31 @@ const PortalView = (props: NodeViewProps) => {
 
       if (!pos) return;
 
-      props.editor
+      const initialSelection = props.editor.state.selection;
+      let chain = props.editor
         .chain()
         .setMeta("fromPortal", true)
-        .updateAttributes("portal", {
-          id: `${Math.random().toString(36).substring(2, 9)}`,
-        })
-        .insertContentAt(
-          { from: pos + 1, to: pos + props.node.nodeSize },
-          quantaJSON
-        )
-        .run();
+        .setNodeSelection(pos)
+        .deleteSelection()
+        .insertContentAt(pos, {
+          type: "portal",
+          attrs: {
+            id: `${Math.random().toString(36).substring(2, 9)}`,
+            referencedQuantaId,
+          },
+          content: [quantaJSON],
+        });
+
+      if (isNodeSelection(initialSelection)) {
+        chain = chain.setNodeSelection(initialSelection.$from.pos);
+      } else if (isTextSelection(initialSelection)) {
+        chain = chain.setTextSelection({
+          from: initialSelection.$from.pos,
+          to: initialSelection.$to.pos,
+        });
+      }
+
+      chain.focus().run();
     }
   };
 
@@ -93,10 +109,10 @@ const PortalView = (props: NodeViewProps) => {
   }, [props.editor, referencedQuantaId]);
   useEffect(() => {
     const debouncedUpdateContent = debounce(updateContent, 1000);
-    /*props.editor.on("update", ({ transaction }) => {
+    props.editor.on("update", ({ transaction }) => {
       if (transaction.getMeta("fromPortal") || !transaction.docChanged) return;
       debouncedUpdateContent();
-    });*/
+    });
 
     return () => {
       props.editor.off("update", debouncedUpdateContent);
