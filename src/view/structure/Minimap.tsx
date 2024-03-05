@@ -25,8 +25,6 @@ export const Minimap = () => {
     // This will update the dimensions of the minimap based off the dimensions of the page
     getDimensions();
 
-    // This is extremely hacky, but changing a state variable that is associated with the rendering of the content forces a refresh
-    setScale(0.101)
     let options: Options = {
       features: {
         removeControlCharacter: false
