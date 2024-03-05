@@ -78,14 +78,15 @@ export const Minimap = (props: { provider: TiptapCollabProvider }) => {
 
   // Only update the minimap once when the webpage has loaded
   // Minimap causes UI thread blocking every time it's updating
-  // React.useEffect(() => {
-  //     setTimeout(updateMinimapContent, 2000)
-  // }, [])
+  React.useEffect(() => {
+      setTimeout(updateMinimapContent, 2000)
+  }, [])
 
-  props.provider.on("synced", () => {
-    updateMinimapContent()
-    console.log("synced!")
-  })
+  // This code should work, but it doesn't. There's something unique about the useEffect
+  // props.provider.on("synced", () => {
+  //   updateMinimapContent()
+  //   console.log("synced!")
+  // })
 
   // Only initialise once upon app initialisation, and destroy when component is removed
   React.useEffect(() => {
