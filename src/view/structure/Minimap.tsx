@@ -1,51 +1,48 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import "./minimap.scss";
-// @ts-ignore
+import { Options } from 'modern-screenshot/worker?url'
 import { domToPng } from 'modern-screenshot'
 import { motion } from 'framer-motion';
+import { update } from 'lodash';
 
 export const Minimap = () => {
-  const [counter, setCounter] = React.useState(0);
+  const win = window;
+  const doc = document;
+  const body = doc.body;
 
   const sliderRef = useRef<HTMLDivElement>(null);
   const sliderContentRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<HTMLDivElement>(null);
   const sliderSizeRef = useRef<HTMLDivElement>(null);
-  let scale = 0.1;
+  const [scale, setScale] = React.useState<number>(0.1)
   let realScale = scale;
   let mouseDown = false;
   let mouseX = 0;
   let mouseY = 0;
 
-  useEffect(() => {
-    let timer: NodeJS.Timer | undefined;
-    timer = setInterval(() => {
-      // Update the minimap every 10 seconds
-      setCounter(counter + 1)
-    }, 10000);
+  // Capture the webpage and place it into the minimap content
+  const updateMinimapContent = () => {
+    // This will update the dimensions of the minimap based off the dimensions of the page
+    getDimensions();
 
+    // This is extremely hacky, but changing a state variable that is associated with the rendering of the content forces a refresh
+    setScale(0.101)
+    let options: Options = {
+      features: {
+        removeControlCharacter: false
+      },
+    }
 
-    const win = window;
-    const doc = document;
-    const body = doc.body;
-
-    // Capture the webpage and place it into the minimap content
-    const updateMinimapContent = () => {
-      let options = {
-        features: {
-          removeControlCharacter: false
-        }
-      }
+    try {
       domToPng(window.document.body, options).then((dataURL: string) => {
         // Create an image from the canvas
         var img = new Image();
         img.src = dataURL;
 
-        // Get the document of the iframe
         const sliderContent = sliderContentRef.current
 
         if (sliderContent) {
-          // Get the existing image in the iframe, if any
+          // Get the existing image in the minimap, if any
           const existingImg = sliderContent.querySelector('img');
 
           if (existingImg) {
@@ -57,11 +54,12 @@ export const Minimap = () => {
           }
         }
       });
+    } catch (err) {
+      console.error("Error occurred while trying to render a screenshot of the page for the Minimap:", err)
     }
+  }
 
-    updateMinimapContent()
-
-    function getDimensions() {
+    const getDimensions = () => {
       const bodyWidth = body.clientWidth;
       const bodyRatio = body.clientHeight / bodyWidth;
       const winRatio = win.innerHeight / win.innerWidth;
@@ -79,6 +77,21 @@ export const Minimap = () => {
       }
     }
 
+  window.addEventListener('load', (event) => {
+    console.log('Page fully loaded!');
+      updateMinimapContent()
+    // Your code that should run after everything is loaded
+  });
+
+  // Only update the minimap on initialisation
+  // Minimap causes UI thread blocking every time it's updating
+  React.useEffect(() => {
+      setTimeout(updateMinimapContent, 2000)
+
+  }, [])
+
+  // Only initialise once upon app initialisation, and destroy when component is removed
+  React.useEffect(() => {
     function trackScroll() {
       if (controllerRef.current) {
         controllerRef.current.style.transform = 'translate(' +
@@ -124,7 +137,6 @@ export const Minimap = () => {
       }
     }
 
-    getDimensions();
     win.addEventListener('resize', getDimensions);
     win.addEventListener('load', getDimensions);
     win.addEventListener('scroll', trackScroll);
@@ -149,9 +161,8 @@ export const Minimap = () => {
       win.removeEventListener('touchend', pointerReset);
       body.removeEventListener('mouseleave', pointerLeave);
       // body.removeEventListener('touchleave', pointerLeave);
-      clearTimeout(timer);  // Clean up the timer
     };
-  }, [counter]);
+  }, [])
 
   return (
     // The effect is to have components fade in one by one, which creates a visual sense of momentum, even though loading is slow
