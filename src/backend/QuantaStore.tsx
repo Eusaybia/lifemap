@@ -69,6 +69,8 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
     }))
   }
 
+  provider.on("synced", () => {})
+
   const quantaStoreContext = {
     quanta, provider, requestVersionPreviewFromCloud
   }

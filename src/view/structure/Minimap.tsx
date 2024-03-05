@@ -4,8 +4,9 @@ import { Options } from 'modern-screenshot/worker?url'
 import { domToPng } from 'modern-screenshot'
 import { motion } from 'framer-motion';
 import { update } from 'lodash';
+import { TiptapCollabProvider } from '@hocuspocus/provider';
 
-export const Minimap = () => {
+export const Minimap = (props: { provider: TiptapCollabProvider }) => {
   const win = window;
   const doc = document;
   const body = doc.body;
@@ -75,18 +76,16 @@ export const Minimap = () => {
       }
     }
 
-  window.addEventListener('load', (event) => {
-    console.log('Page fully loaded!');
-      updateMinimapContent()
-    // Your code that should run after everything is loaded
-  });
-
-  // Only update the minimap on initialisation
+  // Only update the minimap once when the webpage has loaded
   // Minimap causes UI thread blocking every time it's updating
-  React.useEffect(() => {
-      setTimeout(updateMinimapContent, 2000)
+  // React.useEffect(() => {
+  //     setTimeout(updateMinimapContent, 2000)
+  // }, [])
 
-  }, [])
+  props.provider.on("synced", () => {
+    updateMinimapContent()
+    console.log("synced!")
+  })
 
   // Only initialise once upon app initialisation, and destroy when component is removed
   React.useEffect(() => {

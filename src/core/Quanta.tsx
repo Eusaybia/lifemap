@@ -5,12 +5,14 @@ import { QuantaId, Loupe, MathsLoupeC } from "./Model";
 import { QuantaStore, QuantaStoreContext } from "../backend/QuantaStore";
 import { QuantaView } from "../view/QuantaView";
 import NoSSR from "../utils/NoSSR";
+import { Minimap } from "../view/structure/Minimap";
 
 export const Quanta = (props: { quantaId: QuantaId; userId: string, loupe?: Loupe }) => {
   return (
     // This store is not visual, it is purely to feed information
     // @ts-ignore
     <NoSSR>
+      <Minimap provider={React.useContext(QuantaStoreContext).provider} />
       <QuantaStore quantaId={props.quantaId} userId={props.userId}>
         {/* Use the qi in QiStore 
       This seemingly gets the wrong qi, the default value, rather than
@@ -23,5 +25,5 @@ export const Quanta = (props: { quantaId: QuantaId; userId: string, loupe?: Loup
 };
 
 export const QuantaExample = () => (
-  <Quanta quantaId={'000000'} userId={'000000'} loupe={new MathsLoupeC()}/>
+  <Quanta quantaId={'000000'} userId={'000000'} loupe={new MathsLoupeC()} />
 )
