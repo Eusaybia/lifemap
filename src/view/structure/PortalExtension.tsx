@@ -73,10 +73,18 @@ const PortalView = (props: NodeViewProps) => {
     } else {
       // setHTMLContent(quantaHTML);
       const pos = props.getPos();
-
-      if (!pos) return;
+      console.log(quantaJSON);
+      if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
 
       const initialSelection = props.editor.state.selection;
+      console.log("AN:", {
+        type: "portal",
+        attrs: {
+          id: `${Math.random().toString(36).substring(2, 9)}`,
+          referencedQuantaId,
+        },
+        content: [quantaJSON],
+      });
       let chain = props.editor
         .chain()
         .setMeta("fromPortal", true)
@@ -139,11 +147,11 @@ const PortalView = (props: NodeViewProps) => {
           zIndex: 1,
         }}
       />
-      <Grip />
       <div
         style={{
           borderRadius: sharedBorderRadius,
           background: `#e0e0e0`,
+          position: "relative",
           boxShadow: `inset 10px 10px 10px #bebebe,
               inset -10px -10px 10px #FFFFFF99`,
           minHeight: 20,
@@ -152,6 +160,7 @@ const PortalView = (props: NodeViewProps) => {
         }}
         contentEditable={false}
       >
+        <Grip />
         <NodeViewContent />
       </div>
     </NodeViewWrapper>
