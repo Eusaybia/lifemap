@@ -135,9 +135,9 @@ export const GroupExtension = Node.create({
 
       // Finesse - emotions
       let glowStyles: string[] = []
-      const orangeGlow = `0 0 5px #ff7f0030, 0 0 20px #ff7f0030, 0 0 30px #ff7f0030, 0 0 40px #ff7f0030`
-      const greenGlow = `0 0 5px #33cc0040, 0 0 10px #33cc0040, 0 0 15px #33cc0040, 0 0 20px #33cc0040`
-      const yellowGlow = `0 0 5px #ffec80, 0 0 10px #fff1a3, 0 0 15px #ffed87, 0 0 20px #ffeb7a`
+      const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
+      const greenGlow = `0 0 100px 40px hsl(104, 64%, 25%, 0.2)`;
+      const yellowGlow = `0 0 100px hsla(54, 100%, 72%, 0.8)`;
 
       // Check whether this group contains subnodes that is a mention
       node.descendants((childNode) => {
@@ -274,6 +274,7 @@ export const GroupExtension = Node.create({
 
       return (
         <NodeViewWrapper>
+          {/* Best to make this such that the element that produces the div is circular */}
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
