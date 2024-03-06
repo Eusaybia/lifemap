@@ -272,9 +272,8 @@ export const GroupExtension = Node.create({
       // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
       const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 60, 500, 1000], [0, 80, 90, 105])}%)`
 
-      return (
-        <NodeViewWrapper>
-          {/* Best to make this such that the element that produces the div is circular */}
+      const Finesse: React.FC<React.PropsWithChildren> = ({ children }) => {
+        return (
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
@@ -290,15 +289,23 @@ export const GroupExtension = Node.create({
               boxShadow: glowStyles.join(','),
             }}
             transition={{ duration: 0.5, ease: "circOut" }}>
-            <Group 
-              lens={"verticalArray"} 
-              quantaId={props.node.attrs.qid} 
+            {children}
+          </motion.div>
+        )
+      }
+
+      return (
+        <NodeViewWrapper>
+          <Finesse>
+            <Group
+              lens={"verticalArray"}
+              quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
             >
               {/* {props.node.attrs.quantaId} */}
               <NodeViewContent />
             </Group>
-          </motion.div>
+          </Finesse>
         </NodeViewWrapper>
       );
     });
