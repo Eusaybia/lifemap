@@ -208,7 +208,7 @@ export const GroupExtension = Node.create({
         // This means that the viewport is effectively shrunken by this size
         margin: "-200px 0px -200px 0px"
       })
-      const attentionUnitsPerSecond = 200
+      const attentionUnitsPerSecond = 100
       const peripheralScaleFactor = 0.3
       const refreshRate = 30
       const focalScaleFactor = 1
@@ -216,7 +216,7 @@ export const GroupExtension = Node.create({
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
       // // Uncomment this to reset attention 
-      // props.updateAttributes({ attention: 0 })
+      props.updateAttributes({ attention: 0 })
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
       const attentionProxy = useMotionValue(props.node.attrs.attention)
@@ -272,7 +272,7 @@ export const GroupExtension = Node.create({
       // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
       const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 100, 500, 1000], [0, 80, 90, 105])}%)`
 
-      const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 1000], [0.8, 0.3, 0.2, 0])}`;
+      const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 150, 1000], [0.8, 0.20, 0.10, 0.05, 0])}`;
 
 
       return (
