@@ -7,8 +7,6 @@
     "@capacitor/core": "^4.6.2",
     "@capacitor/ios": "^4.6.2",
     "@cortex-js/compute-engine": "^0.12.2",
-    "@emotion/react": "^11.11.0",
-    "@emotion/styled": "^11.11.0",
     "@fontsource/public-sans": "^4.5.12",
     "@hocuspocus/cli": "2.8.1",
     "@hocuspocus/provider": "2.8.1",
