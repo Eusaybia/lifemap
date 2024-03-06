@@ -3,7 +3,7 @@ import { Editor, Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
-import { motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
+import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 
@@ -206,16 +206,16 @@ export const GroupExtension = Node.create({
       const ref = React.useRef<HTMLDivElement | null>(null);
       const isInView = useInView(ref, {
         // This means that the viewport is effectively shrunken by this size
-        margin: "-250px 0px -250px 0px"
+        margin: "-200px 0px -200px 0px"
       })
-      const attentionUnitsPerSecond = 100
+      const attentionUnitsPerSecond = 200
       const peripheralScaleFactor = 0.3
-      const refreshRate = 1
+      const refreshRate = 5
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
-      // Uncomment this to reset attention 
+      // // Uncomment this to reset attention 
       // props.updateAttributes({ attention: 0 })
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
@@ -270,10 +270,13 @@ export const GroupExtension = Node.create({
       // For a little bit of increase in attention, have a large initial increase in brightness
       // Make it hard to reach maximum brightness
       // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
-      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 60, 500, 1000], [0, 80, 90, 105])}%)`
+      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 100, 500, 1000], [0, 80, 90, 105])}%)`
 
-      const Finesse: React.FC<React.PropsWithChildren> = ({ children }) => {
-        return (
+      const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 1000], [0.8, 0.3, 0.2, 0])}`;
+
+
+      return (
+        <NodeViewWrapper>
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
@@ -284,19 +287,12 @@ export const GroupExtension = Node.create({
               // increaseRefinement("onClick")
             }}
             ref={ref}
-            style={{ borderRadius: 10, filter: brightnessStyle }}
+            style={{ borderRadius: 10, position: 'relative' }}
             animate={{
               boxShadow: glowStyles.join(','),
             }}
-            transition={{ duration: 0.5, ease: "circOut" }}>
-            {children}
-          </motion.div>
-        )
-      }
-
-      return (
-        <NodeViewWrapper>
-          <Finesse>
+            transition={{ duration: 0.5, ease: "circOut" }}
+          >
             <Group
               lens={"verticalArray"}
               quantaId={props.node.attrs.qid}
@@ -304,7 +300,20 @@ export const GroupExtension = Node.create({
             >
               <NodeViewContent />
             </Group>
-          </Finesse>
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                opacity: opacityStyle,
+                borderRadius: 10,
+                pointerEvents: "none"
+              }}
+            />
+          </motion.div>
         </NodeViewWrapper>
       );
     });
