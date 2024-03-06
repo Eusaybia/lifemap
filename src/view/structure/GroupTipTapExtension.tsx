@@ -302,7 +302,6 @@ export const GroupExtension = Node.create({
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
             >
-              {/* {props.node.attrs.quantaId} */}
               <NodeViewContent />
             </Group>
           </Finesse>
