@@ -136,7 +136,7 @@ export const GroupExtension = Node.create({
       // Finesse - emotions
       let glowStyles: string[] = []
       const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
-      const greenGlow = `0 0 100px 40px hsl(104, 64%, 25%, 0.2)`;
+      const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
       const yellowGlow = `0 0 100px hsla(54, 100%, 72%, 0.8)`;
 
       // Check whether this group contains subnodes that is a mention
@@ -210,13 +210,13 @@ export const GroupExtension = Node.create({
       })
       const attentionUnitsPerSecond = 200
       const peripheralScaleFactor = 0.3
-      const refreshRate = 5
+      const refreshRate = 30
       const focalScaleFactor = 1
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
       // // Uncomment this to reset attention 
-      // props.updateAttributes({ attention: 0 })
+      props.updateAttributes({ attention: 0 })
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
       const attentionProxy = useMotionValue(props.node.attrs.attention)
