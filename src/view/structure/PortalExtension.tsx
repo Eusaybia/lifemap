@@ -16,11 +16,6 @@ import {
 } from "@tiptap/core";
 import React, { useEffect } from "react";
 import { Node as ProseMirrorNode, Slice } from "prosemirror-model";
-import {
-  agents,
-  customExtensions,
-  officialExtensions,
-} from "../content/RichText";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -41,7 +36,10 @@ const getQuantaJSON = (
   let node: ProseMirrorNode | null = null;
 
   doc.descendants((descendant, _pos, parent) => {
-    if (descendant.attrs.quantaId === quantaId) {
+    if (descendant.type.name === "portal") {
+      return false;
+    }
+    if (descendant.attrs.quantaId === quantaId && !node) {
       node = descendant;
     }
   });
@@ -56,28 +54,32 @@ const getQuantaJSON = (
 };
 
 const PortalView = (props: NodeViewProps) => {
-  /*const [htmlContent, setHTMLContent] = React.useState(
-    "<p>Content has not been updated to match the referenced node.</p>"
-  );*/
   const { referencedQuantaId, id } = props.node.attrs;
   const updateContent = () => {
-    const quantaJSON = getQuantaJSON(
-      referencedQuantaId,
-      props.editor.state.doc
-    );
+    let quantaJSON = getQuantaJSON(referencedQuantaId, props.editor.state.doc);
 
     if (!quantaJSON) {
-      /*setHTMLContent(
-        "<p>Couldn't find referenced quanta. Are you sure the id you're using is a valid one?</p>"
-      );*/
-    } else {
-      // setHTMLContent(quantaHTML);
-      const pos = props.getPos();
-      console.log(quantaJSON);
-      if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
+      quantaJSON = {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Couldn't find referenced quanta. Are you sure the id you're using is a valid one?",
+          },
+        ],
+      };
+    }
+    const pos = props.getPos();
+    if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
 
-      const initialSelection = props.editor.state.selection;
-      console.log("AN:", {
+    const initialSelection = props.editor.state.selection;
+    console.log("AN:", quantaJSON);
+    let chain = props.editor
+      .chain()
+      .setMeta("fromPortal", true)
+      .setNodeSelection(pos)
+      .deleteSelection()
+      .insertContentAt(pos, {
         type: "portal",
         attrs: {
           id: `${Math.random().toString(36).substring(2, 9)}`,
@@ -85,31 +87,17 @@ const PortalView = (props: NodeViewProps) => {
         },
         content: [quantaJSON],
       });
-      let chain = props.editor
-        .chain()
-        .setMeta("fromPortal", true)
-        .setNodeSelection(pos)
-        .deleteSelection()
-        .insertContentAt(pos, {
-          type: "portal",
-          attrs: {
-            id: `${Math.random().toString(36).substring(2, 9)}`,
-            referencedQuantaId,
-          },
-          content: [quantaJSON],
-        });
 
-      if (isNodeSelection(initialSelection)) {
-        chain = chain.setNodeSelection(initialSelection.$from.pos);
-      } else if (isTextSelection(initialSelection)) {
-        chain = chain.setTextSelection({
-          from: initialSelection.$from.pos,
-          to: initialSelection.$to.pos,
-        });
-      }
-
-      chain.focus().run();
+    if (isNodeSelection(initialSelection)) {
+      chain = chain.setNodeSelection(initialSelection.$from.pos);
+    } else if (isTextSelection(initialSelection)) {
+      chain = chain.setTextSelection({
+        from: initialSelection.$from.pos,
+        to: initialSelection.$to.pos,
+      });
     }
+
+    chain.focus().run();
   };
 
   useEffect(() => {
