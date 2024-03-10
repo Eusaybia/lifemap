@@ -14,8 +14,8 @@ import {
   isTextSelection,
   mergeAttributes,
 } from "@tiptap/core";
-import React, { useEffect } from "react";
-import { Node as ProseMirrorNode, Slice } from "prosemirror-model";
+import React, { useEffect, useRef, useState } from "react";
+import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -53,10 +53,12 @@ const getQuantaJSON = (
   return null;
 };
 
+const inputFocused = { current: false };
 const PortalView = (props: NodeViewProps) => {
-  const { referencedQuantaId, id } = props.node.attrs;
-  const updateContent = () => {
-    let quantaJSON = getQuantaJSON(referencedQuantaId, props.editor.state.doc);
+  const [quantaId, setQuantaId] = useState(props.node.attrs.referencedQuantaId);
+  const updateContent = (quantaId: string) => {
+    if (!quantaId) return;
+    let quantaJSON = getQuantaJSON(quantaId, props.editor.state.doc);
 
     if (!quantaJSON) {
       quantaJSON = {
@@ -70,10 +72,11 @@ const PortalView = (props: NodeViewProps) => {
       };
     }
     const pos = props.getPos();
+
     if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
 
     const initialSelection = props.editor.state.selection;
-    console.log("AN:", quantaJSON);
+
     let chain = props.editor
       .chain()
       .setMeta("fromPortal", true)
@@ -83,7 +86,7 @@ const PortalView = (props: NodeViewProps) => {
         type: "portal",
         attrs: {
           id: `${Math.random().toString(36).substring(2, 9)}`,
-          referencedQuantaId,
+          referencedQuantaId: quantaId,
         },
         content: [quantaJSON],
       });
@@ -101,40 +104,55 @@ const PortalView = (props: NodeViewProps) => {
   };
 
   useEffect(() => {
-    updateContent();
-  }, [props.editor, referencedQuantaId]);
-  useEffect(() => {
-    const debouncedUpdateContent = debounce(updateContent, 1000);
-    props.editor.on("update", ({ transaction }) => {
-      if (transaction.getMeta("fromPortal") || !transaction.docChanged) return;
-      debouncedUpdateContent();
-    });
+    const debouncedUpdateContent = debounce(({ transaction }) => {
+      if (
+        transaction.getMeta("fromPortal") ||
+        !transaction.docChanged ||
+        inputFocused.current
+      )
+        return;
+
+      updateContent(quantaId);
+    }, 1000);
+
+    updateContent(quantaId);
+    props.editor.on("update", debouncedUpdateContent);
 
     return () => {
       props.editor.off("update", debouncedUpdateContent);
     };
-  }, []);
+  }, [quantaId]);
 
   return (
     <NodeViewWrapper>
-      <input
-        type="text"
-        value={referencedQuantaId}
-        onChange={(event) => {
-          props.updateAttributes({
-            referencedQuantaId: event.target.value,
-          });
-        }}
-        style={{
-          border: "1.5px solid #34343430",
-          borderRadius: sharedBorderRadius,
-          outline: "none",
-          backgroundColor: "transparent",
-          width: `80px`,
-          position: "absolute",
-          zIndex: 1,
-        }}
-      />
+      <div contentEditable={false}>
+        <input
+          type="text"
+          value={quantaId}
+          onFocus={() => {
+            inputFocused.current = true;
+          }}
+          onBlur={() => {
+            inputFocused.current = false;
+          }}
+          onChange={(event) => {
+            const newQuantaId = event.target.value;
+
+            setQuantaId(newQuantaId);
+            updateContent(newQuantaId);
+            inputFocused.current = false;
+          }}
+          style={{
+            border: "1.5px solid #34343430",
+            borderRadius: sharedBorderRadius,
+            outline: "none",
+            backgroundColor: "transparent",
+            width: `80px`,
+            position: "absolute",
+            zIndex: 1,
+          }}
+        />
+      </div>
       <div
         style={{
           borderRadius: sharedBorderRadius,
@@ -211,6 +229,22 @@ const PortalExtension = Node.create({
     return [
       new Plugin({
         key: new PluginKey("portal"),
+        props: {
+          transformPasted: (slice) => {
+            const json = slice.content.toJSON() as JSONContent[];
+
+            json.forEach((node) => {
+              if (node.type === "portal") {
+                delete node.content;
+              }
+            });
+            return new Slice(
+              Fragment.fromJSON(this.editor.state.schema, json),
+              0,
+              0
+            );
+          },
+        },
         filterTransaction(tr) {
           if (tr.docChanged) {
             if (tr.getMeta("fromPortal")) return true;
