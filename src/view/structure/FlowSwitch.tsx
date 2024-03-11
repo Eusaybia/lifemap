@@ -78,7 +78,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             }
 
         } else {
-            console.log("not found key")
+            console.warn(`Element with props value: ${props.value} not found`)
         }
 
     }, [refs])

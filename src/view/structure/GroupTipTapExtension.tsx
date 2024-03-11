@@ -115,7 +115,6 @@ export const GroupExtension = Node.create({
     ]
   },
   onSelectionUpdate() {
-    console.log("group had selection")
     // Get the current node
     // const node = this.editor.state.selection.$head.parent;
   
