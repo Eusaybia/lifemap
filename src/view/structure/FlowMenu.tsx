@@ -761,10 +761,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
     // TODO: First, make sure that the font lenses are controlled
 
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
-    console.log("fontSize", props.editor.getAttributes('textStyle').fontSize)
 
     const selection = props.editor!.view.state.selection
-    console.log("selection", selection)
 
     React.useEffect(() => {
         // Typing is wrong, selection does have node field
@@ -778,10 +776,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
             // Change from default dummy value to the actual lens value embedded in the node
             setSelectedDisplayLens(node.attrs.lensDisplay)
             setSelectedEvaluationLens(node.attrs.lensEvaluation)
-
-            console.log('selected node', node);
-            console.log('lensDisplay', lensDisplay);
-            console.log('lensEvaluation', lensEvaluation);
         }
 
     }, [selection])

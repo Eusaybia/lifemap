@@ -14,7 +14,6 @@ export const QuantaView = observer((props: { quanta: QuantaType | SunT }) => {
 
   // Create a Lens selector
   const Lens = () => {
-    console.log("type", quanta.informationTypeName)
     switch (quanta.informationTypeName) {
       case 'jsonContent':
         return <RichText

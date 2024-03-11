@@ -291,12 +291,12 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
 
 
-  if (editor) {
-    SetDocAttrStep.register()
+  // if (editor) {
+  //   SetDocAttrStep.register()
 
-    editor.commands.updateAttributes('document', defaultDocumentAttributeValues)
-    console.log("doc", editor.state.doc)
-  }
+  //   editor.commands.updateAttributes('document', defaultDocumentAttributeValues)
+  //   console.log("doc", editor.state.doc)
+  // }
 
   return editor
 }
@@ -331,9 +331,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // console.log("reversed versions", reversedVersions)
 
   const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
-  console.log("autoversioning", autoversioningEnabled)
-
-
 
   // TODO: Change this to proper responsiveness for each screen size
   const maxWidth = 1300
