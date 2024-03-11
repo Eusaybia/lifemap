@@ -101,7 +101,6 @@
     "string-similarity": "^4.0.4",
     "three": "^0.155.0",
     "tippy.js": "^6.3.7",
-    "tiptap-markdown": "^0.8.2",
     "typescript": "5.1.6",
     "typia": "^3.6.8",
     "uuid": "^9.0.0",

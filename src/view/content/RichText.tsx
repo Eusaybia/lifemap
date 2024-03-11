@@ -9,7 +9,6 @@ import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content } fr
 import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
-import { Markdown } from 'tiptap-markdown';
 import FontFamily from '@tiptap/extension-font-family'
 import Focus from '@tiptap/extension-focus'
 import TextStyle from '@tiptap/extension-text-style'
@@ -175,7 +174,6 @@ export const customExtensions: Extensions = [
   Indent,
   KeyValuePairExtension,
   LocationExtension,
-  Markdown,
   MathExtension,
   MessageExtension,
   PortalExtension,
