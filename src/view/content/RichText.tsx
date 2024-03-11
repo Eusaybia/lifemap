@@ -61,7 +61,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
-import { DocumentExtension } from '../structure/DocumentTipTapExtension'
+import { DocumentExtension, defaultDocumentAttributeValues } from '../structure/DocumentTipTapExtension'
 import { motion } from 'framer-motion'
 
 lowlight.registerLanguage('js', js)
@@ -288,6 +288,15 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
   })
   
   // TODO: When to unbind the watchContent?
+
+
+
+  if (editor) {
+    SetDocAttrStep.register()
+
+    editor.commands.updateAttributes('document', defaultDocumentAttributeValues)
+    console.log("doc", editor.state.doc)
+  }
 
   return editor
 }
