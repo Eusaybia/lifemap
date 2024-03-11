@@ -54,7 +54,6 @@ import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { driver } from 'driver.js'
-import { TwoDGraphExtension } from '../structure/TwoDGraphTipTapExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -179,7 +178,6 @@ export const customExtensions: Extensions = [
   PortalExtension,
   ExperimentalPortalExtension,
   QuoteExtension,
-  TwoDGraphExtension,
   WarningExtension
 ]
 

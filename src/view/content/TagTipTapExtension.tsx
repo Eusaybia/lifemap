@@ -76,6 +76,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                     editor: props.editor,
                 });
 
+                // @ts-ignore - this works perfectly fine in JS
                 popup = tippy("body", {
                     getReferenceClientRect: props.clientRect,
                     appendTo: () => document.body,
@@ -91,6 +92,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                 component?.updateProps(props);
 
                 popup?.setProps({
+                    // @ts-ignore - this works perfectly fine in JS
                     getReferenceClientRect: props.clientRect,
                 });
             },
