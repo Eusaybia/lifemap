@@ -214,10 +214,11 @@ export const GroupExtension = Node.create({
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
-      // // Uncomment this to reset attention 
-      props.updateAttributes({ attention: 0 })
+      // Uncomment this to reset attention on load
+      // props.updateAttributes({ attention: 0 });
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
+      // useMotionValue is more performant than updating the state
       const attentionProxy = useMotionValue(props.node.attrs.attention)
 
       React.useEffect(() => {

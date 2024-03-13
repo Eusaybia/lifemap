@@ -113,7 +113,7 @@ const PortalView = (props: NodeViewProps) => {
         return;
 
       updateContent(quantaId);
-    }, 1000);
+    }, 10000);
 
     updateContent(quantaId);
     props.editor.on("update", debouncedUpdateContent);
