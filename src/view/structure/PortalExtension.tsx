@@ -100,7 +100,7 @@ const PortalView = (props: NodeViewProps) => {
       });
     }
 
-    chain.focus().run();
+    chain.run();
   };
 
   useEffect(() => {
@@ -113,7 +113,7 @@ const PortalView = (props: NodeViewProps) => {
         return;
 
       updateContent(quantaId);
-    }, 10000);
+    }, 1000);
 
     updateContent(quantaId);
     props.editor.on("update", debouncedUpdateContent);
