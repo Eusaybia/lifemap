@@ -81,7 +81,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             console.info(`Element with props value: ${props.value} not found`)
         }
 
-    }, [refs])
+    }, [])
 
     // Eventually use this scrollend event instead of a scroll timeout when more browsers support it
     // React.useEffect(() => {
