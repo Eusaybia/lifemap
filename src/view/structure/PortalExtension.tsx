@@ -18,7 +18,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
-import { Plugin, PluginKey } from "prosemirror-state";
+import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 
 const REGEX_BLOCK_TILDE = /(^~(.+?)~)/;
 const sharedBorderRadius = 15;
@@ -54,23 +54,47 @@ const getQuantaJSON = (
 };
 
 const inputFocused = { current: false };
-const PortalView = (props: NodeViewProps) => {
-  const [quantaId, setQuantaId] = useState(props.node.attrs.referencedQuantaId);
-  const updateContent = (quantaId: string) => {
-    if (!quantaId) return;
-    let quantaJSON = getQuantaJSON(quantaId, props.editor.state.doc);
 
-    if (!quantaJSON) {
+const PortalView = (props: NodeViewProps) => {
+  // On node instantiation, useState will draw from the node attributes
+  // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
+  const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
+
+  // If the input is updated, this handler is called
+  const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    props.updateAttributes({ referencedQuantaId: event.target.value });
+    const newQuantaId = event.target.value;
+
+    setReferencedQuantaId(newQuantaId)
+    props.updateAttributes({ referencedQuantaId: newQuantaId });
+  };
+
+  const updateContent = (referencedQuantaId: string) => {
+    let quantaJSON = getQuantaJSON(referencedQuantaId, props.editor.state.doc);
+
+    if (!referencedQuantaId) {
       quantaJSON = {
         type: "paragraph",
         content: [
           {
             type: "text",
-            text: "Couldn't find referenced quanta. Are you sure the id you're using is a valid one?",
+            text: "You need to enter a referenced quanta id, this field is currently empty.",
           },
         ],
       };
-    }
+    } else if (quantaJSON === null) {
+      // Couldn't find a quanta with that id, possibly invalid
+        quantaJSON = {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Couldn't find referenced quanta. Are you sure the id you're using is a valid one?",
+            },
+          ],
+        };
+    } 
+
     const pos = props.getPos();
 
     if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
@@ -85,8 +109,8 @@ const PortalView = (props: NodeViewProps) => {
       .insertContentAt(pos, {
         type: "portal",
         attrs: {
-          id: `${Math.random().toString(36).substring(2, 9)}`,
-          referencedQuantaId: quantaId,
+          id: `${referencedQuantaId}`,
+          referencedQuantaId: referencedQuantaId,
         },
         content: [quantaJSON],
       });
@@ -103,45 +127,43 @@ const PortalView = (props: NodeViewProps) => {
     chain.run();
   };
 
+  console.log("quantaId in state", referencedQuantaId)
+  console.log("quantaId in attrs", props.node.attrs.referencedQuantaId)
+  console.log("attrs", props.node.attrs)
+
+  const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
+    if (
+      transaction.getMeta("fromPortal") ||
+      !transaction.docChanged
+    )
+      return;
+
+    updateContent(referencedQuantaId);
+  }
+
+  // Update the transclusion if the referencedQuantaId has changed or if the node has changed
   useEffect(() => {
-    const debouncedUpdateContent = debounce(({ transaction }) => {
-      if (
-        transaction.getMeta("fromPortal") ||
-        !transaction.docChanged ||
-        inputFocused.current
-      )
-        return;
-
-      updateContent(quantaId);
-    }, 1000);
-
-    updateContent(quantaId);
-    props.editor.on("update", debouncedUpdateContent);
-
+    props.editor.on("update", handleEditorUpdate);
+  
+    // Clean up the event listener when the component unmounts
     return () => {
-      props.editor.off("update", debouncedUpdateContent);
+      props.editor.off("update", handleEditorUpdate);
     };
-  }, [quantaId]);
+  }, [props.editor, referencedQuantaId]);
 
   return (
     <NodeViewWrapper>
       <div contentEditable={false}>
         <input
           type="text"
-          value={quantaId}
+          value={referencedQuantaId}
           onFocus={() => {
             inputFocused.current = true;
           }}
           onBlur={() => {
             inputFocused.current = false;
           }}
-          onChange={(event) => {
-            const newQuantaId = event.target.value;
-
-            setQuantaId(newQuantaId);
-            updateContent(newQuantaId);
-            inputFocused.current = false;
-          }}
+          onChange={handleReferencedQuantaIdChange}
           style={{
             border: "1.5px solid #34343430",
             borderRadius: sharedBorderRadius,
