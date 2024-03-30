@@ -28,13 +28,12 @@ export const generateAuthenticationToken = functions.https.onCall(async (data, c
     //     throw new functions.https.HttpsError('unauthenticated', 'You must be authenticated to use this function.');
     //   }
 
+    // Omitting allowedDocumentNames field allows all users to access all documents
+    // https://tiptap.dev/docs/editor/collaboration/authenticate#allowing-full-access-to-every-document
+    const payload = {};
+
     // Sign the JWT with the custom claims and your secret
-    const token = jwt.sign({
-        allowedDocumentNames: [
-            '000000', // userUuid/documentUuid
-            '000003', // userUuid/documentUuid
-        ]
-    }, appSecret);
+    const token = jwt.sign(payload, appSecret);
 
     // Return the token
     return { token };

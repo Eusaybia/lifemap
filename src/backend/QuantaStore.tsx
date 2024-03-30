@@ -15,9 +15,9 @@ type QuantaStoreContextType = {
 const dummyQuantaStoreContext = {
   quanta: new QuantaClass(),
   provider: new TiptapCollabProvider({ 
-    appId: 'zxcb123',// get this at collab.tiptap.dev
-    name: "example", // e.g. a uuid uuidv4();
-    token: "",
+    appId: 'dummyAppId',// get this at collab.tiptap.dev
+    name: "dummyDocumentName", // e.g. a uuid uuidv4();
+    token: "dummyToken",
     document: new QuantaClass().information 
   }),
   requestVersionPreviewFromCloud: (version: Content) => {}
@@ -40,36 +40,45 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   new IndexeddbPersistence(roomName, quanta.information)
 
   // Generate a JWT Auth Token to verify the user 
-  let jwt = ""
-  const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
-  generateAuthenticationToken().then((result) => {
-    // Read result of the Cloud Function.
-    console.log("result", result)
-    const data: any = result.data;
-    jwt = data.token;
-    console.log("jwt", jwt)
-  }).catch((error) => {
-    console.error(error)
-  });
+  const [jwt, setJwt] = React.useState<string>("notoken");
+  const [provider, setProvider] = React.useState<TiptapCollabProvider>(dummyQuantaStoreContext.provider);
 
-  // Sync the document using the cloud provider
-  const provider = new TiptapCollabProvider({ 
-    appId: appId,// get this at collab.tiptap.dev
-    name: roomName, // e.g. a uuid uuidv4();
-    token: jwt,
-    document: quanta.information
-  });
+  // Immediately generate a jwt token
+  React.useEffect(() => {
+    const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
+    generateAuthenticationToken()
+      .then((result) => {
+        const data: any = result.data;
+        const token = data.token;
+        setJwt(token);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, []);
+
+  // Once the jwt token is generated, only then, create a provider
+  React.useEffect(() => {
+    if (jwt !== "notoken") {
+      console.log("jwt provided to provider", jwt)
+      const newProvider = new TiptapCollabProvider({
+        appId: appId,
+        name: roomName,
+        token: jwt,
+        document: quanta.information,
+      });
+      setProvider(newProvider);
+    } 
+  }, [jwt]);
 
   // Define a function that sends a version.preview request to the provider
   const requestVersionPreviewFromCloud = (version: Content) => {
-    provider.sendStateless(JSON.stringify({
+    provider?.sendStateless(JSON.stringify({
       action: 'version.preview',
       // Include your version number here
       version,
     }))
   }
-
-  provider.on("synced", () => {})
 
   const quantaStoreContext = {
     quanta, provider, requestVersionPreviewFromCloud

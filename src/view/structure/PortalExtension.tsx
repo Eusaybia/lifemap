@@ -14,7 +14,7 @@ import {
   isTextSelection,
   mergeAttributes,
 } from "@tiptap/core";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
@@ -69,7 +69,7 @@ const PortalView = (props: NodeViewProps) => {
     props.updateAttributes({ referencedQuantaId: newQuantaId });
   };
 
-  const updateContent = (referencedQuantaId: string) => {
+  const updateContent = useCallback((referencedQuantaId: string) => {
     let quantaJSON = getQuantaJSON(referencedQuantaId, props.editor.state.doc);
 
     if (!referencedQuantaId) {
@@ -125,11 +125,7 @@ const PortalView = (props: NodeViewProps) => {
     }
 
     chain.run();
-  };
-
-  console.log("quantaId in state", referencedQuantaId)
-  console.log("quantaId in attrs", props.node.attrs.referencedQuantaId)
-  console.log("attrs", props.node.attrs)
+  }, []);
 
   const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
     if (
