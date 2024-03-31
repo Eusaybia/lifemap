@@ -4,36 +4,41 @@ import React from "react"
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
+
+    // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [hasBeenChanged, setHasBeenChanged] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
-    const tickSound = new Audio("/tick.mp3");
+
     let timer: NodeJS.Timeout | null = null;
-    const refs = props.children.map(() => React.createRef<HTMLDivElement>());
+
+    const tickSound = new Audio("/tick.mp3");
+
+    const switchElementsRefs = props.children.map(() => React.createRef<HTMLDivElement>());
 
     const switchElements = props.children.map((child, index) => 
         (<motion.div
-            ref={refs[index]}
+            ref={switchElementsRefs[index]}
             initial={{ opacity: 0.2, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            onClick={() => {
-                if (typeof child.props.onClick === 'function') {
-                    child.props.onClick()
-                }
+        whileInView={{ opacity: 1, scale: 1 }}
+        onClick={() => {
+            if (typeof child.props.onClick === 'function') {
+                child.props.onClick()
             }
-            }
-            style={{
-                // TODO: Change this eventually
-                scrollSnapAlign: "none",
-                width: "fit-content",
-            }}
+        }
+        }
+        style={{
+            // TODO: Change this eventually
+            scrollSnapAlign: "none",
+            width: "fit-content",
+        }}
             viewport={{ root: flowSwitchContainerRef, margin: "-13px 0px -13px 0px" }}
             onViewportEnter={(entry) => {
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
                 if (hasBeenChanged) {
                     // TODO: Find a way to play sound even when the page hasn't been interacted with
-                    tickSound.play().catch(function (error) {
+                    tickSound.play().catch((error) => {
                         console.log("Chrome cannot play sound without user interaction first")
                     });
                 } else {
@@ -48,21 +53,20 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         </motion.div>)
     )
 
+    // Scroll to the element with the key === props.value
     React.useEffect(() => {
-        // Scroll to the element with the key === props.value
         // Find the element
         const index = props.children.findIndex(child => {
             return child.props.value === props.value
         })
 
-        if (index !== -1 && refs[index].current) {
-            // Found
-            // TODO: Re-enable this
-            // refs[index].current!.scrollIntoView({ behavior: 'smooth' });
+        if (index !== -1 && switchElementsRefs[index].current) {
+            // The element was found, scroll to it
+            switchElementsRefs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
             // Scroll to the element
             const container = flowSwitchContainerRef.current;
-            const element = refs[index].current;
+            const element = switchElementsRefs[index].current;
 
             if (container && element) {
                 const containerRect = container.getBoundingClientRect();
@@ -78,7 +82,8 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             }
 
         } else {
-            console.info(`Element with props value: ${props.value} not found`)
+            // This should be an error
+            console.log(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
     }, [])
