@@ -62,11 +62,13 @@ const PortalView = (props: NodeViewProps) => {
 
   // If the input is updated, this handler is called
   const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    props.updateAttributes({ referencedQuantaId: event.target.value });
     const newQuantaId = event.target.value;
-
     setReferencedQuantaId(newQuantaId)
-    props.updateAttributes({ referencedQuantaId: newQuantaId });
+    updateContent(newQuantaId);
+
+    setTimeout(() => {
+        props.updateAttributes({ referencedQuantaId: event.target.value });
+    }, 2000)
   };
 
   const updateContent = useCallback((referencedQuantaId: string) => {
