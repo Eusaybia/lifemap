@@ -133,7 +133,7 @@ export const GroupExtension = Node.create({
       let node = props.node
 
       // Finesse - emotions
-      let glowStyles: string[] = []
+      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`]; // Add a default box shadow value
       const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
       const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
       const yellowGlow = `0 0 100px hsla(54, 100%, 72%, 0.8)`;
@@ -147,6 +147,12 @@ export const GroupExtension = Node.create({
           glowStyles.push(yellowGlow)
         }
       });
+
+      // If the glowStyles is filled with a non-void glow, then remove the void glow
+      if (glowStyles.length > 1) {
+        // Remove the first glow, which is the default void glow
+        glowStyles.splice(0, 1)
+      }
 
       // Assume 'node' is the specific node you want to check
       let containsUncheckedTodo = false;
@@ -288,6 +294,9 @@ export const GroupExtension = Node.create({
             }}
             ref={ref}
             style={{ borderRadius: 10, position: 'relative' }}
+            initial={{
+              boxShadow: `0px 0px 0px 0px rgba(0, 0, 0, 0)`,
+            }}
             animate={{
               boxShadow: glowStyles.join(','),
             }}
