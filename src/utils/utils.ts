@@ -3,6 +3,7 @@ import { Attrs } from 'prosemirror-model';
 import { v4 as uuidv4 } from 'uuid';
 import { MathsLoupeC } from '../core/Model';
 import { Editor, JSONContent, isNodeSelection, isTextSelection } from '@tiptap/core';
+import { useEffect } from 'react';
 
 var stringSimilarity = require("string-similarity");
 
@@ -110,6 +111,30 @@ export const isActualUrl = (url: string) => {
     }
     return false
 }
+
+export const useScrollEnd = (callback: () => void, delay: number ) => {
+  useEffect(() => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleScrollEnd = () => {
+          if (timer) {
+              clearTimeout(timer);
+          }
+          timer = setTimeout(() => {
+              callback();
+          }, delay);
+      };
+
+      window.addEventListener('scroll', handleScrollEnd);
+
+      return () => {
+          window.removeEventListener('scroll', handleScrollEnd);
+          if (timer) {
+              clearTimeout(timer);
+          }
+      };
+  }, [callback, delay]);
+};
 
 export const getSelectedNode = (editor: Editor) => {
     const selection = editor.view.state.selection

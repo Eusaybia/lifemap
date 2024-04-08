@@ -1,18 +1,26 @@
 import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
+import { useScrollEnd } from '../../utils/utils';
+
+interface OptionButtonProps {
+    onClick: () => void;
+    children: React.ReactNode;
+}
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
 
     // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
+    // But this doesn't seem possible to detect currently
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
-    const [hasBeenChanged, setHasBeenChanged] = React.useState(false);
+    const [hasScrolled, setHasScrolled] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
 
     let timer: NodeJS.Timeout | null = null;
 
-    const tickSound = new Audio("/tick.mp3");
+    const clickSound = new Audio("/click.mp3");
+    clickSound.volume = 0.1
 
     const switchElementsRefs = props.children.map(() => React.createRef<HTMLDivElement>());
 
@@ -36,15 +44,12 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             onViewportEnter={(entry) => {
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
-                if (hasBeenChanged) {
+                if (hasScrolled) {
                     // TODO: Find a way to play sound even when the page hasn't been interacted with
-                    tickSound.play().catch((error) => {
+                    clickSound.play().catch((error) => {
                         console.log("Chrome cannot play sound without user interaction first")
                     });
-                } else {
-                    setHasBeenChanged(true)
-                }
-                console.log("setting selected index to ", index)
+                }   
                 setSelectedIndex(index)
             }}
             key={index}
@@ -88,41 +93,19 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     }, [])
 
-    // Eventually use this scrollend event instead of a scroll timeout when more browsers support it
-    // React.useEffect(() => {
-    //     const node = flowSwitchContainerRef.current;
-    //     if (node) {
-    //       node.addEventListener('scrollend', handleScrollEnded);
-    //     }
-    
-    //     return () => {
-    //       if (node) {
-    //         node.removeEventListener('scrollend', handleScrollEnded);
-    //       }
-    //     };
-    //   }, []);
+    useScrollEnd(() => {
+        if (props.onChange) {
+            // props.onChange(selectedIndex);
+        }
+
+        // switchElements[selectedIndex].props.onClick()
+
+    }, 2000)
 
     return (
         <motion.div className="flow-menu"
             key={props.value}
             ref={flowSwitchContainerRef}
-            onScroll={
-                // TODO: In future, see if this can be replaced by onScrollEnd
-                () => {
-                    if (timer !== null) {
-                        clearTimeout(timer);
-                    }
-                    timer = setTimeout(function () {
-                        setReleaseSelected(selectedIndex)
-                        if (props.onChange) {
-                            props.onChange(releaseSelected);
-                        }
-                        // TODO: This is mean to click the currently selected element, think of a better way.
-                        // Basically, find the currently selected element, and invoke its onClick
-                        switchElements[selectedIndex].props.onClick()
-                    }, 550);
-                }
-            }
 
             style={{
                 scrollSnapType: `y mandatory`,
@@ -156,10 +139,29 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
     )
 }
 
+export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children }) => {
+    const clickSound = new Audio('/click.mp3');
+
+    const handleClick = () => {
+        clickSound.play().catch((error) => {
+            console.log('Chrome cannot play sound without user interaction first. Click on the webpage in order to play the sound effects.');
+        });
+        onClick();
+    };
+
+    return (
+        <motion.div onClick={handleClick}>
+            {children}
+        </motion.div>
+    );
+};
+
 export const Option = (props: { value: string, onClick?: () => void, children: React.ReactElement }) => {
     return (
         <motion.div>
-            {props.children}
+            <OptionButton onClick={props.onClick || (() => {})}>
+                {props.children}
+            </OptionButton>
         </motion.div>
     )
 }
