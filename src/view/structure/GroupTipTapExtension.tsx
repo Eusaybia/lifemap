@@ -1,5 +1,6 @@
 import React from "react";
-import { Editor, Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
+import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group } from "./Group";
 import './styles.scss';
@@ -51,7 +52,7 @@ const increaseRefinement = (interactionType: InteractionType, editor: Editor, no
 // TODO: Match for brackets with text in between
 export const groupInputRegex = /{([^{}]*)}/;
 
-export const GroupExtension = Node.create({
+export const GroupExtension = TipTapNode.create({
   name: "group",
   group: "block",
   content: "block*",
@@ -100,7 +101,8 @@ export const GroupExtension = Node.create({
       pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
-      backgroundColor: { default: offWhite }
+      backgroundColor: { default: offWhite },
+      lens: { default: "identity" },
     }
   },
   renderHTML({ node, HTMLAttributes }) {
@@ -280,6 +282,35 @@ export const GroupExtension = Node.create({
 
       const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 150, 1000], [0.8, 0.20, 0.10, 0.05, 0])}`;
 
+      const filterImportantNodes = (node: ProseMirrorNode): ProseMirrorNode | null => {
+        let hasImportantMention = false;
+
+        node.descendants((descendant) => {
+          if (descendant.type.name === 'mention' && (descendant.attrs.label as string).includes('⭐️ important')) {
+            hasImportantMention = true;
+          }
+        });
+  
+        if (hasImportantMention) {
+          // Only keep nodes that have the important tag as a child
+          const filteredContent: ProseMirrorNode[] = []
+
+          node.content.forEach((descendant) => {
+            const filteredChild = filterImportantNodes(descendant);
+            if (filteredChild) {
+              filteredContent.push(filteredChild);
+            }
+          });
+
+          console.log(filteredContent, "filteredContent")
+
+          // Return a new ProseMirrorNode with the filtered content
+          return node.copy((node.content.constructor as typeof Fragment).fromArray(filteredContent));
+        }
+        return null;
+      };
+
+      console.log("lens: ", props.node.attrs.lens)
 
       return (
         <NodeViewWrapper>
@@ -307,7 +338,11 @@ export const GroupExtension = Node.create({
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
             >
-              <NodeViewContent />
+              {props.node.attrs.lens === "importantNodes" ?
+                <NodeViewContent node={filterImportantNodes(props.node)} />
+                :
+                <NodeViewContent node={props.node} />
+              }
             </Group>
             <motion.div
               style={{
