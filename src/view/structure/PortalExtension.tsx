@@ -60,6 +60,11 @@ const PortalView = (props: NodeViewProps) => {
   // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
   const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
 
+  useEffect(() => {
+    const jsonContent = props.node.toJSON();
+    console.log("Portal Node JSONContent:", jsonContent);
+  }, [props.node]);
+
   // If the input is updated, this handler is called
   const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newQuantaId = event.target.value;

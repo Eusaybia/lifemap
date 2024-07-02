@@ -272,10 +272,11 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
                     value={"Editing view"}
-                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'edit' }).run();
+                    onClick={() => {
+                        props.editor.chain().updateAttributes('document', { selectedFocusLens: 'edit' }).run();
 
-                
-                }}
+
+                    }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
@@ -302,7 +303,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
 const GroupLoupe = (props: { editor: Editor }) => {
 
     const selectedNode = getSelectedNode(props.editor)
-    let backgroundColor = selectedNode.attrs.backgroundColor 
+    let backgroundColor = selectedNode.attrs.backgroundColor
 
     return (
         <div
@@ -310,7 +311,24 @@ const GroupLoupe = (props: { editor: Editor }) => {
             <Tag>
                 Group
             </Tag>
-            {/* May need to create a proper state variable for this */}
+            {/* Lenses */}
+            <FlowSwitch value={selectedNode.attrs.lens} isLens>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.updateAttributes("group", { lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"importantNodes"} onClick={() => {
+                    props.editor.commands.updateAttributes("group", { lens: "important" })
+                }}>
+                    <motion.div>
+                        Only show important nodes
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            {/* Actions */}
             <FlowSwitch value={backgroundColor} isLens>
                 <Option
                     value={"lightBlue"}
