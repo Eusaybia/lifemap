@@ -5,7 +5,7 @@ import React from 'react'
 import { offWhite, purple } from '../Theme';
 import { Grip } from '../content/Grip';
 
-export type GroupLenses = "verticalArray";
+export type GroupLenses = "identity" | "important";
 
 export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string }) => {
 
@@ -51,7 +51,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
 
 export const GroupExample = () => {
     return (
-        <Group lens={"verticalArray"} quantaId={"000001"}>
+        <Group lens={"identity"} quantaId={"000001"}>
             <Quanta quantaId={'000001'} userId={''} />
         </Group>
     )

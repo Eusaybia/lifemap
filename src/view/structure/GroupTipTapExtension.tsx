@@ -334,15 +334,22 @@ export const GroupExtension = TipTapNode.create({
             transition={{ duration: 0.5, ease: "circOut" }}
           >
             <Group
-              lens={"verticalArray"}
+              lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
             >
-              {props.node.attrs.lens === "importantNodes" ?
-                <NodeViewContent node={filterImportantNodes(props.node)} />
-                :
-                <NodeViewContent node={props.node} />
-              }
+              {(() => {
+                switch (props.node.attrs.lens) {
+                  case "identity":
+                    return <NodeViewContent node={props.node} />;
+                  case "importantNodes":
+                    return <div>
+                      Just important nodes
+                      </div>
+                  default:
+                    return <NodeViewContent node={props.node} />;
+                }
+              })()}
             </Group>
             <motion.div
               style={{
