@@ -18,7 +18,7 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNode, getSelectedNodeType, updateDocumentAttributes } from "../../utils/utils";
+import { getSelectedNode, getSelectedNodeType, logCurrentLens, updateDocumentAttributes } from "../../utils/utils";
 import { defaultDocumentAttributeValues } from "./DocumentTipTapExtension";
 
 export const flowMenuStyle = (): React.CSSProperties => {
@@ -312,7 +312,7 @@ const GroupLoupe = (props: { editor: Editor }) => {
                 Group
             </Tag>
             {/* Lenses */}
-            <FlowSwitch value={selectedNode.attrs.lens} isLens>
+            <FlowSwitch value={backgroundColor} isLens>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.updateAttributes("group", { lens: "identity" })
                 }}>
@@ -321,7 +321,9 @@ const GroupLoupe = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"importantNodes"} onClick={() => {
-                    props.editor.commands.updateAttributes("group", { lens: "important" })
+                    console.log("Updating lens to important nodes")
+                    props.editor.commands.updateAttributes("group", { lens: "importantNodes" })
+                    logCurrentLens(props.editor)
                 }}>
                     <motion.div>
                         Only show important nodes

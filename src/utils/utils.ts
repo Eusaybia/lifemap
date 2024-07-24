@@ -136,6 +136,16 @@ export const useScrollEnd = (callback: () => void, delay: number ) => {
   }, [callback, delay]);
 };
 
+export const logCurrentLens = (editor: Editor) => {
+  const selectedNode = getSelectedNode(editor);
+  if (selectedNode && selectedNode.type.name === "group") {
+      const currentLens = selectedNode.attrs.lens;
+      console.log("Current Lens:", currentLens);
+  } else {
+      console.log("Current Lens: No group node is selected.");
+  }
+}
+
 export const getSelectedNode = (editor: Editor) => {
     const selection = editor.view.state.selection
 
