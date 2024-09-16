@@ -12,7 +12,7 @@ export const Quanta = (props: { quantaId: QuantaId; userId: string, loupe?: Loup
     // This store is not visual, it is purely to feed information
     // @ts-ignore
     <NoSSR>
-      <Minimap provider={React.useContext(QuantaStoreContext).provider} />
+      <Minimap />
       <QuantaStore quantaId={props.quantaId} userId={props.userId}>
         {/* Use the qi in QiStore 
       This seemingly gets the wrong qi, the default value, rather than
