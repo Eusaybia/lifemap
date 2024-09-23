@@ -264,9 +264,11 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
 
     let documentMenuStyle: CSSProperties = flowMenuStyle()
-    documentMenuStyle.width = "80%"
+    documentMenuStyle.width = "100%"
 
     React.useEffect(() => {
+        // Add null check for editor
+        if (!props.editor) return;
 
         const document = props.editor.state.doc
         const documentAttributes = document.attrs
@@ -285,7 +287,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             setUnimportantNodesDisplayLens(documentAttributes.unimportantNodesDisplayLens)
         }
 
-    }, [])
+    }, [props.editor])
 
     return (
         <motion.div style={documentMenuStyle}>

@@ -1,47 +1,52 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import "./minimap.scss";
-import { Options } from 'modern-screenshot/worker?url'
+// @ts-ignore
 import { domToPng } from 'modern-screenshot'
 import { motion } from 'framer-motion';
-import { update } from 'lodash';
-import { TiptapCollabProvider } from '@hocuspocus/provider';
 
-export const Minimap = (props: { provider: TiptapCollabProvider }) => {
-  const win = window;
-  const doc = document;
-  const body = doc.body;
+export const Minimap = () => {
+  const [counter, setCounter] = React.useState(0);
+  const [minimapWidth, setMinimapWidth] = useState(0);
 
   const sliderRef = useRef<HTMLDivElement>(null);
   const sliderContentRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<HTMLDivElement>(null);
   const sliderSizeRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = React.useState<number>(0.1)
+  let scale = 0.1;
   let realScale = scale;
   let mouseDown = false;
   let mouseX = 0;
   let mouseY = 0;
 
-  // Capture the webpage and place it into the minimap content
-  const updateMinimapContent = () => {
-    // This will update the dimensions of the minimap based off the dimensions of the page
-    getDimensions();
+  useEffect(() => {
+    let timer: NodeJS.Timer | undefined;
+    timer = setInterval(() => {
+      // Update the minimap every 5 seconds
+      setCounter(counter + 1)
+    }, 5000);
 
-    let options: Options = {
-      features: {
-        removeControlCharacter: false
-      },
-    }
 
-    try {
+    const win = window;
+    const doc = document;
+    const body = doc.body;
+
+    // Capture the webpage and place it into the minimap content
+    const updateMinimapContent = () => {
+      let options = {
+        features: {
+          removeControlCharacter: false
+        }
+      }
       domToPng(window.document.body, options).then((dataURL: string) => {
         // Create an image from the canvas
         var img = new Image();
         img.src = dataURL;
 
+        // Get the document of the iframe
         const sliderContent = sliderContentRef.current
 
         if (sliderContent) {
-          // Get the existing image in the minimap, if any
+          // Get the existing image in the iframe, if any
           const existingImg = sliderContent.querySelector('img');
 
           if (existingImg) {
@@ -53,12 +58,11 @@ export const Minimap = (props: { provider: TiptapCollabProvider }) => {
           }
         }
       });
-    } catch (err) {
-      console.error("Error occurred while trying to render a screenshot of the page for the Minimap:", err)
     }
-  }
 
-    const getDimensions = () => {
+    updateMinimapContent()
+
+    function getDimensions() {
       const bodyWidth = body.clientWidth;
       const bodyRatio = body.clientHeight / bodyWidth;
       const winRatio = win.innerHeight / win.innerWidth;
@@ -74,22 +78,11 @@ export const Minimap = (props: { provider: TiptapCollabProvider }) => {
         sliderContentRef.current.style.width = (100 / realScale) + '%';
         sliderContentRef.current.style.height = (100 / realScale) + '%';
       }
+      if (sliderRef.current) {
+        setMinimapWidth(sliderRef.current.clientWidth);
+      }
     }
 
-  // Only update the minimap once when the webpage has loaded
-  // Minimap causes UI thread blocking every time it's updating
-  React.useEffect(() => {
-      setTimeout(updateMinimapContent, 2000)
-  }, [])
-
-  // This code should work, but it doesn't. There's something unique about the useEffect
-  // props.provider.on("synced", () => {
-  //   updateMinimapContent()
-  //   console.log("synced!")
-  // })
-
-  // Only initialise once upon app initialisation, and destroy when component is removed
-  React.useEffect(() => {
     function trackScroll() {
       if (controllerRef.current) {
         controllerRef.current.style.transform = 'translate(' +
@@ -135,6 +128,7 @@ export const Minimap = (props: { provider: TiptapCollabProvider }) => {
       }
     }
 
+    getDimensions();
     win.addEventListener('resize', getDimensions);
     win.addEventListener('load', getDimensions);
     win.addEventListener('scroll', trackScroll);
@@ -159,15 +153,43 @@ export const Minimap = (props: { provider: TiptapCollabProvider }) => {
       win.removeEventListener('touchend', pointerReset);
       body.removeEventListener('mouseleave', pointerLeave);
       // body.removeEventListener('touchleave', pointerLeave);
+      clearTimeout(timer);  // Clean up the timer
     };
-  }, [])
+  }, [counter]);
 
   return (
-    // The effect is to have components fade in one by one, which creates a visual sense of momentum, even though loading is slow
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.7 }} transition={{ duration: 0.5 }} whileHover={{ opacity: 1 }} className="slider" ref={sliderRef}>
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 0.7 }} 
+      transition={{ duration: 0.5 }} 
+      whileHover={{ opacity: 1 }} 
+      className="slider" 
+      ref={sliderRef}
+      style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000 }} // Add this line
+    >
       <div className="slider__size" ref={sliderSizeRef}></div>
       <motion.div className="slider__controller" ref={controllerRef}></motion.div>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="slider__content" ref={sliderContentRef}></motion.div>
     </motion.div>
   );
+};
+
+export const useMinimapWidth = () => {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const slider = document.querySelector('.slider');
+    if (slider) {
+      setWidth(slider.clientWidth);
+    }
+    const observer = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        setWidth(entry.contentRect.width);
+      }
+    });
+    if (slider) observer.observe(slider);
+    return () => {
+      if (slider) observer.unobserve(slider);
+    };
+  }, []);
+  return width;
 };

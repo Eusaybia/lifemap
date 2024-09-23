@@ -382,13 +382,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
 
     return (
-      <div key={props.quanta?.id} style={{ display: "grid", placeItems: "center" }}>
+      <div key={props.quanta?.id} style={{width: '100%'}}>
         {/* This menu is always fixed at the very top of the document */}
-        <div style={{maxWidth: maxWidth}}>
-
-          <motion.div style={{ display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4 }}>
-            <DocumentFlowMenu editor={editor} />
-          </motion.div>
+        <div style={{ width: '100%'}}>
           <div key={`bubbleMenu${props.quanta?.id}`}>
             {/* This menu floats above selected text or nodes */}
             <FlowMenu editor={editor} />
