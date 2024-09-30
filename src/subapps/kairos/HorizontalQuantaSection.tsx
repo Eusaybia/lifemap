@@ -92,6 +92,7 @@ export const HorizontalQuantaSection: React.FC<HorizontalQuantaSectionProps> = (
           overflowX: 'visible',
           overflowY: 'hidden',
           whiteSpace: 'nowrap',
+          borderRadius: borderRadius,
           display: 'flex',
           flexDirection: 'row',
         }}
