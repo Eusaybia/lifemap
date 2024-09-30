@@ -1,11 +1,11 @@
 'use client'; // Ensures client-side rendering
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useGLTF, SoftShadows } from '@react-three/drei';
+import { useGLTF, Environment, ContactShadows, AccumulativeShadows, RandomizedLight, BakeShadows } from '@react-three/drei';
 import { motion } from 'framer-motion-3d';
-import { EffectComposer, SSAO, Bloom } from '@react-three/postprocessing'; // Added post-processing effects
-import { BlendFunction } from 'postprocessing'; // Required for custom bloom settings
+import { EffectComposer, SSAO, Bloom, ToneMapping } from '@react-three/postprocessing';
+import { BlendFunction, ToneMappingMode } from 'postprocessing';
 import { Color } from 'three';
 
 type Generic3DModelProps = {
@@ -20,34 +20,19 @@ type Generic3DModelProps = {
   fov?: number;
 };
 
-const GenericModel = ({
-  modelPath,
-  scale = [1, 1, 1],
-  position = [0, 0, 0],
-  rotation = [0, 0, 0],
-}: {
-  modelPath: string;
-  scale: [number, number, number];
-  position: [number, number, number];
-  rotation: [number, number, number];
-}) => {
-  const { scene } = useGLTF(modelPath) as any;
+const GenericModel = ({ modelPath, scale, position, rotation }) => {
+  const { scene } = useGLTF(modelPath);
 
-  // Enable shadows for all meshes in the model
-  scene.traverse((child: any) => {
+  // Ensure no part of the model casts shadows below its base
+  scene.traverse((child) => {
     if (child.isMesh) {
-      child.castShadow = true;    // Model casts shadows
-      child.receiveShadow = true; // Model can receive shadows if needed
+      child.castShadow = true;
+      child.receiveShadow = false; // Prevent the model from receiving its own shadow
     }
   });
 
   return (
-    <primitive
-      object={scene}
-      scale={scale}
-      position={position}
-      rotation={rotation}
-    />
+    <primitive object={scene} scale={scale} position={position} rotation={rotation} />
   );
 };
 
@@ -57,7 +42,7 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   size = 160,
   color = 'white',
   scale = [18, 18, 18],
-  position = [0, -8, 0], // Adjusted to place the model on the plane
+  position = [0, 0, 0], // Adjusted to remove intersection with shadow plane
   rotation = [0, 0, 0],
   cameraPosition = [0, 0, 40],
   fov = 50,
@@ -76,40 +61,19 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
       }}
       aria-label="3D Model"
       role="button"
-      gl={{ alpha: true }}
+      gl={{ alpha: true, antialias: true }}
     >
-      <SoftShadows size={10} samples={16} focus={0.5} />
+      
+      <Environment preset="apartment" />
+      
+      <AccumulativeShadows temporal frames={100} color="#316d39" colorBlend={0.5} opacity={0.7} scale={10} position={[0, -0.1, 0]}>
+        <RandomizedLight amount={8} radius={5} ambient={0.5} position={[5, 3, 2]} bias={0.001} />
+      </AccumulativeShadows>
 
-      <ambientLight intensity={0.2} />
-      <directionalLight
-        position={[-10, 30, 10]}
-        intensity={1}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
-        shadow-bias={-0.0001}
-      />
-
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -8.1, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[100, 100]} />
-        <shadowMaterial transparent opacity={0.4} />
-      </mesh>
+      {/* Removed ContactShadows */}
 
       <Suspense fallback={null}>
-        <motion.group
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
-          position={position}
-        >
+        <motion.group position={position}>
           <GenericModel
             modelPath={modelPath}
             scale={scale}
@@ -119,25 +83,13 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         </motion.group>
       </Suspense>
 
-      {/* Added post-processing effects for enhanced photorealism */}
-      <EffectComposer>
-        <SSAO
-          samples={31}
-          radius={20}
-          intensity={30}
-          luminanceInfluence={0.5}
-          color={new Color(0, 0, 0)} worldDistanceThreshold={0} worldDistanceFalloff={0} worldProximityThreshold={0} worldProximityFalloff={0}        />
-        <Bloom
-          blendFunction={BlendFunction.ADD}
-          intensity={0.3} // Adjust bloom intensity
-          width={300}
-          height={300}
-          kernelSize={3}
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.2}
-        />
-      </EffectComposer>
+      <BakeShadows />
 
+      <EffectComposer>
+        <SSAO radius={0.1} intensity={150} luminanceInfluence={0.5} color="black" />
+        <Bloom intensity={0.5} luminanceThreshold={0.9} luminanceSmoothing={0.025} />
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
     </Canvas>
   );
 };
