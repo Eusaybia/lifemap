@@ -54,19 +54,19 @@ const GenericModel = ({
 export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   modelPath,
   onClick,
-  size = 160, // 4 times the original size
+  size = 160,
   color = 'white',
-  scale = [16, 16, 16], // 4 times the original scale
-  position = [0, -8, 0], // Adjusted position for larger model
+  scale = [18, 18, 18],
+  position = [0, -8, 0], // Adjusted to place the model on the plane
   rotation = [0, 0, 0],
-  cameraPosition = [0, 40, 0], // Adjusted camera height for larger model
-  fov = 34,
+  cameraPosition = [0, 0, 40],
+  fov = 50,
 }) => {
   return (
     <Canvas
       shadows
       style={{ width: `${size}px`, height: `${size}px`, cursor: 'pointer' }}
-      camera={{ position: cameraPosition, fov: fov, up: [0, 0, -1] }}
+      camera={{ position: cameraPosition, fov: fov }}
       onClick={onClick}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -78,16 +78,16 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
       role="button"
       gl={{ alpha: true }}
     >
-      <SoftShadows />
+      <SoftShadows size={10} samples={16} focus={0.5} />
 
       <ambientLight intensity={0.2} />
       <directionalLight
-        position={[-15, 30, -20]} // Moved light source to the top left
-        intensity={8}
+        position={[-10, 30, 10]}
+        intensity={1}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-far={100}
+        shadow-camera-far={50}
         shadow-camera-left={-20}
         shadow-camera-right={20}
         shadow-camera-top={20}
@@ -100,9 +100,24 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         position={[0, -8.1, 0]}
         receiveShadow
       >
-        <planeGeometry args={[40, 40]} />
+        <planeGeometry args={[100, 100]} />
         <shadowMaterial transparent opacity={0.4} />
       </mesh>
+
+      <Suspense fallback={null}>
+        <motion.group
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
+          position={position}
+        >
+          <GenericModel
+            modelPath={modelPath}
+            scale={scale}
+            position={[0, 0, 0]}
+            rotation={rotation}
+          />
+        </motion.group>
+      </Suspense>
 
       {/* Added post-processing effects for enhanced photorealism */}
       <EffectComposer>
@@ -123,20 +138,6 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         />
       </EffectComposer>
 
-      <Suspense fallback={null}>
-        <motion.group
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
-          position={position}
-        >
-          <GenericModel
-            modelPath={modelPath}
-            scale={scale}
-            position={[0, 0, 0]}
-            rotation={rotation}
-          />
-        </motion.group>
-      </Suspense>
     </Canvas>
   );
 };
