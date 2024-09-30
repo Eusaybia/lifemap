@@ -80,7 +80,7 @@ export const HorizontalQuantaSection: React.FC<HorizontalQuantaSectionProps> = (
         padding: '20px',
         boxSizing: 'border-box',
         position: 'relative',
-        overflow: 'visible',
+        overflowX: 'visible',
       }}
     >
       <DragRing editor={editor} />
@@ -89,12 +89,11 @@ export const HorizontalQuantaSection: React.FC<HorizontalQuantaSectionProps> = (
         style={{
           width: '100%',
           height: '100%',
-          overflow: 'visible',
+          overflowX: 'visible',
+          overflowY: 'hidden',
           whiteSpace: 'nowrap',
           display: 'flex',
           flexDirection: 'row',
-          position: 'absolute',
-          left: 0,
         }}
       >
         {quantaIds.map((quantaId, index) => (
