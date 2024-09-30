@@ -4,6 +4,9 @@ import React, { Suspense, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useGLTF, SoftShadows } from '@react-three/drei';
 import { motion } from 'framer-motion-3d';
+import { EffectComposer, SSAO, Bloom } from '@react-three/postprocessing'; // Added post-processing effects
+import { BlendFunction } from 'postprocessing'; // Required for custom bloom settings
+import { Color } from 'three';
 
 type Generic3DModelProps = {
   modelPath: string;
@@ -53,7 +56,7 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   onClick,
   size = 160, // 4 times the original size
   color = 'white',
-  scale = [18, 18, 18], // 4 times the original scale
+  scale = [16, 16, 16], // 4 times the original scale
   position = [0, -8, 0], // Adjusted position for larger model
   rotation = [0, 0, 0],
   cameraPosition = [0, 40, 0], // Adjusted camera height for larger model
@@ -79,7 +82,7 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
 
       <ambientLight intensity={0.2} />
       <directionalLight
-        position={[-15, 30, 15]}
+        position={[-15, 30, -20]} // Moved light source to the top left
         intensity={8}
         castShadow
         shadow-mapSize-width={2048}
@@ -100,6 +103,25 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         <planeGeometry args={[40, 40]} />
         <shadowMaterial transparent opacity={0.4} />
       </mesh>
+
+      {/* Added post-processing effects for enhanced photorealism */}
+      <EffectComposer>
+        <SSAO
+          samples={31}
+          radius={20}
+          intensity={30}
+          luminanceInfluence={0.5}
+          color={new Color(0, 0, 0)} worldDistanceThreshold={0} worldDistanceFalloff={0} worldProximityThreshold={0} worldProximityFalloff={0}        />
+        <Bloom
+          blendFunction={BlendFunction.ADD}
+          intensity={0.3} // Adjust bloom intensity
+          width={300}
+          height={300}
+          kernelSize={3}
+          luminanceThreshold={0.2}
+          luminanceSmoothing={0.2}
+        />
+      </EffectComposer>
 
       <Suspense fallback={null}>
         <motion.group
