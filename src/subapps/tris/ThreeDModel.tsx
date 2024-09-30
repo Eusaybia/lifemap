@@ -51,21 +51,21 @@ const GenericModel = ({
 export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   modelPath,
   onClick,
-  size = 40,
+  size = 160, // 4 times the original size
   color = 'white',
-  scale = [4.5, 4.5, 4.5],
-  position = [0, 0, 0],
-  rotation = [(-10 * Math.PI) / 180, 0, 0],
-  cameraPosition = [0, 3.5, 10],
+  scale = [18, 18, 18], // 4 times the original scale
+  position = [0, -8, 0], // Adjusted position for larger model
+  rotation = [0, 0, 0],
+  cameraPosition = [0, 40, 0], // Adjusted camera height for larger model
   fov = 34,
 }) => {
   return (
     <Canvas
-      shadows // Enables shadow mapping in the renderer
+      shadows
       style={{ width: `${size}px`, height: `${size}px`, cursor: 'pointer' }}
-      camera={{ position: cameraPosition, fov: fov }} // Configurable camera settings
+      camera={{ position: cameraPosition, fov: fov, up: [0, 0, -1] }}
       onClick={onClick}
-      tabIndex={0} // Makes the canvas focusable for accessibility
+      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           onClick();
@@ -73,50 +73,44 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
       }}
       aria-label="3D Model"
       role="button"
-      gl={{ alpha: true }} // Enables transparent background
-      // Optional: background: 'transparent', // Alternatively, set background to transparent
+      gl={{ alpha: true }}
     >
       <SoftShadows />
 
-      {/* Lighting Setup */}
-      <ambientLight intensity={0.2} /> {/* Soft ambient light */}
-
-      {/* Directional Light for Model Illumination and Shadow Casting */}
+      <ambientLight intensity={0.2} />
       <directionalLight
-        position={[-10, 5, 5]}
-        intensity={20}
+        position={[-15, 30, 15]}
+        intensity={8}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-far={50}
-        shadow-camera-left={-10}
-        shadow-camera-right={10}
-        shadow-camera-top={10}
-        shadow-camera-bottom={-10}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={100}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
         shadow-bias={-0.0001}
       />
 
-      {/* Backing Plane Positioned Behind the Model */}
       <mesh
-        rotation={[0, 0, 0]} // No rotation; vertical plane
-        position={[0, 0, -0.1]}  // Positioned behind the model along the Z-axis
-        receiveShadow            // Enable the plane to receive shadows
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -8.1, 0]}
+        receiveShadow
       >
-        <planeGeometry args={[10, 10]} /> {/* Large enough to catch shadows */}
-        <shadowMaterial transparent opacity={0.5} /> {/* Transparent plane that only shows shadows */}
+        <planeGeometry args={[40, 40]} />
+        <shadowMaterial transparent opacity={0.4} />
       </mesh>
 
-      {/* 3D Model */}
       <Suspense fallback={null}>
         <motion.group
-          whileHover={{ scale: 1.2 }} // Scales up on hover
-          whileTap={{ scale: 0.9 }}   // Scales down on tap/click
-          position={[-2, position[1], position[2]]} // Adjust position if needed
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
+          position={position}
         >
           <GenericModel
             modelPath={modelPath}
             scale={scale}
-            position={position}
+            position={[0, 0, 0]}
             rotation={rotation}
           />
         </motion.group>
