@@ -67,6 +67,7 @@ import { PomodoroTimerExtension } from '../chronos/PomodoroTimerExtension'
 import { TemporalEstimateExtension } from '../kairos/TemporalEstimateExtension'
 import { ThreeDTextExtension } from './ThreeDTextExtension'
 import { ThreeDGraphExtension } from '../kairos/ThreeDGraphTipTapExtension'
+import { HorizontalQuantaSectionExtension } from '../kairos/HorizontalQuantaSectionExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -189,6 +190,7 @@ export const customExtensions: Extensions = [
   ThreeDTextExtension,
   TwoDGraphExtension,
   WarningExtension,
+  HorizontalQuantaSectionExtension
 ]
 
 export const agents: Extensions = [
