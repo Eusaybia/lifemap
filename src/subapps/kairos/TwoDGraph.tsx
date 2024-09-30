@@ -218,7 +218,11 @@ export const TwoDGraph = () => {
   // Add this new constant for the default viewport
   const defaultViewport = { x: 0, y: -800, zoom: 0.03 };
 
-  const fitViewOptions = { padding: 0.2 };
+  const fitViewOptions = {
+    padding: 0.2,
+    minZoom: 0.01,
+    maxZoom: 1,
+  };
 
   React.useEffect(() => {
     if (reactFlowInstance) {
@@ -229,7 +233,7 @@ export const TwoDGraph = () => {
   return (
     <div
       style={{
-        height: '60vh', // Increased from '30vh' to '80vh'
+        height: '80vh',
         width: '100%',
         padding: '20px',
         boxSizing: 'border-box',
@@ -241,6 +245,8 @@ export const TwoDGraph = () => {
           width: '100%',
           borderRadius: borderRadius,
           overflow: 'hidden',
+          border: '1px solid #ddd', // Added light border
+          boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', // Optional: adds a subtle shadow
         }}
       >
         <ReactFlow
