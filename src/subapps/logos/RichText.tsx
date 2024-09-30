@@ -192,7 +192,7 @@ export const customExtensions: Extensions = [
   TwoDGraphExtension,
   WarningExtension,
   HorizontalQuantaSectionExtension,
-  ThreeDModelExtension
+  // ThreeDModelExtension
 ]
 
 export const agents: Extensions = [
