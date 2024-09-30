@@ -68,6 +68,7 @@ import { TemporalEstimateExtension } from '../kairos/TemporalEstimateExtension'
 import { ThreeDTextExtension } from './ThreeDTextExtension'
 import { ThreeDGraphExtension } from '../kairos/ThreeDGraphTipTapExtension'
 import { HorizontalQuantaSectionExtension } from '../kairos/HorizontalQuantaSectionExtension'
+import { ThreeDModelExtension } from '../tris/ThreeDModelExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -190,7 +191,8 @@ export const customExtensions: Extensions = [
   ThreeDTextExtension,
   TwoDGraphExtension,
   WarningExtension,
-  HorizontalQuantaSectionExtension
+  HorizontalQuantaSectionExtension,
+  ThreeDModelExtension
 ]
 
 export const agents: Extensions = [
