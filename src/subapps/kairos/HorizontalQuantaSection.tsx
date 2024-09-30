@@ -19,7 +19,7 @@ const QuantaItem: React.FC<QuantaProps> = ({ quantaId, userId, onQuantaIdChange 
     <div
       style={{
         width: '300px',
-        height: '100%',
+        height: '800px',
         flexShrink: 0,
         padding: '10px',
         boxSizing: 'border-box',
@@ -68,10 +68,11 @@ export const HorizontalQuantaSection: React.FC<{ editor: any }> = ({ editor }) =
     <div
       style={{
         width: '100%',
-        height: '400px',
+        height: '800px',
         padding: '20px',
         boxSizing: 'border-box',
         position: 'relative',
+        overflowX: 'visible',
       }}
     >
       <DragRing editor={editor} />
@@ -80,7 +81,7 @@ export const HorizontalQuantaSection: React.FC<{ editor: any }> = ({ editor }) =
         style={{
           width: '100%',
           height: '100%',
-          overflowX: 'auto',
+          overflowX: 'visible',
           overflowY: 'hidden',
           whiteSpace: 'nowrap',
           display: 'flex',
