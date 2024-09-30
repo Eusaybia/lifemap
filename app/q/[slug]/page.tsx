@@ -16,7 +16,7 @@ export default function Page({ params }: { params: { slug: string } }) {
     return (
         <div style={{
             backgroundColor: offWhite,
-            backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper.png")',
+            backgroundImage: 'url("/paper-textures/paper.png")',
             minHeight: '100vh',
             paddingLeft: minimapWidth + padding,
             paddingRight: padding,
