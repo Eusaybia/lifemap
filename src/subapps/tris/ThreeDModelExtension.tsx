@@ -4,7 +4,7 @@ import {
   ReactNodeViewRenderer,
   NodeViewWrapper,
 } from '@tiptap/react';
-import { ThreeDModel } from './ThreeDModel';
+import { Generic3DModel } from './ThreeDModel'; // Adjust the import path as needed
 
 export const threeDModelInputRegex = /--model--$/;
 
@@ -36,7 +36,14 @@ export const ThreeDModelExtension = Node.create({
   addNodeView() {
     return ReactNodeViewRenderer(() => (
       <NodeViewWrapper>
-        <ThreeDModel />
+        <Generic3DModel
+          modelPath='/models-3d/garbage-bin.glb' // Replace with dynamic path if needed
+          onClick={() => {
+            // Define onClick behavior if applicable
+          }}
+          size={60} // Adjust size as needed
+          color='white' // Adjust color if applicable
+        />
       </NodeViewWrapper>
     ));
   },

@@ -188,11 +188,11 @@ export const customExtensions: Extensions = [
   TemporalEstimateExtension,
   ThreeDExtension,
   ThreeDGraphExtension,
-  ThreeDTextExtension,
+  // ThreeDTextExtension,
   TwoDGraphExtension,
   WarningExtension,
   HorizontalQuantaSectionExtension,
-  // ThreeDModelExtension
+  ThreeDModelExtension
 ]
 
 export const agents: Extensions = [

@@ -109,7 +109,7 @@ interface TextProps {
 }
 
 const Text: React.FC<TextProps> = ({ text, config, font = '/fonts/Inter-Medium-Regular.json', ...props }) => {
-  const texture = useLoader(RGBELoader, 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/aerodynamics_workshop_1k.hdr')
+  const texture = useLoader(RGBELoader, '/textures/aerodynamics_workshop_1k.hdr')
 
   return (
     <Text3D
