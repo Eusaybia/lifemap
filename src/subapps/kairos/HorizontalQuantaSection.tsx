@@ -51,18 +51,26 @@ const QuantaItem: React.FC<QuantaProps> = ({ quantaId, userId, onQuantaIdChange 
   );
 };
 
-export const HorizontalQuantaSection: React.FC<{ editor: any }> = ({ editor }) => {
-  const [quantaIds, setQuantaIds] = useState<string[]>([
-    '000001', '000002', '000003', '000004', '000005',
-    '000006', '000007', '000008', '000009', '000010',
-  ]);
+interface HorizontalQuantaSectionProps {
+  editor: any;
+  updateAttributes: (attrs: Record<string, any>) => void;
+  quantaIds: string[];
+}
+
+export const HorizontalQuantaSection: React.FC<HorizontalQuantaSectionProps> = ({ editor, updateAttributes, quantaIds: initialQuantaIds }) => {
+  const [quantaIds, setQuantaIds] = useState<string[]>(initialQuantaIds);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleQuantaIdChange = (index: number, newId: string) => {
     const newQuantaIds = [...quantaIds];
     newQuantaIds[index] = newId;
     setQuantaIds(newQuantaIds);
+    updateAttributes({ quantaIds: newQuantaIds });
   };
+
+  useEffect(() => {
+    setQuantaIds(initialQuantaIds);
+  }, [initialQuantaIds]);
 
   return (
     <div
@@ -72,7 +80,7 @@ export const HorizontalQuantaSection: React.FC<{ editor: any }> = ({ editor }) =
         padding: '20px',
         boxSizing: 'border-box',
         position: 'relative',
-        overflowX: 'visible',
+        overflow: 'visible',
       }}
     >
       <DragRing editor={editor} />
@@ -81,11 +89,12 @@ export const HorizontalQuantaSection: React.FC<{ editor: any }> = ({ editor }) =
         style={{
           width: '100%',
           height: '100%',
-          overflowX: 'visible',
-          overflowY: 'hidden',
+          overflow: 'visible',
           whiteSpace: 'nowrap',
           display: 'flex',
           flexDirection: 'row',
+          position: 'absolute',
+          left: 0,
         }}
       >
         {quantaIds.map((quantaId, index) => (

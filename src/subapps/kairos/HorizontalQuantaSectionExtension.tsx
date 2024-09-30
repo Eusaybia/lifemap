@@ -13,6 +13,13 @@ export const HorizontalQuantaSectionExtension = Node.create({
   selectable: false,
   draggable: true,
   atom: true,
+  addAttributes() {
+    return {
+      quantaIds: {
+        default: ['2a033c00-f810-4b97-a4ca-135c3a6df3ee', '21ea5993-4269-46ee-aaa7-4802b1d690f7', '2c6edd03-2be5-4fff-b65d-dd0eb1a87c50'],
+      },
+    };
+  },
 
   parseHTML() {
     return [
@@ -39,7 +46,7 @@ export const HorizontalQuantaSectionExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <HorizontalQuantaSection />
+          <HorizontalQuantaSection editor={props.editor} updateAttributes={props.updateAttributes} quantaIds={props.node.attrs.quantaIds} />
         </NodeViewWrapper>
       );
     });
