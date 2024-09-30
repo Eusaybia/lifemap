@@ -216,12 +216,20 @@ export const TwoDGraph = () => {
   );
 
   // Add this new constant for the default viewport
-  const defaultViewport = { x: 0, y: -400, zoom: 0.1 };
+  const defaultViewport = { x: 0, y: -800, zoom: 0.03 };
+
+  const fitViewOptions = { padding: 0.2 };
+
+  React.useEffect(() => {
+    if (reactFlowInstance) {
+      setTimeout(() => reactFlowInstance.fitView(fitViewOptions), 0);
+    }
+  }, [reactFlowInstance]);
 
   return (
     <div
       style={{
-        height: '30vh',
+        height: '60vh', // Increased from '30vh' to '80vh'
         width: '100%',
         padding: '20px',
         boxSizing: 'border-box',
