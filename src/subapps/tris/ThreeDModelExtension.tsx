@@ -23,7 +23,7 @@ export const ThreeDModelExtension = Node.create({
     ];
   },
   renderHTML({ HTMLAttributes }) {
-    return ['three-d-model', HTMLAttributes, 0];
+    return ['three-d-model', HTMLAttributes];
   },
   addInputRules() {
     return [
