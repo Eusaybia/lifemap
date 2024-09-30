@@ -10,9 +10,9 @@ import { DragRing } from '../controls/DragRing';
 export type GroupLenses = "verticalArray";
 
 const textures = [
-    'url("https://www.transparenttextures.com/patterns/groovepaper.png")',
-    'url("https://www.transparenttextures.com/patterns/beige-paper.png")',
-    'url("https://www.transparenttextures.com/patterns/paper.png")',
+    'url("/paper-textures/groove-paper.png")',
+    'url("/paper-textures/beige-paper.png")',
+    'url("/paper-textures/paper.png")',
 ];
 
 function hashCode(str: string): number {
