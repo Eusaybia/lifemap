@@ -110,7 +110,7 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
 
       {/* Post-processing effects */}
       <EffectComposer>
-        <SSAO radius={0.1} intensity={20} luminanceInfluence={0.6} color="black" />
+        <SSAO radius={0.1} intensity={20} luminanceInfluence={0.6} color={new Color("black")} />
         <Bloom intensity={0.05} luminanceThreshold={0.9} luminanceSmoothing={0.025} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
