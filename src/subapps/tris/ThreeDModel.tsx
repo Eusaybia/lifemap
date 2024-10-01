@@ -2,7 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useGLTF, Environment, ContactShadows, AccumulativeShadows, RandomizedLight, BakeShadows } from '@react-three/drei';
+import { useGLTF, Environment, AccumulativeShadows, RandomizedLight, BakeShadows, SoftShadows } from '@react-three/drei';
 import { motion } from 'framer-motion-3d';
 import { EffectComposer, SSAO, Bloom, ToneMapping } from '@react-three/postprocessing';
 import { BlendFunction, ToneMappingMode } from 'postprocessing';
@@ -27,7 +27,7 @@ const GenericModel = ({ modelPath, scale, position, rotation }) => {
   scene.traverse((child) => {
     if (child.isMesh) {
       child.castShadow = true;
-      child.receiveShadow = false; // Prevent the model from receiving its own shadow
+      child.receiveShadow = true; // Allow meshes to both cast and receive shadows
     }
   });
 
@@ -41,17 +41,17 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   onClick,
   size = 160,
   color = 'white',
-  scale = [18, 18, 18],
-  position = [0, 0, 0], // Adjusted to remove intersection with shadow plane
+  scale = [12, 12, 12],
+  position = [0, -8, 0],
   rotation = [0, 0, 0],
-  cameraPosition = [0, 0, 40],
-  fov = 50,
+  cameraPosition = [0, 40, 0],
+  fov = 34,
 }) => {
   return (
     <Canvas
       shadows
       style={{ width: `${size}px`, height: `${size}px`, cursor: 'pointer' }}
-      camera={{ position: cameraPosition, fov: fov }}
+      camera={{ position: cameraPosition, fov: fov, up: [0, 0, -1] }}
       onClick={onClick}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -63,14 +63,33 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
       role="button"
       gl={{ alpha: true, antialias: true }}
     >
-      
-      <Environment preset="apartment" />
-      
-      <AccumulativeShadows temporal frames={100} color="#316d39" colorBlend={0.5} opacity={0.7} scale={10} position={[0, -0.1, 0]}>
-        <RandomizedLight amount={8} radius={5} ambient={0.5} position={[5, 3, 2]} bias={0.001} />
-      </AccumulativeShadows>
+      {/* Enable soft shadows */}
+      <SoftShadows size={20} samples={16} focus={0.7} />
 
-      {/* Removed ContactShadows */}
+      {/* Increase ambient light intensity for softer overall illumination */}
+      <ambientLight intensity={0.5} />
+
+      {/* Main directional light for shadows */}
+      <directionalLight
+        position={[-10, 10, -5]}
+        intensity={0.8}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+        shadow-radius={18}  // Increased shadow radius for softer edges
+        shadow-bias={-0.0001}
+      />
+
+      {/* Subtle fill light to soften shadows */}
+      <pointLight position={[10, 5, 10]} intensity={0.2} />
+
+      {/* Environment for realistic reflections */}
+      <Environment preset="studio" />
 
       <Suspense fallback={null}>
         <motion.group position={position}>
@@ -83,11 +102,16 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         </motion.group>
       </Suspense>
 
-      <BakeShadows />
+      {/* Ground plane to receive shadows */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]} receiveShadow>
+        <planeGeometry args={[100, 100]} />
+        <shadowMaterial opacity={0.3} /> {/* Reduced opacity for softer shadows */}
+      </mesh>
 
+      {/* Post-processing effects */}
       <EffectComposer>
-        <SSAO radius={0.1} intensity={150} luminanceInfluence={0.5} color="black" />
-        <Bloom intensity={0.5} luminanceThreshold={0.9} luminanceSmoothing={0.025} />
+        <SSAO radius={0.1} intensity={20} luminanceInfluence={0.6} color="black" />
+        <Bloom intensity={0.05} luminanceThreshold={0.9} luminanceSmoothing={0.025} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
     </Canvas>

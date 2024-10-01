@@ -41,7 +41,7 @@ export const ThreeDModelExtension = Node.create({
           onClick={() => {
             // Define onClick behavior if applicable
           }}
-          size={300} // Adjust size as needed
+          size={400} // Adjust size as needed
           color='white' // Adjust color if applicable
         />
       </NodeViewWrapper>
