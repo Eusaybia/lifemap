@@ -116,4 +116,4 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   );
 };
 
-useGLTF.preload('/models-3d/placeholder.glb'); // Preload a placeholder or default model if needed
+useGLTF.preload('/models-3d/chinese-mountains.glb'); // Preload a placeholder or default model if needed
