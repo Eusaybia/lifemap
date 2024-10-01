@@ -41,10 +41,10 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
   onClick,
   size = 160,
   color = 'white',
-  scale = [12, 12, 12],
-  position = [0, -8, 0],
+  scale = [2, 2, 2],
+  position = [0, 0, 0],
   rotation = [0, 0, 0],
-  cameraPosition = [0, 40, 0],
+  cameraPosition = [0, 50, 5],
   fov = 34,
 }) => {
   return (
@@ -67,12 +67,12 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
       <SoftShadows size={20} samples={16} focus={0.7} />
 
       {/* Increase ambient light intensity for softer overall illumination */}
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.1} />
 
       {/* Main directional light for shadows */}
       <directionalLight
-        position={[-10, 10, -5]}
-        intensity={0.8}
+        position={[-5, 10, -5]}
+        intensity={2.8}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
@@ -85,32 +85,30 @@ export const Generic3DModel: React.FC<Generic3DModelProps> = ({
         shadow-bias={-0.0001}
       />
 
-      {/* Subtle fill light to soften shadows */}
-      <pointLight position={[10, 5, 10]} intensity={0.2} />
 
       {/* Environment for realistic reflections */}
-      <Environment preset="studio" />
+      <Environment preset="apartment" />
 
       <Suspense fallback={null}>
         <motion.group position={position}>
           <GenericModel
             modelPath={modelPath}
             scale={scale}
-            position={[0, 0, 0]}
+            position={[0, 2, 0]}
             rotation={rotation}
           />
         </motion.group>
       </Suspense>
 
       {/* Ground plane to receive shadows */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -8, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[100, 100]} />
-        <shadowMaterial opacity={0.3} /> {/* Reduced opacity for softer shadows */}
+        <shadowMaterial opacity={0.5} /> {/* Reduced opacity for softer shadows */}
       </mesh>
 
       {/* Post-processing effects */}
       <EffectComposer>
-        <SSAO radius={0.1} intensity={20} luminanceInfluence={0.6} color={new Color("black")} />
+        <SSAO radius={0.1} intensity={2} luminanceInfluence={0.6} color={new Color("black")} worldDistanceThreshold={0} worldDistanceFalloff={0} worldProximityThreshold={0} worldProximityFalloff={0} />
         <Bloom intensity={0.05} luminanceThreshold={0.9} luminanceSmoothing={0.025} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>

@@ -37,7 +37,7 @@ export const ThreeDModelExtension = Node.create({
     return ReactNodeViewRenderer(() => (
       <NodeViewWrapper>
         <Generic3DModel
-          modelPath='/models-3d/garbage-bin.glb' // Replace with dynamic path if needed
+          modelPath='/models-3d/nelson-statue.glb' // Replace with dynamic path if needed
           onClick={() => {
             // Define onClick behavior if applicable
           }}
