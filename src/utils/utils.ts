@@ -177,15 +177,6 @@ export const getSelectedNodeType = (editor: Editor) => {
     }
 }
 
-// This forces attributes in the root document to be updated
-export const updateDocumentAttributes = (editor: Editor, newAttributes: Attrs) => {
-  const state = editor.state;
-  const tr = state.tr; 
-
-  tr.setMeta('doc', newAttributes);
-  editor.view.dispatch(tr); 
-}
-
 export const isWordEmotionRelated = (word: string) => {
   const similarityOfWordToEmotions = stringSimilarity.compareTwoStrings(word, "emotional")
   console.log("Similarity of Words to Emotions", similarityOfWordToEmotions)
