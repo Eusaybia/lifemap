@@ -18,8 +18,7 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNode, getSelectedNodeType, logCurrentLens, updateDocumentAttributes } from "../../utils/utils";
-import { defaultDocumentAttributeValues } from "./DocumentTipTapExtension";
+import { getSelectedNode, getSelectedNodeType, logCurrentLens, setDocAttribute } from "../../utils/utils";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -271,26 +270,34 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
-                    value={"Editing view"}
+                    value={"editing"}
                     onClick={() => {
-                        props.editor.chain().updateAttributes('document', { selectedFocusLens: 'edit' }).run();
-
-
+                        props.editor.chain().updateAttributes('document', { selectedFocusLens: 'editing' }).run();
                     }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
-                            ✏️ Editing view
+                            📝 Editing view
                         </span>
                     </motion.div>
                 </Option>
                 <Option
-                    value={"Focus view"}
-                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'focus' }).run() }}
+                    value={"focusing"}
+                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'focusing' }).run() }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
-                            🧘🏻‍♀️ Focus view
+                            🔍 Focus view
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"reading-only"}
+                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'reading-only' }).run() }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            📖️ Read-only view
                         </span>
                     </motion.div>
                 </Option>
