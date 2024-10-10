@@ -270,9 +270,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
-                    value={"editing"}
+                    value={"edit"}
                     onClick={() => {
-                        props.editor.chain().updateAttributes('document', { selectedFocusLens: 'editing' }).run();
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'edit' }).run();
                     }}
                 >
                     <motion.div>
@@ -282,8 +282,10 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option
-                    value={"focusing"}
-                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'focusing' }).run() }}
+                    value={"focus"}
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'focus' }).run();
+                    }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
@@ -292,8 +294,10 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option
-                    value={"reading-only"}
-                    onClick={() => { props.editor.chain().updateAttributes('document', { selectedFocusLens: 'reading-only' }).run() }}
+                    value={"read-only"}
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'read-only' }).run();
+                    }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>

@@ -59,7 +59,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
-import { DocumentExtension, defaultDocumentAttributeValues } from '../structure/DocumentTipTapExtension'
+import { DocumentAttributeExtension } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
 
 lowlight.registerLanguage('js', js)
@@ -166,7 +166,7 @@ export const customExtensions: Extensions = [
       suggestion: mentionSuggestionOptions,
     }
   ),
-  DocumentExtension,
+  DocumentAttributeExtension,
   FadeIn,
   FocusModePlugin,
   GroupExtension,
@@ -242,15 +242,19 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       },
     },
     content: (informationType === "yDoc") ? null : information,
-    onSelectionUpdate: ({ editor }) => {
-      const rootDocumentNode = editor.state.doc
-      const rootDocumentNodeAttributes = rootDocumentNode.attrs
+    onUpdate: ({ editor }) => {
+      // console.log("JSON Output", editor.getJSON())
+      // console.log("HTML Output", editor.getHTML())
+      // console.log("editor getText", editor.getText())
+      // console.log("active", editor.state.selection)
+      // Retrieve document attributes using the custom command
+      // @ts-ignore - this actually does work, not sure why it's not recognised
+      const documentAttributesNode = editor.commands.getDocumentAttributes()
+      console.log("documentAttributesNode", documentAttributesNode)
 
-      // Attributes for the Document root node are defined in DocumentTipTapExtension.tsx
-      const focusLens = rootDocumentNodeAttributes.selectedFocusLens
-
-      // Highlight the focused node
-      if (focusLens === "focus") {
+      // Attributes for the Document root node are defined in DocumentAttributesExtension.tsx
+      if (documentAttributesNode.selectedFocusLens === "focus") {
+        // Highlight the focused node
         const driverObj = driver({
           animate: true,
           disableActiveInteraction: false,
@@ -258,8 +262,8 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
           allowClose: true,
         })
 
-        // Document here refers to the html document, not the document node of TipTap
-        var elements = document.querySelectorAll('.attention-highlight');
+        // Document here refers to the HTML document, not the document node of TipTap
+        const elements = document.querySelectorAll('.attention-highlight');
         elements.forEach((element) => {
           driverObj.highlight({
             element: element,
@@ -267,12 +271,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         });
       }
     },
-    onUpdate: ({ editor }) => {
-      // console.log("JSON Output", editor.getJSON())
-      // console.log("HTML Output", editor.getHTML())
-      // console.log("editor getText", editor.getText())
-      // console.log("active", editor.state.selection)
-    }
   })
 
   // Watch for content changes from TipTap Collab Cloud
