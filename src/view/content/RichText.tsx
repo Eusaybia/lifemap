@@ -242,11 +242,9 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       },
     },
     content: (informationType === "yDoc") ? null : information,
-    onUpdate: ({ editor }) => {
-      // console.log("JSON Output", editor.getJSON())
-      // console.log("HTML Output", editor.getHTML())
-      // console.log("editor getText", editor.getText())
-      // console.log("active", editor.state.selection)
+    // This is deliberately triggered using the selection update because the driver highlight shade needs to update,
+    // whenever the user moves their cursor to a new location.
+    onSelectionUpdate: ({ editor }) => {
       // Retrieve document attributes using the custom command
       // @ts-ignore - this actually does work, not sure why it's not recognised
       const documentAttributesNode = editor.commands.getDocumentAttributes()
@@ -270,6 +268,12 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
           });
         });
       }
+    },
+    onUpdate: ({ editor }) => {
+      // console.log("JSON Output", editor.getJSON())
+      // console.log("HTML Output", editor.getHTML())
+      // console.log("editor getText", editor.getText())
+      // console.log("active", editor.state.selection)
     },
   })
 
