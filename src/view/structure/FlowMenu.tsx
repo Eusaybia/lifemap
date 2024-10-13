@@ -19,6 +19,7 @@ import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
 import { getSelectedNode, getSelectedNodeType, logCurrentLens, setDocAttribute } from "../../utils/utils";
+import { DocumentAttributes } from "./DocumentAttributesExtension";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -270,9 +271,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
-                    value={"edit"}
+                    value={"editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'edit' }).run();
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'editing' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -282,9 +283,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option
-                    value={"focus"}
+                    value={"focus" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'focus' }).run();
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'focus' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -294,9 +295,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option
-                    value={"read-only"}
+                    value={"read-only" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'read-only' }).run();
+                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'read-only' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
