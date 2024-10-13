@@ -251,7 +251,10 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       console.log("documentAttributesNode", documentAttributesNode)
 
       // Attributes for the Document root node are defined in DocumentAttributesExtension.tsx
-      if (documentAttributesNode.selectedFocusLens === "focus") {
+      if (documentAttributesNode.selectedFocusLens === "editing") {
+        editor.setEditable(true)
+      } else if (documentAttributesNode.selectedFocusLens === "focus") {
+        editor.setEditable(true)
         // Highlight the focused node
         const driverObj = driver({
           animate: true,
@@ -267,6 +270,8 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
             element: element,
           });
         });
+      } else if (documentAttributesNode.selectedFocusLens === "read-only") {
+        editor.setEditable(false)
       }
     },
     onUpdate: ({ editor }) => {

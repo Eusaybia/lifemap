@@ -56,12 +56,11 @@ declare module '@tiptap/core' {
   }
 }
 
-interface DocumentAttributeNodeType extends NodeType {
-  attrs: {
-    selectedFocusLens: any;
-    selectedEventLens: any;
-    // Add other attributes as needed
-  };
+// Define the structure of the `docAttrs` node's attributes
+export interface DocumentAttributes {
+  selectedFocusLens: 'editing' | 'focus' | 'read-only';
+  selectedEventLens: string;
+  // Add other attributes as needed
 }
 
 export const DocumentAttributeExtension = Node.create<DocumentAttributesOptions>({
@@ -77,9 +76,10 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributesOptions>
   addAttributes() {
     return {
       selectedFocusLens: {
-        default: "editing",
-        parseHTML: element => element.getAttribute('data-selected-focus-lens') || null,
-        renderHTML: attributes => ({
+        default: 'editing' as const,
+        parseHTML: (element: HTMLElement) =>
+          (element.getAttribute('data-selected-focus-lens') as DocumentAttributes['selectedFocusLens']) || 'editing',
+        renderHTML: (attributes: DocumentAttributes) => ({
           'data-selected-focus-lens': attributes.selectedFocusLens,
         }),
       },
