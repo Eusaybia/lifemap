@@ -246,6 +246,7 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
 export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     const [selectedFocusLens, setSelectedFocusLens] = React.useState<string>("edit")
+    const [selectedEventType, setSelectedEventType] = React.useState<string>("wedding")
 
     let documentMenuStyle: CSSProperties = flowMenuStyle()
     documentMenuStyle.width = "80%"
@@ -263,6 +264,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
         if (documentAttributes.selectedFocusLens) {
             setSelectedFocusLens(documentAttributes.selectedFocusLens)
         }
+        if (documentAttributes.selectedEventType) {
+            setSelectedEventType(documentAttributes.selectedEventType)
+        }
 
     }, [])
 
@@ -273,6 +277,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
+                        // TODO: Fix this type error, even though it works perfectly fine
                         props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'editing' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
@@ -307,6 +312,45 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
             </FlowSwitch>
+            <FlowSwitch value={selectedEventType} isLens>
+                <Option
+                    value={"wedding"}
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            💍 Wedding
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"corporate"}
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            💼 Corporate
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"birthday"}
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🎂 Birthday
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+
         </motion.div>
     )
 }
