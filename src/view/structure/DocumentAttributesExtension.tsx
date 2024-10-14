@@ -30,10 +30,7 @@ import { Plugin, Transaction } from 'prosemirror-state';
 // It can be updated using the props.updateAttributes("key", "value") method.
 // It's a bit hacky, compared to some of the purer methods above, but this should be the most reliable and simplest to understand.
 // https://tiptap.dev/docs/editor/api/commands/nodes-and-marks/update-attributes
-
-export interface DocumentAttributesOptions {
-  HTMLAttributes: Record<string, any>,
-}
+// This is the approach that was chosen and is implemented in this file.
 
 // Extend TipTap's Commands interface
 declare module '@tiptap/core' {
@@ -58,12 +55,36 @@ declare module '@tiptap/core' {
 
 // Define the structure of the `docAttrs` node's attributes
 export interface DocumentAttributes {
+  // These control whether the document is editable, viewed through a focus
+  // view that blacks out any elements that are not currently selected, or
+  // read-only
   selectedFocusLens: 'editing' | 'focus' | 'read-only';
+  // This controls which event type is selected. This will affect non-event types
+  // based on irrelevantEventNodesDisplayLens 
   selectedEventLens: string;
-  // Add other attributes as needed
+  // This controls whether irrelevant event nodes have dimmed opacity, are hidden completely, or shown normally
+  irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
+  // This controls whether unimportant nodes have dimmed opacity, are hidden completely, or shown normally
+  unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
 }
 
-export const DocumentAttributeExtension = Node.create<DocumentAttributesOptions>({
+export interface DocumentAttributesDefaults {
+  selectedFocusLens?: {
+    default: DocumentAttributes['selectedFocusLens']
+  };
+  selectedEventLens?: {
+    default: DocumentAttributes['selectedEventLens']
+  };
+  irrelevantEventNodesDisplayLens?: {
+    default: DocumentAttributes['irrelevantEventNodesDisplayLens']
+  };
+  unimportantNodesDisplayLens?: {
+    default: DocumentAttributes['unimportantNodesDisplayLens']
+  };
+  // ... any other existing options
+}
+
+export const DocumentAttributeExtension = Node.create<DocumentAttributes & DocumentAttributesDefaults>({
   name: 'docAttrs',
   group: 'block',
 
@@ -78,16 +99,33 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributesOptions>
       selectedFocusLens: {
         default: 'editing' as const,
         parseHTML: (element: HTMLElement) =>
-          (element.getAttribute('data-selected-focus-lens') as DocumentAttributes['selectedFocusLens']) || 'editing',
+          element.getAttribute('data-selected-focus-lens') || this.options.selectedFocusLens.default,
         renderHTML: (attributes: DocumentAttributes) => ({
           'data-selected-focus-lens': attributes.selectedFocusLens,
         }),
       },
       selectedEventLens: {
-        default: "wedding",
-        parseHTML: element => element.getAttribute('data-selected-event-lens') || null,
-        renderHTML: attributes => ({
+        default: "wedding" as const,
+        parseHTML: (element: HTMLElement) => 
+          element.getAttribute('data-selected-event-lens') || this.options.selectedEventLens.default,
+        renderHTML: (attributes: DocumentAttributes) => ({
           'data-selected-event-lens': attributes.selectedEventLens,
+        }),
+      },
+      irrelevantEventNodesDisplayLens: {
+        default: "dim" as const,
+        parseHTML: (element: HTMLElement) => 
+          element.getAttribute('data-irrelevant-event-nodes-display-lens') || this.options.irrelevantEventNodesDisplayLens.default,
+        renderHTML: (attributes: DocumentAttributes) => ({
+          'data-irrelevant-event-nodes-display-lens': attributes.irrelevantEventNodesDisplayLens,
+        }),
+      },
+      unimportantNodesDisplayLens: {
+        default: "hide" as const,
+        parseHTML: (element: HTMLElement) => 
+          element.getAttribute('data-unimportant-nodes-display-lens') || this.options.unimportantNodesDisplayLens.default,
+        renderHTML: (attributes: DocumentAttributes) => ({
+          'data-unimportant-nodes-display-lens': attributes.unimportantNodesDisplayLens,
         }),
       },
     }

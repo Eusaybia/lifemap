@@ -245,14 +245,15 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
 
 export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
-    const [selectedFocusLens, setSelectedFocusLens] = React.useState<string>("edit")
-    const [selectedEventType, setSelectedEventType] = React.useState<string>("wedding")
+
+    const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("editing")
+    const [selectedEventType, setSelectedEventType] = React.useState<DocumentAttributes['selectedEventLens']>("wedding")
+
+    const [irrelevantEventNodesDisplayLens, setIrrelevantEventNodesDisplayLens] = React.useState<DocumentAttributes['irrelevantEventNodesDisplayLens']>("dim")
+    const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
 
     let documentMenuStyle: CSSProperties = flowMenuStyle()
     documentMenuStyle.width = "80%"
-
-    // TODO: [Current Focus] Document attributes are not populated, I believe it's to do with the new DocumentExtension not adding attributes to existing nodes
-    // updateDocumentAttributes(props.editor, defaultDocumentAttributeValues)
 
     React.useEffect(() => {
 
@@ -261,11 +262,18 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
         const documentAttributes = document.attrs
         console.log("documentAttributes", documentAttributes)
 
+        // On document load, initialise state variables from document attributes
         if (documentAttributes.selectedFocusLens) {
             setSelectedFocusLens(documentAttributes.selectedFocusLens)
         }
         if (documentAttributes.selectedEventType) {
             setSelectedEventType(documentAttributes.selectedEventType)
+        }
+        if (documentAttributes.irrelevantEventNodesDisplayLens) {
+            setIrrelevantEventNodesDisplayLens(documentAttributes.irrelevantEventNodesDisplayLens)
+        }
+        if (documentAttributes.unimportantNodesDisplayLens) {
+            setUnimportantNodesDisplayLens(documentAttributes.unimportantNodesDisplayLens)
         }
 
     }, [])
@@ -346,6 +354,86 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             🎂 Birthday
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+
+            {/* New FlowSwitch for irrelevant event nodes */}
+            <FlowSwitch value={irrelevantEventNodesDisplayLens} isLens>
+                <Option
+                    value="show"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'show' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            👁️ Show all irrelevant event nodes
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value="hide"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'hide' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🙈 Hide all irrelevant event nodes
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value="dim"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'dim' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🕶️ Dim all irrelevant event nodes
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+
+            {/* New FlowSwitch for unimportant nodes */}
+            <FlowSwitch value={unimportantNodesDisplayLens} isLens>
+                <Option
+                    value="show"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'show' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            👁️ Show unimportant nodes
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value="hide"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'hide' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🙈 Hide unimportant nodes
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value="dim"
+                    onClick={() => {
+                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'dim' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🔅️ Dim all unimportant nodes
                         </span>
                     </motion.div>
                 </Option>
