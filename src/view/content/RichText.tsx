@@ -246,14 +246,14 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     // whenever the user moves their cursor to a new location.
     onSelectionUpdate: ({ editor }) => {
       // Retrieve document attributes using the custom command
-      // @ts-ignore - this actually does work, not sure why it's not recognised
-      const documentAttributesNode = editor.commands.getDocumentAttributes()
-      console.log("documentAttributesNode", documentAttributesNode)
+      // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
+      const documentAttributes = editor.commands.getDocumentAttributes()
+      console.log("documentAttributes", documentAttributes)
 
       // Attributes for the Document root node are defined in DocumentAttributesExtension.tsx
-      if (documentAttributesNode.selectedFocusLens === "editing") {
+      if (documentAttributes.selectedFocusLens === "editing") {
         editor.setEditable(true)
-      } else if (documentAttributesNode.selectedFocusLens === "focus") {
+      } else if (documentAttributes.selectedFocusLens === "focus") {
         editor.setEditable(true)
         // Highlight the focused node
         const driverObj = driver({
@@ -270,7 +270,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
             element: element,
           });
         });
-      } else if (documentAttributesNode.selectedFocusLens === "read-only") {
+      } else if (documentAttributes.selectedFocusLens === "read-only") {
         editor.setEditable(false)
       }
     },
