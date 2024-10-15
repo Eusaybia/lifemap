@@ -18,7 +18,7 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNode, getSelectedNodeType, logCurrentLens, setDocAttribute } from "../../utils/utils";
+import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 
 export const flowMenuStyle = (): React.CSSProperties => {

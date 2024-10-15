@@ -7,6 +7,7 @@ import './styles.scss';
 import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
+import { DocumentAttributes } from "./DocumentAttributesExtension";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -310,7 +311,50 @@ export const GroupExtension = TipTapNode.create({
         return null;
       };
 
-      console.log("lens: ", props.node.attrs.lens)
+      // Determine whether this node is irrelevant
+      const determineIrrelevance = (groupNode: ProseMirrorNode, editor: Editor) => {
+        let isIrrelevant = false;
+
+        // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
+        const documentAttributes = editor.commands.getDocumentAttributes()
+        const selectedEventType = documentAttributes.selectedEventLens;
+        console.log(selectedEventType, "selectedEventType")
+
+        type EventTypes = DocumentAttributes['selectedEventLens'];
+        const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
+        // Remove the selected event type from the list
+        const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType)
+        console.log(irrelevantEventTypes, "irrelevantEventTypes")
+        
+        groupNode.forEach((childNode) => {
+          // This is needed because the actual attrs.label is a string that looks like this: "💍 Wedding"
+          // But we need just the event type, which is "wedding"
+          if (childNode.type.name === 'paragraph') {
+            childNode.forEach((grandChildNode) => {
+              // We have to go down to the level of grandchildren because the structure of a Group node is like this:
+              // - Group
+              //   - Paragraph
+              //     - Mention
+              //       - attrs
+              //        - label
+              //     - Text
+              //     - Text
+              if (grandChildNode.type.name === 'mention') {
+                // TODO: Technically this label detection could be more robust, but this is hard coded for now
+                // Should handle mentions with just a string rather than an emoji + string
+                const mentionEventType = (grandChildNode.attrs.label as string).split(' ')[1].toLowerCase();
+                console.log(mentionEventType, "mentionEventType")
+                if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
+                  isIrrelevant = true;
+                  console.log("group node", node.content.toJSON())
+                }
+              }
+            })
+          }
+        });
+        console.log(isIrrelevant, "isIrrelevant")
+        return isIrrelevant;
+      };
 
       return (
         <NodeViewWrapper>
@@ -337,6 +381,7 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
+              isIrrelevant={determineIrrelevance(props.node, props.editor)}
             >
               {(() => {
                 switch (props.node.attrs.lens) {

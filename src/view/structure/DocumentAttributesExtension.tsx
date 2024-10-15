@@ -61,7 +61,7 @@ export interface DocumentAttributes {
   selectedFocusLens: 'editing' | 'focus' | 'read-only';
   // This controls which event type is selected. This will affect non-event types
   // based on irrelevantEventNodesDisplayLens 
-  selectedEventLens: string;
+  selectedEventLens: "wedding" | "birthday" | "corporate";
   // This controls whether irrelevant event nodes have dimmed opacity, are hidden completely, or shown normally
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   // This controls whether unimportant nodes have dimmed opacity, are hidden completely, or shown normally
