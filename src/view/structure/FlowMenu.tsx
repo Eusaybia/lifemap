@@ -458,15 +458,15 @@ const GroupLoupe = (props: { editor: Editor }) => {
             {/* Lenses */}
             <FlowSwitch value={backgroundColor} isLens>
                 <Option value={"identity"} onClick={() => {
-                    props.editor.commands.updateAttributes("group", { lens: "identity" })
+                    props.editor.commands.setLens({ lens: "identity" })
                 }}>
                     <motion.div>
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"importantNodes"} onClick={() => {
+                <Option value={"hideUnimportantNodes"} onClick={() => {
                     console.log("Updating lens to important nodes")
-                    props.editor.commands.updateAttributes("group", { lens: "importantNodes" })
+                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
                     logCurrentLens(props.editor)
                 }}>
                     <motion.div>
