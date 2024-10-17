@@ -5,7 +5,7 @@ import React from 'react'
 import { offWhite, purple } from '../Theme';
 import { Grip } from '../content/Grip';
 
-export type GroupLenses = "identity" | "important";
+export type GroupLenses = "identity" | "hideUnimportantNodes";
 
 export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string, isIrrelevant: boolean }) => {
 

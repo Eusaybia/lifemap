@@ -2,7 +2,7 @@ import React from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
 import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
-import { Group } from "./Group";
+import { Group, GroupLenses } from "./Group";
 import './styles.scss';
 import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
@@ -14,7 +14,10 @@ declare module '@tiptap/core' {
     group: {
       setBackgroundColor: (options: {
         backgroundColor: string
-      }) => ReturnType
+      }) => ReturnType;
+      setLens: (options: {
+        lens: string;
+      }) => ReturnType;
     }
   }
 }
@@ -76,12 +79,23 @@ export const GroupExtension = TipTapNode.create({
       setBackgroundColor: (attributes: { backgroundColor: string }) => ({ editor, state, dispatch }) => {
 
         const { selection } = state;
-        const groupNode = selection && selection.$from.depth > 0 && selection.$from.node(selection.$from.depth).type.name === this.name;
 
         const nodeType = getSelectedNodeType(editor)
 
         if (nodeType === "group" && dispatch) {
           dispatch(state.tr.setNodeAttribute(selection.$from.pos, "backgroundColor", attributes.backgroundColor));
+          return true; // Indicate that the command ran successfully
+        }
+        return false
+      },
+      setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
+
+        const { selection } = state;
+
+        const nodeType = getSelectedNodeType(editor)
+
+        if (nodeType === "group" && dispatch) {
+          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
           return true; // Indicate that the command ran successfully
         }
         return false
@@ -103,7 +117,7 @@ export const GroupExtension = TipTapNode.create({
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
       backgroundColor: { default: offWhite },
-      lens: { default: "identity" },
+      lens: { default: "identity" as GroupLenses },
     }
   },
   renderHTML({ node, HTMLAttributes }) {
@@ -384,10 +398,11 @@ export const GroupExtension = TipTapNode.create({
               isIrrelevant={determineIrrelevance(props.node, props.editor)}
             >
               {(() => {
+                console.log("group lens", props.node.attrs.lens)
                 switch (props.node.attrs.lens) {
                   case "identity":
                     return <NodeViewContent node={props.node} />;
-                  case "importantNodes":
+                  case "hideUnimportantNodes":
                     return <div>
                       Just important nodes
                       </div>
