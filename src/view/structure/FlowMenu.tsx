@@ -913,6 +913,39 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
     )
 }
 
+// Add new PortalLoupe component
+const PortalLoupe = (props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Portal
+            </Tag>
+            {/* Lenses */}
+            <FlowSwitch value={lens} isLens>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"hideUnimportantNodes"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
+                    logCurrentLens(props.editor)
+                }}>
+                    <motion.div>
+                        Only show important nodes
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+        </div>
+    )
+}
+
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
 
@@ -967,7 +1000,8 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
-                        'invalid': <>Uh oh, seems like an unsupported node type was identified and the developer needs to support this.</>
+                        'portal': <PortalLoupe editor={props.editor} />,
+                        'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</> 
                     }[getSelectedNodeType(props.editor)]
                 }
             </motion.div>

@@ -138,11 +138,11 @@ export const useScrollEnd = (callback: () => void, delay: number ) => {
 
 export const logCurrentLens = (editor: Editor) => {
   const selectedNode = getSelectedNode(editor);
-  if (selectedNode && selectedNode.type.name === "group") {
+  if (selectedNode) {
       const currentLens = selectedNode.attrs.lens;
       console.log("Current Lens:", currentLens);
   } else {
-      console.log("Current Lens: No group node is selected.");
+      console.log("Current Lens: No node is selected.");
   }
 }
 
@@ -167,6 +167,8 @@ export const getSelectedNodeType = (editor: Editor) => {
         switch (selection.node.type.name) {
             case "group":
                 return "group"
+            case "portal":
+                return "portal"
             default:
                 console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
                 return "invalid"

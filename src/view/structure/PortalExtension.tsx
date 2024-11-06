@@ -19,9 +19,24 @@ import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
+import { GroupLenses } from "./Group";
+import { getSelectedNodeType } from "../../utils/utils";
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    portal: {
+      setLens: (options: {
+        lens: string;
+      }) => ReturnType;
+    }
+  }
+}
 
 const REGEX_BLOCK_TILDE = /(^~(.+?)~)/;
 const sharedBorderRadius = 15;
+
+// Currently they are the same but in future they will diverge
+type PortalLenses = GroupLenses
 
 /**
  * Get JSON representation of a Quanta referenced by ID
@@ -29,7 +44,7 @@ const sharedBorderRadius = 15;
  * @param doc - the ProseMirrorNode
  * @returns - JSON content (if quanta was found)
  */
-const getQuantaJSON = (
+const getReferencedQuantaJSON = (
   quantaId: string,
   doc: ProseMirrorNode
 ): JSONContent | null => {
@@ -69,18 +84,19 @@ const PortalView = (props: NodeViewProps) => {
   const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newQuantaId = event.target.value;
     setReferencedQuantaId(newQuantaId)
-    updateContent(newQuantaId);
+    updateTranscludedContent(newQuantaId);
 
     setTimeout(() => {
         props.updateAttributes({ referencedQuantaId: event.target.value });
     }, 2000)
   };
 
-  const updateContent = useCallback((referencedQuantaId: string) => {
-    let quantaJSON = getQuantaJSON(referencedQuantaId, props.editor.state.doc);
+  const updateTranscludedContent = useCallback((referencedQuantaId: string) => {
+    let referencedQuantaJSON = getReferencedQuantaJSON(referencedQuantaId, props.editor.state.doc);
 
+    // Handle invalid referenced quanta id input
     if (!referencedQuantaId) {
-      quantaJSON = {
+      referencedQuantaJSON = {
         type: "paragraph",
         content: [
           {
@@ -89,9 +105,9 @@ const PortalView = (props: NodeViewProps) => {
           },
         ],
       };
-    } else if (quantaJSON === null) {
+    } else if (referencedQuantaJSON === null) {
       // Couldn't find a quanta with that id, possibly invalid
-        quantaJSON = {
+        referencedQuantaJSON = {
           type: "paragraph",
           content: [
             {
@@ -104,10 +120,14 @@ const PortalView = (props: NodeViewProps) => {
 
     const pos = props.getPos();
 
-    if (!pos || quantaJSON.text || quantaJSON.type === "portal") return;
+    // Currently shouldn't support references to text, nor references to other portals
+    if (!pos || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
 
+    // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
     const initialSelection = props.editor.state.selection;
 
+    // Replace the current portal (containing old referenced quanta content) with a new portal 
+    // containing the updated referenced quanta content
     let chain = props.editor
       .chain()
       .setMeta("fromPortal", true)
@@ -119,9 +139,12 @@ const PortalView = (props: NodeViewProps) => {
           id: `${referencedQuantaId}`,
           referencedQuantaId: referencedQuantaId,
         },
-        content: [quantaJSON],
+        content: [referencedQuantaJSON],
       });
-
+    // After updating the portal content, restore the original selection:
+    // - If a node was selected, reselect that node at its position
+    // - If text was selected, restore the text selection range from start to end position
+    // This preserves the user's selection state after the portal update
     if (isNodeSelection(initialSelection)) {
       chain = chain.setNodeSelection(initialSelection.$from.pos);
     } else if (isTextSelection(initialSelection)) {
@@ -132,7 +155,7 @@ const PortalView = (props: NodeViewProps) => {
     }
 
     chain.run();
-  }, []);
+  }, [props.editor, props.getPos]);
 
   const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
     if (
@@ -141,7 +164,7 @@ const PortalView = (props: NodeViewProps) => {
     )
       return;
 
-    updateContent(referencedQuantaId);
+    updateTranscludedContent(referencedQuantaId);
   }
 
   // Update the transclusion if the referencedQuantaId has changed or if the node has changed
@@ -152,7 +175,12 @@ const PortalView = (props: NodeViewProps) => {
     return () => {
       props.editor.off("update", handleEditorUpdate);
     };
-  }, [props.editor, referencedQuantaId]);
+  }, [props.editor, referencedQuantaId, handleEditorUpdate]);
+
+  // Add effect to monitor lens changes
+  useEffect(() => {
+    console.log("Portal lens changed:", props.node.attrs.lens);
+  }, [props.node.attrs.lens]);
 
   return (
     <NodeViewWrapper>
@@ -192,7 +220,16 @@ const PortalView = (props: NodeViewProps) => {
         contentEditable={false}
       >
         <Grip />
-        <NodeViewContent />
+        {(() => {
+          switch (props.node.attrs.lens) {
+            case "identity":
+              return <NodeViewContent node={props.node} />;
+            case "hideUnimportantNodes":
+              return <div>Just important nodes</div>;
+            default:
+              return <NodeViewContent node={props.node} />;
+          }
+        })()}
       </div>
     </NodeViewWrapper>
   );
@@ -213,6 +250,9 @@ const PortalExtension = Node.create({
         parseHTML: (element) => {
           return element.getAttribute("data-referenced-quanta-id");
         },
+      },
+      lens: {
+        default: "identity" as PortalLenses,
       },
     };
   },
@@ -248,7 +288,17 @@ const PortalExtension = Node.create({
     ];
   },
   addNodeView() {
-    return ReactNodeViewRenderer(PortalView);
+    return ReactNodeViewRenderer(PortalView, {
+      update: (props) => {
+        console.log("Portal node view update check:", {
+          oldLens: props.oldNode.attrs.lens,
+          newLens: props.newNode.attrs.lens,
+          shouldUpdate: props.newNode.attrs.lens !== props.oldNode.attrs.lens
+        });
+        
+        return props.newNode.attrs.lens !== props.oldNode.attrs.lens;
+      }
+    });
   },
   addProseMirrorPlugins() {
     return [
@@ -319,7 +369,67 @@ const PortalExtension = Node.create({
           return true;
         },
       }),
+      new Plugin({
+        key: new PluginKey('portalLensMonitor'),
+        appendTransaction: (transactions, oldState, newState) => {
+          let modified = false;
+          
+          transactions.forEach(tr => {
+            tr.steps.forEach(step => {
+              if (step.toJSON().stepType === 'setNodeAttribute') {
+                console.log("Node attribute change detected:", {
+                  step: step.toJSON(),
+                  oldDoc: oldState.doc.toJSON(),
+                  newDoc: newState.doc.toJSON()
+                });
+                modified = true;
+              }
+            });
+          });
+          
+          if (modified) {
+            console.log("Portal state update:", {
+              oldState: oldState.toJSON(),
+              newState: newState.toJSON()
+            });
+          }
+          
+          return null;
+        }
+      })
     ];
+  },
+  addCommands() {
+    return {
+      setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
+        const { selection } = state;
+        const nodeType = getSelectedNodeType(editor);
+        
+        console.log("Setting lens for portal", {
+          nodeType,
+          newLens: attributes.lens,
+          currentSelection: selection,
+          currentLens: state.doc.nodeAt(selection.$from.pos)?.attrs.lens
+        });
+
+        if (nodeType === "portal" && dispatch) {
+          console.log("Updating portal lens attribute");
+          const tr = state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens);
+          dispatch(tr);
+          
+          // Log the new lens value after the update
+          console.log("Lens after update:", {
+            newLens: state.doc.nodeAt(selection.$from.pos)?.attrs.lens,
+            transaction: { docChanged: tr.docChanged, steps: tr.steps.length }
+          });
+          
+          return true;
+        }
+        
+        console.log("Failed to set lens - either wrong node type or no dispatch");
+        return false;
+      },
+    };
   },
 });
 
