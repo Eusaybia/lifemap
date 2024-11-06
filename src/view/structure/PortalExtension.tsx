@@ -126,10 +126,11 @@ const PortalView = (props: NodeViewProps) => {
     // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
     const initialSelection = props.editor.state.selection;
 
-    // **Retrieve the latest 'lens' value from the updated editor state**
-    const updatedLens = props.editor.state.doc.nodeAt(pos)?.attrs.lens || "identity";
+    // Preserve existing 'lens' attribute
+    const currentLens = props.node.attrs.lens;
 
-    // Replace the current portal with a new portal containing the updated referenced quanta content and preserve 'lens'
+    // Replace the current portal (containing old referenced quanta content) with a new portal 
+    // containing the updated referenced quanta content
     let chain = props.editor
       .chain()
       .setMeta("fromPortal", true)
@@ -140,7 +141,7 @@ const PortalView = (props: NodeViewProps) => {
         attrs: {
           id: `${referencedQuantaId}`,
           referencedQuantaId: referencedQuantaId,
-          lens: updatedLens, // Use the updated lens value
+          lens: currentLens, // Preserve the current lens
         },
         content: [referencedQuantaJSON],
       });
