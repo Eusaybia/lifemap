@@ -467,7 +467,6 @@ const GroupLoupe = (props: { editor: Editor }) => {
                 <Option value={"hideUnimportantNodes"} onClick={() => {
                     console.log("Updating lens to important nodes")
                     props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
-                    logCurrentLens(props.editor)
                 }}>
                     <motion.div>
                         Only show important nodes

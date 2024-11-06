@@ -126,8 +126,10 @@ const PortalView = (props: NodeViewProps) => {
     // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
     const initialSelection = props.editor.state.selection;
 
-    // Replace the current portal (containing old referenced quanta content) with a new portal 
-    // containing the updated referenced quanta content
+    // **Retrieve the latest 'lens' value from the updated editor state**
+    const updatedLens = props.editor.state.doc.nodeAt(pos)?.attrs.lens || "identity";
+
+    // Replace the current portal with a new portal containing the updated referenced quanta content and preserve 'lens'
     let chain = props.editor
       .chain()
       .setMeta("fromPortal", true)
@@ -138,9 +140,11 @@ const PortalView = (props: NodeViewProps) => {
         attrs: {
           id: `${referencedQuantaId}`,
           referencedQuantaId: referencedQuantaId,
+          lens: updatedLens, // Use the updated lens value
         },
         content: [referencedQuantaJSON],
       });
+
     // After updating the portal content, restore the original selection:
     // - If a node was selected, reselect that node at its position
     // - If text was selected, restore the text selection range from start to end position
@@ -221,7 +225,8 @@ const PortalView = (props: NodeViewProps) => {
       >
         <Grip />
         {(() => {
-          switch (props.node.attrs.lens) {
+          // Need to switch all other instances of using "as" to "satisfies"
+          switch (props.node.attrs.lens satisfies PortalLenses) {
             case "identity":
               return <NodeViewContent node={props.node} />;
             case "hideUnimportantNodes":
@@ -252,7 +257,7 @@ const PortalExtension = Node.create({
         },
       },
       lens: {
-        default: "identity" as PortalLenses,
+        default: "identity" satisfies PortalLenses,
       },
     };
   },
@@ -419,9 +424,12 @@ const PortalExtension = Node.create({
           
           // Log the new lens value after the update
           console.log("Lens after update:", {
-            newLens: state.doc.nodeAt(selection.$from.pos)?.attrs.lens,
+            newLens: tr.doc.nodeAt(selection.$from.pos)?.attrs.lens,
             transaction: { docChanged: tr.docChanged, steps: tr.steps.length }
           });
+
+          // Call logCurrentLens here to ensure it uses the updated state
+          logCurrentLens(editor);
           
           return true;
         }
