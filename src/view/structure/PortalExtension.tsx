@@ -181,8 +181,8 @@ const PortalExtension = Node.create({
           // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
           const initialSelection = props.editor.state.selection;
 
-          // Preserve existing 'lens' attribute
-          const currentLens = props.node.attrs.lens;
+          // Preserve existing attributes
+          const currentAttrs = props.node.attrs;
 
           // Replace the current portal (containing old referenced quanta content) with a new portal 
           // containing the updated referenced quanta content
@@ -196,7 +196,7 @@ const PortalExtension = Node.create({
               attrs: {
                 id: `${referencedQuantaId}`,
                 referencedQuantaId: referencedQuantaId,
-                lens: currentLens, // Preserve the current lens
+                ...currentAttrs, // Preserve existing attributes
               },
               content: [referencedQuantaJSON],
             });
@@ -334,27 +334,48 @@ const PortalExtension = Node.create({
       new Plugin({
         key: new PluginKey('portalLensMonitor'),
         appendTransaction: (transactions, oldState, newState) => {
-          let modified = false;
+          // Get all portal nodes from old and new states
+          const oldPortals = new Map();
+          const newPortals = new Map();
           
-          transactions.forEach(tr => {
-            tr.steps.forEach(step => {
-              if (step.toJSON().stepType === 'setNodeAttribute') {
-                console.log("Node attribute change detected:", {
-                  step: step.toJSON(),
-                  oldDoc: oldState.doc.toJSON(),
-                  newDoc: newState.doc.toJSON()
-                });
-                modified = true;
-              }
-            });
+          // Collect old portal nodes
+          oldState.doc.descendants((node, pos) => {
+            if (node.type.name === 'portal') {
+              oldPortals.set(pos, node.toJSON());
+            }
           });
           
-          if (modified) {
-            console.log("Portal state update:", {
-              oldState: oldState.toJSON(),
-              newState: newState.toJSON()
-            });
-          }
+          // Collect new portal nodes
+          newState.doc.descendants((node, pos) => {
+            if (node.type.name === 'portal') {
+              newPortals.set(pos, node.toJSON());
+            }
+          });
+          
+          // Compare for any changes
+          let modified = false;
+          
+          // Check for changes in existing portals
+          oldPortals.forEach((oldPortal, pos) => {
+            const newPortal = newPortals.get(pos);
+            if (!newPortal || JSON.stringify(oldPortal) !== JSON.stringify(newPortal)) {
+              console.log("Portal changed or removed at position", pos, {
+                old: oldPortal,
+                new: newPortal || 'removed'
+              });
+              modified = true;
+            }
+          });
+          
+          // Check for new portals
+          newPortals.forEach((newPortal, pos) => {
+            if (!oldPortals.has(pos)) {
+              console.log("New portal added at position", pos, {
+                portal: newPortal
+              });
+              modified = true;
+            }
+          });
           
           return null;
         }
