@@ -70,177 +70,6 @@ const getReferencedQuantaJSON = (
 
 const inputFocused = { current: false };
 
-const PortalView = (props: NodeViewProps) => {
-  // On node instantiation, useState will draw from the node attributes
-  // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
-  const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
-
-  useEffect(() => {
-    const jsonContent = props.node.toJSON();
-    console.log("Portal Node JSONContent:", jsonContent);
-  }, [props.node]);
-
-  // If the input is updated, this handler is called
-  const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newQuantaId = event.target.value;
-    setReferencedQuantaId(newQuantaId)
-    updateTranscludedContent(newQuantaId);
-
-    setTimeout(() => {
-        props.updateAttributes({ referencedQuantaId: event.target.value });
-    }, 2000)
-  };
-
-  const updateTranscludedContent = useCallback((referencedQuantaId: string) => {
-    let referencedQuantaJSON = getReferencedQuantaJSON(referencedQuantaId, props.editor.state.doc);
-
-    // Handle invalid referenced quanta id input
-    if (!referencedQuantaId) {
-      referencedQuantaJSON = {
-        type: "paragraph",
-        content: [
-          {
-            type: "text",
-            text: "You need to enter a referenced quanta id, this field is currently empty.",
-          },
-        ],
-      };
-    } else if (referencedQuantaJSON === null) {
-      // Couldn't find a quanta with that id, possibly invalid
-        referencedQuantaJSON = {
-          type: "paragraph",
-          content: [
-            {
-              type: "text",
-              text: "Couldn't find referenced quanta. Are you sure the id you're using is a valid one?",
-            },
-          ],
-        };
-    } 
-
-    const pos = props.getPos();
-
-    // Currently shouldn't support references to text, nor references to other portals
-    if (!pos || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
-
-    // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
-    const initialSelection = props.editor.state.selection;
-
-    // Preserve existing 'lens' attribute
-    const currentLens = props.node.attrs.lens;
-
-    // Replace the current portal (containing old referenced quanta content) with a new portal 
-    // containing the updated referenced quanta content
-    let chain = props.editor
-      .chain()
-      .setMeta("fromPortal", true)
-      .setNodeSelection(pos)
-      .deleteSelection()
-      .insertContentAt(pos, {
-        type: "portal",
-        attrs: {
-          id: `${referencedQuantaId}`,
-          referencedQuantaId: referencedQuantaId,
-          lens: currentLens, // Preserve the current lens
-        },
-        content: [referencedQuantaJSON],
-      });
-
-    // After updating the portal content, restore the original selection:
-    // - If a node was selected, reselect that node at its position
-    // - If text was selected, restore the text selection range from start to end position
-    // This preserves the user's selection state after the portal update
-    if (isNodeSelection(initialSelection)) {
-      chain = chain.setNodeSelection(initialSelection.$from.pos);
-    } else if (isTextSelection(initialSelection)) {
-      chain = chain.setTextSelection({
-        from: initialSelection.$from.pos,
-        to: initialSelection.$to.pos,
-      });
-    }
-
-    chain.run();
-  }, [props.editor, props.getPos]);
-
-  const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
-    if (
-      transaction.getMeta("fromPortal") ||
-      !transaction.docChanged
-    )
-      return;
-
-    updateTranscludedContent(referencedQuantaId);
-  }
-
-  // Update the transclusion if the referencedQuantaId has changed or if the node has changed
-  useEffect(() => {
-    props.editor.on("update", handleEditorUpdate);
-  
-    // Clean up the event listener when the component unmounts
-    return () => {
-      props.editor.off("update", handleEditorUpdate);
-    };
-  }, [props.editor, referencedQuantaId, handleEditorUpdate]);
-
-  // Add effect to monitor lens changes
-  useEffect(() => {
-    console.log("Portal lens changed:", props.node.attrs.lens);
-  }, [props.node.attrs.lens]);
-
-  return (
-    <NodeViewWrapper>
-      <div contentEditable={false}>
-        <input
-          type="text"
-          value={referencedQuantaId}
-          onFocus={() => {
-            inputFocused.current = true;
-          }}
-          onBlur={() => {
-            inputFocused.current = false;
-          }}
-          onChange={handleReferencedQuantaIdChange}
-          style={{
-            border: "1.5px solid #34343430",
-            borderRadius: sharedBorderRadius,
-            outline: "none",
-            backgroundColor: "transparent",
-            width: `80px`,
-            position: "absolute",
-            zIndex: 1,
-          }}
-        />
-      </div>
-      <div
-        style={{
-          borderRadius: sharedBorderRadius,
-          background: `#e0e0e0`,
-          position: "relative",
-          boxShadow: `inset 10px 10px 10px #bebebe,
-              inset -10px -10px 10px #FFFFFF99`,
-          minHeight: 20,
-          padding: `11px 15px 11px 15px`,
-          marginBottom: 10,
-        }}
-        contentEditable={false}
-      >
-        <Grip />
-        {(() => {
-          // Need to switch all other instances of using "as" to "satisfies"
-          switch (props.node.attrs.lens satisfies PortalLenses) {
-            case "identity":
-              return <NodeViewContent node={props.node} />;
-            case "hideUnimportantNodes":
-              return <div>Just important nodes</div>;
-            default:
-              return <NodeViewContent node={props.node} />;
-          }
-        })()}
-      </div>
-    </NodeViewWrapper>
-  );
-};
-
 const PortalExtension = Node.create({
   name: "portal",
   group: "block",
@@ -294,17 +123,178 @@ const PortalExtension = Node.create({
     ];
   },
   addNodeView() {
-    return ReactNodeViewRenderer(PortalView, {
-      update: (props) => {
-        console.log("Portal node view update check:", {
-          oldLens: props.oldNode.attrs.lens,
-          newLens: props.newNode.attrs.lens,
-          shouldUpdate: props.newNode.attrs.lens !== props.oldNode.attrs.lens
-        });
+    return ReactNodeViewRenderer(
+      (props: NodeViewProps) => {
+        // On node instantiation, useState will draw from the node attributes
+        // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
+        const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
+
+        useEffect(() => {
+          const jsonContent = props.node.toJSON();
+          console.log("Portal Node JSONContent:", jsonContent);
+        }, [props.node]);
+
+        // If the input is updated, this handler is called
+        const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+          const newQuantaId = event.target.value;
+          setReferencedQuantaId(newQuantaId);
+          updateTranscludedContent(newQuantaId);
+
+          setTimeout(() => {
+            props.updateAttributes({ referencedQuantaId: event.target.value });
+          }, 2000);
+        };
+
+        const updateTranscludedContent = useCallback((referencedQuantaId: string) => {
+          let referencedQuantaJSON = getReferencedQuantaJSON(referencedQuantaId, props.editor.state.doc);
+
+          // Handle invalid referenced quanta id input
+          if (!referencedQuantaId) {
+            referencedQuantaJSON = {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "You need to enter a referenced quanta id, this field is currently empty.",
+                },
+              ],
+            };
+          } else if (referencedQuantaJSON === null) {
+            // Couldn't find a quanta with that id, possibly invalid
+            referencedQuantaJSON = {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Couldn't find referenced quanta. Are you sure the id you're using is a valid one?",
+                },
+              ],
+            };
+          }
+
+          const pos = props.getPos();
+
+          // Currently shouldn't support references to text, nor references to other portals
+          if (!pos || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
+
+          // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
+          const initialSelection = props.editor.state.selection;
+
+          // Preserve existing 'lens' attribute
+          const currentLens = props.node.attrs.lens;
+
+          // Replace the current portal (containing old referenced quanta content) with a new portal 
+          // containing the updated referenced quanta content
+          let chain = props.editor
+            .chain()
+            .setMeta("fromPortal", true)
+            .setNodeSelection(pos)
+            .deleteSelection()
+            .insertContentAt(pos, {
+              type: "portal",
+              attrs: {
+                id: `${referencedQuantaId}`,
+                referencedQuantaId: referencedQuantaId,
+                lens: currentLens, // Preserve the current lens
+              },
+              content: [referencedQuantaJSON],
+            });
+
+          // After updating the portal content, restore the original selection:
+          // - If a node was selected, reselect that node at its position
+          // - If text was selected, restore the text selection range from start to end position
+          // This preserves the user's selection state after the portal update
+          if (isNodeSelection(initialSelection)) {
+            chain = chain.setNodeSelection(initialSelection.$from.pos);
+          } else if (isTextSelection(initialSelection)) {
+            chain = chain.setTextSelection({
+              from: initialSelection.$from.pos,
+              to: initialSelection.$to.pos,
+            });
+          }
+
+          chain.run();
+        }, [props.editor, props.getPos]);
+
+        const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
+          if (
+            transaction.getMeta("fromPortal") ||
+            !transaction.docChanged
+          )
+            return;
+
+          updateTranscludedContent(referencedQuantaId);
+        }
+
+        // Update the transclusion if the referencedQuantaId has changed or if the node has changed
+        useEffect(() => {
+          props.editor.on("update", handleEditorUpdate);
         
-        return props.newNode.attrs.lens !== props.oldNode.attrs.lens;
-      }
-    });
+          // Clean up the event listener when the component unmounts
+          return () => {
+            props.editor.off("update", handleEditorUpdate);
+          };
+        }, [props.editor, referencedQuantaId, handleEditorUpdate]);
+
+        // Add effect to monitor lens changes
+        useEffect(() => {
+          console.log("Portal lens changed:", props.node.attrs.lens);
+        }, [props.node.attrs.lens]);
+
+        return (
+          <NodeViewWrapper>
+            <div contentEditable={false}>
+              <input
+                type="text"
+                value={referencedQuantaId}
+                onFocus={() => {
+                  inputFocused.current = true;
+                }}
+                onBlur={() => {
+                  inputFocused.current = false;
+                }}
+                onChange={handleReferencedQuantaIdChange}
+                style={{
+                  border: "1.5px solid #34343430",
+                  borderRadius: sharedBorderRadius,
+                  outline: "none",
+                  backgroundColor: "transparent",
+                  width: `80px`,
+                  position: "absolute",
+                  zIndex: 1,
+                }}
+              />
+            </div>
+            <div
+              style={{
+                borderRadius: sharedBorderRadius,
+                background: `#e0e0e0`,
+                position: "relative",
+                boxShadow: `inset 10px 10px 10px #bebebe,
+                    inset -10px -10px 10px #FFFFFF99`,
+                minHeight: 20,
+                padding: `11px 15px 11px 15px`,
+                marginBottom: 10,
+              }}
+              contentEditable={false}
+            >
+              <Grip />
+              {(() => {
+                // Need to switch all other instances of using "as" to "satisfies"
+                switch (props.node.attrs.lens satisfies PortalLenses) {
+                  case "identity":
+                    return <NodeViewContent node={props.node} />;
+                  case "hideUnimportantNodes":
+                    return <div>Just important nodes</div>;
+                  default:
+                    return <NodeViewContent node={props.node} />;
+                }
+              })()}
+            </div>
+          </NodeViewWrapper>
+        );
+      },
+    );
   },
   addProseMirrorPlugins() {
     return [
@@ -409,33 +399,34 @@ const PortalExtension = Node.create({
     return {
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
         const { selection } = state;
-        const nodeType = getSelectedNodeType(editor);
+        const pos = selection.$from.pos;
+        const node = state.doc.nodeAt(pos);
         
-        console.log("Setting lens for portal", {
-          nodeType,
-          newLens: attributes.lens,
-          currentSelection: selection,
-          currentLens: state.doc.nodeAt(selection.$from.pos)?.attrs.lens
-        });
-
-        if (nodeType === "portal" && dispatch) {
-          console.log("Updating portal lens attribute");
-          const tr = state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens);
+        if (node && node.type.name === "portal" && dispatch) {
+          // Use setNodeMarkup instead of setNodeAttribute
+          const tr = state.tr.setNodeMarkup(
+            pos,
+            null,  // preserve node type
+            {
+              ...node.attrs,  // preserve existing attributes
+              lens: attributes.lens
+            }
+          );
+          
+          // Add meta to prevent filtering
+          tr.setMeta("fromPortal", true);
+          
           dispatch(tr);
           
-          // Log the new lens value after the update
+          // Log the new state after dispatch
           console.log("Lens after update:", {
-            newLens: tr.doc.nodeAt(selection.$from.pos)?.attrs.lens,
+            newLens: editor.state.doc.nodeAt(pos)?.attrs.lens,
             transaction: { docChanged: tr.docChanged, steps: tr.steps.length }
           });
-
-          // Call logCurrentLens here to ensure it uses the updated state
-          logCurrentLens(editor);
           
           return true;
         }
         
-        console.log("Failed to set lens - either wrong node type or no dispatch");
         return false;
       },
     };
