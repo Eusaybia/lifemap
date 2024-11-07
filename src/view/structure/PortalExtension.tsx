@@ -21,6 +21,7 @@ import { Grip } from "../content/Grip";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { GroupLenses } from "./Group";
 import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
+import { motion } from "framer-motion";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -241,6 +242,19 @@ const PortalExtension = Node.create({
           console.log("Portal lens changed:", props.node.attrs.lens);
         }, [props.node.attrs.lens]);
 
+        const checkForImportantMention = (node: any): boolean => {
+          let hasImportantMention = false;
+          
+          node.descendants((descendant: any) => {
+            if (descendant.type.name === 'mention' && 
+                (descendant.attrs.label as string).includes('⭐️ important')) {
+              hasImportantMention = true;
+            }
+          });
+          
+          return hasImportantMention;
+        };
+
         return (
           <NodeViewWrapper>
             <div contentEditable={false}>
@@ -285,7 +299,26 @@ const PortalExtension = Node.create({
                   case "identity":
                     return <NodeViewContent node={props.node} />;
                   case "hideUnimportantNodes":
-                    return <div>Just important nodes</div>;
+                    return (
+                      <div style={{ position: 'relative' }}>
+                        <NodeViewContent node={props.node} />
+                        {!checkForImportantMention(props.node) && (
+                          <motion.div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'black',
+                              opacity: 0.8,
+                              borderRadius: 10,
+                              pointerEvents: "none"
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
                   default:
                     return <NodeViewContent node={props.node} />;
                 }
