@@ -218,12 +218,7 @@ const PortalExtension = Node.create({
         }, [props.editor, props.getPos]);
 
         const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
-          // Log what triggered this update
-          console.log("Portal update triggered by:", {
-            transaction,
-            hasDocChanged: transaction.docChanged,
-            meta: transaction.getMeta("fromLensChange")
-          });
+         
 
           updateTranscludedContent(referencedQuantaId);
         };
