@@ -20,7 +20,7 @@ import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { GroupLenses } from "./Group";
-import { getSelectedNodeType } from "../../utils/utils";
+import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
