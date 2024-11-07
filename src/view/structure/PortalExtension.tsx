@@ -218,24 +218,26 @@ const PortalExtension = Node.create({
         }, [props.editor, props.getPos]);
 
         const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
-          if (
-            transaction.getMeta("fromPortal") ||
-            !transaction.docChanged
-          )
-            return;
+          // Log what triggered this update
+          console.log("Portal update triggered by:", {
+            transaction,
+            hasDocChanged: transaction.docChanged,
+            meta: transaction.getMeta("fromLensChange")
+          });
 
           updateTranscludedContent(referencedQuantaId);
-        }
+        };
 
-        // Update the transclusion if the referencedQuantaId has changed or if the node has changed
         useEffect(() => {
+        // Update the transclusion if the document has changed
+        // TODO: To optimise, make it only if the particular node or referencedQuantaId has changed
           props.editor.on("update", handleEditorUpdate);
         
           // Clean up the event listener when the component unmounts
           return () => {
             props.editor.off("update", handleEditorUpdate);
           };
-        }, [props.editor, referencedQuantaId, handleEditorUpdate]);
+        }, [props.editor, referencedQuantaId]);
 
         // Add effect to monitor lens changes
         useEffect(() => {
