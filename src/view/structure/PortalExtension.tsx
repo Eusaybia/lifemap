@@ -188,7 +188,7 @@ const PortalExtension = Node.create({
           // containing the updated referenced quanta content
           let chain = props.editor
             .chain()
-            .setMeta("fromPortal", true)
+            .setMeta("fromPortalNode", true)
             .setNodeSelection(pos)
             .deleteSelection()
             .insertContentAt(pos, {
@@ -218,9 +218,24 @@ const PortalExtension = Node.create({
         }, [props.editor, props.getPos]);
 
         const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
-         
+          // Allow lens changes to trigger updates
+          const isLensChange = transaction.getMeta("fromLensChange");
+          const isPortalUpdate = transaction.getMeta("fromPortalNode");
 
-          updateTranscludedContent(referencedQuantaId);
+          // Skip if it's a portal content update
+          if (isPortalUpdate && !isLensChange) {
+            return;
+          }
+
+          // Log what triggered this update
+          console.log("Portal update triggered by:", {
+            transaction,
+            hasDocChanged: transaction.docChanged,
+          });
+          // Only update if the document actually changed or if it's a lens change
+          if (transaction.docChanged || isLensChange) {
+            updateTranscludedContent(referencedQuantaId);
+          }
         };
 
         useEffect(() => {
@@ -310,7 +325,6 @@ const PortalExtension = Node.create({
                               backgroundColor: 'black',
                               opacity: 0.8,
                               borderRadius: 10,
-                              pointerEvents: "none"
                             }}
                           />
                         )}
@@ -387,25 +401,29 @@ const PortalExtension = Node.create({
         const node = state.doc.nodeAt(pos);
         
         if (node && node.type.name === "portal" && dispatch) {
-          // Use setNodeMarkup instead of setNodeAttribute
-          const tr = state.tr.setNodeMarkup(
-            pos,
-            null,  // preserve node type
-            {
-              ...node.attrs,  // preserve existing attributes
-              lens: attributes.lens
-            }
-          );
-          
-          // Add meta to prevent filtering
-          tr.setMeta("fromPortal", true);
+          console.log("setLens called:", {
+            oldLens: node.attrs.lens,
+            newLens: attributes.lens,
+            node: node.toJSON(),
+            pos: pos
+          });
+
+          const tr = state.tr
+            .setMeta("fromLensChange", true)
+            .setNodeMarkup(
+              pos,
+              null,
+              {
+                ...node.attrs,
+                lens: attributes.lens
+              }
+            );
           
           dispatch(tr);
           
-          // Log the new state after dispatch
-          console.log("Lens after update:", {
-            newLens: editor.state.doc.nodeAt(pos)?.attrs.lens,
-            transaction: { docChanged: tr.docChanged, steps: tr.steps.length }
+          console.log("setLens completed:", {
+            result: editor.state.doc.nodeAt(pos)?.attrs.lens,
+            // transaction: tr.steps.map(step => step.toJSON())
           });
           
           return true;
