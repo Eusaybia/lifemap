@@ -140,10 +140,12 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
   },
 
   renderHTML({ HTMLAttributes }) {
+    // @ts-ignore
     return ['div', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'document-attributes' })]
   },
 
   // Define custom commands for this node
+  // @ts-ignore
   addCommands() {
     return {
       /**

@@ -42,7 +42,7 @@ export const ConversationExtension = Node.create({
         <NodeViewWrapper>
           <>
           </>
-          <Group lens={"verticalArray"} quantaId={props.node.attrs.qid}>
+          <Group lens={"identity"} quantaId={props.node.attrs.qid} isIrrelevant={false}>
             <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
               Group Chat
             </div>
