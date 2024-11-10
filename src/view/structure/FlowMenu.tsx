@@ -285,7 +285,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        // TODO: Fix this type error, even though it works perfectly fine
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'editing' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
@@ -298,6 +298,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"focus" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'focus' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
@@ -310,6 +311,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"read-only" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'read-only' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
@@ -324,6 +326,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"wedding"}
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
@@ -336,6 +339,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"corporate"}
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
@@ -348,6 +352,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"birthday"}
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
@@ -364,6 +369,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="show"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'show' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
@@ -376,6 +382,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="hide"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'hide' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
@@ -388,6 +395,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="dim"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'dim' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
@@ -404,6 +412,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="show"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'show' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
@@ -416,6 +425,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="hide"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'hide' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
@@ -428,6 +438,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="dim"
                     onClick={() => {
+                        // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'dim' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
