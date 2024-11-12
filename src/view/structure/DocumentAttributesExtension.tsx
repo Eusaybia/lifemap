@@ -44,12 +44,6 @@ declare module '@tiptap/core' {
      * Retrieves document-level attributes.
      */
     getDocumentAttributes: () => Record<string, any>;
-
-    /**
-     * Ensures the `docAttrs` node exists in the document.
-     * If not, it inserts the node with default attributes.
-     */
-    ensureDocumentAttributes: () => ReturnType;
   }
 }
 
