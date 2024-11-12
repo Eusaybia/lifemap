@@ -275,7 +275,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       }
     },
     onUpdate: ({ editor }) => {
-      // console.log("JSON Output", editor.getJSON())
+      console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       // console.log("active", editor.state.selection)

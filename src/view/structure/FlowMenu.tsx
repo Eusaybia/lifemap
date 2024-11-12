@@ -20,6 +20,7 @@ import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
 import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
+import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 
 export const flowMenuStyle = (): React.CSSProperties => {
     return {
@@ -131,6 +132,18 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
 
     return (
         <FlowSwitch value={props.selectedAction} isLens>
+            <Option
+                value={"Replace page with 'Sales Guide' template"}
+                onClick={() => {
+                    props.editor.commands.setContent(SalesGuideTemplate);
+                }}
+            >
+                <motion.div>
+                    <span>
+                        💰 Insert Sales Guide Template
+                    </span>
+                </motion.div>
+            </Option>
             <Option
                 value={"Copy quanta id"}
                 onClick={() => handleCopyQuantaIdAction(props.editor)}
