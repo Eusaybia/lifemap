@@ -61,6 +61,7 @@ import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
+import { SalesGuideTemplate } from './SalesGuideTemplate'
 
 lowlight.registerLanguage('js', js)
 
@@ -306,8 +307,9 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
-
   let content = props.text
+
+  
 
   switch (props.lenses[0]) {
     case "code":
@@ -334,6 +336,31 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // console.log("reversed versions", reversedVersions)
 
   const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
+
+  // Add a ref to track template application
+  const templateApplied = React.useRef(false);
+
+  // Check for new sales guide template flag
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    
+    const newSalesGuideId = sessionStorage.getItem('newSalesGuide');
+    const urlId = window.location.pathname.split('/').pop();
+
+    // Only apply template if URL ID matches stored ID
+    if (newSalesGuideId === urlId) {
+      setTimeout(() => {
+        editor.commands.setContent(SalesGuideTemplate);
+        console.log("Applied sales guide template to", urlId);
+        
+        // Mark template as applied
+        templateApplied.current = true;
+        
+        // Now safe to remove from sessionStorage
+        sessionStorage.removeItem('newSalesGuide');
+      }, 300);
+    }
+  }, [props.quanta?.id, editor]);
 
   // TODO: Change this to proper responsiveness for each screen size
   const maxWidth = 1300
