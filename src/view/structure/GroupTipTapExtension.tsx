@@ -317,8 +317,6 @@ export const GroupExtension = TipTapNode.create({
             }
           });
 
-          console.log(filteredContent, "filteredContent")
-
           // Return a new ProseMirrorNode with the filtered content
           return node.copy((node.content.constructor as typeof Fragment).fromArray(filteredContent));
         }
@@ -332,13 +330,11 @@ export const GroupExtension = TipTapNode.create({
         // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
         const documentAttributes = editor.commands.getDocumentAttributes()
         const selectedEventType = documentAttributes.selectedEventLens;
-        console.log(selectedEventType, "selectedEventType")
 
         type EventTypes = DocumentAttributes['selectedEventLens'];
         const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
         // Remove the selected event type from the list
         const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType)
-        console.log(irrelevantEventTypes, "irrelevantEventTypes")
         
         groupNode.forEach((childNode) => {
           // This is needed because the actual attrs.label is a string that looks like this: "💍 Wedding"
@@ -357,16 +353,13 @@ export const GroupExtension = TipTapNode.create({
                 // TODO: Technically this label detection could be more robust, but this is hard coded for now
                 // Should handle mentions with just a string rather than an emoji + string
                 const mentionEventType = (grandChildNode.attrs.label as string).split(' ')[1].toLowerCase();
-                console.log(mentionEventType, "mentionEventType")
                 if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
                   isIrrelevant = true;
-                  console.log("group node", node.content.toJSON())
                 }
               }
             })
           }
         });
-        console.log(isIrrelevant, "isIrrelevant")
         return isIrrelevant;
       };
 
@@ -398,7 +391,6 @@ export const GroupExtension = TipTapNode.create({
               isIrrelevant={determineIrrelevance(props.node, props.editor)}
             >
               {(() => {
-                console.log("group lens", props.node.attrs.lens)
                 switch (props.node.attrs.lens) {
                   case "identity":
                     return <NodeViewContent node={props.node} />;

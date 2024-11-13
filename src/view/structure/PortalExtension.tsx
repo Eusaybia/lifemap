@@ -130,11 +130,6 @@ const PortalExtension = Node.create({
         // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
         const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
 
-        useEffect(() => {
-          const jsonContent = props.node.toJSON();
-          console.log("Portal Node JSONContent:", jsonContent);
-        }, [props.node]);
-
         // If the input is updated, this handler is called
         const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
           const newQuantaId = event.target.value;
@@ -218,6 +213,9 @@ const PortalExtension = Node.create({
         }, [props.editor, props.getPos]);
 
         const handleEditorUpdate = ({ transaction }: { transaction: Transaction }) => {
+          // Skip if there's no document change
+          if (!transaction.docChanged) return;
+          
           // Allow lens changes to trigger updates
           const isLensChange = transaction.getMeta("fromLensChange");
           const isPortalUpdate = transaction.getMeta("fromPortalNode");
@@ -227,15 +225,15 @@ const PortalExtension = Node.create({
             return;
           }
 
-          // Log what triggered this update
-          console.log("Portal update triggered by:", {
-            transaction,
-            hasDocChanged: transaction.docChanged,
-          });
-          // Only update if the document actually changed or if it's a lens change
-          if (transaction.docChanged || isLensChange) {
-            updateTranscludedContent(referencedQuantaId);
+          // Check if the referenced quanta content actually changed
+          const oldContent = getReferencedQuantaJSON(referencedQuantaId, transaction.before);
+          const newContent = getReferencedQuantaJSON(referencedQuantaId, transaction.doc);
+          
+          if (JSON.stringify(oldContent) === JSON.stringify(newContent) && !isLensChange) {
+            return;
           }
+
+          updateTranscludedContent(referencedQuantaId);
         };
 
         useEffect(() => {
@@ -248,11 +246,6 @@ const PortalExtension = Node.create({
             props.editor.off("update", handleEditorUpdate);
           };
         }, [props.editor, referencedQuantaId]);
-
-        // Add effect to monitor lens changes
-        useEffect(() => {
-          console.log("Portal lens changed:", props.node.attrs.lens);
-        }, [props.node.attrs.lens]);
 
         const checkForImportantMention = (node: any): boolean => {
           let hasImportantMention = false;
@@ -370,10 +363,6 @@ const PortalExtension = Node.create({
           oldPortals.forEach((oldPortal, pos) => {
             const newPortal = newPortals.get(pos);
             if (!newPortal || JSON.stringify(oldPortal) !== JSON.stringify(newPortal)) {
-              console.log("Portal changed or removed at position", pos, {
-                old: oldPortal,
-                new: newPortal || 'removed'
-              });
               modified = true;
             }
           });
@@ -381,9 +370,6 @@ const PortalExtension = Node.create({
           // Check for new portals
           newPortals.forEach((newPortal, pos) => {
             if (!oldPortals.has(pos)) {
-              console.log("New portal added at position", pos, {
-                portal: newPortal
-              });
               modified = true;
             }
           });
@@ -401,12 +387,6 @@ const PortalExtension = Node.create({
         const node = state.doc.nodeAt(pos);
         
         if (node && node.type.name === "portal" && dispatch) {
-          console.log("setLens called:", {
-            oldLens: node.attrs.lens,
-            newLens: attributes.lens,
-            node: node.toJSON(),
-            pos: pos
-          });
 
           const tr = state.tr
             .setMeta("fromLensChange", true)
@@ -420,11 +400,6 @@ const PortalExtension = Node.create({
             );
           
           dispatch(tr);
-          
-          console.log("setLens completed:", {
-            result: editor.state.doc.nodeAt(pos)?.attrs.lens,
-            // transaction: tr.steps.map(step => step.toJSON())
-          });
           
           return true;
         }

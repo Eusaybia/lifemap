@@ -20,9 +20,6 @@ export const QuantaView = observer((props: { quanta: QuantaType | SunT }) => {
           quanta={quanta}
           text={props.quanta.information}
           lenses={["text"]}
-          onChange={(change) => { 
-            console.log(change) 
-          }}
         />;
 // TODO: Get rid of this since attrs handle lenses
       case 'ascii-math':

@@ -124,9 +124,7 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
     // Problem seems to be that when I interact with the flow switch, the selection changes to something other than the math node
     // @ts-ignore
 
-    // Check if the selection is a node selection
-    console.log('selected node', props.editor!.view.state.selection);
-};
+ };
 
 const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
 
@@ -271,9 +269,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     React.useEffect(() => {
 
         const document = props.editor.state.doc
-        console.log("document", document)
         const documentAttributes = document.attrs
-        console.log("documentAttributes", documentAttributes)
 
         // On document load, initialise state variables from document attributes
         if (documentAttributes.selectedFocusLens) {
@@ -489,7 +485,6 @@ const GroupLoupe = (props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"hideUnimportantNodes"} onClick={() => {
-                    console.log("Updating lens to important nodes")
                     props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
                 }}>
                     <motion.div>
@@ -685,7 +680,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
             <FlowSwitch value={props.fontSize} isLens>
                 <Option
                     value={"36px"}
-                    onClick={() => { props.editor!.chain().focus().setFontSize('36px').run(); console.log("36 clicked") }}
+                    onClick={() => { props.editor!.chain().focus().setFontSize('36px').run() }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
@@ -695,7 +690,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 </Option>
                 <Option
                     value={"30px"}
-                    onClick={() => { props.editor!.chain().focus().setFontSize('30px').run(); console.log("30 clicked") }}
+                    onClick={() => { props.editor!.chain().focus().setFontSize('30px').run() }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>

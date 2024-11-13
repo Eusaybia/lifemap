@@ -249,7 +249,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       // Retrieve document attributes using the custom command
       // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
       const documentAttributes = editor.commands.getDocumentAttributes()
-      console.log("documentAttributes", documentAttributes)
 
       // Attributes for the Document root node are defined in DocumentAttributesExtension.tsx
       if (documentAttributes.selectedFocusLens === "editing") {
@@ -276,10 +275,22 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       }
     },
     onUpdate: ({ editor }) => {
-      console.log("JSON Output", editor.getJSON())
+      // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
       // console.log("active", editor.state.selection)
+    },
+    onTransaction: ({ editor, transaction }) => {
+      // Log every transaction where the document content has changed
+      if (transaction.docChanged) {
+        console.log('Transaction:', {
+          docChanged: transaction.docChanged, // boolean indicating if content changed
+          selection: transaction.selection, // current selection state
+          steps: transaction.steps.map(step => step.toJSON()), // serialize steps to JSON for better logging
+          time: new Date().toISOString(),
+        })
+
+      }
     },
   })
 

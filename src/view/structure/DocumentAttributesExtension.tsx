@@ -198,7 +198,6 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
               attrs = node.attrs;
-              console.log('found docAttrs');
               return false; // Stop traversal once found
             }
           });

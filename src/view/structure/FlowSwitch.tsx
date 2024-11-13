@@ -87,8 +87,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             }
 
         } else {
-            // This should be an error
-            console.log(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
+            console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
     }, [])
