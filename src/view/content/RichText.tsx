@@ -359,9 +359,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const urlId = window.location.pathname.split('/').pop();
 
     // Only apply template if URL ID matches stored ID
-    if (newSalesGuideId === urlId) {
+    if (newSalesGuideId === urlId && editor) {
       setTimeout(() => {
-        editor.commands.setContent(SalesGuideTemplate);
+        editor!.commands.setContent(SalesGuideTemplate);
         console.log("Applied sales guide template to", urlId);
         
         // Mark template as applied
