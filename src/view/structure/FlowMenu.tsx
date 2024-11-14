@@ -22,7 +22,7 @@ import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../util
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 
-export const flowMenuStyle = (): React.CSSProperties => {
+export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties => {
     return {
         boxSizing: "border-box",
         flexShrink: 0,
@@ -37,7 +37,7 @@ export const flowMenuStyle = (): React.CSSProperties => {
             "0px 0.6021873017743928px 3.010936508871964px -0.9166666666666666px rgba(0, 0, 0, 0.14), 0px 2.288533303243457px 11.442666516217285px -1.8333333333333333px rgba(0, 0, 0, 0.13178), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.1125)",
         backgroundColor: `rgba(217, 217, 217, 0.20)`,
         backdropFilter: `blur(12px)`,
-        overflow: "scroll",
+        overflow: allowScroll ? "scroll" : "visible",
         zIndex: 1,
         alignContent: "center",
         flexWrap: "nowrap",
@@ -263,7 +263,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [irrelevantEventNodesDisplayLens, setIrrelevantEventNodesDisplayLens] = React.useState<DocumentAttributes['irrelevantEventNodesDisplayLens']>("dim")
     const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
 
-    let documentMenuStyle: CSSProperties = flowMenuStyle()
+    let documentMenuStyle: CSSProperties = flowMenuStyle(false)
     documentMenuStyle.width = "100%"
 
     React.useEffect(() => {
