@@ -136,9 +136,7 @@ const PortalExtension = Node.create({
           setReferencedQuantaId(newQuantaId);
           updateTranscludedContent(newQuantaId);
 
-          setTimeout(() => {
-            props.updateAttributes({ referencedQuantaId: event.target.value });
-          }, 2000);
+          props.updateAttributes({ referencedQuantaId: event.target.value });
         };
 
         const updateTranscludedContent = useCallback((referencedQuantaId: string) => {
