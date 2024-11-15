@@ -11,15 +11,15 @@ import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
 
 export default function Page({ params }: { params: { slug: string } }) {
     const minimapWidth = useMinimapWidth();
-    const paddingBuffer = 15; // Add a buffer of 20 pixels
+    const padding = 20; 
 
     return (
         <div style={{
             backgroundColor: offWhite,
             backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper.png")',
             minHeight: '100vh',
-            paddingLeft: minimapWidth + paddingBuffer,
-            paddingRight: paddingBuffer,
+            paddingLeft: minimapWidth + padding,
+            paddingRight: padding,
         }}>
             <Minimap />
             <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
