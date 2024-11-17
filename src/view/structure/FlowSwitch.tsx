@@ -16,11 +16,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [hasScrolled, setHasScrolled] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
+    const [clickSound, setClickSound] = React.useState<HTMLAudioElement | null>(null);
 
     let timer: NodeJS.Timeout | null = null;
-
-    const clickSound = new Audio("/click.mp3");
-    clickSound.volume = 0.1
 
     const switchElementsRefs = props.children.map(() => React.createRef<HTMLDivElement>());
 
@@ -44,8 +42,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             onViewportEnter={(entry) => {
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
-                if (hasScrolled) {
-                    // TODO: Find a way to play sound even when the page hasn't been interacted with
+                if (hasScrolled && clickSound) {
                     clickSound.play().catch((error) => {
                         console.log("Chrome cannot play sound without user interaction first")
                     });
@@ -101,6 +98,13 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     }, 2000)
 
+    // Initialize audio on client side only
+    React.useEffect(() => {
+        const audio = new Audio("/click.mp3");
+        audio.volume = 0.1;
+        setClickSound(audio);
+    }, []);
+
     return (
         <motion.div className="flow-menu"
             key={props.value}
@@ -139,12 +143,19 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 }
 
 export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children }) => {
-    const clickSound = new Audio('/click.mp3');
+    const [clickSound, setClickSound] = React.useState<HTMLAudioElement | null>(null);
+
+    React.useEffect(() => {
+        const audio = new Audio('/click.mp3');
+        setClickSound(audio);
+    }, []);
 
     const handleClick = () => {
-        clickSound.play().catch((error) => {
-            console.log('Chrome cannot play sound without user interaction first. Click on the webpage in order to play the sound effects.');
-        });
+        if (clickSound) {
+            clickSound.play().catch((error) => {
+                console.log('Chrome cannot play sound without user interaction first. Click on the webpage in order to play the sound effects.');
+            });
+        }
         onClick();
     };
 
