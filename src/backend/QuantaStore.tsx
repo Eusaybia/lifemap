@@ -12,14 +12,18 @@ type QuantaStoreContextType = {
   provider: TiptapCollabProvider
   requestVersionPreviewFromCloud: (version: Content) => void
 }
+
+// Create a single instance of the dummy provider
+const DUMMY_PROVIDER = new TiptapCollabProvider({ 
+  appId: 'dummyAppId', // get this at collab.tiptap.dev
+  name: "dummyDocumentName", // e.g. a uuid uuidv4();
+  token: "dummyToken",
+  document: new QuantaClass().information 
+});
+
 const dummyQuantaStoreContext = {
   quanta: new QuantaClass(),
-  provider: new TiptapCollabProvider({ 
-    appId: 'dummyAppId',// get this at collab.tiptap.dev
-    name: "dummyDocumentName", // e.g. a uuid uuidv4();
-    token: "dummyToken",
-    document: new QuantaClass().information 
-  }),
+  provider: DUMMY_PROVIDER,  // Use the singleton instance
   requestVersionPreviewFromCloud: (version: Content) => {}
 }
 
@@ -68,6 +72,11 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
         document: quanta.information,
       });
       setProvider(newProvider);
+
+      // Clean up the provider when the component unmounts
+      return () => {
+        newProvider.destroy();
+      };
     } 
   }, [jwt]);
 
