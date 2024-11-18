@@ -64,7 +64,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
         if (index !== -1 && switchElementsRefs[index].current) {
             // The element was found, scroll to it
-            switchElementsRefs[index].current.scrollIntoView({ behavior: 'smooth' });
+            switchElementsRefs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
             // Scroll to the element
             const container = flowSwitchContainerRef.current;
@@ -84,7 +84,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             }
 
         } else {
-            console.log(`Flow switch element with props value: ${props.value} not found in the entire switch array, which contains ${props.children.map(child => child.props.value).join(", ")}.`)
+            console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
     }, [])
