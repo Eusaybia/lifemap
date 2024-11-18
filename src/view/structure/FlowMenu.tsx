@@ -679,7 +679,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            <FlowSwitch value={props.fontSize} isLens>
+            <FlowSwitch value={`${props.fontSize}px`} isLens>
                 <Option
                     value={"36px"}
                     onClick={() => { props.editor!.chain().focus().setFontSize('36px').run() }}
@@ -999,9 +999,11 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     // TODO: For some reason the FlowSwitch doesn't work properly when embedded into the BubbleMenu
     // TODO: For now, just use a normal MUI select
-    const font = true ? "Arial" : props.editor.getAttributes('textStyle').fontFamily;
-    const fontSize = true ? "14px" : props.editor.getAttributes('textStyle').fontSize
-    const justification = true ? "center" : props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
+    const font = props.editor.getAttributes('textStyle').fontFamily;
+    const fontSize = props.editor.getAttributes('textStyle').fontSize
+    console.log("fontSize", fontSize)
+    const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
+    console.log("justification", justification)
 
     return (
         <BubbleMenu
