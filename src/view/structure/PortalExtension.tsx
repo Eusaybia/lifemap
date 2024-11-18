@@ -331,52 +331,6 @@ const PortalExtension = Node.create({
       },
     );
   },
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('portalLensMonitor'),
-        appendTransaction: (transactions, oldState, newState) => {
-          // Get all portal nodes from old and new states
-          const oldPortals = new Map();
-          const newPortals = new Map();
-          
-          // Collect old portal nodes
-          oldState.doc.descendants((node, pos) => {
-            if (node.type.name === 'portal') {
-              oldPortals.set(pos, node.toJSON());
-            }
-          });
-          
-          // Collect new portal nodes
-          newState.doc.descendants((node, pos) => {
-            if (node.type.name === 'portal') {
-              newPortals.set(pos, node.toJSON());
-            }
-          });
-          
-          // Compare for any changes
-          let modified = false;
-          
-          // Check for changes in existing portals
-          oldPortals.forEach((oldPortal, pos) => {
-            const newPortal = newPortals.get(pos);
-            if (!newPortal || JSON.stringify(oldPortal) !== JSON.stringify(newPortal)) {
-              modified = true;
-            }
-          });
-          
-          // Check for new portals
-          newPortals.forEach((newPortal, pos) => {
-            if (!oldPortals.has(pos)) {
-              modified = true;
-            }
-          });
-          
-          return null;
-        }
-      })
-    ];
-  },
   addCommands() {
     return {
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
