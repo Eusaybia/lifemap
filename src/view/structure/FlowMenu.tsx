@@ -1001,9 +1001,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     // TODO: For now, just use a normal MUI select
     const font = props.editor.getAttributes('textStyle').fontFamily;
     const fontSize = props.editor.getAttributes('textStyle').fontSize
-    console.log("fontSize", fontSize)
     const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
-    console.log("justification", justification)
 
     return (
         <BubbleMenu
