@@ -9,7 +9,6 @@ interface OptionButtonProps {
 }
 
 export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
-    console.log("FlowSwitch", props)
     const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
 
     // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
