@@ -64,7 +64,6 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // Once the jwt token is generated, only then, create a provider
   React.useEffect(() => {
     if (jwt !== "notoken") {
-      console.log("jwt provided to provider", jwt)
       const newProvider = new TiptapCollabProvider({
         appId: appId,
         name: roomName,
