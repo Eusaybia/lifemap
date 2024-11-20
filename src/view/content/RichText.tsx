@@ -216,6 +216,11 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 
 export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
 
@@ -233,19 +238,18 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     )
   } 
 
-  
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
-    editable: !readOnly,
+    editable: !readOnly && isMounted, // Only enable when mounted
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
       },
     },
     content: (informationType === "yDoc") ? null : information,
-    // This is deliberately triggered using the selection update because the driver highlight shade needs to update,
-    // whenever the user moves their cursor to a new location.
-    onSelectionUpdate: ({ editor }) => {
+    immediatelyRender: isMounted, // Only enable when mounted
+    shouldRerenderOnTransaction: false,
+    onSelectionUpdate: ({ editor }: { editor: Editor }) => {
       // Retrieve document attributes using the custom command
       // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
       const documentAttributes = editor.commands.getDocumentAttributes()
@@ -274,7 +278,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         editor.setEditable(false)
       }
     },
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ }) => {
       // console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
       // console.log("editor getText", editor.getText())
@@ -293,6 +297,10 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       }
     },
   })
+
+  if (!isMounted) {
+    return null
+  }
 
   // Watch for content changes from TipTap Collab Cloud
   const unbindWatchContent = watchPreviewContent(provider, (content: Content) => {
