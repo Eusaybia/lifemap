@@ -5,7 +5,7 @@ import React from 'react'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Color } from '@tiptap/extension-color'
 import { Highlight } from '@tiptap/extension-highlight'
-import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content } from '@tiptap/react'
+import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content, Extension } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
@@ -62,10 +62,47 @@ import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
+import { Plugin, Transaction } from 'prosemirror-state'
 
 lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
+
+const handleTransaction = (transaction: Transaction) => {
+  const transactionMeta = {
+    isYjsSync: !!transaction.getMeta('y-sync$'),
+    isLocalChange: !transaction.getMeta('y-sync$')?.isChangeOrigin,
+    isUndoRedo: !!transaction.getMeta('y-sync$')?.isUndoRedoOperation,
+    addToHistory: transaction.getMeta('addToHistory'),
+  };
+
+  // Log transaction info
+  if (transactionMeta.isYjsSync) {
+    console.log('Remote sync transaction:', transactionMeta);
+  } else {
+    console.log('Local change transaction:', transactionMeta);
+  }
+
+  // Only process transactions if we have an active connection or it's a local change
+  if (transactionMeta.isLocalChange) {
+    return true;
+  }
+
+  // Block remote transactions that replace the entire document
+  if (transactionMeta.isYjsSync && !transactionMeta.isLocalChange) {
+    const hasFullDocReplace = transaction.steps.some(step => {
+      const json = step.toJSON();
+      return json.stepType === 'replace' && json.from === 0;
+    });
+
+    if (hasFullDocReplace) {
+      console.warn('Blocking full document replace from remote sync');
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export const officialExtensions = (quantaId: string) => {return [
   // Add official extensions
@@ -149,6 +186,27 @@ export const officialExtensions = (quantaId: string) => {return [
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
+  }),
+  Extension.create({
+    name: 'transactionHandler',
+    
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          appendTransaction: (transactions, oldState, newState) => {
+            // Process each transaction
+            const shouldProcess = transactions.every(handleTransaction);
+            
+            if (!shouldProcess) {
+              return null;
+            }
+            
+            // Continue with normal transaction processing
+            return null;
+          }
+        })
+      ];
+    }
   }),
 ] as Extensions}
 
@@ -285,15 +343,33 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       // console.log("active", editor.state.selection)
     },
     onTransaction: ({ editor, transaction }) => {
-      // Log every transaction where the document content has changed
       if (transaction.docChanged) {
-        console.log('Transaction:', {
-          docChanged: transaction.docChanged, // boolean indicating if content changed
-          selection: transaction.selection, // current selection state
-          steps: transaction.steps.map(step => step.toJSON()), // serialize steps to JSON for better logging
-          time: new Date().toISOString(),
-        })
+        const transactionMeta = {
+          isYjsSync: !!transaction.getMeta('y-sync$'),
+          isLocalChange: !transaction.getMeta('y-sync$')?.isChangeOrigin,
+          isUndoRedo: !!transaction.getMeta('y-sync$')?.isUndoRedoOperation,
+          addToHistory: transaction.getMeta('addToHistory'),
+        };
 
+        // Case 1: Yjs Sync Transaction
+        if (transactionMeta.isYjsSync && !transactionMeta.isLocalChange) {
+          console.log('Remote sync transaction:', transactionMeta);
+          // Handle remote changes from other users
+          // These should probably be allowed to proceed
+        }
+
+        // Case 2: Local Change
+        if (!transactionMeta.isYjsSync) {
+          console.log('Local change transaction:', transactionMeta);
+          // These are direct user edits
+          // You might want to add your own metadata here
+          transaction.setMeta('source', 'user-edit');
+        }
+        // Optional: Block certain types of transactions
+        // Temporarily disabled transaction blocking until shouldBlockTransaction is implemented
+        // if (shouldBlockTransaction(transaction, transactionMeta)) {
+        //   return false;
+        // }
       }
     },
   })
@@ -301,25 +377,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
   if (!isMounted) {
     return null
   }
-
-  // Watch for content changes from TipTap Collab Cloud
-  const unbindWatchContent = watchPreviewContent(provider, (content: Content) => {
-    // set your editors content
-    if (editor) {
-      editor.commands.setContent(content)
-    }
-  })
-  
-  // TODO: When to unbind the watchContent?
-
-
-
-  // if (editor) {
-  //   SetDocAttrStep.register()
-
-  //   editor.commands.updateAttributes('document', defaultDocumentAttributeValues)
-  //   console.log("doc", editor.state.doc)
-  // }
 
   return editor
 }
