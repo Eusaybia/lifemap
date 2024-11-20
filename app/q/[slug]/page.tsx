@@ -4,7 +4,6 @@ import React from "react";
 import { motion } from 'framer-motion';
 import { Quanta } from "../../../src/core/Quanta";
 import { offWhite } from "../../../src/view/Theme";
-import { Minimap } from "../../../src/view/structure/Minimap";
 import { useMinimapWidth } from "../../../src/view/structure/Minimap";
 import { MainEditor } from "../../../src/view/content/RichText";
 import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
@@ -21,7 +20,6 @@ export default function Page({ params }: { params: { slug: string } }) {
             paddingLeft: minimapWidth + padding,
             paddingRight: padding,
         }}>
-            <Minimap />
             <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
                 <DocumentFlowMenu editor={MainEditor("", true)!}/>
             </motion.div>
