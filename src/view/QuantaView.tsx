@@ -1,10 +1,8 @@
 import React from "react";
 import { QuantaStoreContext } from "../backend/QuantaStore";
 import { MathsLoupeC, QuantaType, SunT } from "../core/Model";
-import RichText from "./content/RichText";
-import { Math } from "./content/Math";
-import { JSONContent } from "@tiptap/core";
 import { observer } from "mobx-react-lite";
+import RichText from "./content/RichText";
 
 // Handles different views of a single qi
 // This view is the equivalent of a single window in the app and design
