@@ -40,6 +40,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         }}
             viewport={{ root: flowSwitchContainerRef, margin: "-14px 0px -14px 0px" }}
             onViewportEnter={(entry) => {
+                // TODO: Maybe it would be better to use Motion.js and its scroll functions
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
                 if (hasScrolled && clickSound) {
