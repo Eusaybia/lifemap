@@ -220,6 +220,8 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           state: EditorState;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
+          // TODO: This needs to make sure there is only one `docAttrs` node in the document
+          // Currently there are multiple `docAttrs` nodes in the document
           let hasDocAttrs = false;
           state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
