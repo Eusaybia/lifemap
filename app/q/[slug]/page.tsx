@@ -7,10 +7,13 @@ import { offWhite } from "../../../src/view/Theme";
 import { Minimap, useMinimapWidth } from "../../../src/view/structure/Minimap";
 import { MainEditor } from "../../../src/view/content/RichText";
 import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
+import { useAudibleRenders } from "react-audible-debug";
 
 export default function Page({ params }: { params: { slug: string } }) {
     const minimapWidth = useMinimapWidth();
     const padding = 20; 
+
+    useAudibleRenders(true);
 
     return (
         <div style={{

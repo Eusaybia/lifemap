@@ -3045,6 +3045,11 @@ atob@^2.1.2:
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
+audible-debug@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/audible-debug/-/audible-debug-1.0.3.tgz#f004283e42f8d22d30d0b4b5fb078ee63f764cfa"
+  integrity sha512-QBADH47Uj9WhtJnAfrXl9Br4NcNz/I/skfgwGxUskhvA1xBZ55N8YK3NUsjEMiDsRjgsj+0budzdqfVdwn/MFA==
+
 autoprefixer@10.4.13:
   version "10.4.13"
   resolved "https://registry.yarnpkg.com/autoprefixer/-/autoprefixer-10.4.13.tgz#b5136b59930209a321e9fa3dca2e7c4d223e83a8"
@@ -6924,6 +6929,13 @@ rc@^1.2.7:
     ini "~1.3.0"
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
+
+react-audible-debug@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/react-audible-debug/-/react-audible-debug-1.0.3.tgz#dc5da9fb6e151f51b9a5f2f969d5af9984051819"
+  integrity sha512-MyEns22BsYKbJT/h/p7TlbUsm1FAdOsV0j17E9czp7drUajUSqxnLaWN3rcI9IeBMQLbz2TPEu9sgB3sptv0MQ==
+  dependencies:
+    audible-debug "^1.0.3"
 
 react-composer@^5.0.3:
   version "5.0.3"
