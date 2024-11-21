@@ -63,6 +63,7 @@ import { DocumentAttributeExtension } from '../structure/DocumentAttributesExten
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
+import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 
 lowlight.registerLanguage('js', js)
 
@@ -237,7 +238,8 @@ export const customExtensions: Extensions = [
   PortalExtension,
   ExperimentalPortalExtension,
   QuoteExtension,
-  WarningExtension
+  WarningExtension,
+  // EmptyNodeCleanupExtension,
 ]
 
 export const agents: Extensions = [
@@ -336,11 +338,11 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         editor.setEditable(false)
       }
     },
-    onUpdate: ({ }) => {
-      // console.log("JSON Output", editor.getJSON())
+    onUpdate: ({ editor }) => {
+      console.log("JSON Output", editor.getJSON())
       // console.log("HTML Output", editor.getHTML())
-      // console.log("editor getText", editor.getText())
-      // console.log("active", editor.state.selection)
+      // console.log("editor.getText()", editor.getText())
+      // console.log("Selection", editor.state.selection)
     },
     onTransaction: ({ editor, transaction }) => {
       if (transaction.docChanged) {
