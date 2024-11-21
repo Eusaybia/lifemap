@@ -236,15 +236,6 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           }
           return false;
         },
-
-      updateDocumentAttributes: (attrs: Partial<DocumentAttributes>) => 
-        ({ tr, dispatch }) => {
-          if (dispatch) {
-            tr.setMeta('docAttrs-source', 'command')
-               .setMeta('docAttrs-attrs', attrs);
-          }
-          return true;
-      }
     };
   },
 
