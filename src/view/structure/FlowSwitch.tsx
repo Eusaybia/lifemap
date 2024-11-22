@@ -113,6 +113,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
             style={{
                 scrollSnapType: `y mandatory`,
+                cursor: "pointer",
                 boxSizing: "border-box",
                 flexShrink: 0,
                 width: "fit-content",
