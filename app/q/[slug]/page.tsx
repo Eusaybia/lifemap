@@ -13,7 +13,7 @@ export default function Page({ params }: { params: { slug: string } }) {
     const minimapWidth = useMinimapWidth();
     const padding = 20; 
 
-    useAudibleRenders(true);
+    useAudibleRenders(false);
 
     return (
         <div style={{
