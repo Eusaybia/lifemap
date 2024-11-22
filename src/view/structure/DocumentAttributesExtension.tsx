@@ -161,18 +161,12 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           tr: Transaction;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          let pos: number | null = null;
-          // Traverse the document to find `docAttrs` node
-          state.doc.descendants((node, position) => {
-            if (node.type.name === 'docAttrs') {
-              pos = position;
-              return false; // Stop traversal once found
-            }
-          });
+          const firstNode = state.doc.firstChild;
+          const pos = firstNode?.type.name === 'docAttrs' ? 0 : null;
 
           if (pos !== null) {
             // Merge existing attributes with new ones
-            const currentAttrs = state.doc.nodeAt(pos)!.attrs;
+            const currentAttrs = firstNode!.attrs;
             const newAttrs = { ...currentAttrs, ...attributes };
 
             if (dispatch) {
@@ -199,14 +193,11 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          let attrs: Record<string, any> = { attrs: 'noneFound' };
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              attrs = node.attrs;
-              return false; // Stop traversal once found
-            }
-          });
-          return attrs;
+          const firstNode = state.doc.firstChild;
+          if (firstNode?.type.name === 'docAttrs') {
+            return firstNode.attrs;
+          }
+          return { attrs: 'noneFound' };
         },
 
       /**
