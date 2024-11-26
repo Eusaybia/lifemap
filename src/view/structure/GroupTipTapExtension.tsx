@@ -327,46 +327,33 @@ export const GroupExtension = TipTapNode.create({
       const determineIrrelevance = (groupNode: ProseMirrorNode, editor: Editor) => {
         let isIrrelevant = false;
 
-        // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
+        // @ts-ignore
         const documentAttributes = editor.commands.getDocumentAttributes()
-        console.log('documentAttributes', documentAttributes)
-        // TODO: The error is here, it is always selectedEventType = "wedding"
         const selectedEventType = documentAttributes.selectedEventLens;
-        console.log('selectedEventType', selectedEventType)
 
         type EventTypes = DocumentAttributes['selectedEventLens'];
         const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
-
-        // Remove the selected event type from the list
-        const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType)
-        console.log('irrelevantEventTypes', irrelevantEventTypes)
+        const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType);
         
         groupNode.forEach((childNode) => {
-          // This is needed because the actual attrs.label is a string that looks like this: "💍 Wedding"
-          // But we need just the event type, which is "wedding"
           if (childNode.type.name === 'paragraph') {
             childNode.forEach((grandChildNode) => {
-              // We have to go down to the level of grandchildren because the structure of a Group node is like this:
-              // - Group
-              //   - Paragraph
-              //     - Mention
-              //       - attrs
-              //        - label
-              //     - Text
-              //     - Text
               if (grandChildNode.type.name === 'mention') {
+                const label = grandChildNode.attrs.label as string;
                 // TODO: Technically this label detection could be more robust, but this is hard coded for now
                 // Should handle mentions with just a string rather than an emoji + string
-                const mentionEventType = (grandChildNode.attrs.label as string).split(' ')[1].toLowerCase();
-                console.log('mentionEventType', mentionEventType)
-                if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
-                  isIrrelevant = true;
+                const parts = label.split(' ');
+                // Only process if we have at least 2 parts (emoji + event type)
+                if (parts.length >= 2) {
+                  const mentionEventType = parts[1].toLowerCase();
+                  if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
+                    isIrrelevant = true;
+                  }
                 }
               }
             })
           }
         });
-        console.log('isIrrelevant', isIrrelevant)
         return isIrrelevant;
       };
 
