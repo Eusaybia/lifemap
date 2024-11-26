@@ -21,10 +21,27 @@ export const SalesGuideTemplate: JSONContent = {
             }
         },
         {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
             "type": "group",
             "attrs": {
                 "quantaId": "178577a1-7efd-47c7-b911-bc657f536e70",
-                "attention": 345586,
+                "attention": 346346,
                 "refinement": 59.5,
                 "pathos": 0,
                 "backgroundColor": "#ffedd520",
@@ -863,7 +880,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 419656,
+                "attention": 421656,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -2087,7 +2104,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "759d3f6a-fee5-45b7-b4c9-ff4b1dee4680",
-                                                "attention": 2380,
+                                                "attention": 2626,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2114,7 +2131,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "9f70658c-66a1-4051-83cf-d1b93b226bc9",
-                                                "attention": 1669,
+                                                "attention": 2160,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2141,7 +2158,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "7afae404-e2f1-4040-ab30-707ca77f3ccc",
-                                                "attention": 1430,
+                                                "attention": 1921,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2168,7 +2185,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "102dd6be-703e-46f5-a2d0-faa1497faf2a",
-                                                "attention": 1190,
+                                                "attention": 2188,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2195,7 +2212,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f866c06b-911a-4108-b8b9-206cd9d33073",
-                                                "attention": 239,
+                                                "attention": 1719,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2230,10 +2247,10 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 57649,
+                "attention": 62696,
                 "refinement": 0.5,
                 "pathos": 0,
-                "backgroundColor": "#00695c",
+                "backgroundColor": "#4455BB",
                 "lens": "identity"
             },
             "content": [
@@ -2328,60 +2345,13 @@ export const SalesGuideTemplate: JSONContent = {
                                         }
                                     ],
                                     "text": "Fantastic! I’m about to tell you what we can do for you at your event, but let me check I understand you correctly. "
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "16a2b273-77e0-4bcc-b337-a26170e05d98",
-                                "textAlign": "left",
-                                "indent": 0
-                            }
-                        },
-                        {
-                            "type": "group",
-                            "attrs": {
-                                "quantaId": "f7c27bba-c339-4b21-8eaa-a898c24e14a0",
-                                "attention": 1742,
-                                "refinement": 0,
-                                "pathos": 0,
-                                "backgroundColor": "#ffedd520",
-                                "lens": "identity"
-                            },
-                            "content": [
+                                },
                                 {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "90b1ed82-d1b5-4bbc-9674-f1f122d83908",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "Paraphrase, this is where you summarise all notes given and then confirm that summarisation is accurate."
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "88c68ba7-bba3-4ce3-a664-084461a19328",
-                                "textAlign": "left",
-                                "indent": 0
-                            }
-                        },
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "627457a9-7ff1-4b23-b1dc-388cc3e39e92",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
+                                    "type": "hardBreak"
+                                },
+                                {
+                                    "type": "hardBreak"
+                                },
                                 {
                                     "type": "text",
                                     "marks": [
@@ -2452,7 +2422,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "b8970c0b-1d86-4508-9ce1-9510cbbd7507",
-                        "attention": 2068,
+                        "attention": 4411,
                         "refinement": 0.5,
                         "pathos": 0,
                         "backgroundColor": "#ffedd520",
@@ -2559,6 +2529,16 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "text",
                                     "text": "automatically shows the words that fung can look at and paraphrase to the client."
+                                },
+                                {
+                                    "type": "hardBreak"
+                                },
+                                {
+                                    "type": "hardBreak"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "Paraphrase, this is where you summarise all notes given and then confirm that summarisation is accurate."
                                 }
                             ]
                         }
@@ -2597,7 +2577,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "d8c75875-296a-40df-923d-aefe0d8a3322",
-                        "attention": 15714,
+                        "attention": 16830,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#ffedd520",
@@ -2613,8 +2593,16 @@ export const SalesGuideTemplate: JSONContent = {
                             },
                             "content": [
                                 {
+                                    "type": "mention",
+                                    "attrs": {
+                                        "quantaId": "eaf5ea9a-fa4a-43be-8118-888ee7f3b3af",
+                                        "id": "000000",
+                                        "label": "🎓 learning "
+                                    }
+                                },
+                                {
                                     "type": "text",
-                                    "text": "🎓 learning "
+                                    "text": " "
                                 }
                             ]
                         },
@@ -2813,21 +2801,13 @@ export const SalesGuideTemplate: JSONContent = {
             ]
         },
         {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "a26698de-306f-40ca-a9fc-13a83f0b908a",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
             "type": "group",
             "attrs": {
-                "quantaId": "0c07ae00-a138-4a07-aa27-27868d0bafe1",
-                "attention": 61348,
-                "refinement": 1.5,
+                "quantaId": "315d72eb-a94a-47dd-9888-8ec961f80faf",
+                "attention": 60905,
+                "refinement": 0.5,
                 "pathos": 0,
-                "backgroundColor": "#4455BB",
+                "backgroundColor": "#00695c",
                 "lens": "identity"
             },
             "content": [
@@ -4522,6 +4502,23 @@ export const SalesGuideTemplate: JSONContent = {
                     }
                 }
             ]
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
         },
         {
             "type": "paragraph",
