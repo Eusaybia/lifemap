@@ -4,100 +4,6 @@ export const SalesGuideTemplate: JSONContent = {
     "type": "doc",
     "content": [
         {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "a08a14bf-388e-44d2-bd75-7c25be880f70",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
             "type": "paragraph",
             "attrs": {
                 "quantaId": null,
@@ -957,7 +863,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 409967,
+                "attention": 419656,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -1844,7 +1750,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "915909aa-538e-409a-82b6-15c3243cfc31",
-                                                "attention": 3462,
+                                                "attention": 5736,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1871,7 +1777,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f612e896-e4db-40bc-9cba-82c81d25a4d9",
-                                                "attention": 3470,
+                                                "attention": 6736,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -2016,6 +1922,307 @@ export const SalesGuideTemplate: JSONContent = {
                             ]
                         }
                     ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "ff627631-9291-4e6c-952a-c83d7a75be6f",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "c6878f6e-0796-46aa-99ce-d9871f6acb01",
+                                "textAlign": "left",
+                                "indent": 0
+                            },
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "marks": [
+                                        {
+                                            "type": "bold"
+                                        }
+                                    ],
+                                    "text": "Q8. Have you planned any other parties / events in the past. What did you like or not like about them?"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "40434d0f-f64c-431d-a5b8-c7af08ec8b08",
+                                "textAlign": "left",
+                                "indent": 0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "f68a5420-2215-40cf-aff2-a2022f1ed942",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "c553d4da-1f9a-4343-b13d-c6b6399fc6bf",
+                                "textAlign": "left",
+                                "indent": 0
+                            },
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "marks": [
+                                        {
+                                            "type": "bold"
+                                        }
+                                    ],
+                                    "text": "Q8. "
+                                },
+                                {
+                                    "type": "mention",
+                                    "attrs": {
+                                        "quantaId": "c936aaff-4e57-41b1-8702-244d233b407a",
+                                        "id": "000000",
+                                        "label": "👰‍♀️ Wedding"
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "text": " "
+                                },
+                                {
+                                    "type": "text",
+                                    "marks": [
+                                        {
+                                            "type": "bold"
+                                        }
+                                    ],
+                                    "text": "Tell me a bit about other weddings you have been to. What did you like or not like about them?"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "6072440d-3393-4aa2-b0f2-cd53c5a6d3fc",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "890a36c6-9a07-4a6d-81ff-da0a4b2c0ee9",
+                                "textAlign": "left",
+                                "indent": 0
+                            },
+                            "content": [
+                                {
+                                    "type": "hardBreak"
+                                },
+                                {
+                                    "type": "mention",
+                                    "attrs": {
+                                        "quantaId": "6a9ba08a-d45b-47dc-90c5-f3b565266eb5",
+                                        "id": "000000",
+                                        "label": "👰‍♀️ Wedding"
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "text": " "
+                                }
+                            ]
+                        },
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "b30493a1-55ba-4d78-a33b-ec2a3f4679c6",
+                                "textAlign": "left",
+                                "indent": 0
+                            }
+                        },
+                        {
+                            "type": "details",
+                            "attrs": {
+                                "open": true
+                            },
+                            "content": [
+                                {
+                                    "type": "detailsSummary",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "marks": [
+                                                {
+                                                    "type": "bold"
+                                                }
+                                            ],
+                                            "text": "Q9. Now a wedding is quite personal. And at The BlackTies we offer a bespoke tailored service for every bride and groom. When we show up at your wedding, we are representing you, we are an extension of you - taking care of your guests. So, for the best results, I would like to understand a bit about you guys personally. "
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "detailsContent",
+                                    "content": [
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "759d3f6a-fee5-45b7-b4c9-ff4b1dee4680",
+                                                "attention": 2380,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "3d062bbc-065f-45cf-b950-96d4b572838b",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q9a. How would you describe yourself and your partner?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "9f70658c-66a1-4051-83cf-d1b93b226bc9",
+                                                "attention": 1669,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "88eecae4-cf52-424c-b723-e48ef782515e",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q9b. What jobs do you guys do?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "7afae404-e2f1-4040-ab30-707ca77f3ccc",
+                                                "attention": 1430,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "5f1b7b6f-2ad9-4dda-a127-28bbebebaacc",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q9c. How did your partner propose?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "102dd6be-703e-46f5-a2d0-faa1497faf2a",
+                                                "attention": 1190,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "eabb82e1-f197-4689-9ef2-518bbc23328b",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q9d. What are your interests? Are you guys fans of magic? If not what else?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "f866c06b-911a-4108-b8b9-206cd9d33073",
+                                                "attention": 239,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "ce14450c-bf9c-4dd8-b98b-dcd339f1e8e8",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q9e. Is there anything else you can tell me? And you’ll be surprised, all this helps quite the big when it comes to us doing magic at your wedding."
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -2023,7 +2230,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 53204,
+                "attention": 57649,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#00695c",
@@ -4315,23 +4522,6 @@ export const SalesGuideTemplate: JSONContent = {
                     }
                 }
             ]
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "d3dc4fc3-1f27-4ebe-ae71-8d238525dc4e",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
         },
         {
             "type": "paragraph",
