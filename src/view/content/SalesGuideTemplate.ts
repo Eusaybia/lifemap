@@ -21,10 +21,61 @@ export const SalesGuideTemplate: JSONContent = {
             }
         },
         {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
             "type": "group",
             "attrs": {
                 "quantaId": "178577a1-7efd-47c7-b911-bc657f536e70",
-                "attention": 340047,
+                "attention": 345586,
                 "refinement": 59.5,
                 "pathos": 0,
                 "backgroundColor": "#ffedd520",
@@ -59,7 +110,7 @@ export const SalesGuideTemplate: JSONContent = {
                                     }
                                 }
                             ],
-                            "text": "Pre-Sale Call Checklist"
+                            "text": "Pre-Call Checklist"
                         }
                     ]
                 },
@@ -392,7 +443,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "3857a5c4-ac97-42a2-b164-9bfb62a2d5c0",
-                "attention": 5006,
+                "attention": 10638,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#1976d2",
@@ -715,7 +766,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "6fc71778-cb3e-4a34-9098-d0bbfb39aa99",
-                        "attention": 12015,
+                        "attention": 12768,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#ffedd520",
@@ -863,7 +914,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 359390,
+                "attention": 379525,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -897,14 +948,6 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "f5b0b74c-3be2-4aeb-ae68-6719f38fc004",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
                         "quantaId": "a7ab1eb3-8b99-405c-af6f-7d3917219db2",
                         "textAlign": "left",
                         "indent": 0
@@ -916,7 +959,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "taskItem",
                             "attrs": {
-                                "checked": true
+                                "checked": false
                             },
                             "content": [
                                 {
@@ -944,29 +987,9 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "quote",
                     "content": [
                         {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "39c7f82c-f473-4721-ac3e-2e82e24e8d15",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "hardBreak"
-                                },
-                                {
-                                    "type": "text",
-                                    "text": "So how's the party planning so far? Fun? Stressful?"
-                                },
-                                {
-                                    "type": "hardBreak"
-                                }
-                            ]
-                        },
-                        {
                             "type": "details",
                             "attrs": {
-                                "open": false
+                                "open": true
                             },
                             "content": [
                                 {
@@ -974,7 +997,7 @@ export const SalesGuideTemplate: JSONContent = {
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": "Question 1"
+                                            "text": "So how's the party planning so far? Fun? Stressful?"
                                         }
                                     ]
                                 },
@@ -982,18 +1005,152 @@ export const SalesGuideTemplate: JSONContent = {
                                     "type": "detailsContent",
                                     "content": [
                                         {
-                                            "type": "paragraph",
+                                            "type": "group",
                                             "attrs": {
-                                                "quantaId": "c9feb6b4-4928-4207-b745-a476dbaa1322",
-                                                "textAlign": "left",
-                                                "indent": 0
+                                                "quantaId": "eda11276-abe6-4682-a3af-60b7a5a506ab",
+                                                "attention": 9994,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
                                             },
                                             "content": [
                                                 {
-                                                    "type": "text",
-                                                    "text": "Details of Question 1"
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "8699c9cb-f771-4091-b15b-d5f2881a0daa",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "7c9e91ff-80df-4e10-ad93-fb52c98dd6c1",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " Do you have a wedding planner or are you doing everything yourself? "
+                                                        }
+                                                    ]
                                                 }
                                             ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "0a664390-e986-486f-a8ae-655e5b35b06c",
+                                                "attention": 10721,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "1eee5dc1-9cef-42d0-a94a-4645fc8d59af",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "d9736b3e-bfc8-4338-8e39-54b8fe1637ed",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " How long have you been planning this for? I know many brides plan for years for their wedding!"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "a9201d2e-b881-4e8f-92ec-b6f4031ce152",
+                                                "attention": 8546,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "4a7cdaeb-cac4-41bd-b9fb-1bc174be1f27",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "b9650989-cac0-450a-82c8-f9b059afa88e",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " So what’s your partner's name?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "d03aaa2f-d04f-4fd8-a8ac-4064b0d4b801",
+                                                "attention": 9214,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "43d79663-34b9-4acf-8b31-f8b3f7864ca7",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "5aaa0f9b-15db-45c5-a9e8-ca5f370cdcd0",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " Great and how long have you guys been engaged for?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "58811a3c-5aec-4149-9e13-c0065a24cf57",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            }
                                         }
                                     ]
                                 }
@@ -1015,20 +1172,6 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "4ec3131e-68c4-4ee1-abe1-26cab7e2f116",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "So can you walk me through the party?"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "attrs": {
                                 "quantaId": "41240fc5-26d1-482f-ba87-4c5275b359f2",
                                 "textAlign": "left",
                                 "indent": 0
@@ -1037,7 +1180,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "details",
                             "attrs": {
-                                "open": false
+                                "open": true
                             },
                             "content": [
                                 {
@@ -1045,7 +1188,7 @@ export const SalesGuideTemplate: JSONContent = {
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": "Question 1"
+                                            "text": "So can you walk me through the party?"
                                         }
                                     ]
                                 },
@@ -1053,16 +1196,64 @@ export const SalesGuideTemplate: JSONContent = {
                                     "type": "detailsContent",
                                     "content": [
                                         {
-                                            "type": "paragraph",
+                                            "type": "group",
                                             "attrs": {
-                                                "quantaId": "1b154480-85d0-487b-910a-258af72cff2c",
-                                                "textAlign": "left",
-                                                "indent": 0
+                                                "quantaId": "d9df7ed5-6448-42ec-8423-18e44e03be8c",
+                                                "attention": 1265,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
                                             },
                                             "content": [
                                                 {
-                                                    "type": "text",
-                                                    "text": "Details of Question 1"
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "66c7613e-d5bd-48b5-886f-72b8ddfa606e",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "59676127-a7c7-445a-9ed9-f2499c0de9b6",
+                                                                "id": "000000",
+                                                                "label": "🎓 learning "
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " Let the prospect explain. Gauge their DISC type."
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "f0eaf244-a44f-424b-a3ac-882d57ad7c54",
+                                                "attention": 4235,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "1b154480-85d0-487b-910a-258af72cff2c",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "So…what would a guest see, imagine they walk through the door, what do they first see? What will their experience throughout the night be like?"
+                                                        }
+                                                    ]
                                                 }
                                             ]
                                         }
@@ -1078,7 +1269,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 27348,
+                "attention": 39910,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#00695c",
@@ -1097,24 +1288,6 @@ export const SalesGuideTemplate: JSONContent = {
                             "type": "text",
                             "marks": [
                                 {
-                                    "type": "highlight",
-                                    "attrs": {
-                                        "color": "#ffea00"
-                                    }
-                                }
-                            ],
-                            "text": "                                                                                                                      "
-                        },
-                        {
-                            "type": "hardBreak"
-                        },
-                        {
-                            "type": "hardBreak"
-                        },
-                        {
-                            "type": "text",
-                            "marks": [
-                                {
                                     "type": "textStyle",
                                     "attrs": {
                                         "color": "",
@@ -1126,6 +1299,14 @@ export const SalesGuideTemplate: JSONContent = {
                             "text": "Step 3 - Paraphrase and seed the sale"
                         }
                     ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "91761e8d-e250-445f-ad77-8f1f8582398e",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
                 },
                 {
                     "type": "taskList",
@@ -1146,7 +1327,7 @@ export const SalesGuideTemplate: JSONContent = {
                                     "content": [
                                         {
                                             "type": "text",
-                                            "text": "Ask \"how's that align with you?\"️✅ complete "
+                                            "text": "Ask \"how's that align with you?\""
                                         }
                                     ]
                                 },
@@ -1192,32 +1373,35 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "123f476f-8cba-43d8-9379-81752c7e95f4",
+                                "quantaId": "68e8f227-23b3-42b4-b7f5-cf08fc2b5e53",
                                 "textAlign": "left",
                                 "indent": 0
                             }
                         },
                         {
-                            "type": "paragraph",
+                            "type": "group",
                             "attrs": {
-                                "quantaId": "a2483317-3dbd-48fd-863b-e65cc77c6de7",
-                                "textAlign": "left",
-                                "indent": 0
+                                "quantaId": "403f7346-fac4-4f8a-952a-6dddc0f6db3a",
+                                "attention": 1742,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#ffedd520",
+                                "lens": "identity"
                             },
                             "content": [
                                 {
-                                    "type": "text",
-                                    "marks": [
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "90b1ed82-d1b5-4bbc-9674-f1f122d83908",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
                                         {
-                                            "type": "textStyle",
-                                            "attrs": {
-                                                "color": "",
-                                                "fontFamily": "EB Garamond",
-                                                "fontSize": "20px"
-                                            }
+                                            "type": "text",
+                                            "text": "Paraphrase, this is where you summarise all notes given and then confirm that summarisation is accurate."
                                         }
-                                    ],
-                                    "text": "e.g. "
+                                    ]
                                 }
                             ]
                         },
@@ -1307,7 +1491,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "b8970c0b-1d86-4508-9ce1-9510cbbd7507",
-                        "attention": 730,
+                        "attention": 2068,
                         "refinement": 0.5,
                         "pathos": 0,
                         "backgroundColor": "#ffedd520",
@@ -1460,7 +1644,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "e8f24ce3-726b-42bf-9ed7-59ef88ead961",
-                        "attention": 14630,
+                        "attention": 15714,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#ffedd520",
@@ -1687,7 +1871,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "4c5d3f6d-6cca-480e-a097-758c574188f0",
-                "attention": 61126,
+                "attention": 61348,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#4455BB",
@@ -1702,24 +1886,6 @@ export const SalesGuideTemplate: JSONContent = {
                         "indent": 0
                     },
                     "content": [
-                        {
-                            "type": "text",
-                            "marks": [
-                                {
-                                    "type": "highlight",
-                                    "attrs": {
-                                        "color": "#2196f3"
-                                    }
-                                }
-                            ],
-                            "text": "                                                                                          "
-                        },
-                        {
-                            "type": "hardBreak"
-                        },
-                        {
-                            "type": "hardBreak"
-                        },
                         {
                             "type": "text",
                             "marks": [
@@ -3419,6 +3585,278 @@ export const SalesGuideTemplate: JSONContent = {
                 "quantaId": null,
                 "textAlign": "left",
                 "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
             }
         },
         {
