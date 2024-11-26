@@ -15,83 +15,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "66a177e4-c688-49b1-a0e3-cc56ec2c6046",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "173a8f13-e341-4a0f-9d00-70750dbd3cb0",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "0a7fa728-bffc-4b78-823a-6762731c792a",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "c0057c09-25f6-455b-9822-ca291ce72733",
+                "quantaId": "a08a14bf-388e-44d2-bd75-7c25be880f70",
                 "textAlign": "left",
                 "indent": 0
             }
@@ -948,7 +872,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 387487,
+                "attention": 395539,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -1387,7 +1311,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "2bdd8c14-1117-48a1-9cdd-83cf77716344",
-                                                "attention": 4463,
+                                                "attention": 5710,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1440,7 +1364,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "c9ad14e7-f6b5-4aaa-8df0-3c651991f2c9",
-                                                "attention": 4215,
+                                                "attention": 5461,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1467,7 +1391,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "24bc8709-f60f-4e72-982f-2404cf305dd6",
-                                                "attention": 1223,
+                                                "attention": 3694,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1494,7 +1418,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3695c9cd-f64b-434b-80bd-a0934dc9e678",
-                                                "attention": 732,
+                                                "attention": 7255,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1544,6 +1468,228 @@ export const SalesGuideTemplate: JSONContent = {
                             ]
                         }
                     ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "75b9322d-e092-4566-863e-31fa5d0dc380",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "details",
+                            "attrs": {
+                                "open": true
+                            },
+                            "content": [
+                                {
+                                    "type": "detailsSummary",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "marks": [
+                                                {
+                                                    "type": "bold"
+                                                }
+                                            ],
+                                            "text": "Q4. What made you think of hiring a magician?  "
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "detailsContent",
+                                    "content": [
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "be8a95a5-3a6a-4700-a9c1-75b1ef5550c4",
+                                                "attention": 4761,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "bc205fe7-0412-45b5-9d0b-9f98de09e57a",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "4c487871-e53a-47c9-8cab-37bc40d3313f",
+                                                                "id": "000000",
+                                                                "label": "🎓 learning "
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " So have you seen magic before?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "325397ab-1d00-4cf4-b310-5cc2c8cf8a56",
+                                                "attention": 3643,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "3b845043-a882-411f-b335-065766569d92",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q4a. So what did you like about what you "
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "underline"
+                                                                }
+                                                            ],
+                                                            "text": "saw"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " or "
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "underline"
+                                                                }
+                                                            ],
+                                                            "text": "heard"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": ", so that we can bring it to your party? "
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "3ffa4a9e-f806-469e-99e3-32bd9dc734a2",
+                                                "attention": 3155,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "35e293ec-5059-46cc-ad34-af9d7d79705c",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q4b. Prompts for people who don’t know what to say ____________"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "698a4f47-3f4b-4549-87c6-5a9087b0b330",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "details",
+                            "attrs": {
+                                "open": true
+                            },
+                            "content": [
+                                {
+                                    "type": "detailsSummary",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "marks": [
+                                                {
+                                                    "type": "bold"
+                                                }
+                                            ],
+                                            "text": "Q5. Before I let you know how our magic works, I want to know what you envisioned when you thought of a magician?"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "detailsContent",
+                                    "content": [
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "f490ad00-48b0-4482-847b-29b5bcc594b0",
+                                                "attention": 728,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "7afe4d24-495e-4548-8411-5b6cc1bed5b9",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q5a. Great and what value do you think the magician will bring to yourself and the party?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -1551,7 +1697,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 41232,
+                "attention": 44995,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#00695c",
@@ -3845,757 +3991,9 @@ export const SalesGuideTemplate: JSONContent = {
             ]
         },
         {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
             "type": "paragraph",
             "attrs": {
                 "quantaId": "d3dc4fc3-1f27-4ebe-ae71-8d238525dc4e",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "e121137e-9d1f-4058-afbb-00ce7e246218",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "bf6c3792-8dff-4e56-bd2e-73d41345a47e",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "1fcaaf0f-7691-4b4b-8e1d-14ada067489d",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "3c4b096f-a2ad-452d-a34a-49536483d8b7",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "1f9e3075-c5f3-4d28-871a-c21a733fafe3",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "af3cc59f-d2b5-413f-9fbd-7b78d9c267e6",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "649ff3ba-04c4-4bc2-b4ba-ff58eb1554ff",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "e4580a1c-e293-4d99-87a6-f4b54188b04f",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "990dd8d2-d6ca-42ad-8f3e-e999e4fa0096",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "812f11fa-dc01-48ab-8dde-575d284ca4f5",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "2987abfe-aa03-4cea-8980-c6e6657ddb1f",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "98261806-6f71-4207-90cc-8f827fdec335",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "ab897c60-170d-4241-a85c-7e2ca9f49288",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "50fc0a6f-ebff-42d9-b242-6692d441f354",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "4b392f99-88e7-43f3-9ae2-706754a833ef",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "3f570f31-abd8-4817-b431-82cf6dbac2b7",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "2c65826c-6090-4a78-aa5e-46a7d80c05d7",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "5fd5d40e-4e12-4e3e-8265-a2533cea9e2c",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "dda8a91f-ee9f-4fae-a056-ec4848f0c8ed",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "af6ef695-eb63-41b4-a3ec-f35e1f1896ec",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "28e513e8-d02b-42ec-9c85-2900cc6afce7",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "12df87fe-d38c-4a62-bf62-2e5f8b7d07ad",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "3ad7b205-ef4d-4a1c-af94-3f7d0406c08e",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "36bf5c4a-5263-48b4-9f1a-f64682b020ab",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "dd99ac87-e0a4-4965-9854-5856311c6e58",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "58559bfb-bfdb-4f2d-9f1d-e6733d2fee7c",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "5f21aba1-3d09-40f8-8fc5-2ec6ab5cbaef",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "a752f251-009b-43bd-ab3f-2ad677988c76",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "26677d49-ea62-45e6-9fce-389e912de91c",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "d543a04d-7341-40ee-a588-343ef7d85549",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "a907f585-47cf-4cc7-ad2a-8c6b3be23557",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "d97912e6-bb7b-4fb6-9e04-05d7f1055a2e",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "8b9b8bfc-aa35-41d6-b965-3c9a88eeff19",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "e58226e2-171a-4ddd-a36a-ea2be27929ce",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "75bbbcf0-ccf2-4cfa-852a-381e95249c9d",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "8ad8ca2c-5cd8-4368-aa17-d8dafc48c842",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "94411233-4ccb-4023-bf92-2d5324353b17",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "66b10a43-29f1-4ec9-b1e6-963da70658d7",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "7aa8f779-2005-4656-af64-322b5d885fc6",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "31e5caf4-fed7-4d0d-b554-5f15e36c2b5f",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "a177dd0c-5fac-4d0a-836b-3525da5a92fb",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "97ebd1cb-9739-414e-8c4e-5931cfe8e999",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "837250b7-dc75-4eed-9d5e-ab4128e65e9f",
-                "textAlign": "left",
-                "indent": 0
-            }
-        },
-        {
-            "type": "docAttrs",
-            "attrs": {
-                "selectedFocusLens": "editing",
-                "selectedEventLens": "wedding",
-                "irrelevantEventNodesDisplayLens": "dim",
-                "unimportantNodesDisplayLens": "hide"
-            }
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": null,
                 "textAlign": "left",
                 "indent": 0
             }
