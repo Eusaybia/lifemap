@@ -13,7 +13,7 @@ import FormatAlignRight from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import { Tag } from "../content/Tag"
-import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment } from "../Theme"
+import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
@@ -21,6 +21,7 @@ import { MathLens } from "../../core/Model";
 import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
+import { yellow } from "@mui/material/colors";
 
 export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties => {
     return {
@@ -339,6 +340,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     onClick={() => {
                         // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
+                        // @ts-ignore
+                        console.log('Setting selected event lens to wedding', props.editor.commands.getDocumentAttributes())
                     }}
                 >
                     <motion.div>
@@ -352,6 +355,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     onClick={() => {
                         // @ts-ignore
                         props.editor.chain().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
+                        // @ts-ignore
+                        console.log('Setting selected event lens to corporate', props.editor.commands.getDocumentAttributes())
                     }}
                 >
                     <motion.div>
@@ -872,6 +877,57 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     >
                         <FormatColorTextIcon />
                     </IconButton>
+                </Option>
+            </FlowSwitch>
+            <FlowSwitch value={props.justification} isLens>
+                <Option value={"blue"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: blue })
+                }}>
+                    <motion.div style={{ backgroundColor: blue }}>
+                        Blue background
+                    </motion.div>
+                </Option>
+                <Option value={"lightBlue"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
+                }}>
+                    <motion.div style={{ backgroundColor: lightBlue }}>
+                        Light blue background
+                    </motion.div>
+                </Option>
+                <Option value={"yellow"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: highlightYellow })
+                }}>
+                    <motion.div style={{ backgroundColor: highlightYellow }}>
+                        Yellow background
+                    </motion.div>
+                </Option>
+                <Option value={"teal"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: teal })
+                }}>
+                    <motion.div style={{ backgroundColor: teal }}>
+                        Teal background
+                    </motion.div>
+                </Option>
+                <Option value={"green"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: green })
+                }}>
+                    <motion.div style={{ backgroundColor: green }}>
+                        Green background
+                    </motion.div>
+                </Option>
+                <Option value={"purple"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: purple })
+                }}>
+                    <motion.div style={{ backgroundColor: purple }}>
+                        Purple background
+                    </motion.div>
+                </Option>
+                <Option value={"grey"} onClick={() => {
+                    props.editor.commands.setBackgroundColor({ backgroundColor: grey })
+                }}>
+                    <motion.div style={{ backgroundColor: grey }}>
+                        Grey background
+                    </motion.div>
                 </Option>
             </FlowSwitch>
             {/* Need to create a proper state variable for this */}
