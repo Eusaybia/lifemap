@@ -155,7 +155,15 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
             </Option>
             <Option
                 value={"Insert 2 columns"}
-                onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 2, withHeaderRow: false }))}
+                onClick={() => {
+                    props.editor.chain()
+                        .focus()
+                        // First insert the table
+                        .insertTable({ rows: 1, cols: 2, withHeaderRow: false })
+                        // Then ensure each cell has a paragraph
+                        .insertContent({ type: 'paragraph' })
+                        .run()
+                }}
             >
                 <motion.div>
                     <span style={{}}>
@@ -165,7 +173,15 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
             </Option>
             <Option
                 value={"Insert 3 columns"}
-                onClick={() => (props.editor.commands.insertTable({ rows: 1, cols: 3, withHeaderRow: false }))}
+                onClick={() => {
+                    props.editor.chain()
+                        .focus()
+                        // First insert the table
+                        .insertTable({ rows: 1, cols: 3, withHeaderRow: false })
+                        // Then ensure each cell has a paragraph
+                        .insertContent({ type: 'paragraph' })
+                        .run()
+                }}
             >
                 <motion.div>
                     <span style={{}}>
