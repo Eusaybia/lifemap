@@ -829,56 +829,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <FormatStrikethrough />
                 </IconButton>
             </Tag>
-            {/* Need to create a proper state variable for this */}
-            <FlowSwitch value={props.justification} isLens>
-                <Option
-                    value={"#121212"}
-                    onClick={() => props.editor.chain().focus().setColor('#121212').run()}
-                >
-                    <IconButton
-                        style={{ color: black }}
-                        size="sm"
-                        // @ts-ignore
-                        className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
-                        variant="plain"
-                    >
-                        <FormatColorTextIcon />
-                    </IconButton>
-                </Option>
-                <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
-                    <IconButton
-                        style={{ color: "#958DF1" }}
-                        size="sm"
-                        // @ts-ignore
-                        className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
-                        variant="plain"
-                    >
-                        <FormatColorTextIcon />
-                    </IconButton>
-                </Option>
-                <Option value={red} onClick={() => props.editor.chain().focus().setColor(red).run()}>
-                    <IconButton
-                        style={{ color: red }}
-                        size="sm"
-                        // @ts-ignore
-                        className={props.editor.isActive('textStyle', { color: red }) ? 'is-active' : ''}
-                        variant="plain"
-                    >
-                        <FormatColorTextIcon />
-                    </IconButton>
-                </Option>
-                <Option value={grey} onClick={() => props.editor.chain().focus().setColor(grey).run()}>
-                    <IconButton
-                        style={{ color: grey }}
-                        size="sm"
-                        // @ts-ignore
-                        className={props.editor.isActive('textStyle', { color: grey }) ? 'is-active' : ''}
-                        variant="plain"
-                    >
-                        <FormatColorTextIcon />
-                    </IconButton>
-                </Option>
-            </FlowSwitch>
             <FlowSwitch value={props.justification} isLens>
                 <Option value={"blue"} onClick={() => {
                     props.editor.commands.setBackgroundColor({ backgroundColor: blue })
@@ -930,6 +880,57 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     </motion.div>
                 </Option>
             </FlowSwitch>
+            {/* Need to create a proper state variable for this */}
+            <FlowSwitch value={props.justification} isLens>
+                <Option
+                    value={"#121212"}
+                    onClick={() => props.editor.chain().focus().setColor('#121212').run()}
+                >
+                    <IconButton
+                        style={{ color: black }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={"#958df1"} onClick={() => props.editor.chain().focus().setColor('#958DF1').run()}>
+                    <IconButton
+                        style={{ color: "#958DF1" }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={red} onClick={() => props.editor.chain().focus().setColor(red).run()}>
+                    <IconButton
+                        style={{ color: red }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: red }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+                <Option value={grey} onClick={() => props.editor.chain().focus().setColor(grey).run()}>
+                    <IconButton
+                        style={{ color: grey }}
+                        size="sm"
+                        // @ts-ignore
+                        className={props.editor.isActive('textStyle', { color: grey }) ? 'is-active' : ''}
+                        variant="plain"
+                    >
+                        <FormatColorTextIcon />
+                    </IconButton>
+                </Option>
+            </FlowSwitch>
+            
             {/* Need to create a proper state variable for this */}
             <FlowSwitch value={props.justification} isLens>
                 <Option
