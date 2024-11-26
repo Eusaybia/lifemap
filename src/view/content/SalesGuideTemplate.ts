@@ -30,6 +30,91 @@ export const SalesGuideTemplate: JSONContent = {
             }
         },
         {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
             "type": "group",
             "attrs": {
                 "quantaId": "178577a1-7efd-47c7-b911-bc657f536e70",
@@ -872,7 +957,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 395539,
+                "attention": 409967,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -1507,7 +1592,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "be8a95a5-3a6a-4700-a9c1-75b1ef5550c4",
-                                                "attention": 4761,
+                                                "attention": 5512,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1542,7 +1627,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "325397ab-1d00-4cf4-b310-5cc2c8cf8a56",
-                                                "attention": 3643,
+                                                "attention": 4394,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1595,7 +1680,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3ffa4a9e-f806-469e-99e3-32bd9dc734a2",
-                                                "attention": 3155,
+                                                "attention": 4394,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1662,7 +1747,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f490ad00-48b0-4482-847b-29b5bcc594b0",
-                                                "attention": 728,
+                                                "attention": 4323,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#ffedd520",
@@ -1690,6 +1775,247 @@ export const SalesGuideTemplate: JSONContent = {
                             ]
                         }
                     ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "88b887cd-0490-40e0-b84a-9b3f683519cf",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "details",
+                            "attrs": {
+                                "open": true
+                            },
+                            "content": [
+                                {
+                                    "type": "detailsSummary",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Q6. So what's the most important thing for you for at this party / event / wedding? "
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "detailsContent",
+                                    "content": [
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "d746cf2b-9eec-4581-8930-a03ffa004b7f",
+                                                "attention": 11680,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "907efab9-78cc-4f11-90ed-9e9bb28b0163",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "71e77627-02e9-4c94-b6a0-5782348ed4af",
+                                                                "id": "000000",
+                                                                "label": "🎓 learning "
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " What’s your deep down motivating factor? "
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "915909aa-538e-409a-82b6-15c3243cfc31",
+                                                "attention": 3462,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "1379bdea-6496-4858-8e4c-7e778d035cea",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q6a. And why is that important to you?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "group",
+                                            "attrs": {
+                                                "quantaId": "f612e896-e4db-40bc-9cba-82c81d25a4d9",
+                                                "attention": 3470,
+                                                "refinement": 0,
+                                                "pathos": 0,
+                                                "backgroundColor": "#ffedd520",
+                                                "lens": "identity"
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "1b6d6c54-c99d-415c-9a35-3d66eb042432",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "text": "Q6b. "
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "underline"
+                                                                }
+                                                            ],
+                                                            "text": "Dive deep"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " into this core motive"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "60a46e94-df49-4e67-bad4-5519d79cfcad",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "hardBreak"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Method 1:"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " Why is fun important to you?"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "a2500163-9c24-4662-9c8f-32530eeb8455",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Method 2:"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " Oh give me an example of something fun."
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "6c0a6849-71b1-47ee-86b4-3d02e75c3131",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Method 3:"
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " What exactly do you mean by fun, what do you want to see?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "8a9aac4c-0860-4e6b-9277-75ea731afc9e",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "quote",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "38337f2b-f055-45c3-9b56-a10c483d8c19",
+                                "textAlign": "left",
+                                "indent": 0
+                            },
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "marks": [
+                                        {
+                                            "type": "bold"
+                                        }
+                                    ],
+                                    "text": "Q7.  Have you looked at other magicians or other options? What were your thoughts on what you saw?"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -1697,7 +2023,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 44995,
+                "attention": 53204,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#00695c",
@@ -3994,6 +4320,23 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "paragraph",
             "attrs": {
                 "quantaId": "d3dc4fc3-1f27-4ebe-ae71-8d238525dc4e",
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
                 "textAlign": "left",
                 "indent": 0
             }
