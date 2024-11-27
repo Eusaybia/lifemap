@@ -12,6 +12,7 @@ import TaskList from '@tiptap/extension-task-list'
 import FontFamily from '@tiptap/extension-font-family'
 import Focus from '@tiptap/extension-focus'
 import TextStyle from '@tiptap/extension-text-style'
+import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
 import Image from '@tiptap/extension-image'
 import Heading from '@tiptap/extension-heading'
@@ -155,6 +156,7 @@ export const officialExtensions = (quantaId: string) => {return [
       }
     },
   }),
+  Gapcursor,
   // @ts-ignore
   StarterKit.configure({
     // Here undefined is the equivalent of true
@@ -165,6 +167,7 @@ export const officialExtensions = (quantaId: string) => {return [
     // Disable provided extensions so they don't load twice
     heading: false,
     codeBlock: false,
+    gapcursor: false,
   }),
   Table.configure({
     resizable: true,
