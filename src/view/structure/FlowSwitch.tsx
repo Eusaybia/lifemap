@@ -135,7 +135,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 flexWrap: "nowrap",
                 gap: 3.5,
                 borderRadius: 5,
-                border: "1px solid #BBBBBB"
+                border: "1px solid #BBBBBB",
+                userSelect: 'none',
+                WebkitUserSelect: 'none',  // For Safari
             }}>
             {switchElements}
         </motion.div>
