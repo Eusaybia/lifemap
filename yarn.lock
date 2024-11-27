@@ -8082,11 +8082,6 @@ typescript@5.1.6:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.1.6.tgz#02f8ac202b6dad2c0dd5e0913745b47a37998274"
   integrity sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==
 
-typescript@^4.8.4:
-  version "4.9.5"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
-  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
-
 typewise-core@^1.2, typewise-core@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/typewise-core/-/typewise-core-1.2.0.tgz#97eb91805c7f55d2f941748fa50d315d991ef195"
@@ -8470,13 +8465,12 @@ y-indexeddb@9.0.9:
   dependencies:
     lib0 "^0.2.35"
 
-y-prosemirror@1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/y-prosemirror/-/y-prosemirror-1.2.0.tgz#84771bd350834bc7759e946cd14c62ec26243a5c"
-  integrity sha512-t3uxuX4HIkb1GNt8jV+dplRbNH2OmQD/BNeCCbjLD3Mq0o6JEXxHedv58ZIPFDE6ma24jljlL+u8pGvN6B37XQ==
+y-prosemirror@1.2.10:
+  version "1.2.10"
+  resolved "https://registry.yarnpkg.com/y-prosemirror/-/y-prosemirror-1.2.10.tgz#87459568d4f02d958f01bb1aaf6b2be92e122aa3"
+  integrity sha512-lleZ0Pfq6oGK6m8IWCuSa4JjBFMNo17ux9G63qJi505c7txd+l6HL2LL0kjfR9sMrSTrlz+gsieQNrnUPieeuw==
   dependencies:
     lib0 "^0.2.42"
-    typescript "^4.8.4"
 
 y-protocols@^1.0.5:
   version "1.0.6"

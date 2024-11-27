@@ -109,7 +109,7 @@
     "uuid": "9.0.0",
     "web-vitals": "3.1.0",
     "y-indexeddb": "9.0.9",
-    "y-prosemirror": "1.2.0",
+    "y-prosemirror": "1.2.10",
     "y-webrtc": "10.2.3",
     "yjs": "13.5.44"
   },
