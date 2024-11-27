@@ -26,18 +26,16 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         (<motion.div
             ref={switchElementsRefs[index]}
             initial={{ opacity: 0.2, scale: 0.8 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        onClick={() => {
-            if (typeof child.props.onClick === 'function') {
-                child.props.onClick()
-            }
-        }
-        }
-        style={{
-            // TODO: Change this eventually
-            scrollSnapAlign: "none",
-            width: "fit-content",
-        }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            onClick={() => {
+                if (typeof child.props.onClick === 'function') {
+                    child.props.onClick()
+                }
+            }}
+            style={{
+                scrollSnapAlign: "center",
+                width: "fit-content",
+            }}
             viewport={{ root: flowSwitchContainerRef, margin: "-14px 0px -14px 0px" }}
             onViewportEnter={(entry) => {
                 // TODO: Maybe it would be better to use Motion.js and its scroll functions
@@ -110,9 +108,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         <motion.div className="flow-menu"
             key={props.value}
             ref={flowSwitchContainerRef}
-
             style={{
-                scrollSnapType: `y mandatory`,
+                scrollSnapType: "y mandatory",
+                scrollBehavior: "smooth",
                 cursor: "pointer",
                 boxSizing: "border-box",
                 flexShrink: 0,
@@ -162,10 +160,7 @@ export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children })
     };
 
     return (
-        <motion.div 
-            onClick={handleClick}
-            whileTap={{ scale: 0.95 }}
-        >
+        <motion.div onClick={handleClick} whileTap={{ scale: 0.95 }}>
             {children}
         </motion.div>
     );
