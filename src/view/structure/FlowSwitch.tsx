@@ -162,7 +162,10 @@ export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children })
     };
 
     return (
-        <motion.div onClick={handleClick}>
+        <motion.div 
+            onClick={handleClick}
+            whileTap={{ scale: 0.95 }}
+        >
             {children}
         </motion.div>
     );
