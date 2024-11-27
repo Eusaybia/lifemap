@@ -24,7 +24,7 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
-import { debounce } from 'lodash'
+import { throttle } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
 import { lowlight } from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
@@ -49,7 +49,7 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
-import { backup, generateUniqueID, renderDate } from '../../utils/utils'
+import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
@@ -64,6 +64,7 @@ import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
+import { backup } from '../../backend/backup'
 
 lowlight.registerLanguage('js', js)
 
@@ -277,6 +278,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
   const [isMounted, setIsMounted] = React.useState(false)
+  const [contentError, setContentError] = React.useState<Error | null>(null)
 
   React.useEffect(() => {
     setIsMounted(true)
@@ -298,9 +300,25 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     )
   } 
 
+  // Create memoized throttled backup function (3 minutes = 180000ms)
+  const throttledBackup = React.useMemo(
+    () => throttle((content: any) => {
+      backup.storeValidContent(content)
+    }, 180000, { leading: true, trailing: true }),
+    []
+  );
+
+  // Cleanup throttle on unmount
+  React.useEffect(() => {
+    return () => {
+      throttledBackup.cancel()
+    }
+  }, [throttledBackup])
+
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly && isMounted, // Only enable when mounted
+    enableContentCheck: true, // Enable content validation
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
@@ -309,6 +327,38 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     content: (informationType === "yDoc") ? null : information,
     immediatelyRender: isMounted, // Only enable when mounted
     shouldRerenderOnTransaction: false,
+    
+    // Add error handling for invalid content
+    onContentError: ({ editor, error, disableCollaboration }) => {
+      console.error('Editor content error:', error)
+      setContentError(error)
+      // If there is an error on this client, isolate the client from others, to prevent
+      // it from "infecting" other clients with its invalid content
+
+      // If using collaboration, disable it to prevent syncing invalid content
+      if (disableCollaboration && provider) {
+        disableCollaboration()
+      }
+
+      // Prevent emitting updates
+      const emitUpdate = false
+
+      // Disable further user input
+      editor.setEditable(false, emitUpdate)
+
+      // Try to recover by loading backup content
+      try {
+        const backupContent = backup.getLastValidContent()
+        if (backupContent) {
+          editor.commands.setContent(backupContent)
+          editor.setEditable(true)
+          setContentError(null)
+        }
+      } catch (recoveryError) {
+        console.error('Failed to recover editor content:', recoveryError)
+      }
+    },
+    
     onSelectionUpdate: ({ editor }: { editor: Editor }) => {
       // Retrieve document attributes using the custom command
       // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
@@ -339,10 +389,11 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       }
     },
     onUpdate: ({ editor }) => {
-      console.log("JSON Output", editor.getJSON())
-      // console.log("HTML Output", editor.getHTML())
-      // console.log("editor.getText()", editor.getText())
-      // console.log("Selection", editor.state.selection)
+      if (!contentError) {
+        throttledBackup(editor.getJSON())
+      }
+      
+      // console.log("JSON Output", editor.getJSON())
     },
     onTransaction: ({ editor, transaction }) => {
       if (transaction.docChanged) {
@@ -380,9 +431,21 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     return null
   }
 
+  // Show error state if needed
+  if (contentError) {
+    return (
+      <div className="editor-error">
+        <h3>Editor Content Error</h3>
+        <p>There was an issue with the document content. Please refresh the page or contact support if this persists.</p>
+        <button onClick={() => window.location.reload()}>
+          Refresh Page
+        </button>
+      </div>
+    )
+  }
+
   return editor
 }
-
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
