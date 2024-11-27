@@ -13,6 +13,8 @@ export const backup = {
     try {
       // Get existing backups
       const existingBackups = this.getAllBackups()
+      // Ensure existingBackups is always an array
+      const backupsArray = Array.isArray(existingBackups) ? existingBackups : [];
       
       // Create new backup entry
       const newBackup: BackupEntry = {
@@ -21,8 +23,7 @@ export const backup = {
       }
 
       // Add new backup and limit to MAX_REVISIONS
-      const updatedBackups = [newBackup, ...existingBackups]
-        .slice(0, MAX_REVISIONS)
+      const updatedBackups = [newBackup, ...backupsArray].slice(0, MAX_REVISIONS)
 
       localStorage.setItem(BACKUP_KEY, JSON.stringify(updatedBackups))
     } catch (e) {
@@ -43,7 +44,11 @@ export const backup = {
   getAllBackups(): BackupEntry[] {
     try {
       const backup = localStorage.getItem(BACKUP_KEY)
-      return backup ? JSON.parse(backup) : []
+      // Ensure we return an array even if parsing fails
+      if (!backup) return [];
+      const parsed = JSON.parse(backup);
+      // Verify that parsed data is an array
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       console.error('Failed to retrieve backups:', e)
       return []
