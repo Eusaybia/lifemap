@@ -72,21 +72,6 @@ export function getActiveMarkCodes (view: EditorView) {
     }
   }
 
-export const backup = (content: JSONContent) => {
-  const date = new Date();
-  const timestamp = date.toISOString().replace(/[-:.]/g, '');
-  const filename = `lifemap+${timestamp}.json`;
-
-  const jsonData = JSON.stringify(content);
-  const blob = new Blob([jsonData], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
 export const similarityBetweenWordEmbeddings = (word1: string, word2: string) => {
   return stringSimilarity.compareTwoStrings(word1, word2)
 }

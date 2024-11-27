@@ -21,6 +21,7 @@ import { MathLens } from "../../core/Model";
 import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
+import { backup } from "../../backend/backup";
 import { yellow } from "@mui/material/colors";
 
 export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties => {
@@ -227,6 +228,23 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
                 <motion.div>
                     <span>
                         ⚠ Add Warning group
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
+                value={"Revert to last valid content"}
+                onClick={() => {
+                    const lastValidContent = backup.getLastValidContent();
+                    if (lastValidContent) {
+                        props.editor.commands.setContent(lastValidContent);
+                    } else {
+                        console.warn('No valid backup content found');
+                    }
+                }}
+            >
+                <motion.div>
+                    <span>
+                        ↩️ Revert to last valid content
                     </span>
                 </motion.div>
             </Option>
