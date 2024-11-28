@@ -3,7 +3,7 @@
 export const black = "#1D1D1F"
 export const blue = "#1976d2"
 export const lightBlue = "#00bcd4"
-export const offWhite = "#ffedd520"
+export const offWhite = "#EFEFEF"
 export const absolulteWhite = "#FFFFFF"
 export const yellow = "#ffeb3b"
 export const highlightYellow = "#ffea00"

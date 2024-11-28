@@ -910,7 +910,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     props.editor.commands.setBackgroundColor({ backgroundColor: offWhite })
                 }}>
                     <motion.div style={{ backgroundColor: offWhite }}>
-                        Off white background
+                        White background
                     </motion.div>
                 </Option>
                 <Option value={"grey"} onClick={() => {
