@@ -94,7 +94,7 @@
     "prosemirror-schema-list": "1.2.2",
     "prosemirror-state": "1.4.3",
     "prosemirror-transform": "1.10.0",
-    "prosemirror-view": "1.36.0",
+    "prosemirror-view": "1.37.0",
     "react": "18.2.0",
     "react-audible-debug": "^1.0.3",
     "react-dom": "18.2.0",
@@ -156,6 +156,6 @@
   },
   "overrides": {
     "prosemirror-gapcursor": "1.3.2",
-    "prosemirror-view": "1.36.0"
+    "prosemirror-view": "1.37.0"
   }
 }
