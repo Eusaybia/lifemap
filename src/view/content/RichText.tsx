@@ -280,12 +280,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 
 export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
-  const [isMounted, setIsMounted] = React.useState(false)
   const [contentError, setContentError] = React.useState<Error | null>(null)
-
-  React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
 
@@ -320,7 +315,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
-    editable: !readOnly && isMounted, // Only enable when mounted
+    editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
     editorProps: {
       attributes: {
@@ -328,7 +323,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       },
     },
     content: (informationType === "yDoc") ? null : information,
-    immediatelyRender: isMounted, // Only enable when mounted
     shouldRerenderOnTransaction: false,
     
     // Add error handling for invalid content
@@ -430,10 +424,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
   })
 
-  if (!isMounted) {
-    return null
-  }
-
   // Show error state if needed
   if (contentError) {
     return (
@@ -469,7 +459,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       break;
   }
 
-  let editor = MainEditor(content, true)
+  let editor = MainEditor(content, true, false)
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version

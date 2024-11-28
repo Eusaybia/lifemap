@@ -12,6 +12,7 @@ import { useAudibleRenders } from "react-audible-debug";
 export default function Page({ params }: { params: { slug: string } }) {
     const minimapWidth = useMinimapWidth();
     const padding = 20; 
+    const editor = MainEditor("", true);
 
     useAudibleRenders(false);
 
@@ -24,7 +25,7 @@ export default function Page({ params }: { params: { slug: string } }) {
             paddingRight: padding,
         }}>
             <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
-                <DocumentFlowMenu editor={MainEditor("", true)!}/>
+                {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
             </motion.div>
             <Minimap />
             <motion.div style={{ padding: `0px 0px 40px 0px` }}>
