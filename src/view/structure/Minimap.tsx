@@ -23,7 +23,7 @@ export const Minimap = () => {
     timer = setInterval(() => {
       // Update the minimap every 10 seconds
       setCounter(counter + 1)
-    }, 10000);
+    }, 15000);
 
 
     const win = window;
