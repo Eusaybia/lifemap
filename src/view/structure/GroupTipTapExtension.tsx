@@ -382,7 +382,7 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node, props.editor)}
+              isIrrelevant={determineIrrelevance(props.node as any, props.editor as Editor)}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
