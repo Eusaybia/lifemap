@@ -885,7 +885,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "28196724-d91d-47cf-acb3-243cadd87107",
-                "attention": 461254,
+                "attention": 480001,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#00bcd4",
@@ -984,7 +984,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "eda11276-abe6-4682-a3af-60b7a5a506ab",
-                                                "attention": 22079,
+                                                "attention": 25161,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1019,7 +1019,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f6c5afc1-27e7-444e-83f8-873b802100ca",
-                                                "attention": 19081,
+                                                "attention": 23432,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1032,12 +1032,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         "quantaId": "4f79fb9f-e759-484b-a956-bb827ff4dc38",
                                                         "textAlign": "left",
                                                         "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "hardBreak"
-                                                        }
-                                                    ]
+                                                    }
                                                 }
                                             ]
                                         },
@@ -1045,7 +1040,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "acd92814-4527-4a5a-9153-d99cbc23f77e",
-                                                "attention": 31212,
+                                                "attention": 35565,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1080,7 +1075,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "51b75046-61e6-4c32-adad-104bdeef0262",
-                                                "attention": 17798,
+                                                "attention": 22149,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1106,7 +1101,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "e2e01865-8c81-4423-a4e1-942f8428a00a",
-                                                "attention": 28764,
+                                                "attention": 34648,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1141,7 +1136,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "72851bc6-fc00-4cd3-a82e-4249c464f759",
-                                                "attention": 17194,
+                                                "attention": 24152,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1167,7 +1162,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b973841a-95bd-4f23-8bca-b1ac6d689025",
-                                                "attention": 29175,
+                                                "attention": 32979,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1202,7 +1197,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "5c933ab6-2aae-402c-92e1-cc33a38a9967",
-                                                "attention": 237,
+                                                "attention": 2756,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1284,7 +1279,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b06c7b03-7062-4535-a261-caf1cfda1d0b",
-                                                "attention": 10696,
+                                                "attention": 11725,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1319,7 +1314,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "ff77e846-08f6-4d75-b15e-b79c54d4843a",
-                                                "attention": 12782,
+                                                "attention": 13799,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1346,7 +1341,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "39b3f663-ce4b-4fd5-8a52-238d98074309",
-                                                "attention": 478,
+                                                "attention": 1480,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1454,7 +1449,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "6a137b1d-b384-4e53-a260-d39e12150837",
-                                                "attention": 12123,
+                                                "attention": 13205,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1507,7 +1502,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "d731a2c2-0fa8-4260-b5d5-103a0585618a",
-                                                "attention": 4039,
+                                                "attention": 5045,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1533,7 +1528,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "c9ad14e7-f6b5-4aaa-8df0-3c651991f2c9",
-                                                "attention": 11218,
+                                                "attention": 12520,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1560,7 +1555,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b65ff535-fbd7-4316-950b-934040f3e048",
-                                                "attention": 3986,
+                                                "attention": 4749,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1586,7 +1581,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "24bc8709-f60f-4e72-982f-2404cf305dd6",
-                                                "attention": 5278,
+                                                "attention": 6041,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1613,7 +1608,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b95469a4-da60-48ea-92f9-2058538edee3",
-                                                "attention": 0,
+                                                "attention": 761,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1639,7 +1634,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3695c9cd-f64b-434b-80bd-a0934dc9e678",
-                                                "attention": 8487,
+                                                "attention": 8791,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1754,7 +1749,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3b9473e0-1e31-487f-ab60-6b9b682b3227",
-                                                "attention": 7119,
+                                                "attention": 8417,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1789,7 +1784,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b8b3efdf-bd51-4589-85fe-4ce4ecf3e6b0",
-                                                "attention": 5228,
+                                                "attention": 6524,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1842,7 +1837,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "11470d22-5b5d-4404-92a9-08a4964fa0bb",
-                                                "attention": 0,
+                                                "attention": 1298,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1868,7 +1863,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3ffa4a9e-f806-469e-99e3-32bd9dc734a2",
-                                                "attention": 5126,
+                                                "attention": 6650,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1895,7 +1890,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "d277b33f-a1e3-4459-96bc-860155400d48",
-                                                "attention": 0,
+                                                "attention": 230,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1961,7 +1956,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "b4ccdb30-13cd-409a-9fa4-ab413fa4a3cd",
-                                                "attention": 12742,
+                                                "attention": 14733,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -1988,7 +1983,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "11c65b1e-9e23-43f6-9b28-2b3aafa6c102",
-                                                "attention": 7672,
+                                                "attention": 9663,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2049,7 +2044,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "4157aae3-87b9-4082-afac-ddffbd5358f2",
-                                                "attention": 19988,
+                                                "attention": 23813,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2084,7 +2079,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f36fe95f-23a0-456a-b3e4-93c60456b666",
-                                                "attention": 14141,
+                                                "attention": 17966,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2111,7 +2106,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "3f0a6a50-92a3-4773-a45b-b67337f389e8",
-                                                "attention": 7673,
+                                                "attention": 11267,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2137,7 +2132,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f612e896-e4db-40bc-9cba-82c81d25a4d9",
-                                                "attention": 7507,
+                                                "attention": 9538,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2249,7 +2244,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "cc159dd5-4dd8-414b-9f60-1d60b024a9d1",
-                                                "attention": 230,
+                                                "attention": 3024,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2311,7 +2306,7 @@ export const SalesGuideTemplate: JSONContent = {
                             "type": "group",
                             "attrs": {
                                 "quantaId": "f79120c7-ff0f-4a88-a4a0-ea697097a2c4",
-                                "attention": 235,
+                                "attention": 767,
                                 "refinement": 0,
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
@@ -2372,7 +2367,7 @@ export const SalesGuideTemplate: JSONContent = {
                             "type": "group",
                             "attrs": {
                                 "quantaId": "d1fba1fb-99df-4b7a-8ede-87e7c1d69444",
-                                "attention": 463,
+                                "attention": 1475,
                                 "refinement": 0,
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
@@ -2454,7 +2449,7 @@ export const SalesGuideTemplate: JSONContent = {
                             "type": "group",
                             "attrs": {
                                 "quantaId": "7f226af1-18db-4091-afc7-03a83a0985aa",
-                                "attention": 0,
+                                "attention": 303,
                                 "refinement": 0,
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
@@ -2549,7 +2544,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "dfc1c3d3-8e38-4ad1-8a66-fb39e9458b0d",
-                                                "attention": 2893,
+                                                "attention": 3231,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2576,7 +2571,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "0b4909cc-e088-4f75-b810-bd6c60d82478",
-                                                "attention": 0,
+                                                "attention": 337,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2602,7 +2597,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "9f70658c-66a1-4051-83cf-d1b93b226bc9",
-                                                "attention": 2651,
+                                                "attention": 3215,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2629,7 +2624,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "c683c016-d60a-41b6-bd61-8effc8af12ac",
-                                                "attention": 0,
+                                                "attention": 770,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2655,7 +2650,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "7afae404-e2f1-4040-ab30-707ca77f3ccc",
-                                                "attention": 3167,
+                                                "attention": 3598,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2682,7 +2677,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "8e30eb87-f397-4bf1-bdbe-9637e815ce18",
-                                                "attention": 0,
+                                                "attention": 522,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2708,7 +2703,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "102dd6be-703e-46f5-a2d0-faa1497faf2a",
-                                                "attention": 3623,
+                                                "attention": 4675,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2735,7 +2730,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "a4f617ec-2734-4cde-bfad-7b58f0672196",
-                                                "attention": 0,
+                                                "attention": 1052,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2761,7 +2756,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "f866c06b-911a-4108-b8b9-206cd9d33073",
-                                                "attention": 2474,
+                                                "attention": 4078,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2788,7 +2783,7 @@ export const SalesGuideTemplate: JSONContent = {
                                             "type": "group",
                                             "attrs": {
                                                 "quantaId": "fe430098-58cb-43d7-b29b-edc4260776cb",
-                                                "attention": 0,
+                                                "attention": 1324,
                                                 "refinement": 0,
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
@@ -2822,7 +2817,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
-                "attention": 65157,
+                "attention": 66162,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#4455BB",
@@ -3300,7 +3295,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                     }
                                                 }
                                             ],
-                                            "text": "Okay so before we move on to what we can do, I just want to check I’ve understood. You really want your ___________ and the most important thing to you is to ____________."
+                                            "text": "Okay so before we move on to what we can do, I just want to check I’ve understood. You really want your ___________ and the most important thing to you is to _____________."
                                         }
                                     ]
                                 }
@@ -3405,7 +3400,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "315d72eb-a94a-47dd-9888-8ec961f80faf",
-                "attention": 80519,
+                "attention": 85904,
                 "refinement": 0.5,
                 "pathos": 0,
                 "backgroundColor": "#00695c",
@@ -3440,7 +3435,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "950f2bc0-9ce2-45e4-b37b-7c0c1b4383f6",
-                        "attention": 878,
+                        "attention": 1425,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
@@ -3475,7 +3470,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "8c370ef7-d48c-4f82-b84f-4459e3e8595c",
-                        "attention": 878,
+                        "attention": 1432,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
@@ -3616,28 +3611,6 @@ export const SalesGuideTemplate: JSONContent = {
                                                         }
                                                     ],
                                                     "text": "Option 1 - Roving Magic"
-                                                },
-                                                {
-                                                    "type": "hardBreak"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "86aa756f-861c-423f-bf68-dc2d8a70f110",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "text",
-                                                    "marks": [
-                                                        {
-                                                            "type": "bold"
-                                                        }
-                                                    ],
-                                                    "text": "Option 1 – Roving Magic"
                                                 }
                                             ]
                                         },
@@ -4252,7 +4225,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "4ab8c830-1d16-465d-84d6-9bb920fdb088",
-                "attention": 287589,
+                "attention": 287862,
                 "refinement": 1.5,
                 "pathos": 0,
                 "backgroundColor": "#D9D9D9",
@@ -4359,7 +4332,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "fe6733fc-0c19-41a2-8bee-57ff121c00ed",
-                        "attention": 5018,
+                        "attention": 5251,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
@@ -4963,7 +4936,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "fe304b1c-12e0-441a-bdc6-e2e84610aa6d",
-                "attention": 298313,
+                "attention": 303222,
                 "refinement": 0,
                 "pathos": 0,
                 "backgroundColor": "#1976d2",
@@ -5491,7 +5464,7 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "group",
                     "attrs": {
                         "quantaId": "58a55ce4-2c32-4404-b657-09f4fb928c77",
-                        "attention": 8595,
+                        "attention": 11733,
                         "refinement": 0,
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
@@ -5507,10 +5480,6 @@ export const SalesGuideTemplate: JSONContent = {
                             },
                             "content": [
                                 {
-                                    "type": "text",
-                                    "text": "sdsdsd"
-                                },
-                                {
                                     "type": "hardBreak"
                                 }
                             ]
@@ -5523,7 +5492,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "group",
             "attrs": {
                 "quantaId": "87436677-6d86-4a6b-9c33-7f09c3f7bef0",
-                "attention": 375456,
+                "attention": 452444,
                 "refinement": 0,
                 "pathos": 0,
                 "backgroundColor": "#ffedd520",
@@ -5566,15 +5535,15 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "portal",
                     "attrs": {
                         "id": "88c291b2-eb20-4328-baa4-adeb2b232626",
-                        "referencedQuantaId": "fe6733fc-0c19-41a2-8bee-57ff121c00ed",
+                        "referencedQuantaId": "f6c5afc1-27e7-444e-83f8-873b802100ca",
                         "lens": "identity"
                     },
                     "content": [
                         {
                             "type": "group",
                             "attrs": {
-                                "quantaId": "fe6733fc-0c19-41a2-8bee-57ff121c00ed",
-                                "attention": 5018,
+                                "quantaId": "f6c5afc1-27e7-444e-83f8-873b802100ca",
+                                "attention": 23432,
                                 "refinement": 0,
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
@@ -5584,60 +5553,10 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "9c9b8272-8b9e-4265-942d-78a4087e09ad",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "mention",
-                                            "attrs": {
-                                                "quantaId": "52a72aee-d54b-4e22-937d-86eea43200c7",
-                                                "id": "000000",
-                                                "label": "🎓 learning "
-                                            }
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": " "
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "1b1af78b-5b43-4c71-befb-4cca7337c9b2",
+                                        "quantaId": "4f79fb9f-e759-484b-a956-bb827ff4dc38",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "6cf0fbea-06dd-4c87-bacf-71325cc3624f",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "Depends on the type of event – some can’t have many options."
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "b6955812-a5b8-42d5-be24-f5f87e2ab9ab",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "The script here should say “we will offer our professional opinion, but before I do, what is your preference?”..."
-                                        }
-                                    ]
                                 }
                             ]
                         }
@@ -5655,15 +5574,15 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "portal",
                     "attrs": {
                         "id": "c537e4b9-8519-433b-94d4-65c8ddb1b9cd",
-                        "referencedQuantaId": "fe6733fc-0c19-41a2-8bee-57ff121c00ed",
+                        "referencedQuantaId": "51b75046-61e6-4c32-adad-104bdeef0262",
                         "lens": "identity"
                     },
                     "content": [
                         {
                             "type": "group",
                             "attrs": {
-                                "quantaId": "fe6733fc-0c19-41a2-8bee-57ff121c00ed",
-                                "attention": 5018,
+                                "quantaId": "51b75046-61e6-4c32-adad-104bdeef0262",
+                                "attention": 22149,
                                 "refinement": 0,
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
@@ -5673,58 +5592,13 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "9c9b8272-8b9e-4265-942d-78a4087e09ad",
+                                        "quantaId": "ca58ed9a-3e31-4557-bbcd-7375c1c16ee5",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
                                     "content": [
                                         {
-                                            "type": "mention",
-                                            "attrs": {
-                                                "quantaId": "952d7531-12be-4d3b-a967-cb23d7251c31",
-                                                "id": "000000",
-                                                "label": "🎓 learning "
-                                            }
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": " "
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "950ed4a1-ce00-4c80-8ff4-23b72de833f5",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    }
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "6cf0fbea-06dd-4c87-bacf-71325cc3624f",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "Depends on the type of event – some can’t have many options."
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "b6955812-a5b8-42d5-be24-f5f87e2ab9ab",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "The script here should say “we will offer our professional opinion, but before I do, what is your preference?”..."
+                                            "type": "hardBreak"
                                         }
                                     ]
                                 }
@@ -5739,8 +5613,2252 @@ export const SalesGuideTemplate: JSONContent = {
                         "textAlign": "left",
                         "indent": 0
                     }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "72851bc6-fc00-4cd3-a82e-4249c464f759",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "72851bc6-fc00-4cd3-a82e-4249c464f759",
+                                "attention": 24152,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "af351280-20f2-4b77-9e18-e50e1008100f",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "eec91da0-9b77-48c6-b132-da076dcaa91a",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "5c933ab6-2aae-402c-92e1-cc33a38a9967",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "5c933ab6-2aae-402c-92e1-cc33a38a9967",
+                                "attention": 2756,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "d820ba6c-94eb-4b4a-96c0-5fbddfc8e2a7",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "2e0d0a09-6460-4866-838e-e41e429eaed6",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q2"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "39b3f663-ce4b-4fd5-8a52-238d98074309",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "39b3f663-ce4b-4fd5-8a52-238d98074309",
+                                "attention": 1480,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "281dd021-7241-4203-9b6e-af17584ec14f",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "4dfa5266-3879-4199-bb26-ca4ec9b579e8",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "4c326a24-1d9c-426d-b051-7c2e5f3073d2",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Q3"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "d731a2c2-0fa8-4260-b5d5-103a0585618a",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "d731a2c2-0fa8-4260-b5d5-103a0585618a",
+                                "attention": 5045,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "b5a70b4c-735d-4c47-a1ff-55a70f86118d",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "0153f55d-75b5-4e32-a25e-6b0b50352d01",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "b65ff535-fbd7-4316-950b-934040f3e048",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "b65ff535-fbd7-4316-950b-934040f3e048",
+                                "attention": 4749,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "7706aaed-046d-4e23-9143-c2002e3ae15e",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "c7946f1c-f02f-43b6-a140-1020cde46e0e",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "b95469a4-da60-48ea-92f9-2058538edee3",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "b95469a4-da60-48ea-92f9-2058538edee3",
+                                "attention": 761,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "2f980835-89aa-45df-8ef0-c3a98c161d82",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "289fa2e1-a880-484e-9673-3143481dc0b2",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "289fa2e1-a880-484e-9673-3143481dc0b2",
+                                "attention": 0,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "a7e34679-98ec-41a7-8b73-58a735ee10c0",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "f51ac113-84ba-47f6-97a3-f93077615d0a",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "fa82fa7c-2193-4b8e-90db-6bc28d7819d3",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Q4"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "11470d22-5b5d-4404-92a9-08a4964fa0bb",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "11470d22-5b5d-4404-92a9-08a4964fa0bb",
+                                "attention": 1298,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "c8d8198c-4e2b-4127-8c87-feaf8a55f1b1",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "28d6c804-3ffa-4b93-bb6a-353a371b1b0e",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "d277b33f-a1e3-4459-96bc-860155400d48",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "d277b33f-a1e3-4459-96bc-860155400d48",
+                                "attention": 230,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "8a7f8cf8-0c4a-400e-b8cb-843ae57fbc5f",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "5988922a-7550-461e-8993-7eef94206f2a",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q5"
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "73064f4f-6413-41c2-8293-0c8fbcfccb2d",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "11c65b1e-9e23-43f6-9b28-2b3aafa6c102",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "11c65b1e-9e23-43f6-9b28-2b3aafa6c102",
+                                "attention": 9663,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "067a455d-c551-45cf-859e-abffe787a1f8",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "897dc299-149f-439b-b98c-be1a05f5af2e",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q6"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "3f0a6a50-92a3-4773-a45b-b67337f389e8",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "3f0a6a50-92a3-4773-a45b-b67337f389e8",
+                                "attention": 11267,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "6312ffdc-c5a6-4b34-816f-2e877b3c2e9e",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "adddf2a4-5dbb-428c-8a0c-6a389033f588",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "cc159dd5-4dd8-414b-9f60-1d60b024a9d1",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "cc159dd5-4dd8-414b-9f60-1d60b024a9d1",
+                                "attention": 3024,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "a456dfe9-b569-492f-ba7b-f64da8534af7",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "6ee5b810-9faf-42f3-a062-105f01c91dfb",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q7"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "f79120c7-ff0f-4a88-a4a0-ea697097a2c4",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "f79120c7-ff0f-4a88-a4a0-ea697097a2c4",
+                                "attention": 767,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "9d144a25-35eb-4fb0-84f4-128291762e93",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    }
+                                },
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "c7b00cde-fa64-4cdb-8f6a-adac3ef32f04",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": null,
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q8"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "d1fba1fb-99df-4b7a-8ede-87e7c1d69444",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "d1fba1fb-99df-4b7a-8ede-87e7c1d69444",
+                                "attention": 1475,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "fd7766e3-3d02-4150-a760-8507f113858c",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    }
+                                },
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "67f4b597-299e-4955-b7dc-a9a8a8a1ae3e",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "9abbc822-7e36-4cd7-b076-8599f0308038",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "7f226af1-18db-4091-afc7-03a83a0985aa",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "7f226af1-18db-4091-afc7-03a83a0985aa",
+                                "attention": 303,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "64d3adc7-7628-4fb8-87a3-a5749291e913",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "d7cd474d-479c-4b6b-ae93-bf013f27985d",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "text",
+                            "text": "Q9"
+                        },
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "0b4909cc-e088-4f75-b810-bd6c60d82478",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "0b4909cc-e088-4f75-b810-bd6c60d82478",
+                                "attention": 337,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "3edf5e6b-a898-4b49-bad2-47d270f19c14",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "c683c016-d60a-41b6-bd61-8effc8af12ac",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "c683c016-d60a-41b6-bd61-8effc8af12ac",
+                                "attention": 770,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "6e8d59e1-fc6e-4012-a9cd-546db26ec4de",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "8e30eb87-f397-4bf1-bdbe-9637e815ce18",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "8e30eb87-f397-4bf1-bdbe-9637e815ce18",
+                                "attention": 522,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "e7156c2b-e208-4152-89f6-3cc2487abd3d",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "a4f617ec-2734-4cde-bfad-7b58f0672196",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "a4f617ec-2734-4cde-bfad-7b58f0672196",
+                                "attention": 1052,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "738f363b-e8ba-4771-b50e-398f9e693bd7",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "portal",
+                    "attrs": {
+                        "id": null,
+                        "referencedQuantaId": "fe430098-58cb-43d7-b29b-edc4260776cb",
+                        "lens": "identity"
+                    },
+                    "content": [
+                        {
+                            "type": "group",
+                            "attrs": {
+                                "quantaId": "fe430098-58cb-43d7-b29b-edc4260776cb",
+                                "attention": 1324,
+                                "refinement": 0,
+                                "pathos": 0,
+                                "backgroundColor": "#EFEFEF",
+                                "lens": "identity"
+                            },
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "cf1c9b89-29b0-4137-b5ee-1821e8493897",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "hardBreak"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "64ea6f8b-91e0-4ceb-92b7-3838ee1a04f7",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
+                        },
+                        {
+                            "type": "hardBreak"
+                        }
+                    ]
                 }
             ]
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
+        },
+        {
+            "type": "paragraph",
+            "attrs": {
+                "quantaId": null,
+                "textAlign": "left",
+                "indent": 0
+            }
+        },
+        {
+            "type": "docAttrs",
+            "attrs": {
+                "selectedFocusLens": "editing",
+                "selectedEventLens": "wedding",
+                "irrelevantEventNodesDisplayLens": "dim",
+                "unimportantNodesDisplayLens": "hide"
+            }
         },
         {
             "type": "paragraph",
