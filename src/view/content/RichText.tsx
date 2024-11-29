@@ -464,11 +464,14 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
 
+    // @ts-ignore
     editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
   }, [editor])
+  // @ts-ignore
   const reversedVersions = React.useMemo(() => editor?.storage.collabHistory.versions.slice().reverse(), [editor?.storage.collabHistory.versions])
   // console.log("reversed versions", reversedVersions)
 
+  // @ts-ignore
   const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
 
   // Add a ref to track template application
@@ -484,7 +487,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     // Only apply template if URL ID matches stored ID
     if (newSalesGuideId === urlId && editor) {
       setTimeout(() => {
-        editor!.commands.setContent(SalesGuideTemplate);
+        (editor as Editor)!.commands.setContent(SalesGuideTemplate);
         console.log("Applied sales guide template to", urlId);
         
         // Mark template as applied
@@ -510,10 +513,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         <div style={{ width: '100%'}}>
           <div key={`bubbleMenu${props.quanta?.id}`}>
             {/* This menu floats above selected text or nodes */}
-            <FlowMenu editor={editor} />
+            <FlowMenu editor={editor as Editor} />
           </div>
           <div>
-            <EditorContent editor={editor} />
+            <EditorContent editor={editor as Editor} />
           </div>
         </div>
       </div>
