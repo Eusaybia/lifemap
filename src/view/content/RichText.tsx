@@ -81,9 +81,9 @@ const handleTransaction = (transaction: Transaction) => {
 
   // Log transaction info
   if (transactionMeta.isYjsSync) {
-    console.log('Remote sync transaction:', transactionMeta);
+    // console.log('Remote sync transaction:', transactionMeta);
   } else {
-    console.log('Local change transaction:', transactionMeta);
+    // console.log('Local change transaction:', transactionMeta);
   }
 
   // Only process transactions if we have an active connection or it's a local change
