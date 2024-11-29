@@ -390,7 +390,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         throttledBackup(editor.getJSON())
       }
       
-      // console.log("JSON Output", editor.getJSON())
+      console.log("JSON Output", editor.getJSON())
     },
     onTransaction: ({ editor, transaction }) => {
       if (transaction.docChanged) {
