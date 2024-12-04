@@ -18,7 +18,7 @@ import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties } from "react"
 import { MathLens } from "../../core/Model";
-import { getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
+import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 import { backup } from "../../backend/backup";
@@ -51,25 +51,8 @@ export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties 
 
 type Action = (editor: Editor) => boolean
 
-const handleCopyContentAction: Action = (editor: Editor) => {
-    // None of these work, all that's needed to to emulate the copy command exactly, 
-    // in order to paste nodes or selections
-    // // Execute the copy command:
-    // document.execCommand('copy');   
-
-    // // Get the currently selected text
-    // const selection = editor!.view.state.selection
-
-    // const html = generateHTML(selection.toJSON(), [...officialExtensions("..."), ...customExtensions])
-
-    // // Copy the HTML of the selected node to the clipboard
-    // navigator.clipboard.write(html).then(() => {
-    //     console.log('Copying to clipboard was successful!');
-    //     return true;
-    // }, (err) => {
-    //     console.error('Could not copy text: ', err);
-    //     return false;
-    // })
+const handleCopyNodeJSONContentToClipboardAction: Action = (editor: Editor) => {
+    copySelectedNodeToClipboard(editor)
 
     return false;
 }
@@ -133,6 +116,18 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
     return (
         <FlowSwitch value={props.selectedAction} isLens>
             <Option
+                value={"Copy node to clipboard"}
+                onClick={() => {
+                    copySelectedNodeToClipboard(props.editor)
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📋 Copy node to clipboard
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
                 value={"Replace page with 'Sales Guide' template"}
                 onClick={() => {
                     props.editor.commands.setContent(SalesGuideTemplate);
@@ -192,7 +187,7 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
             </Option>
             <Option
                 value={"Copy content"}
-                onClick={() => handleCopyContentAction(props.editor)}
+                onClick={() => handleCopyNodeJSONContentToClipboardAction(props.editor)}
             >
                 <motion.div>
                     <span style={{}}>

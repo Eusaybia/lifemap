@@ -161,6 +161,24 @@ export const logCurrentLens = (editor: Editor) => {
   }
 }
 
+export const copySelectedNodeToClipboard = (editor: Editor) => {
+  const selectedNode: ProseMirrorNode = getSelectedNode(editor)
+
+  if (selectedNode) {
+      navigator.clipboard.writeText(JSON.stringify(selectedNode.content.toJSON())).then(() => {
+          console.log('Copying to clipboard was successful!');
+          return true
+      }, (err) => {
+          console.error('Could not copy text: ', err);
+          return false
+      });
+  } else {
+      console.error('Attempted to invoke copy node to clipboard action when a node was not selected.');
+      return false
+  }
+  return false
+}
+
 export const getSelectedNode = (editor: Editor) => {
   const selection = editor.view.state.selection
 
