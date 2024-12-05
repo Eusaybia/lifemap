@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
-import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule } from "@tiptap/core";
+import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONContent } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
@@ -24,6 +24,51 @@ declare module '@tiptap/core' {
 
 
 export type InteractionType = "onHover" | "onClick" | "onSelectionChanged" | "onMarkChange" | "onTextChange"
+
+// Determine whether this node is irrelevant for the given event type, which is selected at the document level
+// For example, if the node contains a mention tag of "corporate" but the selected event type is "wedding", then the node is irrelevant
+// This is used to hide nodes that are irrelevant for the current event type
+export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: string) => {
+  let isIrrelevant = false;
+
+  console.log("Selected event type from perspective of group: ", selectedEventType)
+
+  type EventTypes = DocumentAttributes['selectedEventLens'];
+  const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
+  const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType);
+
+  groupNode.content?.forEach((childNode: JSONContent) => {
+    if (childNode.type === 'paragraph') {
+      childNode.content?.forEach((grandChildNode: JSONContent) => {
+        if (grandChildNode.type === 'mention') {
+          const label = grandChildNode.attrs?.label as string;
+          const labelParts = label.split(' ');
+          let mentionEventType = "";
+
+          if (labelParts.length === 1) {
+            // Just the mention text
+            mentionEventType = labelParts[0].toLowerCase();
+          } 
+          else if (labelParts.length >= 2) {
+            // Just the mention text, not the emoji
+            mentionEventType = labelParts[1].toLowerCase();
+          }
+
+          // This handles the case where the node contains a mention of the selected event type
+          if (mentionEventType === selectedEventType) {
+            isIrrelevant = false;
+            return
+          }
+
+          if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
+            isIrrelevant = true;
+          }
+        }
+      })
+    }
+  });
+  return isIrrelevant;
+};
 
 // Finesse - refinement
 // Refinement starts at 0 and maxes out at 100
@@ -323,39 +368,6 @@ export const GroupExtension = TipTapNode.create({
         return null;
       };
 
-      // Determine whether this node is irrelevant
-      const determineIrrelevance = (groupNode: ProseMirrorNode, editor: Editor) => {
-        let isIrrelevant = false;
-
-        // @ts-ignore
-        const documentAttributes = editor.commands.getDocumentAttributes()
-        const selectedEventType = documentAttributes.selectedEventLens;
-
-        type EventTypes = DocumentAttributes['selectedEventLens'];
-        const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
-        const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType);
-        
-        groupNode.forEach((childNode) => {
-          if (childNode.type.name === 'paragraph') {
-            childNode.forEach((grandChildNode) => {
-              if (grandChildNode.type.name === 'mention') {
-                const label = grandChildNode.attrs.label as string;
-                // TODO: Technically this label detection could be more robust, but this is hard coded for now
-                // Should handle mentions with just a string rather than an emoji + string
-                const parts = label.split(' ');
-                // Only process if we have at least 2 parts (emoji + event type)
-                if (parts.length >= 2) {
-                  const mentionEventType = parts[1].toLowerCase();
-                  if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
-                    isIrrelevant = true;
-                  }
-                }
-              }
-            })
-          }
-        });
-        return isIrrelevant;
-      };
 
       return (
         <NodeViewWrapper>
@@ -382,7 +394,7 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node as any, props.editor as Editor)}
+              isIrrelevant={determineIrrelevance(props.node.toJSON(), "wedding")}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
