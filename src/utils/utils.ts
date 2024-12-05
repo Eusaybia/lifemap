@@ -165,7 +165,7 @@ export const copySelectedNodeToClipboard = (editor: Editor) => {
   const selectedNode: ProseMirrorNode = getSelectedNode(editor)
 
   if (selectedNode) {
-      navigator.clipboard.writeText(JSON.stringify(selectedNode.content.toJSON())).then(() => {
+      navigator.clipboard.writeText(JSON.stringify(selectedNode.toJSON())).then(() => {
           console.log('Copying to clipboard was successful!');
           return true
       }, (err) => {
