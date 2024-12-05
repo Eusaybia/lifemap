@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
 import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONContent } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
@@ -282,56 +282,86 @@ export const GroupExtension = TipTapNode.create({
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
+      // Use a ref to store updateAttributes to prevent closure issues
+      const updateAttributesRef = useRef<typeof props.updateAttributes | null>(props.updateAttributes);
+
+      useEffect(() => {
+        updateAttributesRef.current = props.updateAttributes;
+      }, [props.updateAttributes]);
+
+      const updateAttentionTo = (newAttention: number) => {
+        if (updateAttributesRef.current) {
+          updateAttributesRef.current({ attention: newAttention });
+        } else {
+          console.warn('updateAttributes is not available.');
+        }
+      };
+
       // Uncomment this to reset attention on load
-      // props.updateAttributes({ attention: 0 });
+      useEffect(() => {
+        updateAttentionTo(0);
+      }, []);
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
       // useMotionValue is more performant than updating the state
       const attentionProxy = useMotionValue(props.node.attrs.attention)
 
       React.useEffect(() => {
-        let motionValueUpdateTimer: NodeJS.Timer | undefined;
-        let nodeAttrsUpdateTimer: NodeJS.Timer | undefined;
-        if (isInView) {
-          // Maybe it's better to use a Framer Motion primitive since it runs outside the React render loop
-          // https://arc.net/l/quote/tsaviucv
-          motionValueUpdateTimer = setInterval(() => {
-            const currentAttention = attentionProxy.get()
+        // @ts-ignore
+        const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes()
+        const selectedEventType = documentAttributes.selectedEventLens
+        // Is this node relevant for the selected event type?
+        const isIrrelevant = determineIrrelevance(props.node.toJSON(), selectedEventType)
 
-            let newAttention = currentAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
-
-            // Use motion value updates to maintain performance
-            attentionProxy.set(newAttention)
-
-          }, 1000 / refreshRate);
-
-          // Every so often, update the actual attention value associated with the group
-          // This is done for performance reasons, as well as the fact that updatingAttributes causes a re-render of the node
-          // This re-render wipes any text selections, which is undesireable
-          // Still kind of hacky, a real solution would maybe
-          // Prevent re-rendering if there is a selection
-          // Even better solution would be to somehow remember the selection, and then re-apply it after an update
-          nodeAttrsUpdateTimer = setInterval(() => {
-            props.updateAttributes({ attention: attentionProxy.get() })
-          }, 10000)
-
-        } else {
-          if (motionValueUpdateTimer) {
-            clearInterval(motionValueUpdateTimer)
-          }
-          if (nodeAttrsUpdateTimer) {
-            clearInterval(nodeAttrsUpdateTimer)
-          }
+        if (isIrrelevant) {
+          // Make the node barely visible
+          updateAttentionTo(10)
         }
-      
-        return () => {
-          if (motionValueUpdateTimer) {
-            clearInterval(motionValueUpdateTimer)
+        else {
+          let motionValueUpdateTimer: NodeJS.Timer | undefined;
+          let nodeAttrsUpdateTimer: NodeJS.Timer | undefined;
+          if (isInView) {
+            // Maybe it's better to use a Framer Motion primitive since it runs outside the React render loop
+            // https://arc.net/l/quote/tsaviucv
+            motionValueUpdateTimer = setInterval(() => {
+              const currentAttention = attentionProxy.get()
+
+              let newAttention = currentAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
+
+              // Use motion value updates to maintain performance
+              attentionProxy.set(newAttention)
+
+            }, 1000 / refreshRate);
+
+            // Every so often, update the actual attention value associated with the group
+            // This is done for performance reasons, as well as the fact that updatingAttributes causes a re-render of the node
+            // This re-render wipes any text selections, which is undesireable
+            // Still kind of hacky, a real solution would maybe
+            // Prevent re-rendering if there is a selection
+            // Even better solution would be to somehow remember the selection, and then re-apply it after an update
+            nodeAttrsUpdateTimer = setInterval(() => {
+              props.updateAttributes({ attention: attentionProxy.get() })
+            }, 10000)
+
+          } else {
+            if (motionValueUpdateTimer) {
+              clearInterval(motionValueUpdateTimer)
+            }
+            if (nodeAttrsUpdateTimer) {
+              clearInterval(nodeAttrsUpdateTimer)
+            }
           }
-          if (nodeAttrsUpdateTimer) {
-            clearInterval(nodeAttrsUpdateTimer)
+          return () => {
+            if (motionValueUpdateTimer) {
+              clearInterval(motionValueUpdateTimer)
+            }
+            if (nodeAttrsUpdateTimer) {
+              clearInterval(nodeAttrsUpdateTimer)
+            }
           }
+
         }
+
       }, [isInView])
 
       // Have an exponentially growing attention to brightness curve
@@ -394,7 +424,6 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node.toJSON(), "wedding")}
             >
               {(() => {
                 switch (props.node.attrs.lens) {

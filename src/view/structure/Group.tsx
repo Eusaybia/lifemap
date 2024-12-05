@@ -7,7 +7,7 @@ import { Grip } from '../content/Grip';
 
 export type GroupLenses = "identity" | "hideUnimportantNodes";
 
-export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string, isIrrelevant: boolean }) => {
+export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string }) => {
 
     // TODO: Exit animation doesn't work
     // TODO: Fix stretchy border: https://github.com/framer/motion/issues/1249
@@ -45,28 +45,13 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
         >
             <Grip/>
             {props.children}
-            {props.isIrrelevant && (
-                <motion.div
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'black',
-                        opacity: 0.8,
-                        borderRadius: 10,
-                        pointerEvents: "none"
-                    }}
-                />
-            )}
         </motion.div>
     )
 }
 
 export const GroupExample = () => {
     return (
-        <Group lens={"identity"} quantaId={"000001"} isIrrelevant={false}>
+        <Group lens={"identity"} quantaId={"000001"}>
             <Quanta quantaId={'000001'} userId={''} />
         </Group>
     )
