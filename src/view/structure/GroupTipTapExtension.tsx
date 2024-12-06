@@ -282,16 +282,25 @@ export const GroupExtension = TipTapNode.create({
 
       const [attention, setAttention] = React.useState(props.node.attrs.attention);
 
+      // Use a ref to store updateAttributes to prevent closure issues
+      const updateAttributesRef = useRef<typeof props.updateAttributes | null>(props.updateAttributes);
+
+      useEffect(() => {
+        updateAttributesRef.current = props.updateAttributes;
+      }, [props.updateAttributes]);
+
       const updateAttentionTo = (newAttention: number) => {
-          if (props.updateAttributes) {
-            props.updateAttributes({ attention: newAttention });
-          } else {
-            console.warn('updateAttributes is not available.');
-          }
+        if (updateAttributesRef.current) {
+          updateAttributesRef.current({ attention: newAttention });
+        } else {
+          console.warn('updateAttributes is not available.');
+        }
       };
 
       // Uncomment this to reset attention on load
-      updateAttentionTo(0);
+      useEffect(() => {
+        updateAttentionTo(0);
+      }, []);
 
       // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
       // useMotionValue is more performant than updating the state
@@ -306,7 +315,7 @@ export const GroupExtension = TipTapNode.create({
 
         if (isIrrelevant) {
           // Make the node barely visible
-          updateAttentionTo(30)
+          updateAttentionTo(10)
         }
         else {
           let motionValueUpdateTimer: NodeJS.Timer | undefined;
