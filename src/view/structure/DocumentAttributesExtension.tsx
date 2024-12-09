@@ -159,42 +159,44 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
        * Sets document-level attributes.
        * Finds the `docAttrs` node and updates its attributes.
        * If the node is not found, it ensures it exists first.
-       * @param attributes - The attributes to set.
+       * @param newAttributes - The attributes to set.
        */
       setDocumentAttribute:
-        (attributes: Record<string, any>) =>
+        (newAttributes: Record<string, any>) =>
         ({ commands, state, tr, dispatch }: {
           commands: any;
           state: EditorState;
           tr: Transaction;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          let docAttrsNode = state.doc.firstChild;
+          let docAttrsNode: ProseMirrorNode | null = null
+          let docAttrsNodePos: number | null = null
 
-          state.doc.descendants((node) => {
+          // Find the `docAttrs` node
+          state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
-              // @ts-ignore
               docAttrsNode = node;
+              docAttrsNodePos = pos;
             }
           })
 
-          if (docAttrsNode != null) {
+          if (docAttrsNode != null && docAttrsNodePos != null) {
             // Merge existing attributes with new ones
-            const currentAttrs = docAttrsNode!.attrs;
-            const newAttrs = { ...currentAttrs, ...attributes };
+            const currentAttrs = (docAttrsNode as ProseMirrorNode).attrs;
+            const newAttrs = { ...currentAttrs, ...newAttributes };
 
             if (dispatch) {
-              // Update the node's attributes
-              // const transaction = tr.setNodeMarkup(docAttrsNode!.pos, undefined, newAttrs);
-              // dispatch(transaction);
+              // Chain the setNodeMarkup operation with the existing transaction
+              tr.setNodeMarkup(docAttrsNodePos, this.type, newAttrs);
+              dispatch(tr);
             }
             return true;
-          }
-
-          // If `docAttrs` is not found, ensure it exists and retry
-          if (commands.ensureDocumentAttributes()) {
-            // After ensuring, set the attributes
-            return commands.setDocumentAttribute(attributes);
+          } else {
+            // If `docAttrs` is not found, ensure it exists and retry
+            if (commands.ensureDocumentAttributes()) {
+              // After ensuring, set the attributes
+              return commands.setDocumentAttribute(newAttributes);
+            }
           }
 
           return false;
@@ -207,21 +209,22 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          let docAttrsNode: TipTapNode | null = null;
-          state.doc.descendants((node) => {
+          let docAttrsNode: ProseMirrorNode | null = null
+          let docAttrsNodePos: number | null = null
+
+          // Find the `docAttrs` node
+          state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
-              // @ts-ignore
               docAttrsNode = node;
-              return
+              docAttrsNodePos = pos;
             }
           })
 
           if (docAttrsNode != null) {
-            // @ts-ignore
-            return docAttrsNode.attrs;
+            return (docAttrsNode as ProseMirrorNode).attrs;
           } else {
             console.error("No `docAttrs` node found in the document")
-            return { attrs: 'noneFound' };
+            return false
           }
         },
 

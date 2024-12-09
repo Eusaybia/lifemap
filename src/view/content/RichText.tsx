@@ -392,7 +392,8 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       
       console.log("JSON Output", editor.getJSON())
       // @ts-ignore
-      editor.commands.ensureDocumentAttributes()
+      const documentAttributes = editor.commands.getDocumentAttributes()
+      console.log("Document Attributes", documentAttributes)
     },
     onTransaction: ({ editor, transaction }) => {
       if (transaction.docChanged) {
