@@ -1,8 +1,9 @@
-import { Editor, mergeAttributes, Node } from '@tiptap/core';
+import { Editor, mergeAttributes, Node as TipTapNode } from '@tiptap/core';
 import { ReplaceStep, ReplaceAroundStep } from '@tiptap/pm/transform';
 import { NodeType } from 'prosemirror-model';
 import { EditorState, PluginKey } from 'prosemirror-state';
 import { Plugin, Transaction } from 'prosemirror-state';
+import { Node as ProseMirrorNode } from 'prosemirror-model';
 
 // The problem that this extension solves is the question of how to store document level attributes (or information)
 // This is used for things such as changing how the user views an entire document.
@@ -83,7 +84,14 @@ export interface DocumentAttributesDefaults {
   // ... any other existing options
 }
 
-export const DocumentAttributeExtension = Node.create<DocumentAttributes & DocumentAttributesDefaults>({
+const defaultDocumentAttributes = {
+  selectedFocusLens: 'editing' as const,
+  selectedEventLens: 'wedding' as const,
+  irrelevantEventNodesDisplayLens: 'dim' as const,
+  unimportantNodesDisplayLens: 'hide' as const,
+} satisfies Record<keyof DocumentAttributes, DocumentAttributes[keyof DocumentAttributes]>;
+
+export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes & DocumentAttributesDefaults>({
   name: 'docAttrs',
   group: 'block',
 
@@ -161,18 +169,24 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           tr: Transaction;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          const firstNode = state.doc.firstChild;
-          const pos = firstNode?.type.name === 'docAttrs' ? 0 : null;
+          let docAttrsNode = state.doc.firstChild;
 
-          if (pos !== null) {
+          state.doc.descendants((node) => {
+            if (node.type.name === 'docAttrs') {
+              // @ts-ignore
+              docAttrsNode = node;
+            }
+          })
+
+          if (docAttrsNode != null) {
             // Merge existing attributes with new ones
-            const currentAttrs = firstNode!.attrs;
+            const currentAttrs = docAttrsNode!.attrs;
             const newAttrs = { ...currentAttrs, ...attributes };
 
             if (dispatch) {
               // Update the node's attributes
-              const transaction = tr.setNodeMarkup(pos, undefined, newAttrs);
-              dispatch(transaction);
+              // const transaction = tr.setNodeMarkup(docAttrsNode!.pos, undefined, newAttrs);
+              // dispatch(transaction);
             }
             return true;
           }
@@ -193,15 +207,27 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          const firstNode = state.doc.firstChild;
-          if (firstNode?.type.name === 'docAttrs') {
-            return firstNode.attrs;
+          let docAttrsNode: TipTapNode | null = null;
+          state.doc.descendants((node) => {
+            if (node.type.name === 'docAttrs') {
+              // @ts-ignore
+              docAttrsNode = node;
+              return
+            }
+          })
+
+          if (docAttrsNode != null) {
+            // @ts-ignore
+            return docAttrsNode.attrs;
+          } else {
+            console.error("No `docAttrs` node found in the document")
+            return { attrs: 'noneFound' };
           }
-          return { attrs: 'noneFound' };
         },
 
       /**
-       * Ensures the `docAttrs` node exists in the document.
+       * The document must contain just one `docAttrs` node, at the top level set of descendants
+       * Ensures only one `docAttrs` node exists in the document.
        * If not, it inserts the node with default attributes.
        */
       ensureDocumentAttributes:
@@ -211,23 +237,81 @@ export const DocumentAttributeExtension = Node.create<DocumentAttributes & Docum
           state: EditorState;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          // TODO: This needs to make sure there is only one `docAttrs` node in the document
-          // Currently there are multiple `docAttrs` nodes in the document
-          let hasDocAttrs = false;
+          const docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
+
+          // First traversal to collect existing docAttrs nodes
           state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
-              hasDocAttrs = true;
-              return false;
+              docAttrsNodes.push({ node, pos });
             }
           });
-          if (!hasDocAttrs) {
+
+          if (docAttrsNodes.length === 0) {
+            // No docAttrs nodes found, insert a new one
             const docAttrsNode = this.type.create(); // Create a new `docAttrs` node with default attributes
             if (dispatch) {
               dispatch(state.tr.insert(0, docAttrsNode));
             }
             return true;
+          } else if (docAttrsNodes.length === 1) {
+            // Exactly one docAttrs node exists
+            return true;
+          } else {
+            console.error("Multiple `docAttrs` nodes found in the document");
+
+            if (dispatch) {
+              let tr = state.tr;
+              // Keep the first docAttrs node and remove the rest
+              const nodesToRemove = docAttrsNodes.slice(1); // All except the first
+
+              // Sort in descending order to prevent shifting positions
+              nodesToRemove.sort((a, b) => b.pos - a.pos);
+
+              nodesToRemove.forEach(({ pos, node }) => {
+                try {
+                  tr = tr.delete(pos, pos + node.nodeSize);
+                } catch (error) {
+                  console.error(`Failed to delete docAttrs node at position ${pos}:`, error);
+                }
+              });
+
+              dispatch(tr);
+              console.log(`Removed ${nodesToRemove.length} duplicate docAttrs nodes`);
+            }
           }
-          return false;
+
+          // Reset the array before the second traversal
+          const updatedDocAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
+
+          // Second traversal to verify the state after potential modifications
+          state.doc.descendants((node, pos) => {
+            if (node.type.name === 'docAttrs') {
+              updatedDocAttrsNodes.push({ node, pos });
+            }
+          });
+
+          if (updatedDocAttrsNodes.length === 1) {
+            // Now ensure that the node has all the default attributes keys
+            const docAttrsNode = updatedDocAttrsNodes[0].node;
+            const docAttrsNodeAttrs = docAttrsNode.attrs;
+
+            const docAttrsNodeAttrsKeys = Object.keys(docAttrsNodeAttrs).sort();
+            const defaultDocAttrsNodeAttrsKeys = Object.keys(defaultDocumentAttributes).sort();
+
+            const keysMatch = 
+              docAttrsNodeAttrsKeys.length === defaultDocAttrsNodeAttrsKeys.length &&
+              docAttrsNodeAttrsKeys.every((key, index) => key === defaultDocAttrsNodeAttrsKeys[index]);
+
+            if (keysMatch) {
+              return true;
+            } else {
+              console.error("docAttrs node does not contain all default attributes");
+              return false;
+            }
+          } else {
+            console.error("Could not ensure that there is just one `docAttrs` node in the document");
+            return false;
+          }
         },
     };
   },
