@@ -424,19 +424,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
   })
 
-  // Show error state if needed
-  if (contentError) {
-    return (
-      <div className="editor-error">
-        <h3>Editor Content Error</h3>
-        <p>There was an issue with the document content. Please refresh the page or contact support if this persists.</p>
-        <button onClick={() => window.location.reload()}>
-          Refresh Page
-        </button>
-      </div>
-    )
-  }
-
   return editor
 }
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
