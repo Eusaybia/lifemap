@@ -7,7 +7,8 @@ import './styles.scss';
 import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
-import { DocumentAttributes } from "./DocumentAttributesExtension";
+import { DocumentAttributes, getDocumentAttributesNodesFromState } from "./DocumentAttributesExtension";
+import { PluginKey, Plugin } from "prosemirror-state";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -168,6 +169,35 @@ export const GroupExtension = TipTapNode.create({
   renderHTML({ node, HTMLAttributes }) {
     return ["group", HTMLAttributes, 0];
   },
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('updateGroupOnDocAttrsChange'),
+        view: () => ({
+          update: (view, prevState) => {
+            // Check if docAttrs changed
+            const oldDocAttrsNodes = getDocumentAttributesNodesFromState(prevState)
+            const newDocAttrsNodes = getDocumentAttributesNodesFromState(view.state)
+
+            if (oldDocAttrsNodes.length === 1 || newDocAttrsNodes.length === 1) {
+              const oldDocAttrs = oldDocAttrsNodes[0].node.attrs
+              const newDocAttrs = newDocAttrsNodes[0].node.attrs
+
+              // TODO: This could be generalised beyond just event type
+              if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
+                // Force re-render of all group nodes
+                view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
+              }
+            } else if (oldDocAttrsNodes.length === 0 && newDocAttrsNodes.length === 0) {
+              console.error('No `docAttrs` nodes found in the document');
+            } else {
+              console.error('Multiple `docAttrs` nodes found in the document');
+            }
+          }
+        })
+      })
+    ];
+  },
   addInputRules() {
     return [
       wrappingInputRule({
@@ -192,6 +222,19 @@ export const GroupExtension = TipTapNode.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+
+        // Force re-render when docAttrs changes
+        const [, forceUpdate] = React.useState({});
+      
+        React.useEffect(() => {
+          const editor = props.editor.on('transaction', ({ transaction }) => {
+            if (transaction.getMeta('updateGroupOnDocAttrsChange')) {
+              forceUpdate({});
+            }
+          });
+          return () => {editor.off('transaction', () => {})};
+        }, []);
+
       let node = props.node
 
       // Finesse - emotions
