@@ -91,6 +91,19 @@ const defaultDocumentAttributes = {
   unimportantNodesDisplayLens: 'hide' as const,
 } satisfies Record<keyof DocumentAttributes, DocumentAttributes[keyof DocumentAttributes]>;
 
+export const getDocumentAttributesNodesFromState = (state: EditorState) => {
+  const docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = []
+
+  state.doc.descendants((node, pos) => {
+    if (node.type.name === 'docAttrs') {
+      docAttrsNodes.push({ node, pos })
+    }
+  })
+
+  return docAttrsNodes
+}
+
+
 export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes & DocumentAttributesDefaults>({
   name: 'docAttrs',
   group: 'block',
@@ -209,21 +222,16 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          let docAttrsNode: ProseMirrorNode | null = null
-          let docAttrsNodePos: number | null = null
+          // Find the `docAttrs` nodes
+          const docAttrsNodes = getDocumentAttributesNodesFromState(state)
 
-          // Find the `docAttrs` node
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              docAttrsNode = node;
-              docAttrsNodePos = pos;
-            }
-          })
-
-          if (docAttrsNode != null) {
-            return (docAttrsNode as ProseMirrorNode).attrs;
-          } else {
+          if (docAttrsNodes.length === 1) {
+            return docAttrsNodes[0].node.attrs;
+          } else if (docAttrsNodes.length === 0) {
             console.error("No `docAttrs` node found in the document")
+            return false
+          } else {
+            console.error("Multiple `docAttrs` nodes found in the document")
             return false
           }
         },
@@ -240,14 +248,10 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
           state: EditorState;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          const docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
+          let docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
 
           // First traversal to collect existing docAttrs nodes
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              docAttrsNodes.push({ node, pos });
-            }
-          });
+          docAttrsNodes = getDocumentAttributesNodesFromState(state)
 
           if (docAttrsNodes.length === 0) {
             // No docAttrs nodes found, insert a new one
@@ -284,14 +288,10 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
           }
 
           // Reset the array before the second traversal
-          const updatedDocAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
+          let updatedDocAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
 
           // Second traversal to verify the state after potential modifications
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              updatedDocAttrsNodes.push({ node, pos });
-            }
-          });
+          updatedDocAttrsNodes = getDocumentAttributesNodesFromState(state)
 
           if (updatedDocAttrsNodes.length === 1) {
             // Now ensure that the node has all the default attributes keys
