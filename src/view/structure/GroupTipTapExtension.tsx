@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
 import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONContent } from "@tiptap/core";
-import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
@@ -191,40 +190,8 @@ export const GroupExtension = TipTapNode.create({
     //   this.editor.commands.updateAttributes(this.name, { refinement: newRefinement });
     // }
   },
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('groupUpdater'),
-        view: () => ({
-          update: (view, prevState) => {
-            // Check if docAttrs changed
-            const oldDocAttrs = prevState.doc.firstChild?.attrs;
-            const newDocAttrs = view.state.doc.firstChild?.attrs;
-            
-            // TODO: This could be generalised beyond just event type
-            if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
-              // Force re-render of all group nodes
-              view.dispatch(view.state.tr.setMeta('forceGroupUpdate', true));
-            }
-          }
-        })
-      })
-    ];
-  },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
-      // Force re-render when docAttrs changes
-      const [, forceUpdate] = React.useState({});
-      
-      React.useEffect(() => {
-        const editor = props.editor.on('transaction', ({ transaction }) => {
-          if (transaction.getMeta('forceGroupUpdate')) {
-            forceUpdate({});
-          }
-        });
-        return () => {editor.off('transaction', () => {})};
-      }, []);
-
       let node = props.node
 
       // Finesse - emotions
@@ -427,7 +394,7 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node.toJSON(), props.editor.getAttributes('docAttrs').selectedEventLens)}
+              isIrrelevant={determineIrrelevance(props.node.toJSON(), "wedding")}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
