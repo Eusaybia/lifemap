@@ -71,41 +71,6 @@ lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
-const handleTransaction = (transaction: Transaction) => {
-  const transactionMeta = {
-    isYjsSync: !!transaction.getMeta('y-sync$'),
-    isLocalChange: !transaction.getMeta('y-sync$')?.isChangeOrigin,
-    isUndoRedo: !!transaction.getMeta('y-sync$')?.isUndoRedoOperation,
-    addToHistory: transaction.getMeta('addToHistory'),
-  };
-
-  // Log transaction info
-  if (transactionMeta.isYjsSync) {
-    // console.log('Remote sync transaction:', transactionMeta);
-  } else {
-    // console.log('Local change transaction:', transactionMeta);
-  }
-
-  // Only process transactions if we have an active connection or it's a local change
-  if (transactionMeta.isLocalChange) {
-    return true;
-  }
-
-  // Block remote transactions that replace the entire document
-  if (transactionMeta.isYjsSync && !transactionMeta.isLocalChange) {
-    const hasFullDocReplace = transaction.steps.some(step => {
-      const json = step.toJSON();
-      return json.stepType === 'replace' && json.from === 0;
-    });
-
-    if (hasFullDocReplace) {
-      console.warn('Blocking full document replace from remote sync');
-      return false;
-    }
-  }
-
-  return true;
-}
 
 export const officialExtensions = (quantaId: string) => {return [
   // Add official extensions
@@ -191,27 +156,6 @@ export const officialExtensions = (quantaId: string) => {return [
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
-  }),
-  Extension.create({
-    name: 'transactionHandler',
-    
-    addProseMirrorPlugins() {
-      return [
-        new Plugin({
-          appendTransaction: (transactions, oldState, newState) => {
-            // Process each transaction
-            const shouldProcess = transactions.every(handleTransaction);
-            
-            if (!shouldProcess) {
-              return null;
-            }
-            
-            // Continue with normal transaction processing
-            return null;
-          }
-        })
-      ];
-    }
   }),
 ] as Extensions}
 
@@ -385,10 +329,19 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         editor.setEditable(false)
       }
     },
+    onCreate: ({ editor }) => {
+      // Runs once when editor is initialized
+      // @ts-ignore
+      const documentAttributes = editor.commands.getDocumentAttributes()
+      console.log("Initial Document Attributes", documentAttributes)
+    },
     onUpdate: ({ editor }) => {
       if (!contentError) {
         throttledBackup(editor.getJSON())
       }
+
+      // @ts-ignore
+      editor.commands.ensureDocumentAttributes()
       
       console.log("JSON Output", editor.getJSON())
       // @ts-ignore
@@ -396,34 +349,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       console.log("Document Attributes", documentAttributes)
     },
     onTransaction: ({ editor, transaction }) => {
-      if (transaction.docChanged) {
-        const transactionMeta = {
-          isYjsSync: !!transaction.getMeta('y-sync$'),
-          isLocalChange: !transaction.getMeta('y-sync$')?.isChangeOrigin,
-          isUndoRedo: !!transaction.getMeta('y-sync$')?.isUndoRedoOperation,
-          addToHistory: transaction.getMeta('addToHistory'),
-        };
-
-        // Case 1: Yjs Sync Transaction
-        if (transactionMeta.isYjsSync && !transactionMeta.isLocalChange) {
-          console.log('Remote sync transaction:', transactionMeta);
-          // Handle remote changes from other users
-          // These should probably be allowed to proceed
-        }
-
-        // Case 2: Local Change
-        if (!transactionMeta.isYjsSync) {
-          console.log('Local change transaction:', transactionMeta);
-          // These are direct user edits
-          // You might want to add your own metadata here
-          transaction.setMeta('source', 'user-edit');
-        }
-        // Optional: Block certain types of transactions
-        // Temporarily disabled transaction blocking until shouldBlockTransaction is implemented
-        // if (shouldBlockTransaction(transaction, transactionMeta)) {
-        //   return false;
-        // }
-      }
     },
   })
 
