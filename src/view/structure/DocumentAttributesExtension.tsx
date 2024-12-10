@@ -231,7 +231,8 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
             console.error("No `docAttrs` node found in the document")
             return false
           } else {
-            console.error("Multiple `docAttrs` nodes found in the document")
+            console.error(`Multiple (${docAttrsNodes.length}) docAttrs nodes found in the document:`, docAttrsNodes)
+            console.error("Associated with this document state:", state.doc)
             return false
           }
         },
