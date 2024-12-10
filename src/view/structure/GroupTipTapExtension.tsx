@@ -185,8 +185,10 @@ export const GroupExtension = TipTapNode.create({
 
               // TODO: This could be generalised beyond just event type
               if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
-                // Force re-render of all group nodes
-                view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
+                if (!view.state.tr.getMeta('updateGroupOnDocAttrsChange')) {
+                  // Force re-render of all group nodes
+                  view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
+                }
               }
             } else if (oldDocAttrsNodes.length === 0 && newDocAttrsNodes.length === 0) {
               console.error('No `docAttrs` nodes found in the document');
