@@ -205,9 +205,10 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 
   let generatedOfficialExtensions = officialExtensions(quanta.id)
 
-  const editor = new Editor({
+  const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: false,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
