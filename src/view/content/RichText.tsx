@@ -258,6 +258,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
   }, [throttledBackup])
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
