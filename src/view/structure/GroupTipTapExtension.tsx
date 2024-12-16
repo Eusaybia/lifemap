@@ -7,7 +7,7 @@ import './styles.scss';
 import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
-import { DocumentAttributes, getDocumentAttributesNodesFromState } from "./DocumentAttributesExtension";
+import { DocumentAttributes, getDocumentAttributesNodeFromState } from "./DocumentAttributesExtension";
 import { PluginKey, Plugin } from "prosemirror-state";
 
 declare module '@tiptap/core' {
@@ -176,8 +176,8 @@ export const GroupExtension = TipTapNode.create({
         view: () => ({
           update: (view, prevState) => {
             // Check if docAttrs changed
-            const oldDocAttrsNodes = getDocumentAttributesNodesFromState(prevState)
-            const newDocAttrsNodes = getDocumentAttributesNodesFromState(view.state)
+            const oldDocAttrsNodes = getDocumentAttributesNodeFromState(prevState)
+            const newDocAttrsNodes = getDocumentAttributesNodeFromState(view.state)
 
             if (oldDocAttrsNodes.length === 1 || newDocAttrsNodes.length === 1) {
               const oldDocAttrs = oldDocAttrsNodes[0].node.attrs

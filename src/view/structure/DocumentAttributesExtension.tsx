@@ -91,12 +91,13 @@ const defaultDocumentAttributes = {
   unimportantNodesDisplayLens: 'hide' as const,
 } satisfies Record<keyof DocumentAttributes, DocumentAttributes[keyof DocumentAttributes]>;
 
-export const getDocumentAttributesNodesFromState = (state: EditorState) => {
+export const getDocumentAttributesNodeFromState = (state: EditorState) => {
   const docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = []
 
   state.doc.descendants((node, pos) => {
     if (node.type.name === 'docAttrs') {
       docAttrsNodes.push({ node, pos })
+      return // must stop traversal once found
     }
   })
 
@@ -172,44 +173,42 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
        * Sets document-level attributes.
        * Finds the `docAttrs` node and updates its attributes.
        * If the node is not found, it ensures it exists first.
-       * @param newAttributes - The attributes to set.
+       * @param attributes - The attributes to set.
        */
       setDocumentAttribute:
-        (newAttributes: Record<string, any>) =>
+        (attributes: Record<string, any>) =>
         ({ commands, state, tr, dispatch }: {
           commands: any;
           state: EditorState;
           tr: Transaction;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          let docAttrsNode: ProseMirrorNode | null = null
-          let docAttrsNodePos: number | null = null
-
-          // Find the `docAttrs` node
-          state.doc.descendants((node, pos) => {
+          let pos: number | null = null;
+          // Traverse the document to find `docAttrs` node
+          state.doc.descendants((node, position) => {
             if (node.type.name === 'docAttrs') {
-              docAttrsNode = node;
-              docAttrsNodePos = pos;
+              pos = position;
+              return false; // Stop traversal once found
             }
-          })
+          });
 
-          if (docAttrsNode != null && docAttrsNodePos != null) {
+          if (pos !== null) {
             // Merge existing attributes with new ones
-            const currentAttrs = (docAttrsNode as ProseMirrorNode).attrs;
-            const newAttrs = { ...currentAttrs, ...newAttributes };
+            const currentAttrs = state.doc.nodeAt(pos)!.attrs;
+            const newAttrs = { ...currentAttrs, ...attributes };
 
             if (dispatch) {
-              // Chain the setNodeMarkup operation with the existing transaction
-              tr.setNodeMarkup(docAttrsNodePos, this.type, newAttrs);
-              dispatch(tr);
+              // Update the node's attributes
+              const transaction = tr.setNodeMarkup(pos, undefined, newAttrs);
+              dispatch(transaction);
             }
             return true;
-          } else {
-            // If `docAttrs` is not found, ensure it exists and retry
-            if (commands.ensureDocumentAttributes()) {
-              // After ensuring, set the attributes
-              return commands.setDocumentAttribute(newAttributes);
-            }
+          }
+
+          // If `docAttrs` is not found, ensure it exists and retry
+          if (commands.ensureDocumentAttributes()) {
+            // After ensuring, set the attributes
+            return commands.setDocumentAttribute(attributes);
           }
 
           return false;
@@ -222,24 +221,18 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          // Find the `docAttrs` nodes
-          const docAttrsNodes = getDocumentAttributesNodesFromState(state)
-
-          if (docAttrsNodes.length === 1) {
-            return docAttrsNodes[0].node.attrs;
-          } else if (docAttrsNodes.length === 0) {
-            console.error("No `docAttrs` node found in the document")
-            return false
-          } else {
-            console.error(`Multiple (${docAttrsNodes.length}) docAttrs nodes found in the document:`, docAttrsNodes)
-            console.error("Associated with this document state:", state.doc)
-            return false
-          }
+          let attrs: Record<string, any> = { attrs: 'noneFound' };
+          state.doc.descendants((node, pos) => {
+            if (node.type.name === 'docAttrs') {
+              attrs = node.attrs;
+              return false; // Stop traversal once found
+            }
+          });
+          return attrs;
         },
 
       /**
-       * The document must contain just one `docAttrs` node, at the top level set of descendants
-       * Ensures only one `docAttrs` node exists in the document.
+       * Ensures the `docAttrs` node exists in the document.
        * If not, it inserts the node with default attributes.
        */
       ensureDocumentAttributes:
@@ -249,73 +242,23 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
           state: EditorState;
           dispatch: ((tr: Transaction) => void) | undefined;
         }) => {
-          let docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
-
-          // First traversal to collect existing docAttrs nodes
-          docAttrsNodes = getDocumentAttributesNodesFromState(state)
-
-          if (docAttrsNodes.length === 0) {
-            // No docAttrs nodes found, insert a new one
+          // TODO: This needs to make sure there is only one `docAttrs` node in the document
+          // Currently there are multiple `docAttrs` nodes in the document
+          let hasDocAttrs = false;
+          state.doc.descendants((node, pos) => {
+            if (node.type.name === 'docAttrs') {
+              hasDocAttrs = true;
+              return false;
+            }
+          });
+          if (!hasDocAttrs) {
             const docAttrsNode = this.type.create(); // Create a new `docAttrs` node with default attributes
             if (dispatch) {
               dispatch(state.tr.insert(0, docAttrsNode));
             }
             return true;
-          } else if (docAttrsNodes.length === 1) {
-            // Exactly one docAttrs node exists
-            return true;
-          } else {
-            console.error("Multiple `docAttrs` nodes found in the document");
-
-            if (dispatch) {
-              let tr = state.tr;
-              // Keep the first docAttrs node and remove the rest
-              const nodesToRemove = docAttrsNodes.slice(1); // All except the first
-
-              // Sort in descending order to prevent shifting positions
-              nodesToRemove.sort((a, b) => b.pos - a.pos);
-
-              nodesToRemove.forEach(({ pos, node }) => {
-                try {
-                  tr = tr.delete(pos, pos + node.nodeSize);
-                } catch (error) {
-                  console.error(`Failed to delete docAttrs node at position ${pos}:`, error);
-                }
-              });
-
-              dispatch(tr);
-              console.log(`Removed ${nodesToRemove.length} duplicate docAttrs nodes`);
-            }
           }
-
-          // Reset the array before the second traversal
-          let updatedDocAttrsNodes: { node: ProseMirrorNode, pos: number }[] = [];
-
-          // Second traversal to verify the state after potential modifications
-          updatedDocAttrsNodes = getDocumentAttributesNodesFromState(state)
-
-          if (updatedDocAttrsNodes.length === 1) {
-            // Now ensure that the node has all the default attributes keys
-            const docAttrsNode = updatedDocAttrsNodes[0].node;
-            const docAttrsNodeAttrs = docAttrsNode.attrs;
-
-            const docAttrsNodeAttrsKeys = Object.keys(docAttrsNodeAttrs).sort();
-            const defaultDocAttrsNodeAttrsKeys = Object.keys(defaultDocumentAttributes).sort();
-
-            const keysMatch = 
-              docAttrsNodeAttrsKeys.length === defaultDocAttrsNodeAttrsKeys.length &&
-              docAttrsNodeAttrsKeys.every((key, index) => key === defaultDocAttrsNodeAttrsKeys[index]);
-
-            if (keysMatch) {
-              return true;
-            } else {
-              console.error("docAttrs node does not contain all default attributes");
-              return false;
-            }
-          } else {
-            console.error("Could not ensure that there is just one `docAttrs` node in the document");
-            return false;
-          }
+          return false;
         },
     };
   },
