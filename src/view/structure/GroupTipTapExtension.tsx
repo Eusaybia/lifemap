@@ -169,37 +169,37 @@ export const GroupExtension = TipTapNode.create({
   renderHTML({ node, HTMLAttributes }) {
     return ["group", HTMLAttributes, 0];
   },
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('updateGroupOnDocAttrsChange'),
-        view: () => ({
-          update: (view, prevState) => {
-            // Check if docAttrs changed
-            const oldDocAttrsNodes = getDocumentAttributesNodeFromState(prevState)
-            const newDocAttrsNodes = getDocumentAttributesNodeFromState(view.state)
+  // addProseMirrorPlugins() {
+  //   return [
+  //     new Plugin({
+  //       key: new PluginKey('updateGroupOnDocAttrsChange'),
+  //       view: () => ({
+  //         update: (view, prevState) => {
+  //           // Check if docAttrs changed
+  //           const oldDocAttrsNodes = getDocumentAttributesNodeFromState(prevState)
+  //           const newDocAttrsNodes = getDocumentAttributesNodeFromState(view.state)
 
-            if (oldDocAttrsNodes.length === 1 || newDocAttrsNodes.length === 1) {
-              const oldDocAttrs = oldDocAttrsNodes[0].node.attrs
-              const newDocAttrs = newDocAttrsNodes[0].node.attrs
+  //           if (oldDocAttrsNodes.length === 1 || newDocAttrsNodes.length === 1) {
+  //             const oldDocAttrs = oldDocAttrsNodes[0].node.attrs
+  //             const newDocAttrs = newDocAttrsNodes[0].node.attrs
 
-              // TODO: This could be generalised beyond just event type
-              if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
-                if (!view.state.tr.getMeta('updateGroupOnDocAttrsChange')) {
-                  // Force re-render of all group nodes
-                  view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
-                }
-              }
-            } else if (oldDocAttrsNodes.length === 0 && newDocAttrsNodes.length === 0) {
-              console.error('No `docAttrs` nodes found in the document');
-            } else {
-              console.error('Multiple `docAttrs` nodes found in the document');
-            }
-          }
-        })
-      })
-    ];
-  },
+  //             // TODO: This could be generalised beyond just event type
+  //             if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
+  //               if (!view.state.tr.getMeta('updateGroupOnDocAttrsChange')) {
+  //                 // Force re-render of all group nodes
+  //                 view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
+  //               }
+  //             }
+  //           } else if (oldDocAttrsNodes.length === 0 && newDocAttrsNodes.length === 0) {
+  //             console.error('No `docAttrs` nodes found in the document');
+  //           } else {
+  //             console.error('Multiple `docAttrs` nodes found in the document');
+  //           }
+  //         }
+  //       })
+  //     })
+  //   ];
+  // },
   addInputRules() {
     return [
       wrappingInputRule({

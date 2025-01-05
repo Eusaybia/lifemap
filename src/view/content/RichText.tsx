@@ -341,9 +341,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       if (!contentError) {
         throttledBackup(editor.getJSON())
       }
-
-      // @ts-ignore
-      editor.commands.ensureDocumentAttributes()
       
       console.log("JSON Output", editor.getJSON())
       // @ts-ignore

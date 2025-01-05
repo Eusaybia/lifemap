@@ -206,10 +206,10 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
           }
 
           // If `docAttrs` is not found, ensure it exists and retry
-          if (commands.ensureDocumentAttributes()) {
-            // After ensuring, set the attributes
-            return commands.setDocumentAttribute(attributes);
-          }
+          // if (commands.ensureDocumentAttributes()) {
+          //   // After ensuring, set the attributes
+          //   return commands.setDocumentAttribute(attributes);
+          // }
 
           return false;
         },
@@ -221,7 +221,7 @@ export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes &
       getDocumentAttributes:
         () =>
         ({ state }: { state: EditorState }) => {
-          let attrs: Record<string, any> = { attrs: 'noneFound' };
+          let attrs: Record<string, string> = { attrs: 'noneFound' };
           state.doc.descendants((node, pos) => {
             if (node.type.name === 'docAttrs') {
               attrs = node.attrs;
