@@ -253,15 +253,11 @@ export const GroupExtension = TipTapNode.create({
       let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`]; // Add a default box shadow value
       const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
       const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
-      const yellowGlow = `0 0 100px hsla(54, 100%, 72%, 0.8)`;
 
       // Check whether this group contains subnodes that is a mention
       node.descendants((childNode) => {
         if (childNode.type.name === 'mention' && (childNode.attrs.label as string).includes('✅ complete')) {
           glowStyles.push(greenGlow)
-        }
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string).includes('⭐️ important')) {
-          glowStyles.push(yellowGlow)
         }
       });
 
