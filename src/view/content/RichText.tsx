@@ -378,7 +378,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
 
-    // @ts-ignore
+  // @ts-ignore
     editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
   }, [editor])
   // @ts-ignore
@@ -397,15 +397,15 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     
     const newSalesGuideId = sessionStorage.getItem('newSalesGuide');
     const urlId = window.location.pathname.split('/').pop();
-
+    
     // Only apply template if URL ID matches stored ID
     if (newSalesGuideId === urlId && editor) {
       setTimeout(() => {
         (editor as Editor)!.commands.setContent(SalesGuideTemplate);
         console.log("Applied sales guide template to", urlId);
-        
+
         // Mark template as applied
-        templateApplied.current = true;
+      templateApplied.current = true;
         
         // Now safe to remove from sessionStorage
         sessionStorage.removeItem('newSalesGuide');

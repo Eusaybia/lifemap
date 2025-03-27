@@ -7,8 +7,7 @@ import './styles.scss';
 import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
-import { DocumentAttributes, getDocumentAttributesNodeFromState } from "./DocumentAttributesExtension";
-import { PluginKey, Plugin } from "prosemirror-state";
+import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -26,17 +25,17 @@ declare module '@tiptap/core' {
 
 export type InteractionType = "onHover" | "onClick" | "onSelectionChanged" | "onMarkChange" | "onTextChange"
 
-// Determine whether this node is irrelevant for the given event type, which is selected at the document level
-// For example, if the node contains a mention tag of "corporate" but the selected event type is "wedding", then the node is irrelevant
-// This is used to hide nodes that are irrelevant for the current event type
-export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: string) => {
+// Determine whether this node is irrelevant for the given event type
+export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: DocumentAttributes['selectedEventLens']) => {
   let isIrrelevant = false;
 
   console.log("Selected event type from perspective of group: ", selectedEventType)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
-  const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== selectedEventType);
+  // Ensure selectedEventType is valid before filtering
+  const validSelectedEventType = eventTypes.includes(selectedEventType) ? selectedEventType : defaultDocumentAttributes.selectedEventLens;
+  const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== validSelectedEventType);
 
   groupNode.content?.forEach((childNode: JSONContent) => {
     if (childNode.type === 'paragraph') {
@@ -47,22 +46,21 @@ export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: 
           let mentionEventType = "";
 
           if (labelParts.length === 1) {
-            // Just the mention text
             mentionEventType = labelParts[0].toLowerCase();
-          } 
+          }
           else if (labelParts.length >= 2) {
-            // Just the mention text, not the emoji
             mentionEventType = labelParts[1].toLowerCase();
           }
 
           // This handles the case where the node contains a mention of the selected event type
-          if (mentionEventType === selectedEventType) {
+          if (mentionEventType === validSelectedEventType) {
             isIrrelevant = false;
-            return
+            return // Exit the inner loop early
           }
 
           if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
             isIrrelevant = true;
+            // Don't return here, need to check all children
           }
         }
       })
@@ -225,17 +223,29 @@ export const GroupExtension = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
 
-        // Force re-render when docAttrs changes
-        const [, forceUpdate] = React.useState({});
-      
-        React.useEffect(() => {
-          const editor = props.editor.on('transaction', ({ transaction }) => {
-            if (transaction.getMeta('updateGroupOnDocAttrsChange')) {
-              forceUpdate({});
+        // State to hold the current document attributes, initialized using the command
+        // @ts-ignore - getDocumentAttributes exists via the extension
+        const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+
+        // Listen for updates from localStorage changes via the custom event
+        useEffect(() => {
+          // Handler for the custom event
+          const handleUpdate = (event: Event) => {
+            // @ts-ignore - CustomEvent has detail property
+            const updatedAttributes = event.detail as DocumentAttributes;
+            if (updatedAttributes) {
+              setDocAttributes(updatedAttributes);
             }
-          });
-          return () => {editor.off('transaction', () => {})};
-        }, []);
+          };
+
+          // Add event listener
+          window.addEventListener('doc-attributes-updated', handleUpdate);
+
+          // Cleanup on unmount
+          return () => {
+            window.removeEventListener('doc-attributes-updated', handleUpdate);
+          };
+        }, []); // Run only once on mount
 
       let node = props.node
 
@@ -439,7 +449,7 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node.toJSON(), "wedding")}
+              isIrrelevant={determineIrrelevance(props.node.toJSON(), docAttributes.selectedEventLens)}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
@@ -447,7 +457,7 @@ export const GroupExtension = TipTapNode.create({
                     return <NodeViewContent node={props.node} />;
                   case "hideUnimportantNodes":
                     return <div>
-                      Just important nodes
+                      Just important nodes (Implementation Pending based on unimportantNodesDisplayLens: {docAttributes.unimportantNodesDisplayLens})
                       </div>
                   default:
                     return <NodeViewContent node={props.node} />;

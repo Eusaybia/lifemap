@@ -1,9 +1,4 @@
-import { Editor, mergeAttributes, Node as TipTapNode } from '@tiptap/core';
-import { ReplaceStep, ReplaceAroundStep } from '@tiptap/pm/transform';
-import { NodeType } from 'prosemirror-model';
-import { EditorState, PluginKey } from 'prosemirror-state';
-import { Plugin, Transaction } from 'prosemirror-state';
-import { Node as ProseMirrorNode } from 'prosemirror-model';
+import { Editor, Extension, RawCommands } from '@tiptap/core';
 
 // The problem that this extension solves is the question of how to store document level attributes (or information)
 // This is used for things such as changing how the user views an entire document.
@@ -13,290 +8,109 @@ import { Node as ProseMirrorNode } from 'prosemirror-model';
 // There were several hypotheses and approaches on how to solve this, with many not working when actually implemented,
 // due to various idiosyncracies in ProseMirror and TipTap.
 
-// Approach 1: Add attributes to the root "doc" node.
-// In TipTap, it is possible to add attributes to almost any node using props.updateAttributes("key", "value").
-// However, it was discovered that it is not possible to do this for the root "doc" node.
-// See this issue here: https://github.com/ueberdosis/tiptap/issues/3948
-
-// Approach 2: Create a custom step using ProseMirror to directly add attributes to the root "doc" node.
-// Apparently it is possible to create a custom DocAttrStep to add an attribute to the root "doc" node.
-// https://discuss.prosemirror.net/t/changing-doc-attrs/784/32
-// But after trying this approach and inspecting the root "doc" node, no attributes could be found.
-// Maybe this is due to an implementation error, but I decided to move onto a more basic and reliable approach.
-
-// Approach 3: Create a custom extension node that has its own attributes
-// This is to create a node that always exists in the document tree, much like any other node would have attributes
-// It's called "docAttrs" and is always the first child of the root "doc" node.
-// This means it's always at position 0 in the document tree.
-// It can be updated using the props.updateAttributes("key", "value") method.
-// It's a bit hacky, compared to some of the purer methods above, but this should be the most reliable and simplest to understand.
-// https://tiptap.dev/docs/editor/api/commands/nodes-and-marks/update-attributes
-// This is the approach that was chosen and is implemented in this file.
+// Approach: Use localStorage to store document attributes locally.
+// Commands are provided to interact with this storage.
+// Components needing these attributes should use the `getDocumentAttributes` command
+// and listen for the 'doc-attributes-updated' custom event on the window.
 
 // Extend TipTap's Commands interface
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    /**
-     * Sets document-level attributes.
-     */
-    setDocumentAttribute: (attributes: Record<string, any>) => ReturnType;
+    docAttrsCommands: {
+      /**
+       * Sets document-level attributes in localStorage.
+       */
+      setDocumentAttribute: (attributes: Partial<DocumentAttributes>) => ReturnType;
 
-    /**
-     * Retrieves document-level attributes.
-     */
-    getDocumentAttributes: () => Record<string, any>;
-
-    /**
-     * Ensures the `docAttrs` node exists in the document.
-     */
-    ensureDocumentAttributes: () => boolean;
+      /**
+       * Retrieves document-level attributes synchronously from localStorage.
+       */
+      getDocumentAttributes: () => DocumentAttributes;
+    }
   }
 }
 
-// Define the structure of the `docAttrs` node's attributes
+// Define the structure of the attributes
 export interface DocumentAttributes {
-  // These control whether the document is editable, viewed through a focus
-  // view that blacks out any elements that are not currently selected, or
-  // read-only
   selectedFocusLens: 'editing' | 'focus' | 'read-only';
-  // This controls which event type is selected. This will affect non-event types
-  // based on irrelevantEventNodesDisplayLens 
   selectedEventLens: "wedding" | "birthday" | "corporate";
-  // This controls whether irrelevant event nodes have dimmed opacity, are hidden completely, or shown normally
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
-  // This controls whether unimportant nodes have dimmed opacity, are hidden completely, or shown normally
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
 }
 
-export interface DocumentAttributesDefaults {
-  selectedFocusLens?: {
-    default: DocumentAttributes['selectedFocusLens']
-  };
-  selectedEventLens?: {
-    default: DocumentAttributes['selectedEventLens']
-  };
-  irrelevantEventNodesDisplayLens?: {
-    default: DocumentAttributes['irrelevantEventNodesDisplayLens']
-  };
-  unimportantNodesDisplayLens?: {
-    default: DocumentAttributes['unimportantNodesDisplayLens']
-  };
-  // ... any other existing options
-}
-
-const defaultDocumentAttributes = {
+// Define default attributes
+export const defaultDocumentAttributes: DocumentAttributes = {
   selectedFocusLens: 'editing' as const,
   selectedEventLens: 'wedding' as const,
   irrelevantEventNodesDisplayLens: 'dim' as const,
   unimportantNodesDisplayLens: 'hide' as const,
-} satisfies Record<keyof DocumentAttributes, DocumentAttributes[keyof DocumentAttributes]>;
+};
 
-export const getDocumentAttributesNodeFromState = (state: EditorState) => {
-  const docAttrsNodes: { node: ProseMirrorNode, pos: number }[] = []
+// Key for localStorage
+const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
 
-  state.doc.descendants((node, pos) => {
-    if (node.type.name === 'docAttrs') {
-      docAttrsNodes.push({ node, pos })
-      return // must stop traversal once found
-    }
-  })
+// Replace the Node extension with a simple Extension providing commands
+export const DocumentAttributeExtension = Extension.create({
+  name: 'docAttrsCommands',
 
-  return docAttrsNodes
-}
+  // No node-specific properties
 
-
-export const DocumentAttributeExtension = TipTapNode.create<DocumentAttributes & DocumentAttributesDefaults>({
-  name: 'docAttrs',
-  group: 'block',
-
-  // Prevent user from directly editing this node
-  selectable: false,
-  draggable: false,
-  atom: true, // Treat as atomic to prevent internal modifications
-
-  // Define attributes to hold document-level data
-  addAttributes() {
-    return {
-      selectedFocusLens: {
-        default: 'editing' as const,
-        parseHTML: (element: HTMLElement) =>
-          element.getAttribute('data-selected-focus-lens') || this.options.selectedFocusLens.default,
-        renderHTML: (attributes: DocumentAttributes) => ({
-          'data-selected-focus-lens': attributes.selectedFocusLens,
-        }),
-      },
-      selectedEventLens: {
-        default: "wedding" as const,
-        parseHTML: (element: HTMLElement) => 
-          element.getAttribute('data-selected-event-lens') || this.options.selectedEventLens.default,
-        renderHTML: (attributes: DocumentAttributes) => ({
-          'data-selected-event-lens': attributes.selectedEventLens,
-        }),
-      },
-      irrelevantEventNodesDisplayLens: {
-        default: "dim" as const,
-        parseHTML: (element: HTMLElement) => 
-          element.getAttribute('data-irrelevant-event-nodes-display-lens') || this.options.irrelevantEventNodesDisplayLens.default,
-        renderHTML: (attributes: DocumentAttributes) => ({
-          'data-irrelevant-event-nodes-display-lens': attributes.irrelevantEventNodesDisplayLens,
-        }),
-      },
-      unimportantNodesDisplayLens: {
-        default: "hide" as const,
-        parseHTML: (element: HTMLElement) => 
-          element.getAttribute('data-unimportant-nodes-display-lens') || this.options.unimportantNodesDisplayLens.default,
-        renderHTML: (attributes: DocumentAttributes) => ({
-          'data-unimportant-nodes-display-lens': attributes.unimportantNodesDisplayLens,
-        }),
-      },
-    }
-  },
-
-  parseHTML() {
-    return [
-      {
-        tag: 'div[data-type="document-attributes"]',
-      },
-    ]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    // @ts-ignore
-    return ['div', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'document-attributes' })]
-  },
-
-  // Define custom commands for this node
-  // @ts-ignore
-  addCommands() {
+  // Define custom commands for interacting with localStorage
+  addCommands(): Partial<RawCommands> {
     return {
       /**
-       * Sets document-level attributes.
-       * Finds the `docAttrs` node and updates its attributes.
-       * If the node is not found, it ensures it exists first.
-       * @param attributes - The attributes to set.
+       * Sets document-level attributes in localStorage.
+       * @param attributes - The attributes to set or merge.
        */
       setDocumentAttribute:
-        (attributes: Record<string, any>) =>
-        ({ commands, state, tr, dispatch }: {
-          commands: any;
-          state: EditorState;
-          tr: Transaction;
-          dispatch: ((tr: Transaction) => void) | undefined;
-        }) => {
-          let pos: number | null = null;
-          // Traverse the document to find `docAttrs` node
-          state.doc.descendants((node, position) => {
-            if (node.type.name === 'docAttrs') {
-              pos = position;
-              return false; // Stop traversal once found
+        (attributes: Partial<DocumentAttributes>) =>
+        ({ commands }) => {
+          let currentAttributes = defaultDocumentAttributes;
+          try {
+            const storedAttrs = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedAttrs) {
+              currentAttributes = { ...defaultDocumentAttributes, ...JSON.parse(storedAttrs) };
             }
-          });
-
-          if (pos !== null) {
-            // Merge existing attributes with new ones
-            const currentAttrs = state.doc.nodeAt(pos)!.attrs;
-            const newAttrs = { ...currentAttrs, ...attributes };
-
-            if (dispatch) {
-              // Update the node's attributes
-              const transaction = tr.setNodeMarkup(pos, undefined, newAttrs);
-              dispatch(transaction);
-            }
-            return true;
+          } catch (error) {
+            console.error("Error reading document attributes from localStorage:", error);
           }
 
-          // If `docAttrs` is not found, ensure it exists and retry
-          // if (commands.ensureDocumentAttributes()) {
-          //   // After ensuring, set the attributes
-          //   return commands.setDocumentAttribute(attributes);
-          // }
+          const updatedAttributes = { ...currentAttributes, ...attributes };
 
-          return false;
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedAttributes));
+            // Dispatch a custom event on the window object to notify listeners
+            window.dispatchEvent(new CustomEvent('doc-attributes-updated', { detail: updatedAttributes }));
+          } catch (error) {
+            console.error("Error saving document attributes to localStorage:", error);
+          }
+          // Command itself returns true synchronously
+          return true;
         },
 
       /**
-       * Retrieves document-level attributes.
-       * @returns The current document attributes or a default object if not found.
+       * Synchronously retrieves document attributes from localStorage.
+       * @returns The current document attributes.
        */
+      // @ts-ignore - getDocumentAttributes exists via the extension
       getDocumentAttributes:
         () =>
-        ({ state }: { state: EditorState }) => {
-          let attrs: Record<string, string> = { attrs: 'noneFound' };
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              attrs = node.attrs;
-              return false; // Stop traversal once found
+        // @ts-ignore - getDocumentAttributes exists via the extension
+        ({ commands }) => {
+          try {
+            const storedAttrs = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedAttrs) {
+              // Merge with defaults to ensure all keys are present
+              return { ...defaultDocumentAttributes, ...JSON.parse(storedAttrs) };
             }
-          });
-          return attrs;
-        },
-
-      /**
-       * Ensures the `docAttrs` node exists in the document.
-       * If not, it inserts the node with default attributes.
-       */
-      ensureDocumentAttributes:
-        () =>
-        ({ commands, state, dispatch }: {
-          commands: any;
-          state: EditorState;
-          dispatch: ((tr: Transaction) => void) | undefined;
-        }) => {
-          // TODO: This needs to make sure there is only one `docAttrs` node in the document
-          // Currently there are multiple `docAttrs` nodes in the document
-          let hasDocAttrs = false;
-          state.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              hasDocAttrs = true;
-              return false;
-            }
-          });
-          if (!hasDocAttrs) {
-            const docAttrsNode = this.type.create(); // Create a new `docAttrs` node with default attributes
-            if (dispatch) {
-              dispatch(state.tr.insert(0, docAttrsNode));
-            }
-            return true;
+          } catch (error) {
+            console.error("Error reading document attributes from localStorage:", error);
           }
-          return false;
+          // Return defaults if nothing stored or on error
+          return defaultDocumentAttributes;
         },
     };
   },
 
-  // Add a ProseMirror plugin to ensure `docAttrs` is always present
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('docAttrsInitializer'),
-        /**
-         * The appendTransaction hook allows modifying the transaction before it's applied.
-         * Here, it checks if `docAttrs` exists and inserts it if missing.
-         */
-        appendTransaction: (transactions, oldState, newState) => {
-          let hasDocAttrs = false;
-          newState.doc.descendants((node, pos) => {
-            if (node.type.name === 'docAttrs') {
-              hasDocAttrs = true;
-              return false; // Stop traversal once found
-            }
-          });
-          if (!hasDocAttrs) {
-            const docAttrsNode = this.type.create(); // Create a new `docAttrs` node with default attributes
-            const transaction = newState.tr.insert(0, docAttrsNode);
-            return transaction; // Return the transaction to insert `docAttrs`
-          }
-          return;
-        },
-      })
-    ];
-  },
-
-  // Prevent 'doc' node from being draggable or selectable
-  addNodeView() {
-    return () => ({
-      dom: document.createElement('div'),
-      contentDOM: null,
-      ignoreMutation: () => true,
-    });
-  },
+  // No ProseMirror plugins needed
 });
