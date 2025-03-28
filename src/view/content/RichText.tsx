@@ -352,6 +352,32 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
   })
 
+  // Effect to manage scroll-snap based on currentFocusLens
+  React.useEffect(() => {
+    // Target the main scrolling element (usually documentElement for window scrolling)
+    const scrollElement = document.documentElement;
+
+    if (currentFocusLens === 'call-mode') {
+      // Enable scroll snapping
+      scrollElement.style.scrollSnapType = 'y mandatory';
+      // Optional: Add padding to influence snapping point if needed
+      // scrollElement.style.scrollPaddingTop = '25vh'; // Example: snap closer to center
+      console.log("Scroll snap ENABLED (y mandatory)");
+    } else {
+      // Disable scroll snapping
+      scrollElement.style.scrollSnapType = 'none';
+      // scrollElement.style.scrollPaddingTop = ''; // Reset padding if set
+      console.log("Scroll snap DISABLED");
+    }
+
+    // Cleanup function to disable scroll snap when component unmounts or mode changes
+    return () => {
+      scrollElement.style.scrollSnapType = 'none';
+      // scrollElement.style.scrollPaddingTop = ''; // Reset padding if set
+      console.log("Scroll snap DISABLED (cleanup)");
+    };
+  }, [currentFocusLens]); // Rerun only when the focus lens changes
+
   return editor
 }
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
