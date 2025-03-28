@@ -287,7 +287,7 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
 export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
 
-    const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("editing")
+    const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("admin-editing")
     const [selectedEventType, setSelectedEventType] = React.useState<DocumentAttributes['selectedEventLens']>("wedding")
 
     const [irrelevantEventNodesDisplayLens, setIrrelevantEventNodesDisplayLens] = React.useState<DocumentAttributes['irrelevantEventNodesDisplayLens']>("dim")
@@ -297,68 +297,70 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     documentMenuStyle.width = "100%"
 
     React.useEffect(() => {
-        // Add null check for editor
         if (!props.editor) return;
 
-        const document = props.editor.state.doc
-        const documentAttributes = document.attrs
+        const loadAttributes = () => {
+            const currentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
+            setSelectedFocusLens(currentAttributes.selectedFocusLens);
+            setSelectedEventType(currentAttributes.selectedEventLens);
+            setIrrelevantEventNodesDisplayLens(currentAttributes.irrelevantEventNodesDisplayLens);
+            setUnimportantNodesDisplayLens(currentAttributes.unimportantNodesDisplayLens);
+        };
 
-        // On document load, initialise state variables from document attributes
-        if (documentAttributes.selectedFocusLens) {
-            setSelectedFocusLens(documentAttributes.selectedFocusLens)
-        }
-        if (documentAttributes.selectedEventType) {
-            setSelectedEventType(documentAttributes.selectedEventType)
-        }
-        if (documentAttributes.irrelevantEventNodesDisplayLens) {
-            setIrrelevantEventNodesDisplayLens(documentAttributes.irrelevantEventNodesDisplayLens)
-        }
-        if (documentAttributes.unimportantNodesDisplayLens) {
-            setUnimportantNodesDisplayLens(documentAttributes.unimportantNodesDisplayLens)
-        }
+        loadAttributes();
 
-    }, [props.editor])
+        const handleAttributeUpdate = (event: CustomEvent<DocumentAttributes>) => {
+            setSelectedFocusLens(event.detail.selectedFocusLens);
+            setSelectedEventType(event.detail.selectedEventLens);
+            setIrrelevantEventNodesDisplayLens(event.detail.irrelevantEventNodesDisplayLens);
+            setUnimportantNodesDisplayLens(event.detail.unimportantNodesDisplayLens);
+        };
+
+        window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
+
+        return () => {
+            window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
+        };
+
+    }, [props.editor]);
 
     return (
         <motion.div style={documentMenuStyle}>
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
-                    value={"editing" as DocumentAttributes['selectedFocusLens']}
+                    value={"admin-editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'editing' as DocumentAttributes['selectedFocusLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
-                            📝 Editing view
+                            🛠️ Admin Editing
                         </span>
                     </motion.div>
                 </Option>
                 <Option
-                    value={"focus" as DocumentAttributes['selectedFocusLens']}
+                    value={"call-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'focus' as DocumentAttributes['selectedFocusLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
-                            🔍 Focus view
+                            📞 Call Mode
                         </span>
                     </motion.div>
                 </Option>
                 <Option
-                    value={"read-only" as DocumentAttributes['selectedFocusLens']}
+                    value={"learning-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedFocusLens: 'read-only' as DocumentAttributes['selectedFocusLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
                     }}
                 >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
-                            📖️ Read-only view
+                            🎓 Learning Mode
                         </span>
                     </motion.div>
                 </Option>
@@ -367,10 +369,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"wedding"}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
-                        // @ts-ignore
-                        console.log('Setting selected event lens to wedding', props.editor.commands.getDocumentAttributes())
+                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -382,10 +381,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"corporate"}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
-                        // @ts-ignore
-                        console.log('Setting selected event lens to corporate', props.editor.commands.getDocumentAttributes())
+                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -397,8 +393,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"birthday"}
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -409,13 +404,11 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 </Option>
             </FlowSwitch>
 
-            {/* New FlowSwitch for irrelevant event nodes */}
             <FlowSwitch value={irrelevantEventNodesDisplayLens} isLens>
                 <Option
                     value="show"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'show' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'show' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -427,8 +420,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="hide"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'hide' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'hide' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -440,8 +432,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="dim"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'dim' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'dim' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -452,13 +443,11 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 </Option>
             </FlowSwitch>
 
-            {/* New FlowSwitch for unimportant nodes */}
             <FlowSwitch value={unimportantNodesDisplayLens} isLens>
                 <Option
                     value="show"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'show' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'show' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -470,8 +459,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="hide"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'hide' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'hide' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -483,8 +471,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value="dim"
                     onClick={() => {
-                        // @ts-ignore
-                        props.editor.chain().setDocumentAttribute({ unimportantNodesDisplayLens: 'dim' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
+                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'dim' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
                     }}
                 >
                     <motion.div>
@@ -604,8 +591,6 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
             </Tag>
             <FlowSwitch value={props.selectedDisplayLens} isLens>
                 <Option value="natural" onClick={() => {
-                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                    // setMathsLens("latex")
                     setDisplayLensNatural(props.editor)
                 }}>
                     <motion.div>
@@ -615,8 +600,6 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
                     </motion.div>
                 </Option>
                 <Option value="latex" onClick={() => {
-                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                    // setMathsLens("latex")
                     setDisplayLensLatex(props.editor)
                 }}>
                     <motion.div>
@@ -626,8 +609,6 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
                     </motion.div>
                 </Option>
                 <Option value="linear" onClick={() => {
-                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                    // setMathsLens("latex")
                     setDisplayLensLatex(props.editor)
                 }}>
                     <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
@@ -637,8 +618,6 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
                     </motion.div>
                 </Option>
                 <Option value="mathjson" onClick={() => {
-                    // selection.focus().updateAttributes("math", { lensDisplay: "latex" }).run()
-                    // setMathsLens("latex")
                     setDisplayLensLatex(props.editor)
                 }}>
                     <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
@@ -783,7 +762,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 </Option>
             </FlowSwitch>
             <FlowSwitch value={props.justification} isLens>
-                {/* <FlowSwitch value={props.editor.isActive({ textAlign: 'left' }) ? "left" : props.editor.isActive({ textAlign: 'center' }) ? "center" : props.editor.isActive({ textAlign: 'right' }) ? "right" : "justify"} isLens> */}
                 <Option value="left"
                     onClick={() => props.editor!.chain().focus().setTextAlign('left').run()}
                 >
@@ -829,7 +807,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 <IconButton
                     style={{ color: props.editor!.isActive('bold') ? offWhite : black }}
                     size="sm"
-                    // @ts-ignore
+                    // @ts-ignore - toggleBold should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleBold().run()}
                     variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
                     <FormatBoldIcon />
@@ -837,7 +815,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 <IconButton
                     style={{ color: props.editor!.isActive('italic') ? offWhite : black }}
                     size="sm"
-                    // @ts-ignore
+                    // @ts-ignore - toggleItalic should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleItalic().run()}
                     variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
                     <FormatItalicIcon />
@@ -852,7 +830,7 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 <IconButton
                     style={{ color: props.editor!.isActive('strike') ? offWhite : black }}
                     size="sm"
-                    // @ts-ignore
+                    // @ts-ignore - toggleStrike should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleStrike().run()}
                     variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
                     <FormatStrikethrough />
@@ -916,7 +894,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            {/* Need to create a proper state variable for this */}
             <FlowSwitch value={props.justification} isLens>
                 <Option
                     value={"#121212"}
@@ -925,7 +902,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: black }}
                         size="sm"
-                        // @ts-ignore
                         className={props.editor.isActive('textStyle', { color: '#121212' }) ? 'is-active' : ''}
                         variant="plain"
                     >
@@ -936,7 +912,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: "#958DF1" }}
                         size="sm"
-                        // @ts-ignore
                         className={props.editor.isActive('textStyle', { color: '#958DF1' }) ? 'is-active' : ''}
                         variant="plain"
                     >
@@ -947,7 +922,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: red }}
                         size="sm"
-                        // @ts-ignore
                         className={props.editor.isActive('textStyle', { color: red }) ? 'is-active' : ''}
                         variant="plain"
                     >
@@ -958,7 +932,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: grey }}
                         size="sm"
-                        // @ts-ignore
                         className={props.editor.isActive('textStyle', { color: grey }) ? 'is-active' : ''}
                         variant="plain"
                     >
@@ -967,7 +940,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                 </Option>
             </FlowSwitch>
             
-            {/* Need to create a proper state variable for this */}
             <FlowSwitch value={props.justification} isLens>
                 <Option
                     value={highlightYellow}
@@ -976,7 +948,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: highlightYellow }}
                         size="sm"
-                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
                         className={props.editor!.isActive('highlight', { color: highlightYellow }) ? 'is-active' : ''}
                         variant="plain">
                         <FormatColorFill />
@@ -989,7 +960,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: blue }}
                         size="sm"
-                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
                         className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
                         variant="plain">
                         <FormatColorFill />
@@ -1002,7 +972,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: purple }}
                         size="sm"
-                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
                         className={props.editor!.isActive('highlight', { color: blue }) ? 'is-active' : ''}
                         variant="plain">
                         <FormatColorFill />
@@ -1015,7 +984,6 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
                     <IconButton
                         style={{ color: red }}
                         size="sm"
-                        // TODO: Highlight color is controlled by mark style in styles.css and not the color parameter here
                         className={props.editor!.isActive('highlight', { color: red }) ? 'is-active' : ''}
                         variant="plain">
                         <FormatColorFill />
@@ -1067,31 +1035,24 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
-    // If I hard code a value for the FlowSwitch associated with the maths lenses, even that doesn't change them
-    // TODO: First, make sure that the font lenses are controlled
-
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
 
     const selection = props.editor!.view.state.selection
 
     React.useEffect(() => {
-        // Typing is wrong, selection does have node field
-        // @ts-ignore
-        if (selection.node) {
-            // @ts-ignore
+        // Check if it's a NodeSelection before accessing .node
+        if (isNodeSelection(selection)) {
             const node = selection.node
-            const lensDisplay: MathLens = node.attrs.lensDisplay
-            const lensEvaluation: MathLens = node.attrs.lensEvaluation
-
-            // Change from default dummy value to the actual lens value embedded in the node
-            setSelectedDisplayLens(node.attrs.lensDisplay)
-            setSelectedEvaluationLens(node.attrs.lensEvaluation)
+            // Ensure attributes exist before accessing them
+            if (node.attrs.lensDisplay) {
+                setSelectedDisplayLens(node.attrs.lensDisplay)
+            }
+            if (node.attrs.lensEvaluation) {
+                setSelectedEvaluationLens(node.attrs.lensEvaluation)
+            }
         }
-
     }, [selection])
 
-    // TODO: For some reason the FlowSwitch doesn't work properly when embedded into the BubbleMenu
-    // TODO: For now, just use a normal MUI select
     const font = props.editor.getAttributes('textStyle').fontFamily;
     const fontSize = props.editor.getAttributes('textStyle').fontSize
     const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
@@ -1101,9 +1062,12 @@ export const FlowMenu = (props: { editor: Editor }) => {
             editor={props.editor}
             tippyOptions={{
                 placement: "top",
+                // Keep the bubble menu open when interacting with FlowSwitch
+                // hideOnClick: false, // May need adjustment based on FlowSwitch behavior
+                // appendTo: () => document.body, // Helps with positioning issues sometimes
             }}>
             <motion.div
-                // ref={elementRef}
+                // ref={elementRef} // ref might not be needed if positioning is handled by Tippy
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
@@ -1114,8 +1078,9 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
                         'portal': <PortalLoupe editor={props.editor} />,
-                        'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</> 
-                    }[getSelectedNodeType(props.editor)]
+                        'math': <MathLoupe editor={props.editor} selectedDisplayLens={selectedDisplayLens} />,
+                        'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
+                    }[getSelectedNodeType(props.editor)] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
             </motion.div>
         </BubbleMenu>

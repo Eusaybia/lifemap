@@ -25,11 +25,17 @@ declare module '@tiptap/core' {
 
 export type InteractionType = "onHover" | "onClick" | "onSelectionChanged" | "onMarkChange" | "onTextChange"
 
-// Determine whether this node is irrelevant for the given event type
-export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: DocumentAttributes['selectedEventLens']) => {
+// Determine whether this node should be hidden based on event type irrelevance or learning tag in call mode
+export const shouldHideGroup = (
+  groupNode: JSONContent,
+  selectedEventType: DocumentAttributes['selectedEventLens'],
+  selectedFocusLens: DocumentAttributes['selectedFocusLens']
+): boolean => {
   let isIrrelevant = false;
+  let isLearningGroup = false;
 
-  console.log("Selected event type from perspective of group: ", selectedEventType)
+  // console.log("Selected event type from perspective of group: ", selectedEventType)
+  // console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
@@ -42,6 +48,15 @@ export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: 
       childNode.content?.forEach((grandChildNode: JSONContent) => {
         if (grandChildNode.type === 'mention') {
           const label = grandChildNode.attrs?.label as string;
+          if (!label) return; // Skip if label is missing
+
+          // Check for Learning Tag
+          // TODO: Confirm the exact string for the learning tag
+          if (label.includes('🎓 learning')) { // Assuming this is the learning tag
+            isLearningGroup = true;
+          }
+
+          // Check for Event Type Relevance
           const labelParts = label.split(' ');
           let mentionEventType = "";
 
@@ -55,18 +70,27 @@ export const determineIrrelevance = (groupNode: JSONContent, selectedEventType: 
           // This handles the case where the node contains a mention of the selected event type
           if (mentionEventType === validSelectedEventType) {
             isIrrelevant = false;
-            return // Exit the inner loop early
+            return // Exit the inner loop early if relevant event type found
           }
 
           if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
             isIrrelevant = true;
-            // Don't return here, need to check all children
+            // Don't return here, need to check all children for relevance and learning tags
           }
         }
       })
     }
   });
-  return isIrrelevant;
+
+  // Determine if the group should be hidden
+  if (isIrrelevant) {
+    return true; // Hide if irrelevant to the selected event type
+  }
+  if (selectedFocusLens === 'call-mode' && isLearningGroup) {
+    return true; // Hide if it's a learning group and we are in call-mode
+  }
+
+  return false; // Show otherwise
 };
 
 // Finesse - refinement
@@ -393,6 +417,9 @@ export const GroupExtension = TipTapNode.create({
 
       const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 150, 1000], [0.8, 0.20, 0.10, 0.05, 0])}`;
 
+      // Determine if the group should be hidden
+      const isHidden = shouldHideGroup(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
+
       const filterImportantNodes = (node: ProseMirrorNode): ProseMirrorNode | null => {
         let hasImportantMention = false;
 
@@ -432,7 +459,12 @@ export const GroupExtension = TipTapNode.create({
               // increaseRefinement("onClick")
             }}
             ref={ref}
-            style={{ borderRadius: 10, position: 'relative' }}
+            style={{
+              borderRadius: 10,
+              position: 'relative',
+              // Conditionally hide the group using display style
+              display: isHidden ? 'none' : 'block',
+            }}
             initial={{
               boxShadow: `0px 0px 0px 0px rgba(0, 0, 0, 0)`,
             }}
@@ -445,13 +477,16 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.qid}
               backgroundColor={props.node.attrs.backgroundColor}
-              isIrrelevant={determineIrrelevance(props.node.toJSON(), docAttributes.selectedEventLens)}
+              isHidden={isHidden} // Pass the calculated hidden state
             >
               {(() => {
                 switch (props.node.attrs.lens) {
                   case "identity":
                     return <NodeViewContent node={props.node} />;
                   case "hideUnimportantNodes":
+                    // TODO: Implement logic based on unimportantNodesDisplayLens
+                    // This might involve filtering content or applying styles
+                    // For now, just showing placeholder
                     return <div>
                       Just important nodes (Implementation Pending based on unimportantNodesDisplayLens: {docAttributes.unimportantNodesDisplayLens})
                       </div>
@@ -460,19 +495,22 @@ export const GroupExtension = TipTapNode.create({
                 }
               })()}
             </Group>
-            <motion.div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
-                opacity: opacityStyle,
-                borderRadius: 10,
-                pointerEvents: "none"
-              }}
-            />
+            {/* Attention Overlay - only render if not hidden */}
+            {!isHidden && (
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  opacity: opacityStyle,
+                  borderRadius: 10,
+                  pointerEvents: "none"
+                }}
+              />
+            )}
           </motion.div>
         </NodeViewWrapper>
       );
