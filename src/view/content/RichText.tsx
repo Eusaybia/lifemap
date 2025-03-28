@@ -54,7 +54,6 @@ import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
-import { driver, DriveStep } from 'driver.js'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -226,10 +225,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
   const { quanta, provider } = React.useContext(QuantaStoreContext)
   const [contentError, setContentError] = React.useState<Error | null>(null)
-  // State to track the current focus lens for managing the effect
   const [currentFocusLens, setCurrentFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>(defaultDocumentAttributes.selectedFocusLens);
-  // Ref to track the currently highlighted element by driver.js
-  const highlightedElementRef = React.useRef<Element | null>(null);
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
 
@@ -320,10 +316,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       if (editor.isEditable !== shouldBeEditable) {
         editor.setEditable(shouldBeEditable);
       }
-
-      // Note: The driver.js highlighting for 'call-mode' is now handled
-      // by the useEffect hook below, based on the `currentFocusLens` state.
-      // The old driver logic for 'focus' mode is removed from here.
     },
     onCreate: ({ editor }) => {
       // Runs once when editor is initialized
@@ -359,97 +351,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     onTransaction: ({ editor, transaction }) => {
     },
   })
-
-  // Effect to manage the 'call-mode' focus highlighting
-  React.useEffect(() => {
-    if (!editor || !editor.view.dom.parentElement) {
-      return;
-    }
-
-    // Function to find and highlight the group at the viewport center
-    const handleScrollHighlight = () => {
-      const viewportCenterY = window.innerHeight / 2;
-      const groupNodes = editor.view.dom.parentElement?.querySelectorAll('[data-group-node-view="true"]');
-      let centerElement: Element | null = null;
-
-      groupNodes?.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        // Check if viewport center is within the element's vertical bounds
-        if (rect.top <= viewportCenterY && rect.bottom >= viewportCenterY) {
-          centerElement = element;
-          // Stop checking once found (assuming no overlapping groups at center)
-          return;
-        }
-      });
-
-      // If a center element is found and it's different from the currently highlighted one
-      if (centerElement && centerElement !== highlightedElementRef.current) {
-        // console.log("Highlighting new center element:", centerElement);
-        highlightedElementRef.current = centerElement; // Update ref
-
-        // Configure driver.js step
-        const driveStep: DriveStep = {
-          element: centerElement,
-          popover: {
-            // title: 'Focused Group', // Optional title
-            // description: 'This group is currently centered.', // Optional description
-            showButtons: [], // Hide default buttons like next/prev
-            side: "left", // Adjust position as needed
-            align: 'start',
-          }
-        };
-        // Initialize driver for a single step highlight
-        const driverObj = driver({
-            showProgress: false,
-            allowClose: false, // Prevent closing by clicking overlay
-            // overlayColor: 'rgba(0,0,0,0.6)', // Optional: Adjust overlay darkness
-            stagePadding: 5, // Padding around the highlighted element
-            stageRadius: 10,
-            steps: [driveStep]
-        });
-        driverObj.drive(); // Start the highlight
-
-      } else if (!centerElement && highlightedElementRef.current) {
-        // If no element is at the center, but something was highlighted, clear it
-        // console.log("Clearing highlight, no center element.");
-        driver().destroy(); // Destroy the current driver instance
-        highlightedElementRef.current = null; // Clear ref
-      }
-    };
-
-    // Throttle the handler
-    const throttledHandler = throttle(handleScrollHighlight, 150); // Adjust throttle time as needed
-
-    let scrollContainer: HTMLElement | Window = window;
-    // TODO: Identify the correct scrollable container if it's not the window
-    // Example: const scrollContainer = editor.view.dom.closest('.scrollable-container-class');
-    // if (!scrollContainer) scrollContainer = window;
-
-    if (currentFocusLens === 'call-mode') {
-      // Add listener only in call-mode
-      scrollContainer.addEventListener('scroll', throttledHandler);
-      // Initial check in case the view loads with a group already centered
-      handleScrollHighlight();
-      console.log("Call mode scroll listener ADDED");
-    } else {
-      // If not in call-mode, ensure any existing highlight is cleared
-      if (highlightedElementRef.current) {
-        driver().destroy();
-        highlightedElementRef.current = null;
-        console.log("Highlight cleared on mode change.");
-      }
-    }
-
-    // Cleanup function
-    return () => {
-      scrollContainer.removeEventListener('scroll', throttledHandler);
-      // Ensure driver is destroyed on cleanup regardless of mode
-      driver().destroy();
-      highlightedElementRef.current = null;
-      console.log("Call mode scroll listener REMOVED");
-    };
-    // Rerun effect when editor instance or focus lens changes
-  }, [editor, currentFocusLens]);
 
   return editor
 }
