@@ -32,7 +32,7 @@ declare module '@tiptap/core' {
 
 // Define the structure of the attributes
 export interface DocumentAttributes {
-  selectedFocusLens: 'editing' | 'focus' | 'read-only';
+  selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode';
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
@@ -40,7 +40,7 @@ export interface DocumentAttributes {
 
 // Define default attributes
 export const defaultDocumentAttributes: DocumentAttributes = {
-  selectedFocusLens: 'editing' as const,
+  selectedFocusLens: 'admin-editing' as const,
   selectedEventLens: 'wedding' as const,
   irrelevantEventNodesDisplayLens: 'dim' as const,
   unimportantNodesDisplayLens: 'hide' as const,

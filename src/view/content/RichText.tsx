@@ -60,7 +60,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
-import { DocumentAttributeExtension } from '../structure/DocumentAttributesExtension'
+import { DocumentAttributeExtension, DocumentAttributes } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
@@ -304,38 +304,52 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     
     onSelectionUpdate: ({ editor }: { editor: Editor }) => {
       // Retrieve document attributes using the custom command
-      // @ts-ignore - TODO: this actually does work, not sure why it's not recognised
-      const documentAttributes = editor.commands.getDocumentAttributes()
+      // @ts-ignore - getDocumentAttributes exists via the extension
+      const documentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes()
 
       // Attributes for the Document root node are defined in DocumentAttributesExtension.tsx
-      if (documentAttributes.selectedFocusLens === "editing") {
-        editor.setEditable(true)
-      } else if (documentAttributes.selectedFocusLens === "focus") {
-        editor.setEditable(true)
-        // Highlight the focused node
+      // Update logic based on new lens names
+      if (documentAttributes.selectedFocusLens === "admin-editing") {
+        if (!editor.isEditable) editor.setEditable(true) // Set editable only if not already
+        // Potentially remove driver.js highlighting if active from other modes
+        driver().destroy(); // Assuming driver.js is used and has a destroy method or similar cleanup
+      } else if (documentAttributes.selectedFocusLens === "call-mode") {
+        if (editor.isEditable) editor.setEditable(false) // Set non-editable globally
+        // TODO: Implement Focus mask mode (viewport intersection + snapping) - This is complex and likely requires more setup
+        // TODO: Implement hiding learning groups - This might involve CSS or node filtering based on tags
+        // The selective editability of specific nodes (like inputs) should be handled by their respective Node Views
+        // which should enforce contentEditable=true regardless of the global editor state.
+        // Example for focus highlighting (similar to old 'focus' mode, adjust as needed for 'call-mode')
         const driverObj = driver({
           animate: true,
           disableActiveInteraction: false,
           stageRadius: 15,
           allowClose: true,
         })
-
-        // Document here refers to the HTML document, not the document node of TipTap
-        const elements = document.querySelectorAll('.attention-highlight');
+        const elements = document.querySelectorAll('.attention-highlight'); // Assuming '.attention-highlight' is still relevant for focus
         elements.forEach((element) => {
           driverObj.highlight({
             element: element,
           });
         });
-      } else if (documentAttributes.selectedFocusLens === "read-only") {
-        editor.setEditable(false)
+      } else if (documentAttributes.selectedFocusLens === "learning-mode") {
+        if (editor.isEditable) editor.setEditable(false) // Set non-editable globally
+        // TODO: Ensure learning groups are visible (this should be the default unless hidden by 'call-mode' logic)
+        // Potentially remove driver.js highlighting if active from other modes
+        driver().destroy();
       }
     },
     onCreate: ({ editor }) => {
       // Runs once when editor is initialized
+      // Set initial editability based on loaded attributes
       // @ts-ignore
-      const documentAttributes = editor.commands.getDocumentAttributes()
-      console.log("Initial Document Attributes", documentAttributes)
+      const documentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
+      console.log("Initial Document Attributes", documentAttributes);
+      if (documentAttributes.selectedFocusLens === 'learning-mode' || documentAttributes.selectedFocusLens === 'call-mode') {
+        editor.setEditable(false);
+      } else {
+        editor.setEditable(true); // Default to editable ('admin-editing')
+      }
     },
     onUpdate: ({ editor }) => {
       if (!contentError) {
@@ -423,7 +437,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     return (
       <div key={props.quanta?.id} style={{width: '100%'}}>
-        {/* This menu is always fixed at the very top of the document */}
+        {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
+        {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>
           <div key={`bubbleMenu${props.quanta?.id}`}>
             {/* This menu floats above selected text or nodes */}
@@ -453,7 +468,7 @@ export const issue123Example = () => {
 export const RichTextCodeExample = () => {
   const content = `
   <p>
-    That’s a boring paragraph followed by a fenced code block:
+    That's a boring paragraph followed by a fenced code block:
   </p>
   <span data-type="mention" data-id="🧱 blocked"></span><span data-type="mention" data-id="⭐️ important"></span>
   <p>
