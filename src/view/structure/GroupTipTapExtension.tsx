@@ -244,8 +244,13 @@ export const GroupExtension = TipTapNode.create({
 
         const handleScroll = () => {
           const rect = nodeElement.getBoundingClientRect();
-          const viewportCenterY = window.innerHeight / 2;
-          const centered = rect.top <= viewportCenterY && rect.bottom >= viewportCenterY;
+          const viewportHeight = window.innerHeight;
+          // Calculate the top (25%) and bottom (75%) boundaries of the middle band
+          const topBoundary = viewportHeight * 0.25;
+          const bottomBoundary = viewportHeight * 0.75;
+
+          // Check if the element overlaps with the middle 50% band
+          const centered = rect.bottom > topBoundary && rect.top < bottomBoundary;
           setIsCentered(centered);
         };
 
@@ -257,7 +262,7 @@ export const GroupExtension = TipTapNode.create({
         if (docAttributes.selectedFocusLens === 'call-mode') {
           scrollContainer.addEventListener('scroll', throttledHandler);
           handleScroll(); // Initial check
-          console.log("Group scroll listener ADDED for node:", props.node.attrs.quantaId);
+          // console.log("Group scroll listener ADDED for node:", props.node.attrs.quantaId);
         } else {
           // Ensure not marked as centered if not in call-mode
           setIsCentered(false);
@@ -266,7 +271,7 @@ export const GroupExtension = TipTapNode.create({
         // Cleanup
         return () => {
           scrollContainer.removeEventListener('scroll', throttledHandler);
-          console.log("Group scroll listener REMOVED for node:", props.node.attrs.quantaId);
+          // console.log("Group scroll listener REMOVED for node:", props.node.attrs.quantaId);
         };
       }, [docAttributes.selectedFocusLens, nodeViewRef]);
 
@@ -298,7 +303,11 @@ export const GroupExtension = TipTapNode.create({
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
       return (
-        <NodeViewWrapper ref={nodeViewRef} data-group-node-view="true">
+        <NodeViewWrapper
+          ref={nodeViewRef}
+          data-group-node-view="true"
+          style={{ scrollSnapAlign: 'start' }}
+        >
           <motion.div
             style={{
               borderRadius: 10,
