@@ -448,7 +448,7 @@ export const GroupExtension = TipTapNode.create({
 
 
       return (
-        <NodeViewWrapper>
+        <NodeViewWrapper data-group-node-view="true">
           <motion.div
             onHoverStart={() => {
               // increaseAttention("onHover")
