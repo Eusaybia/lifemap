@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
 import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONContent } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
-import { MotionValue, motion, useInView, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
+import { motion, useMotionTemplate, useTransform } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
+import { throttle } from 'lodash';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -179,8 +180,6 @@ export const GroupExtension = TipTapNode.create({
   },
   addAttributes() {
     return {
-      attention: { default: 0 }, // if the viewport displays this specific group - in seconds
-      refinement: { default: 0 }, // if the user interacts via onHover, onClick - actions taken
       pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
@@ -189,39 +188,8 @@ export const GroupExtension = TipTapNode.create({
     }
   },
   renderHTML({ node, HTMLAttributes }) {
-    return ["group", HTMLAttributes, 0];
+    return ["div", HTMLAttributes, 0];
   },
-  // addProseMirrorPlugins() {
-  //   return [
-  //     new Plugin({
-  //       key: new PluginKey('updateGroupOnDocAttrsChange'),
-  //       view: () => ({
-  //         update: (view, prevState) => {
-  //           // Check if docAttrs changed
-  //           const oldDocAttrsNodes = getDocumentAttributesNodeFromState(prevState)
-  //           const newDocAttrsNodes = getDocumentAttributesNodeFromState(view.state)
-
-  //           if (oldDocAttrsNodes.length === 1 || newDocAttrsNodes.length === 1) {
-  //             const oldDocAttrs = oldDocAttrsNodes[0].node.attrs
-  //             const newDocAttrs = newDocAttrsNodes[0].node.attrs
-
-  //             // TODO: This could be generalised beyond just event type
-  //             if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens) {
-  //               if (!view.state.tr.getMeta('updateGroupOnDocAttrsChange')) {
-  //                 // Force re-render of all group nodes
-  //                 view.dispatch(view.state.tr.setMeta('updateGroupOnDocAttrsChange', true));
-  //               }
-  //             }
-  //           } else if (oldDocAttrsNodes.length === 0 && newDocAttrsNodes.length === 0) {
-  //             console.error('No `docAttrs` nodes found in the document');
-  //           } else {
-  //             console.error('Multiple `docAttrs` nodes found in the document');
-  //           }
-  //         }
-  //       })
-  //     })
-  //   ];
-  // },
   addInputRules() {
     return [
       wrappingInputRule({
@@ -246,227 +214,96 @@ export const GroupExtension = TipTapNode.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      const nodeViewRef = useRef<HTMLDivElement>(null);
 
-        // State to hold the current document attributes, initialized using the command
-        // @ts-ignore - getDocumentAttributes exists via the extension
-        const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // State for document attributes
+      // @ts-ignore
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // State to track if the node is centered
+      const [isCentered, setIsCentered] = useState(false);
 
-        // Listen for updates from localStorage changes via the custom event
-        useEffect(() => {
-          // Handler for the custom event
-          const handleUpdate = (event: Event) => {
-            // @ts-ignore - CustomEvent has detail property
-            const updatedAttributes = event.detail as DocumentAttributes;
-            if (updatedAttributes) {
-              setDocAttributes(updatedAttributes);
-            }
-          };
+      // Effect to update docAttributes from localStorage changes
+      useEffect(() => {
+        const handleUpdate = (event: Event) => {
+          // @ts-ignore
+          const updatedAttributes = event.detail as DocumentAttributes;
+          if (updatedAttributes) {
+            setDocAttributes(updatedAttributes);
+          }
+        };
+        window.addEventListener('doc-attributes-updated', handleUpdate);
+        return () => {
+          window.removeEventListener('doc-attributes-updated', handleUpdate);
+        };
+      }, []);
 
-          // Add event listener
-          window.addEventListener('doc-attributes-updated', handleUpdate);
+      // Effect to handle scroll listener for centerline intersection
+      useEffect(() => {
+        const nodeElement = nodeViewRef.current;
+        if (!nodeElement) return;
 
-          // Cleanup on unmount
-          return () => {
-            window.removeEventListener('doc-attributes-updated', handleUpdate);
-          };
-        }, []); // Run only once on mount
+        const handleScroll = () => {
+          const rect = nodeElement.getBoundingClientRect();
+          const viewportCenterY = window.innerHeight / 2;
+          const centered = rect.top <= viewportCenterY && rect.bottom >= viewportCenterY;
+          setIsCentered(centered);
+        };
 
-      let node = props.node
+        const throttledHandler = throttle(handleScroll, 100);
 
-      // Finesse - emotions
-      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`]; // Add a default box shadow value
+        let scrollContainer: HTMLElement | Window = window;
+        // TODO: Find the correct scrollable container if needed
+
+        if (docAttributes.selectedFocusLens === 'call-mode') {
+          scrollContainer.addEventListener('scroll', throttledHandler);
+          handleScroll(); // Initial check
+          console.log("Group scroll listener ADDED for node:", props.node.attrs.quantaId);
+        } else {
+          // Ensure not marked as centered if not in call-mode
+          setIsCentered(false);
+        }
+
+        // Cleanup
+        return () => {
+          scrollContainer.removeEventListener('scroll', throttledHandler);
+          console.log("Group scroll listener REMOVED for node:", props.node.attrs.quantaId);
+        };
+      }, [docAttributes.selectedFocusLens, nodeViewRef]);
+
+      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
       const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
       const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
-
-      // Check whether this group contains subnodes that is a mention
-      node.descendants((childNode) => {
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string).includes('✅ complete')) {
-          glowStyles.push(greenGlow)
-        }
-      });
-
-      // If the glowStyles is filled with a non-void glow, then remove the void glow
-      if (glowStyles.length > 1) {
-        // Remove the first glow, which is the default void glow
-        glowStyles.splice(0, 1)
-      }
-
-      // Assume 'node' is the specific node you want to check
       let containsUncheckedTodo = false;
       let containsCheckItem = false;
 
-      // Check whether this group contains subnodes that is an incomplete task
-      node.descendants((childNode) => {
-        if (childNode.type.name === 'taskItem') {
-          containsCheckItem = true
+      props.node.descendants((childNode) => {
+        if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
+          glowStyles.push(greenGlow);
         }
-        if (childNode.type.name === 'taskItem' && !childNode.attrs.checked) {
-          containsUncheckedTodo = true;
+        if (childNode.type.name === 'taskItem') {
+          containsCheckItem = true;
+          if (!childNode.attrs.checked) {
+            containsUncheckedTodo = true;
+          }
         }
       });
+      if (glowStyles.length > 1) glowStyles.splice(0, 1);
+      if (containsUncheckedTodo) glowStyles.push(orangeGlow);
+      else if (containsCheckItem) glowStyles.push(greenGlow);
 
-      if (containsUncheckedTodo) {
-        glowStyles.push(orangeGlow)
-      } else {
-        // Basically if there's no check items then no glow should appear
-        if (containsCheckItem) {
-          glowStyles.push(greenGlow)
-        }
-      }
-
-
-      // Finesse - attention
-      // Scale of 0 - 100
-      // If the group is being interacted with, then add to attention
-      const increaseAttention = (interactionType: InteractionType) => {
-        let refinementIncrement = 0
-
-        switch (interactionType) {
-          case "onHover":
-            refinementIncrement = 0.5
-            break;
-          case "onClick":
-            refinementIncrement = 1
-            break;
-          case "onSelectionChanged":
-            refinementIncrement = 2
-            break;
-          case "onMarkChange":
-            refinementIncrement = 5
-            break;
-          case "onTextChange":
-            refinementIncrement = 5
-            break;
-          default:
-            break;
-        }
-
-        props.updateAttributes({refinement: node.attrs.refinement + refinementIncrement})
-      }
-
-      // If this group is in the viewport, then add to attention
-      const ref = React.useRef<HTMLDivElement | null>(null);
-      const isInView = useInView(ref, {
-        // This means that the viewport is effectively shrunken by this size
-        margin: "-200px 0px -200px 0px"
-      })
-      const attentionUnitsPerSecond = 100
-      const peripheralScaleFactor = 0.3
-      const refreshRate = 30
-      const focalScaleFactor = 1
-
-      const [attention, setAttention] = React.useState(props.node.attrs.attention);
-
-      // Uncomment this to reset attention on load
-      // props.updateAttributes({ attention: 0 });
-
-      // This is a high frequency updating interpolation of the actual attention value, which is stored in the node attributes above
-      // useMotionValue is more performant than updating the state
-      const attentionProxy = useMotionValue(props.node.attrs.attention)
-
-      React.useEffect(() => {
-        let motionValueUpdateTimer: NodeJS.Timer | undefined;
-        let nodeAttrsUpdateTimer: NodeJS.Timer | undefined;
-        if (isInView) {
-          // Maybe it's better to use a Framer Motion primitive since it runs outside the React render loop
-          // https://arc.net/l/quote/tsaviucv
-          motionValueUpdateTimer = setInterval(() => {
-            const currentAttention = attentionProxy.get()
-
-            let newAttention = currentAttention + (attentionUnitsPerSecond / refreshRate) * peripheralScaleFactor
-
-            // Use motion value updates to maintain performance
-            attentionProxy.set(newAttention)
-
-          }, 1000 / refreshRate);
-
-          // Every so often, update the actual attention value associated with the group
-          // This is done for performance reasons, as well as the fact that updatingAttributes causes a re-render of the node
-          // This re-render wipes any text selections, which is undesireable
-          // Still kind of hacky, a real solution would maybe
-          // Prevent re-rendering if there is a selection
-          // Even better solution would be to somehow remember the selection, and then re-apply it after an update
-          nodeAttrsUpdateTimer = setInterval(() => {
-            props.updateAttributes({ attention: attentionProxy.get() })
-          }, 10000)
-
-        } else {
-          if (motionValueUpdateTimer) {
-            clearInterval(motionValueUpdateTimer)
-          }
-          if (nodeAttrsUpdateTimer) {
-            clearInterval(nodeAttrsUpdateTimer)
-          }
-        }
-      
-        return () => {
-          if (motionValueUpdateTimer) {
-            clearInterval(motionValueUpdateTimer)
-          }
-          if (nodeAttrsUpdateTimer) {
-            clearInterval(nodeAttrsUpdateTimer)
-          }
-        }
-      }, [isInView])
-
-      // Have an exponentially growing attention to brightness curve
-      // For a little bit of increase in attention, have a large initial increase in brightness
-      // Make it hard to reach maximum brightness
-      // If something has a lot of attention, then make it hyper bright, with a brightness percentage greater than 100%
-      const brightnessStyle = useMotionTemplate`brightness(${useTransform(attentionProxy, [0, 100, 500, 1000], [0, 80, 90, 105])}%)`
-
-      const opacityStyle = useMotionTemplate`${useTransform(attentionProxy, [0, 50, 100, 150, 1000], [0.8, 0.20, 0.10, 0.05, 0])}`;
-
-      // Determine if the group should be hidden
+      // Determine if the group should be hidden (display: none)
       const isHidden = shouldHideGroup(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
 
-      const filterImportantNodes = (node: ProseMirrorNode): ProseMirrorNode | null => {
-        let hasImportantMention = false;
-
-        node.descendants((descendant) => {
-          if (descendant.type.name === 'mention' && (descendant.attrs.label as string).includes('⭐️ important')) {
-            hasImportantMention = true;
-          }
-        });
-  
-        if (hasImportantMention) {
-          // Only keep nodes that have the important tag as a child
-          const filteredContent: ProseMirrorNode[] = []
-
-          node.content.forEach((descendant) => {
-            const filteredChild = filterImportantNodes(descendant);
-            if (filteredChild) {
-              filteredContent.push(filteredChild);
-            }
-          });
-
-          // Return a new ProseMirrorNode with the filtered content
-          return node.copy((node.content.constructor as typeof Fragment).fromArray(filteredContent));
-        }
-        return null;
-      };
-
+      // Determine overlay opacity for dimming
+      const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
       return (
-        <NodeViewWrapper data-group-node-view="true">
+        <NodeViewWrapper ref={nodeViewRef} data-group-node-view="true">
           <motion.div
-            onHoverStart={() => {
-              // increaseAttention("onHover")
-              // increaseRefinement("onHover")
-            }}
-            onClick={() => {
-              // increaseAttention("onClick")
-              // increaseRefinement("onClick")
-            }}
-            ref={ref}
             style={{
               borderRadius: 10,
               position: 'relative',
-              // Conditionally hide the group using display style
               display: isHidden ? 'none' : 'block',
-            }}
-            initial={{
-              boxShadow: `0px 0px 0px 0px rgba(0, 0, 0, 0)`,
             }}
             animate={{
               boxShadow: glowStyles.join(','),
@@ -475,42 +312,35 @@ export const GroupExtension = TipTapNode.create({
           >
             <Group
               lens={props.node.attrs.lens}
-              quantaId={props.node.attrs.qid}
+              quantaId={props.node.attrs.quantaId}
               backgroundColor={props.node.attrs.backgroundColor}
-              isHidden={isHidden} // Pass the calculated hidden state
             >
               {(() => {
                 switch (props.node.attrs.lens) {
                   case "identity":
-                    return <NodeViewContent node={props.node} />;
+                    return <NodeViewContent />;
                   case "hideUnimportantNodes":
-                    // TODO: Implement logic based on unimportantNodesDisplayLens
-                    // This might involve filtering content or applying styles
-                    // For now, just showing placeholder
-                    return <div>
-                      Just important nodes (Implementation Pending based on unimportantNodesDisplayLens: {docAttributes.unimportantNodesDisplayLens})
-                      </div>
+                    return <div>Important Nodes Only (Pending)</div>;
                   default:
-                    return <NodeViewContent node={props.node} />;
+                    return <NodeViewContent />;
                 }
               })()}
             </Group>
-            {/* Attention Overlay - only render if not hidden */}
-            {!isHidden && (
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'black',
-                  opacity: opacityStyle,
-                  borderRadius: 10,
-                  pointerEvents: "none"
-                }}
-              />
-            )}
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                borderRadius: 10,
+                pointerEvents: 'none',
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: dimmingOpacity }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            />
           </motion.div>
         </NodeViewWrapper>
       );
