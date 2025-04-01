@@ -910,7 +910,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "45adcfc2-414c-4e24-a027-aba79aab38a5",
+                        "quantaId": "85ef773a-fb29-44c7-a733-0fe816827382",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -927,7 +927,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "3074c851-b8af-481a-8ffd-a5400cbd6754",
+                                        "quantaId": "3554b12b-9155-4def-85df-1815cd04c57c",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -935,15 +935,230 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "text",
                                             "text": "Cover all main questions (don't need to read everything)"
-                                        },
-                                        {
-                                            "type": "hardBreak"
                                         }
                                     ]
                                 }
                             ]
                         }
                     ]
+                },
+                {
+                    "type": "table",
+                    "content": [
+                        {
+                            "type": "tableRow",
+                            "content": [
+                                {
+                                    "type": "tableCell",
+                                    "attrs": {
+                                        "colspan": 1,
+                                        "rowspan": 1,
+                                        "colwidth": [
+                                            620
+                                        ]
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "quote",
+                                            "content": [
+                                                {
+                                                    "type": "details",
+                                                    "attrs": {
+                                                        "open": true
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "detailsSummary",
+                                                            "content": [
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": "Q1. So how's the party planning so far? Fun? Stressful?"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "detailsContent",
+                                                            "content": [
+                                                                {
+                                                                    "type": "group",
+                                                                    "attrs": {
+                                                                        "quantaId": "8535f2b3-d11e-4174-b787-2a20d937e0cb",
+                                                                        "pathos": 0,
+                                                                        "backgroundColor": "#EFEFEF",
+                                                                        "lens": "identity"
+                                                                    },
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "0f3be206-b4a2-40e8-996e-a417784aaec7",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "mention",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "32bd4218-19c8-4d03-884b-990cc407ed65",
+                                                                                        "id": "000000",
+                                                                                        "label": "👰‍♀️ Wedding "
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": " "
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Do you have a wedding planner or are you doing everything yourself? "
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "How long have you been planning this for? I know many brides plan for years for their wedding!"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "So what’s your partner's name?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Great and how long have you guys been engaged for?"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "type": "tableCell",
+                                    "attrs": {
+                                        "colspan": 1,
+                                        "rowspan": 1,
+                                        "colwidth": null
+                                    },
+                                    "content": [
+                                        {
+                                            "type": "table",
+                                            "content": [
+                                                {
+                                                    "type": "tableRow",
+                                                    "content": [
+                                                        {
+                                                            "type": "tableCell",
+                                                            "attrs": {
+                                                                "colspan": 1,
+                                                                "rowspan": 1,
+                                                                "colwidth": [
+                                                                    300
+                                                                ]
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "group",
+                                                                    "attrs": {
+                                                                        "quantaId": "f80a948f-62f3-4e29-a1b7-2d019fb39c55",
+                                                                        "pathos": 0,
+                                                                        "backgroundColor": "#EFEFEF",
+                                                                        "lens": "identity"
+                                                                    },
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "8b95a784-e181-4622-917b-f6ca1f1714ae",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "dddd"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "tableCell",
+                                                            "attrs": {
+                                                                "colspan": 1,
+                                                                "rowspan": 1,
+                                                                "colwidth": null
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "9b1f79fb-a7fa-44c4-a367-139c9afd17b6",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "45adcfc2-414c-4e24-a027-aba79aab38a5",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "7a3a90db-5032-42a4-85a2-5a514bf46b5f",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
                 },
                 {
                     "type": "quote",
@@ -986,61 +1201,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         "quantaId": "8699c9cb-f771-4091-b15b-d5f2881a0daa",
                                                         "textAlign": "left",
                                                         "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "mention",
-                                                            "attrs": {
-                                                                "quantaId": "72272760-8934-4bf3-b060-3d2f04ee8ea4",
-                                                                "id": "000000",
-                                                                "label": "👰‍♀️ Wedding"
-                                                            }
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " "
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Do you have a wedding planner or are you doing everything yourself? "
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "How long have you been planning this for? I know many brides plan for years for their wedding!"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "So what’s your partner's name?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Great and how long have you guys been engaged for?"
-                                                        }
-                                                    ]
+                                                    }
                                                 }
                                             ]
                                         },
@@ -1984,10 +2145,39 @@ export const SalesGuideTemplate: JSONContent = {
                                                     ]
                                                 }
                                             ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "fce88c49-8486-4897-ba67-72082b87b778",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            }
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "f44cb6d9-b12b-4055-b1e6-ca57d76bae48",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            }
                                         }
                                     ]
                                 }
                             ]
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "8459c166-e7d7-489f-9733-8d5449f7d247",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
+                    "content": [
+                        {
+                            "type": "hardBreak"
                         }
                     ]
                 }
