@@ -1170,10 +1170,228 @@ export const SalesGuideTemplate: JSONContent = {
                                             },
                                             "content": [
                                                 {
-                                                    "type": "hardBreak"
+                                                    "type": "text",
+                                                    "text": "dsdsds"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "quote",
+                                            "content": [
+                                                {
+                                                    "type": "details",
+                                                    "attrs": {
+                                                        "open": true
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "detailsSummary",
+                                                            "content": [
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": "Q3. So here at the Black Ties, we don't just do magic - our main goal is to make your people "
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        },
+                                                                        {
+                                                                            "type": "underline"
+                                                                        }
+                                                                    ],
+                                                                    "text": "happy"
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": " and "
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        },
+                                                                        {
+                                                                            "type": "underline"
+                                                                        }
+                                                                    ],
+                                                                    "text": "excited"
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": ". So tell me about your guests. The more you can tell us the easier it is for us to enlighten them."
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "detailsContent",
+                                                            "content": [
+                                                                {
+                                                                    "type": "group",
+                                                                    "attrs": {
+                                                                        "quantaId": "3baf4263-e3c7-46bf-9400-a2b18bcdc631",
+                                                                        "pathos": 0,
+                                                                        "backgroundColor": "#EFEFEF",
+                                                                        "lens": "identity"
+                                                                    },
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "7ba18a97-c427-402e-a646-24c6cbaf386f",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q3a. [What cultural background are they from?] [Are they friends or family?] [Do you think they are more "
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "marks": [
+                                                                                        {
+                                                                                            "type": "underline"
+                                                                                        }
+                                                                                    ],
+                                                                                    "text": "excitable"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": ", or more "
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "marks": [
+                                                                                        {
+                                                                                            "type": "underline"
+                                                                                        }
+                                                                                    ],
+                                                                                    "text": "conservative"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "?] "
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q3b. Are there any kids at the party? If so, what age groups?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q3c. How do you think your guests will respond to the magic? (Is that something they’ll love?)"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "3d. Prompts for people who don’t know what to say:"
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "de7e903a-de01-4e06-aa84-9166cd9af33f",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "5266e79e-655c-4350-a7e2-efb96907405a",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "E.g. I’ve had clients tell me that their guests ___________________. And another time ___________________."
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
                                                 },
                                                 {
-                                                    "type": "hardBreak"
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "1bfb6c5b-af9b-4e35-b513-f954d14e546d",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "b49a6f4d-26ba-4db9-9e0b-d9c598cd3d9b",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "text",
+                                                    "text": "dsds"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "quote",
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "6090514b-95fa-4e15-b61f-3b093ce6eff6",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "hardBreak"
+                                                        },
+                                                        {
+                                                            "type": "hardBreak"
+                                                        }
+                                                    ]
                                                 }
                                             ]
                                         }
@@ -1199,7 +1417,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 "colspan": 1,
                                                                 "rowspan": 1,
                                                                 "colwidth": [
-                                                                    300
+                                                                    526
                                                                 ]
                                                             },
                                                             "content": [
@@ -1222,11 +1440,360 @@ export const SalesGuideTemplate: JSONContent = {
                                                                             "content": [
                                                                                 {
                                                                                     "type": "text",
-                                                                                    "text": "Type notes here"
+                                                                                    "text": "Type notes here..."
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "ddd"
                                                                                 }
                                                                             ]
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "682bbc49-2bf6-4973-8e84-7b8f3e553b1d",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "0faf768c-7e4b-49a3-b181-6f7295299e47",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "7f695126-c2b8-4681-a416-40ef7bf41cd1",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "21665183-434e-4c0e-a573-6cbb334e2684",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "d605d8ee-7b41-45b0-882d-87f07712162d",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "44801f2f-b4e0-48ad-9658-02f44b1c584e",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "829d5a6e-e5bb-425b-ab23-fdec2a64ec75",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "dcba3438-995a-4958-b1b3-6159db051fdc",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "9b29a883-9dc6-43d7-b5cf-4254836aca2a",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "5b0ec47e-c7ee-4994-aaff-cc79d7ea8ad7",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "9c5a764d-697e-490f-bcb2-f27ded7f3e1b",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "51ebd81f-3099-401d-8da9-f072be4e2ffb",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "31a167b5-239b-4925-a09b-1973573dafd1",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "801fb1b9-77df-4d7f-90fd-12f038179496",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "85dde7de-276b-45b0-9356-025b94d12835",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "bc46c3e4-fc95-499b-8003-e0f0fb12738b",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "c07cfc9c-9c8e-4614-9dc1-e211576e9afd",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "d7e85428-6459-4cdc-8fcc-cf0605a0f40b",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "5fa7a17a-841a-4f3b-ab63-d261bb5123f1",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
                                                                         }
                                                                     ]
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "883073c4-4997-4c00-a135-615b6acff3dd",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "f80cf8ac-b3ed-4610-959c-0992ad07ec8e",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "dfc9edb0-4e03-44fe-b4aa-4130410fc6f6",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "841796ac-398b-40fc-aa7d-237e080a6739",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "ad4ca31c-f93f-4608-b00c-28a9add54a5b",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "cceaf545-e835-4ea8-bc36-20b061cd7885",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "45d23e1e-48ba-444f-b55b-f60719fdd8fa",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "391326ee-9add-4867-ab5d-4e5f6c785680",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "22c3b9cb-3f4a-40e8-8d4a-f96825739940",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "fa80237a-0fc1-4ca2-a93c-49a494e6c3a6",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "097716cc-d690-4222-a7dc-98308c4ff5f7",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "5aa6721e-c5d6-476f-8fc6-fcbbb1f83550",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "0dd8dd6f-4e15-4758-b203-72f13415455c",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
                                                                 },
                                                                 {
                                                                     "type": "paragraph",
@@ -1433,373 +2000,18 @@ export const SalesGuideTemplate: JSONContent = {
                             ]
                         }
                     ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "45adcfc2-414c-4e24-a027-aba79aab38a5",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "7a3a90db-5032-42a4-85a2-5a514bf46b5f",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": "Q1. So how's the party planning so far? Fun? Stressful?"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "eda11276-abe6-4682-a3af-60b7a5a506ab",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "8699c9cb-f771-4091-b15b-d5f2881a0daa",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    }
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "67140826-7424-4cf4-acaf-ad0563cdf55b",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "599c0a61-6808-4b71-acef-fb0b58ac237b",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "cea1a7cd-b1b9-4d7b-993f-14e7c59ae62c",
-                                "textAlign": "left",
-                                "indent": 0
-                            }
-                        },
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": "Q2. So can you walk me through the party?"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "c45236b5-c3a7-4e24-a8b2-63e8727955f7",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "66c7613e-d5bd-48b5-886f-72b8ddfa606e",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "mention",
-                                                            "attrs": {
-                                                                "quantaId": "a04bccc3-e531-42e5-82e0-c39404ecf29c",
-                                                                "id": "000000",
-                                                                "label": "🎓 learning "
-                                                            }
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " Let the prospect explain. Gauge their DISC type."
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "0a305198-fff5-4584-832a-afa508b2bf5e",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "1b154480-85d0-487b-910a-258af72cff2c",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q2a. So…what would a guest see, imagine they walk through the door, what do they first see? What will their experience throughout the night be like?"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "2d623697-2f16-465a-bdce-e8c050a711bd",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": "Q3. So here at the Black Ties, we don't just do magic - our main goal is to make your people "
-                                        },
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                },
-                                                {
-                                                    "type": "underline"
-                                                }
-                                            ],
-                                            "text": "happy"
-                                        },
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": " and "
-                                        },
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                },
-                                                {
-                                                    "type": "underline"
-                                                }
-                                            ],
-                                            "text": "excited"
-                                        },
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": ". So tell me about your guests. The more you can tell us the easier it is for us to enlighten them."
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "9cf54d2e-ee91-44b6-bc46-0f4ca99b8fab",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "e0930243-e7c9-4e40-a3ad-fd84ea8b92dc",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q3a. [What cultural background are they from?] [Are they friends or family?] [Do you think they are more "
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "underline"
-                                                                }
-                                                            ],
-                                                            "text": "excitable"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": ", or more "
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "underline"
-                                                                }
-                                                            ],
-                                                            "text": "conservative"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "?] "
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q3b. Are there any kids at the party? If so, what age groups?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q3c. How do you think your guests will respond to the magic? (Is that something they’ll love?)"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "3d. Prompts for people who don’t know what to say:"
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "6c292941-a1e2-4df9-af52-300ac7f5431a",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    }
-                                                },
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "255b931e-4758-471e-80c9-bd48e3f72fb7",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "E.g. I’ve had clients tell me that their guests ___________________. And another time ___________________."
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
+                }
+            ]
+        },
+        {
+            "type": "group",
+            "attrs": {
+                "quantaId": "d67bd4e3-bd10-4680-bcf0-3a26c07448a6",
+                "pathos": 0,
+                "backgroundColor": "#00bcd4",
+                "lens": "identity"
+            },
+            "content": [
                 {
                     "type": "paragraph",
                     "attrs": {
