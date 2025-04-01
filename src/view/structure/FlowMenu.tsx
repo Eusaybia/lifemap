@@ -295,6 +295,9 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
 
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
     documentMenuStyle.width = "100%"
+    documentMenuStyle.position = 'fixed';
+    documentMenuStyle.top = 0;
+    documentMenuStyle.left = 0;
 
     React.useEffect(() => {
         if (!props.editor) return;
