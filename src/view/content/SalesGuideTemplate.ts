@@ -964,7 +964,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "details",
                                                     "attrs": {
-                                                        "open": true
+                                                        "open": false
                                                     },
                                                     "content": [
                                                         {
@@ -1051,7 +1051,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 },
                                                                                 {
                                                                                     "type": "text",
-                                                                                    "text": "Great and how long have you guys been engaged for?"
+                                                                                    "text": "Great and how long have you guys been engaged for"
                                                                                 }
                                                                             ]
                                                                         }
@@ -1060,6 +1060,120 @@ export const SalesGuideTemplate: JSONContent = {
                                                             ]
                                                         }
                                                     ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "9e050d82-4491-4c35-8ba2-9d28fcadcd5a",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            }
+                                        },
+                                        {
+                                            "type": "quote",
+                                            "content": [
+                                                {
+                                                    "type": "details",
+                                                    "attrs": {
+                                                        "open": true
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "detailsSummary",
+                                                            "content": [
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": "Q2. So can you walk me through the party?"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "detailsContent",
+                                                            "content": [
+                                                                {
+                                                                    "type": "group",
+                                                                    "attrs": {
+                                                                        "quantaId": "9a1ecb56-57f6-423f-be6e-67e55d0e53a1",
+                                                                        "pathos": 0,
+                                                                        "backgroundColor": "#EFEFEF",
+                                                                        "lens": "identity"
+                                                                    },
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "ce4db397-f8d0-4a6a-a96a-caa3aa65a111",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "mention",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "505c2e98-f260-458f-8baa-5bd6f4a6d9b8",
+                                                                                        "id": "000000",
+                                                                                        "label": "🎓 learning"
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "  Let the prospect explain. Gauge their DISC type."
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "group",
+                                                                    "attrs": {
+                                                                        "quantaId": "ab8f4d6d-31d4-425f-b085-4662b4962624",
+                                                                        "pathos": 0,
+                                                                        "backgroundColor": "#EFEFEF",
+                                                                        "lens": "identity"
+                                                                    },
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "ca1c652d-11fc-4253-ae06-ba684fb9fd0f",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q2a. So…what would a guest see, imagine they walk through the door, what do they first see? What will their experience throughout the night be like?"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "6f38f805-3c1a-411f-b21d-eaf68cc9526d",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            },
+                                            "content": [
+                                                {
+                                                    "type": "hardBreak"
+                                                },
+                                                {
+                                                    "type": "hardBreak"
                                                 }
                                             ]
                                         }
@@ -1108,11 +1222,179 @@ export const SalesGuideTemplate: JSONContent = {
                                                                             "content": [
                                                                                 {
                                                                                     "type": "text",
-                                                                                    "text": "dddd"
+                                                                                    "text": "Type notes here"
                                                                                 }
                                                                             ]
                                                                         }
                                                                     ]
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "99898305-1c9b-4b93-9cba-c50fd6d0bbdb",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "5640b978-dd2a-43ae-ad5d-d2d93821c7f1",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "50f93c4d-9006-40e2-aaa1-4f8753a3aedd",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "d5013157-91e1-42c5-9d6f-8d3e61dd6f99",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "2e8a1aed-ad41-41a0-9bb4-4977718bc6ee",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "cfd5f410-02ba-41ce-b4f1-70d06348391a",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "16175de4-a560-458d-888e-0fc76cc4d0d3",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "56df7d5d-68c2-4dec-baba-27eaa67db522",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "c0961a73-dfd7-48ee-a59e-378a9fb81fcb",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "573e9874-58dc-44d5-8fcd-9b5156a75e57",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "f8ed62ca-bf1e-4a0c-ab1f-5f81f14d0ba6",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "689f6845-dda0-4ac3-ac1f-61865da005ae",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "ff17fe55-c427-44b3-98ee-251315fa5715",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "028f1ab1-1d74-44ce-973c-51db762e1d18",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "4b706c55-fe18-4827-bd06-26e1f1c27450",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "8bcc0370-0735-4075-a493-e6a9732da5d0",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "e111dce7-537d-44a2-83bd-e741a331dba6",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "ab7b9ac0-7473-4a3c-9eb3-49d368fa36d3",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "b55aa846-ee30-4edb-9d18-fcd1cb90f0e4",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "c94fa1f1-d71b-4fed-95f6-d043b6781c78",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "316e1b9e-c3fa-451c-adac-451c00d92490",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
                                                                 }
                                                             ]
                                                         },
@@ -1124,6 +1406,14 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 "colwidth": null
                                                             },
                                                             "content": [
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "71770180-7662-4a5e-b4d7-802dab535892",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    }
+                                                                },
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
