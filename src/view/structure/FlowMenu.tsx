@@ -1,4 +1,4 @@
-import { Editor, isNodeSelection } from "@tiptap/core"
+import { Editor, isNodeSelection, getAttributes } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion } from "framer-motion"
@@ -16,7 +16,7 @@ import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
-import React, { CSSProperties } from "react"
+import React, { CSSProperties, useCallback, useEffect, useState } from "react"
 import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
@@ -111,7 +111,8 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
 
  };
 
-const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
+// Memoize ActionSwitch to prevent re-renders if props haven't changed
+const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor }) => {
 
     return (
         <FlowSwitch value={props.selectedAction} isLens>
@@ -245,7 +246,7 @@ const ActionSwitch = (props: { selectedAction: string, editor: Editor }) => {
             </Option>
         </FlowSwitch>
     )
-}
+})
 
 const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: Editor }) => {
     const versions = props.editor.storage.collabHistory.versions
@@ -489,8 +490,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     )
 }
 
-// We assume that the currently selected node is a Group node
-const GroupLoupe = (props: { editor: Editor }) => {
+// Memoize GroupLoupe
+const GroupLoupe = React.memo((props: { editor: Editor }) => {
 
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
@@ -583,46 +584,81 @@ const GroupLoupe = (props: { editor: Editor }) => {
             </FlowSwitch>
         </div>
     )
-}
+})
 
-const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
+// Memoize MathLoupe and manage its state locally
+const MathLoupe = React.memo((props: { editor: Editor }) => {
+    const { editor } = props;
+    const [selectedDisplayLens, setSelectedDisplayLens] = useState<string>("natural");
+    const [selectedEvaluationLens, setSelectedEvaluationLens] = useState<string>("identity"); // Default or initial value
+
+    useEffect(() => {
+        const updateLenses = () => {
+            const selection = editor.state.selection;
+            if (isNodeSelection(selection)) {
+                const node = selection.node;
+                if (node.type.name === 'math') {
+                    const { lensDisplay, lensEvaluation } = node.attrs;
+                    if (lensDisplay) {
+                        setSelectedDisplayLens(lensDisplay);
+                    }
+                    if (lensEvaluation) {
+                        setSelectedEvaluationLens(lensEvaluation);
+                    }
+                }
+            }
+        };
+
+        // Update immediately on mount/editor change
+        updateLenses();
+
+        // Subscribe to selection updates
+        editor.on('selectionUpdate', updateLenses);
+
+        // Cleanup subscription
+        return () => {
+            editor.off('selectionUpdate', updateLenses);
+        };
+    }, [editor]); // Re-run effect if editor instance changes
+
+    // Wrap callbacks with useCallback to ensure stable references if passed to memoized children
+    const handleSetDisplayLens = useCallback((lens: MathLens) => {
+        editor.chain().focus().updateAttributes("math", { lensDisplay: lens }).run();
+    }, [editor]);
+
+    const handleSetEvaluationLens = useCallback((lens: MathLens) => {
+        editor.chain().focus().updateAttributes("math", { lensEvaluation: lens }).run();
+    }, [editor]);
+
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             <Tag>
                 Math
             </Tag>
-            <FlowSwitch value={props.selectedDisplayLens} isLens>
-                <Option value="natural" onClick={() => {
-                    setDisplayLensNatural(props.editor)
-                }}>
+            <FlowSwitch value={selectedDisplayLens} isLens>
+                <Option value="natural" onClick={() => handleSetDisplayLens("natural")}>
                     <motion.div>
                         <div style={{ fontFamily: 'Inter' }}>
                             Natural
                         </div>
                     </motion.div>
                 </Option>
-                <Option value="latex" onClick={() => {
-                    setDisplayLensLatex(props.editor)
-                }}>
+                <Option value="latex" onClick={() => handleSetDisplayLens("latex")}>
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             Latex
                         </span>
                     </motion.div>
                 </Option>
-                <Option value="linear" onClick={() => {
-                    setDisplayLensLatex(props.editor)
-                }}>
+                <Option value="linear" onClick={() => handleSetDisplayLens("linear")}>
                     <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
                         <span style={{ fontFamily: 'Inter' }}>
                             Linear
                         </span>
                     </motion.div>
                 </Option>
-                <Option value="mathjson" onClick={() => {
-                    setDisplayLensLatex(props.editor)
-                }}>
+                <Option value="mathjson" onClick={() => handleSetDisplayLens("mathjson")}>
                     <motion.div onClick={() => props.editor!.chain().focus().setFontFamily('Arial').run()}>
                         <span style={{ fontFamily: 'Inter' }}>
                             MathJSON
@@ -630,29 +666,29 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            <FlowSwitch value={"evaluate"} isLens >
-                <Option value="identity" onClick={() => { setEvaluationLens(props.editor, "identity") }} >
+            <FlowSwitch value={selectedEvaluationLens} isLens >
+                <Option value="identity" onClick={() => handleSetEvaluationLens("identity")} >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             Identity
                         </span>
                     </motion.div>
                 </Option>
-                <Option value="simplify" onClick={() => { setEvaluationLens(props.editor, "simplify") }} >
+                <Option value="simplify" onClick={() => handleSetEvaluationLens("simplify")} >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             Simplify
                         </span>
                     </motion.div>
                 </Option>
-                <Option value="evaluate" onClick={() => { setEvaluationLens(props.editor, "evaluate") }} >
+                <Option value="evaluate" onClick={() => handleSetEvaluationLens("evaluate")} >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             Evaluate
                         </span>
                     </motion.div>
                 </Option>
-                <Option value="numeric" onClick={() => { setEvaluationLens(props.editor, "numeric") }} >
+                <Option value="numeric" onClick={() => handleSetEvaluationLens("numeric")} >
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             Numeric
@@ -662,10 +698,11 @@ const MathLoupe = (props: { editor: Editor, selectedDisplayLens: string }) => {
             </FlowSwitch>
         </div>
     )
-}
+})
 
 // Need to add additional state variables that currently have a placeholder using justification
-const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
+// Memoize RichTextLoupe
+const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
@@ -995,10 +1032,11 @@ const RichTextLoupe = (props: { editor: Editor, font: string, fontSize: string, 
             </FlowSwitch>
         </div>
     )
-}
+})
 
 // Add new PortalLoupe component
-const PortalLoupe = (props: { editor: Editor }) => {
+// Memoize PortalLoupe
+const PortalLoupe = React.memo((props: { editor: Editor }) => {
     const selectedNode = getSelectedNode(props.editor)
     let lens = selectedNode.attrs.lens
 
@@ -1028,7 +1066,7 @@ const PortalLoupe = (props: { editor: Editor }) => {
             </FlowSwitch>
         </div>
     )
-}
+})
 
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
@@ -1058,7 +1096,10 @@ export const FlowMenu = (props: { editor: Editor }) => {
 
     const font = props.editor.getAttributes('textStyle').fontFamily;
     const fontSize = props.editor.getAttributes('textStyle').fontSize
-    const justification = props.editor!.getAttributes(props.editor!.state.selection.$anchor.node().type.name).textAlign
+    const justification = props.editor.isActive('paragraph')
+        ? props.editor.getAttributes('paragraph').textAlign
+        : props.editor.getAttributes('heading').textAlign
+        || 'left';
 
     return (
         <BubbleMenu
@@ -1081,7 +1122,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
                         'portal': <PortalLoupe editor={props.editor} />,
-                        'math': <MathLoupe editor={props.editor} selectedDisplayLens={selectedDisplayLens} />,
+                        'math': <MathLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
                     }[getSelectedNodeType(props.editor)] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
