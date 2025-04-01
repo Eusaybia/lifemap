@@ -343,7 +343,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         throttledBackup(editor.getJSON())
       }
       
-      console.log("JSON Output", editor.getJSON())
+      // console.log("JSON Output", editor.getJSON())
       // @ts-ignore
       const documentAttributes = editor.commands.getDocumentAttributes()
       console.log("Document Attributes", documentAttributes)
