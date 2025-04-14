@@ -14,7 +14,7 @@ interface MinimapProps {
 // which can have significant performance implications on complex pages.
 export const Minimap: React.FC<MinimapProps> = ({ 
   mainContentNode, 
-  width = 120, // Default width 
+  width = 60, // Reduce default width by 50%
   height = '100vh' // Default height
 }) => {
 
@@ -25,11 +25,9 @@ export const Minimap: React.FC<MinimapProps> = ({
 
     const minimapRect = minimapRef.current.getBoundingClientRect();
     
-    // Click position relative to the minimap container
     const clickY = event.clientY - minimapRect.top;
-    const clickX = event.clientX - minimapRect.left;
+    const clickX = event.clientX - minimapRect.left; // Keep X calculation simple for now
 
-    // Get page and viewport dimensions
     const pageHeight = document.body.scrollHeight;
     const pageWidth = document.body.scrollWidth;
     const viewportHeight = window.innerHeight;
@@ -37,26 +35,29 @@ export const Minimap: React.FC<MinimapProps> = ({
     const minimapHeight = minimapRect.height;
     const minimapWidth = minimapRect.width;
 
-    // Calculate scaling factors
-    const scaleY = minimapHeight / pageHeight;
-    const scaleX = minimapWidth / pageWidth;
+    // --- Revised Y Calculation --- 
+    // Calculate the proportion of the click within the minimap's visible height
+    const clickProportionY = clickY / minimapHeight;
+    // Calculate the total scrollable range of the page
+    const scrollableHeight = pageHeight - viewportHeight;
+    // Calculate target scroll Y position based on the proportion
+    let scrollToY = clickProportionY * scrollableHeight;
+    // --- End Revised Y Calculation ---
 
-    // Calculate the corresponding point on the full page
-    const targetPageY = clickY / scaleY;
-    const targetPageX = clickX / scaleX;
+    // --- Simple X Calculation (Align left edge based on click proportion) ---
+    const clickProportionX = clickX / minimapWidth;
+    const scrollableWidth = pageWidth - viewportWidth;
+    let scrollToX = clickProportionX * scrollableWidth;
+    // --- End Simple X Calculation ---
 
-    // Calculate the desired scroll position to center the target point in the viewport
-    let scrollToY = targetPageY - (viewportHeight / 2);
-    let scrollToX = targetPageX - (viewportWidth / 2);
-
-    // Clamp scroll values to be within valid range
-    scrollToY = Math.max(0, Math.min(scrollToY, pageHeight - viewportHeight));
-    scrollToX = Math.max(0, Math.min(scrollToX, pageWidth - viewportWidth));
+    // Clamp scroll values (important especially if pageHeight <= viewportHeight)
+    scrollToY = Math.max(0, Math.min(scrollToY, scrollableHeight));
+    scrollToX = Math.max(0, Math.min(scrollToX, scrollableWidth));
 
     window.scrollTo({
       top: scrollToY,
       left: scrollToX,
-      behavior: 'smooth' // Add smooth scrolling
+      behavior: 'smooth' 
     });
   };
 

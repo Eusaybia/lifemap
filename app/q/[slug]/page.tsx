@@ -12,7 +12,7 @@ import { useAudibleRenders } from "react-audible-debug";
 export default function Page({ params }: { params: { slug: string } }) {
     const padding = 20;
     const editor = MainEditor("", true);
-    const minimapWidth = 120; // Use the default width from Minimap.tsx
+    const minimapWidth = 60; // Update to match new default minimap width
 
     useAudibleRenders(false);
 
