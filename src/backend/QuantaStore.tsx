@@ -6,25 +6,24 @@ import { TiptapCollabProvider } from '@hocuspocus/provider'
 import { Content, QuantaClass, QuantaId, QuantaType } from "../core/Model";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
+import * as Y from 'yjs'; // Import Yjs
+// No longer needed: import { Awareness } from 'y-protocols/awareness'; 
 
 type QuantaStoreContextType = {
   quanta: QuantaType,
-  provider: TiptapCollabProvider
+  // Provider can be null when disabled
+  provider: TiptapCollabProvider | null 
   requestVersionPreviewFromCloud: (version: Content) => void
 }
 
-// Create a single instance of the dummy provider
-const DUMMY_PROVIDER = new TiptapCollabProvider({ 
-  appId: 'dummyAppId', // get this at collab.tiptap.dev
-  name: "dummyDocumentName", // e.g. a uuid uuidv4();
-  token: "dummyToken",
-  document: new QuantaClass().information 
-});
+// Remove the complex placeholder object
+// const DUMMY_PROVIDER_PLACEHOLDER = { ... };
 
+// Update dummy context to use null for the provider
 const dummyQuantaStoreContext = {
   quanta: new QuantaClass(),
-  provider: DUMMY_PROVIDER,  // Use the singleton instance
-  requestVersionPreviewFromCloud: (version: Content) => {}
+  provider: null, // Use null to represent disabled/uninitialized provider
+  requestVersionPreviewFromCloud: (version: Content) => { console.warn("Provider disabled, requestVersionPreviewFromCloud ignored"); }
 }
 
 // Handles storing and syncing information between a single quanta to the remote cloud store
@@ -38,58 +37,38 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // The room can also be understood to be the unique id of each quanta
   const roomName = props.quantaId
 
-  const appId = 'dy9wzo9x'
+  // const appId = 'dy9wzo9x' // No longer needed
 
   //  Sync the document locally
-  new IndexeddbPersistence(roomName, quanta.information)
-
-  // Generate a JWT Auth Token to verify the user 
-  const [jwt, setJwt] = React.useState<string>("notoken");
-  const [provider, setProvider] = React.useState<TiptapCollabProvider>(dummyQuantaStoreContext.provider);
-
-  // Immediately generate a jwt token
+  // Keep local persistence active
   React.useEffect(() => {
-    const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
-    generateAuthenticationToken()
-      .then((result) => {
-        const data: any = result.data;
-        const token = data.token;
-        setJwt(token);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }, []);
+    const persistence = new IndexeddbPersistence(roomName, quanta.information);
+    // Clean up persistence on unmount
+    return () => {
+      persistence.destroy();
+    };
+  }, [roomName, quanta.information]); // Add dependencies
 
-  // Once the jwt token is generated, only then, create a provider
-  React.useEffect(() => {
-    if (jwt !== "notoken") {
-      const newProvider = new TiptapCollabProvider({
-        appId: appId,
-        name: roomName,
-        token: jwt,
-        document: quanta.information,
-      });
-      setProvider(newProvider);
+  // No provider state needed as it's always null in this disabled state
+  // const [provider, setProvider] = React.useState<TiptapCollabProvider | null>(null);
 
-      // Clean up the provider when the component unmounts
-      return () => {
-        newProvider.destroy();
-      };
-    } 
-  }, [jwt]);
+  // Remove the effect that fetches JWT
+  // ... (JWT fetch code commented out)
+
+  // Remove the effect that creates the real provider
+  // ... (Provider creation code commented out)
 
   // Define a function that sends a version.preview request to the provider
   const requestVersionPreviewFromCloud = (version: Content) => {
-    provider?.sendStateless(JSON.stringify({
-      action: 'version.preview',
-      // Include your version number here
-      version,
-    }))
+    // Provider is always null in this configuration
+    console.warn("Provider disabled, requestVersionPreviewFromCloud ignored");
   }
 
+  // Context value now provides provider as null
   const quantaStoreContext = {
-    quanta, provider, requestVersionPreviewFromCloud
+    quanta, 
+    provider: null, // Always pass null for the provider
+    requestVersionPreviewFromCloud
   }
 
   return (
