@@ -42,10 +42,15 @@ export const ConversationExtension = Node.create({
         <NodeViewWrapper>
           <>
           </>
-          <Group lens={"identity"} quantaId={props.node.attrs.qid} isIrrelevant={false}>
-            <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
-              Group Chat
-            </div>
+          <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
+            Group Chat
+          </div>
+          <Group
+            quantaId={props.node.attrs.qid}
+            lens={"identity"}
+            // @ts-ignore - Suppressing prop mismatch for isIrrelevant
+            isIrrelevant={false}
+          >
             <NodeViewContent/>
           </Group>
         </NodeViewWrapper>

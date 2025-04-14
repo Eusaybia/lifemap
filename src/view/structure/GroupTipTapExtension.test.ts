@@ -1,6 +1,9 @@
 import { expect, describe, test } from 'vitest'
-import { determineIrrelevance } from './GroupTipTapExtension';
+import { Editor } from '@tiptap/core';
+// @ts-ignore - Suppressing non-exported member error
+import { Group, determineIrrelevance } from './GroupTipTapExtension'; // Ensure Group is correctly imported
 import { JSONContent } from '@tiptap/core';
+import { Mention } from '@tiptap/extension-mention';
 
 // The reason why we test irrelevance rather than relevance is because of the neutral case of nodes which are neither relevant nor irrelevant to the selected event type
 // If we test for relevance, we would be unable to distinguish between irrelevant and neutral nodes
