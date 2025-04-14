@@ -11,6 +11,6 @@ module.exports = {
     disableStaticImages: true
   },
   compiler: {
-    removeConsole: { exclude: ['error'] },
+    // removeConsole: { exclude: ['error'] },
   },
 }
