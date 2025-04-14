@@ -2,12 +2,16 @@
 
 import React from "react";
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { Quanta } from "../../../src/core/Quanta";
 import { offWhite } from "../../../src/view/Theme";
-import { Minimap } from "../../../src/view/structure/Minimap";
 import { MainEditor } from "../../../src/view/content/RichText";
 import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
 import { useAudibleRenders } from "react-audible-debug";
+
+const Minimap = dynamic(() => import('../../../src/view/structure/Minimap').then(mod => mod.Minimap), {
+    ssr: false,
+});
 
 export default function Page({ params }: { params: { slug: string } }) {
     const padding = 20;
