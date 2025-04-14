@@ -370,24 +370,25 @@ input[type="checkbox"] {
 
 /* Highlight for important lines */
 .highlight-important-line {
-  background-color: rgba(255, 215, 0, 0.15); /* Slightly stronger gold background */
-  /* border-left: 3px solid rgba(255, 215, 0, 0.6); */ /* Removed border */
-  /* padding-left: 4px; */ /* Removed padding */
-  /* margin-left: -7px; */ /* Removed margin */
-  border-radius: 3px; /* Slightly rounded corners */
-  /* display: block; */ /* Ensure this is removed/commented */
-  /* Add some vertical padding if needed - adjust if necessary for inline */
+  display: inline; /* Explicitly inline */
+  background-color: rgba(255, 215, 0, 0.15);
+  border-radius: 3px;
+  /* Minimal vertical padding */
   padding-top: 1px;
   padding-bottom: 1px;
-  /* margin-top: 2px; */ /* Removed margin */
-  /* margin-bottom: 2px; */ /* Removed margin */
+  /* Reset other potentially interfering styles */
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border: none;
+  box-shadow: none;
+  vertical-align: baseline;
 }
 
-/* Ensure proper spacing when inside lists - REMOVED as it's not needed for inline */
+/* REMOVED list override */
 /*
 .ProseMirror ul > li.highlight-important-line,
 .ProseMirror ol > li.highlight-important-line {
-  margin-left: -24px; 
-  padding-left: 21px; 
+  ...
 }
 */
