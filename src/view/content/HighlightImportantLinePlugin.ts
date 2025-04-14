@@ -16,8 +16,9 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
   const decorations: Decoration[] = [];
 
   doc.descendants((node, pos) => {
-    if (node.type.name === 'paragraph' || node.type.name === 'listItem') {
-      let currentLineStartPos = pos + 1; // Start position inside the node's content
+    // ONLY target paragraph nodes for potential highlighting
+    if (node.type.name === 'paragraph') {
+      let currentLineStartPos = pos + 1; // Start position inside the paragraph's content
       let currentLineHasImportantMention = false;
 
       // Helper function to check a node and its descendants
@@ -33,7 +34,7 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
         return false;
       };
 
-      // Iterate through the direct children of the paragraph/listItem
+      // Iterate through the direct children of the PARAGRAPH
       node.content.forEach((childNode, offset) => {
         const childStartPos = pos + 1 + offset;
         const childEndPos = childStartPos + childNode.nodeSize;
@@ -53,14 +54,12 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
 
         if (isLineEnd) {
           // Calculate the end position for the decoration range
-          // If it's a hardBreak, end decoration *before* it.
-          // If it's the last child, end decoration *after* it.
           const decorationEndPos = isHardBreak ? childStartPos : childEndPos;
 
           if (currentLineHasImportantMention) {
             // Check if start/end positions are valid
             if (currentLineStartPos < decorationEndPos) {
-                console.log(`[HighlightPlugin] Applying inline decoration from ${currentLineStartPos} to ${decorationEndPos} in ${node.type.name}`);
+                console.log(`[HighlightPlugin] Applying inline decoration from ${currentLineStartPos} to ${decorationEndPos} in paragraph`);
                 decorations.push(
                     Decoration.inline(currentLineStartPos, decorationEndPos, {
                         class: HIGHLIGHT_CLASS,
@@ -77,10 +76,12 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
         }
       });
 
-      // Prevent descending further into this node from the outer loop
+      // We processed the paragraph, no need for the main loop to descend further *into* it.
       return false;
     }
-    return true; // Continue traversal for other node types
+
+    // If not a paragraph, continue traversing normally.
+    return true;
   });
 
   console.log("[HighlightPlugin] Returning decorations:", decorations.length > 0 ? decorations : "None");
