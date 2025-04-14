@@ -65,6 +65,7 @@ import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
+import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 
 lowlight.registerLanguage('js', js)
 
@@ -186,6 +187,7 @@ export const customExtensions: Extensions = [
   ExperimentalPortalExtension,
   QuoteExtension,
   WarningExtension,
+  HighlightImportantLinePlugin,
   // EmptyNodeCleanupExtension,
 ]
 
