@@ -1,195 +1,99 @@
-import React, { useEffect, useRef, useState } from 'react';
-import "./minimap.scss";
+import React from 'react';
 // @ts-ignore
-import { domToPng } from 'modern-screenshot'
+import BaseMinimap from 'react-simple-minimap'; // Use BaseMinimap to avoid name collision
 import { motion } from 'framer-motion';
 
-export const Minimap = () => {
-  const [counter, setCounter] = React.useState(0);
-  const [minimapWidth, setMinimapWidth] = useState(0);
+// Define the props for our Minimap component
+interface MinimapProps {
+  mainContentNode: React.ReactNode;
+  width?: number;
+  height?: string | number;
+}
 
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const sliderContentRef = useRef<HTMLDivElement>(null);
-  const controllerRef = useRef<HTMLDivElement>(null);
-  const sliderSizeRef = useRef<HTMLDivElement>(null);
-  let scale = 0.1;
-  let realScale = scale;
-  let mouseDown = false;
-  let mouseX = 0;
-  let mouseY = 0;
+// Note: react-simple-minimap works by re-rendering the entire passed node tree,
+// which can have significant performance implications on complex pages.
+export const Minimap: React.FC<MinimapProps> = ({ 
+  mainContentNode, 
+  width = 120, // Default width 
+  height = '100vh' // Default height
+}) => {
 
-  useEffect(() => {
-    let timer: NodeJS.Timer | undefined;
-    timer = setInterval(() => {
-      // Update the minimap every 10 seconds
-      setCounter(counter + 1)
-    }, 15000);
+  const minimapRef = React.useRef<HTMLDivElement>(null);
 
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!minimapRef.current) return;
 
-    const win = window;
-    const doc = document;
-    const body = doc.body;
+    const minimapRect = minimapRef.current.getBoundingClientRect();
+    
+    // Click position relative to the minimap container
+    const clickY = event.clientY - minimapRect.top;
+    const clickX = event.clientX - minimapRect.left;
 
-    // Capture the webpage and place it into the minimap content
-    const updateMinimapContent = () => {
-      let options = {
-        features: {
-          removeControlCharacter: false
-        }
-      }
-      domToPng(window.document.body, options).then((dataURL: string) => {
-        // Create an image from the canvas
-        var img = new Image();
-        img.src = dataURL;
+    // Get page and viewport dimensions
+    const pageHeight = document.body.scrollHeight;
+    const pageWidth = document.body.scrollWidth;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const minimapHeight = minimapRect.height;
+    const minimapWidth = minimapRect.width;
 
-        // Get the document of the iframe
-        const sliderContent = sliderContentRef.current
+    // Calculate scaling factors
+    const scaleY = minimapHeight / pageHeight;
+    const scaleX = minimapWidth / pageWidth;
 
-        if (sliderContent) {
-          // Get the existing image in the iframe, if any
-          const existingImg = sliderContent.querySelector('img');
+    // Calculate the corresponding point on the full page
+    const targetPageY = clickY / scaleY;
+    const targetPageX = clickX / scaleX;
 
-          if (existingImg) {
-            // If an image already exists, replace it with the new image
-            existingImg.replaceWith(img);
-          } else {
-            // If no image exists, append the new image
-            sliderContent.appendChild(img);
-          }
-        }
-      });
-    }
+    // Calculate the desired scroll position to center the target point in the viewport
+    let scrollToY = targetPageY - (viewportHeight / 2);
+    let scrollToX = targetPageX - (viewportWidth / 2);
 
-    updateMinimapContent()
+    // Clamp scroll values to be within valid range
+    scrollToY = Math.max(0, Math.min(scrollToY, pageHeight - viewportHeight));
+    scrollToX = Math.max(0, Math.min(scrollToX, pageWidth - viewportWidth));
 
-    function getDimensions() {
-      const bodyWidth = body.clientWidth;
-      const bodyRatio = body.clientHeight / bodyWidth;
-      const winRatio = win.innerHeight / win.innerWidth;
-
-      if (sliderRef.current && sliderSizeRef.current && controllerRef.current && sliderContentRef.current) {
-        sliderRef.current.style.width = (scale * 100) + '%';
-        realScale = sliderRef.current.clientWidth / bodyWidth;
-
-        sliderSizeRef.current.style.paddingTop = (bodyRatio * 100) + '%';
-        controllerRef.current.style.paddingTop = (winRatio * 100) + '%';
-
-        sliderContentRef.current.style.transform = 'scale(' + realScale + ')';
-        sliderContentRef.current.style.width = (100 / realScale) + '%';
-        sliderContentRef.current.style.height = (100 / realScale) + '%';
-      }
-      if (sliderRef.current) {
-        setMinimapWidth(sliderRef.current.clientWidth);
-      }
-    }
-
-    function trackScroll() {
-      if (controllerRef.current) {
-        controllerRef.current.style.transform = 'translate(' +
-          ((win.pageXOffset * realScale)) + 'px, ' +
-          ((win.pageYOffset * realScale)) + 'px)';
-      }
-    }
-
-    function pointerDown(e: MouseEvent | TouchEvent) {
-      e.preventDefault();
-      mouseDown = true;
-      mouseX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      mouseY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-      if (sliderRef.current && controllerRef.current) {
-        const offsetX = ((mouseX - sliderRef.current.offsetLeft) - (controllerRef.current.clientWidth / 2)) / realScale;
-        const offsetY = ((mouseY - sliderRef.current.offsetTop) - (controllerRef.current.clientHeight / 2)) / realScale;
-
-        win.scrollTo(offsetX, offsetY);
-      }
-    }
-
-    function pointerMove(e: MouseEvent | TouchEvent) {
-      if (mouseDown) {
-        e.preventDefault();
-
-        const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const y = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-        win.scrollBy((x - mouseX) / realScale, ((y - mouseY) / realScale));
-        mouseX = x;
-        mouseY = y;
-      }
-    }
-
-    function pointerReset(e: MouseEvent | TouchEvent) {
-      mouseDown = false;
-    }
-
-    function pointerLeave(e: MouseEvent | TouchEvent) {
-      if (e.target === body) {
-        mouseDown = false;
-      }
-    }
-
-    getDimensions();
-    win.addEventListener('resize', getDimensions);
-    win.addEventListener('load', getDimensions);
-    win.addEventListener('scroll', trackScroll);
-    sliderRef.current?.addEventListener('mousedown', pointerDown);
-    sliderRef.current?.addEventListener('touchstart', pointerDown);
-    win.addEventListener('mousemove', pointerMove);
-    win.addEventListener('touchmove', pointerMove);
-    win.addEventListener('mouseup', pointerReset);
-    win.addEventListener('touchend', pointerReset);
-    body.addEventListener('mouseleave', pointerLeave);
-    // body.addEventListener('touchleave', pointerLeave);
-
-    return () => {
-      win.removeEventListener('resize', getDimensions);
-      win.removeEventListener('load', getDimensions);
-      win.removeEventListener('scroll', trackScroll);
-      sliderRef.current?.removeEventListener('mousedown', pointerDown);
-      sliderRef.current?.removeEventListener('touchstart', pointerDown);
-      win.removeEventListener('mousemove', pointerMove);
-      win.removeEventListener('touchmove', pointerMove);
-      win.removeEventListener('mouseup', pointerReset);
-      win.removeEventListener('touchend', pointerReset);
-      body.removeEventListener('mouseleave', pointerLeave);
-      // body.removeEventListener('touchleave', pointerLeave);
-      clearTimeout(timer);  // Clean up the timer
-    };
-  }, [counter]);
+    window.scrollTo({
+      top: scrollToY,
+      left: scrollToX,
+      behavior: 'smooth' // Add smooth scrolling
+    });
+  };
 
   return (
     <motion.div 
+      ref={minimapRef} // Add ref to the container
+      onClick={handleClick} // Add the click handler
       initial={{ opacity: 0 }} 
-      animate={{ opacity: 0.7 }} 
+      animate={{ opacity: 0.7 }} // Initial opacity for overlap
       transition={{ duration: 0.5 }} 
-      whileHover={{ opacity: 1 }} 
-      className="slider" 
-      ref={sliderRef}
-      style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000 }} // Add this line
+      whileHover={{ opacity: 1 }} // Hover effect
+      style={{ 
+        // Fixed positioning on the right
+        position: 'fixed', 
+        top: 0, 
+        right: 0, 
+        zIndex: 10000, // High zIndex to ensure it stays on top
+        width: `${width}px`, 
+        height: '100vh', // Full viewport height
+        overflow: 'hidden', // Clip content
+        borderLeft: '1px solid #ccc', // Border on the left side
+        backgroundColor: 'white', // White background
+        // Add subtle drop shadow to the left
+        boxShadow: 'rgba(0, 0, 0, 0.1) -2px 0px 5px 0px',
+        // Remove pointerEvents: 'none' to allow clicks
+        // pointerEvents: 'none' 
+        cursor: 'pointer' // Add pointer cursor to indicate interactivity
+      }} 
     >
-      <div className="slider__size" ref={sliderSizeRef}></div>
-      <motion.div className="slider__controller" ref={controllerRef}></motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="slider__content" ref={sliderContentRef}></motion.div>
+        {/* The BaseMinimap itself should still ignore pointer events 
+            so clicks land on our wrapper div */}
+        <div style={{ pointerEvents: 'none', width: '100%', height: '100%'}}>
+          {/* @ts-ignore - react-simple-minimap types might be outdated */}
+          <BaseMinimap of={mainContentNode} width={width} height={'100%'} /> {/* Use 100% height relative to container */}
+        </div>
     </motion.div>
   );
 };
 
-export const useMinimapWidth = () => {
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const slider = document.querySelector('.slider');
-    if (slider) {
-      setWidth(slider.clientWidth);
-    }
-    const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        setWidth(entry.contentRect.width);
-      }
-    });
-    if (slider) observer.observe(slider);
-    return () => {
-      if (slider) observer.unobserve(slider);
-    };
-  }, []);
-  return width;
-};
+// Remove the old useMinimapWidth hook - no longer needed

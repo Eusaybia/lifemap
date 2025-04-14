@@ -99,6 +99,8 @@
     "react-audible-debug": "^1.0.3",
     "react-dom": "18.2.0",
     "react-map-gl": "7.1.3",
+    "react-minimap": "https://github.com/keploy/react-minimap.git",
+    "react-simple-minimap": "^1.0.1",
     "reactflow": "11.10.1",
     "sass": "1.59.2",
     "three": "0.155.0",
