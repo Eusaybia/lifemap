@@ -1623,14 +1623,6 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "3ad20934-1270-42ae-b414-88d4a5c8acea",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
                                                 "quantaId": "62f54741-8a07-464a-a5ef-eaaef87e7a4e",
                                                 "textAlign": "left",
                                                 "indent": 0
@@ -1649,7 +1641,12 @@ export const SalesGuideTemplate: JSONContent = {
                                                     "content": [
                                                         {
                                                             "type": "text",
-                                                            "text": "dsdssdsd"
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Q7.  Have you looked at other magicians or other options? What were your thoughts on what you saw?"
                                                         }
                                                     ]
                                                 }
@@ -1661,13 +1658,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 "quantaId": "75897bd7-6a5d-474d-8ae6-f7c90f3199f3",
                                                 "textAlign": "left",
                                                 "indent": 0
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "text",
-                                                    "text": "dsdsd"
-                                                }
-                                            ]
+                                            }
                                         },
                                         {
                                             "type": "quote",
@@ -1682,16 +1673,73 @@ export const SalesGuideTemplate: JSONContent = {
                                                     "content": [
                                                         {
                                                             "type": "text",
-                                                            "text": "dsdsd"
-                                                        },
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Q8. Have you planned any other parties / events in the past. What did you like or not like about them?"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "group",
+                                                    "attrs": {
+                                                        "quantaId": "193c8d58-c6ed-432d-9c69-2520af41e2c9",
+                                                        "pathos": 0,
+                                                        "backgroundColor": "#EFEFEF",
+                                                        "lens": "identity"
+                                                    },
+                                                    "content": [
                                                         {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
+                                                            "type": "paragraph",
+                                                            "attrs": {
+                                                                "quantaId": "329a21af-c014-4e88-96d5-a1ce31fcdf3d",
+                                                                "textAlign": "left",
+                                                                "indent": 0
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": "Q8a. So what did you like about what you "
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "underline"
+                                                                        }
+                                                                    ],
+                                                                    "text": "saw"
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": " or "
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "underline"
+                                                                        }
+                                                                    ],
+                                                                    "text": "heard"
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": ", so that we can bring it to your party? "
+                                                                },
+                                                                {
+                                                                    "type": "hardBreak"
+                                                                },
+                                                                {
+                                                                    "type": "hardBreak"
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": "Q8b. Prompts for people who don’t know what to say ____________"
+                                                                }
+                                                            ]
                                                         }
                                                     ]
                                                 }
@@ -5342,41 +5390,19 @@ export const SalesGuideTemplate: JSONContent = {
                     ]
                 },
                 {
-                    "type": "taskList",
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "55885210-1acf-4950-90ad-2877cc2f85fd",
+                        "textAlign": "left",
+                        "indent": 0
+                    },
                     "content": [
                         {
-                            "type": "taskItem",
-                            "attrs": {
-                                "checked": false
-                            },
-                            "content": [
-                                {
-                                    "type": "paragraph",
-                                    "attrs": {
-                                        "quantaId": "5c22d9da-48a1-404c-b2ba-4cbc118d7bda",
-                                        "textAlign": "left",
-                                        "indent": 0
-                                    },
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "Ask Scott about what this should really contain"
-                                        }
-                                    ]
-                                }
-                            ]
+                            "type": "hardBreak"
                         }
                     ]
                 }
             ]
-        },
-        {
-            "type": "paragraph",
-            "attrs": {
-                "quantaId": "5058d775-214b-43be-8626-0be9d81a57fc",
-                "textAlign": "left",
-                "indent": 0
-            }
         }
     ]
 }
