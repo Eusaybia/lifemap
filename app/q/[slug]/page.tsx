@@ -17,6 +17,7 @@ export default function Page({ params }: { params: { slug: string } }) {
     const padding = 20;
     const editor = MainEditor("", true);
     const minimapWidth = 60; // Update to match new default minimap width
+    const maxContentWidth = 1200; // Maximum width for optimal reading experience
 
     useAudibleRenders(false);
 
@@ -36,11 +37,19 @@ export default function Page({ params }: { params: { slug: string } }) {
             backgroundColor: offWhite,
             backgroundImage: 'url("/paper-textures/paper.png")',
             minHeight: '100vh',
+            display: 'flex',
+            justifyContent: 'center',
             paddingLeft: padding,
             paddingRight: minimapWidth + padding,
         }}>
-            <Minimap mainContentNode={mainContent} />
-            {mainContent}
+            <div style={{
+                width: '100%',
+                maxWidth: maxContentWidth,
+                position: 'relative',
+            }}>
+                <Minimap mainContentNode={mainContent} />
+                {mainContent}
+            </div>
         </div>
     )
 }
