@@ -1754,6 +1754,51 @@ export const SalesGuideTemplate: JSONContent = {
                                             }
                                         },
                                         {
+                                            "type": "quote",
+                                            "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "739f10a6-48d4-4f9e-bf4b-811eaf4a30bf",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Q8. "
+                                                        },
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "abd19df6-f33f-4c10-b44f-11abbfd3f0e7",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " "
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "marks": [
+                                                                {
+                                                                    "type": "bold"
+                                                                }
+                                                            ],
+                                                            "text": "Tell me a bit about other weddings you have been to. What did you like or not like about them?"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
                                             "type": "paragraph",
                                             "attrs": {
                                                 "quantaId": "c583b423-08e5-4d7e-b9ab-036355e03aad",
@@ -1764,6 +1809,36 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "quote",
                                             "content": [
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "bda2ab36-8bc1-4a90-a6a7-26d2468df88e",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    },
+                                                    "content": [
+                                                        {
+                                                            "type": "mention",
+                                                            "attrs": {
+                                                                "quantaId": "60ed625f-44bf-48d5-b1c1-63b8dd6aed61",
+                                                                "id": "000000",
+                                                                "label": "👰‍♀️ Wedding"
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "text",
+                                                            "text": " "
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "33cc451c-70d2-4a8c-8d5a-bd5fa89fdf42",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
                                                 {
                                                     "type": "details",
                                                     "attrs": {
@@ -1780,7 +1855,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                             "type": "bold"
                                                                         }
                                                                     ],
-                                                                    "text": "Q5. Before I let you know how our magic works, I want to know what you envisioned when you thought of a magician?"
+                                                                    "text": "Q9. Now a wedding is quite personal. And at The BlackTies we offer a bespoke tailored service for every bride and groom. When we show up at your wedding, we are representing you, we are an extension of you - taking care of your guests. So, for the best results, I would like to understand a bit about you guys personally. "
                                                                 }
                                                             ]
                                                         },
@@ -1790,7 +1865,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "group",
                                                                     "attrs": {
-                                                                        "quantaId": "05c36d84-a95c-4b1d-a60b-8c39f986d0af",
+                                                                        "quantaId": "b2b9db1a-b5a5-489c-9e15-9399ec5b3df3",
                                                                         "pathos": 0,
                                                                         "backgroundColor": "#EFEFEF",
                                                                         "lens": "identity"
@@ -1799,14 +1874,54 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "paragraph",
                                                                             "attrs": {
-                                                                                "quantaId": "b09ef8d2-c470-4df8-aacf-5702fa343539",
+                                                                                "quantaId": "fd44bcc8-de1e-467e-82b9-5c55495cbdc1",
                                                                                 "textAlign": "left",
                                                                                 "indent": 0
                                                                             },
                                                                             "content": [
                                                                                 {
                                                                                     "type": "text",
-                                                                                    "text": "Q5a. Great and what value do you think the magician will bring to yourself and the party?"
+                                                                                    "text": "Q9a. How would you describe yourself and your partner?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q9b. What jobs do you guys do?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q9c. How did your partner propose?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q9d. What are your interests? Are you guys fans of magic? If not what else?"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "text",
+                                                                                    "text": "Q9e. Is there anything else you can tell me? And you’ll be surprised, all this helps quite the big when it comes to us doing magic at your wedding."
                                                                                 }
                                                                             ]
                                                                         }
@@ -1817,6 +1932,14 @@ export const SalesGuideTemplate: JSONContent = {
                                                     ]
                                                 }
                                             ]
+                                        },
+                                        {
+                                            "type": "paragraph",
+                                            "attrs": {
+                                                "quantaId": "1e12b6bd-5445-44d9-95f2-be680e5190eb",
+                                                "textAlign": "left",
+                                                "indent": 0
+                                            }
                                         }
                                     ]
                                 },
@@ -2075,335 +2198,9 @@ export const SalesGuideTemplate: JSONContent = {
                     "type": "quote",
                     "content": [
                         {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": "Q4. What made you think of hiring a magician?  "
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "8d87ba67-1a21-4849-b148-4f70f9f0bb04",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "bold"
-                                                }
-                                            ],
-                                            "text": "Q5. Before I let you know how our magic works, I want to know what you envisioned when you thought of a magician?"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "a6cfd347-8127-4caa-a8eb-e06581c82177",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "7afe4d24-495e-4548-8411-5b6cc1bed5b9",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q5a. Great and what value do you think the magician will bring to yourself and the party?"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "Q6. So what's the most important thing for you for at this party / event / wedding? "
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "detailsContent",
-                                    "content": [
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "f20e9933-9247-496d-96ce-d2612547dfe3",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "907efab9-78cc-4f11-90ed-9e9bb28b0163",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "mention",
-                                                            "attrs": {
-                                                                "quantaId": "cff91380-df34-46fe-8b26-3bff17815541",
-                                                                "id": "000000",
-                                                                "label": "🎓 learning "
-                                                            }
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " What’s your deep down motivating factor? "
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "299536ea-cd30-4328-b1ae-216580b19a8e",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "1379bdea-6496-4858-8e4c-7e778d035cea",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q6a. And why is that important to you?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q6b. "
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "underline"
-                                                                }
-                                                            ],
-                                                            "text": "Dive deep"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " into this core motive"
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "1f6fa310-63a6-4679-b90a-a1bba353c1d1",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Method 1:"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " Why is fun important to you?"
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "7f610cd6-3ae9-4c61-89e3-cef349d712a5",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Method 2:"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " Oh give me an example of something fun."
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "26e15e6e-0fb0-46cc-81fa-ed4f26c42936",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Method 3:"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " What exactly do you mean by fun, what do you want"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "8bbaa923-f2ca-4b0f-a860-6831f9ff69b6",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "f716601c-c2c4-4610-9337-c3066b4638f6",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "marks": [
-                                        {
-                                            "type": "bold"
-                                        }
-                                    ],
-                                    "text": "Q7.  Have you looked at other magicians or other options? What were your thoughts on what you saw?"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "895904ea-69c7-46f7-ab40-29ab27707864",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "b62daf5b-0f71-4cdd-b818-4e0ed6f429de",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "marks": [
-                                        {
-                                            "type": "bold"
-                                        }
-                                    ],
-                                    "text": "Q8. Have you planned any other parties / events in the past. What did you like or not like about them?"
-                                }
-                            ]
-                        },
-                        {
                             "type": "group",
                             "attrs": {
-                                "quantaId": "225422fa-2c3b-4ea8-8444-69912786fe7d",
+                                "quantaId": "299536ea-cd30-4328-b1ae-216580b19a8e",
                                 "pathos": 0,
                                 "backgroundColor": "#EFEFEF",
                                 "lens": "identity"
@@ -2412,162 +2209,36 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "3b845043-a882-411f-b335-065766569d92",
+                                        "quantaId": "1f6fa310-63a6-4679-b90a-a1bba353c1d1",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
                                     "content": [
                                         {
-                                            "type": "text",
-                                            "text": "Q4a. So what did you like about what you "
+                                            "type": "hardBreak"
                                         },
                                         {
                                             "type": "text",
                                             "marks": [
                                                 {
-                                                    "type": "underline"
+                                                    "type": "bold"
                                                 }
                                             ],
-                                            "text": "saw"
+                                            "text": "Method 1:"
                                         },
                                         {
                                             "type": "text",
-                                            "text": " or "
-                                        },
-                                        {
-                                            "type": "text",
-                                            "marks": [
-                                                {
-                                                    "type": "underline"
-                                                }
-                                            ],
-                                            "text": "heard"
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": ", so that we can bring it to your party? "
-                                        },
-                                        {
-                                            "type": "hardBreak"
-                                        },
-                                        {
-                                            "type": "hardBreak"
-                                        },
-                                        {
-                                            "type": "text",
-                                            "text": "Q4b. Prompts for people who don’t know what to say ____________"
+                                            "text": " Why is fun important to you?"
                                         }
                                     ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "0ebfe948-7006-4dc7-ab1c-1bbc05380163",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "d1873a73-bcc1-41c0-b35a-40e72712615c",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "marks": [
-                                        {
-                                            "type": "bold"
-                                        }
-                                    ],
-                                    "text": "Q8. "
                                 },
                                 {
-                                    "type": "mention",
+                                    "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "fd446f28-ddbc-49b3-986c-acf84994e343",
-                                        "id": "000000",
-                                        "label": "👰‍♀️ Wedding"
-                                    }
-                                },
-                                {
-                                    "type": "text",
-                                    "text": " "
-                                },
-                                {
-                                    "type": "text",
-                                    "marks": [
-                                        {
-                                            "type": "bold"
-                                        }
-                                    ],
-                                    "text": "Tell me a bit about other weddings you have been to. What did you like or not like about them?"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "ae344a98-f57d-43ba-b879-1d47e7771c51",
-                        "textAlign": "left",
-                        "indent": 0
-                    }
-                },
-                {
-                    "type": "quote",
-                    "content": [
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "a3f745ee-19df-454a-aab8-894bb74c2813",
-                                "textAlign": "left",
-                                "indent": 0
-                            },
-                            "content": [
-                                {
-                                    "type": "hardBreak"
-                                },
-                                {
-                                    "type": "mention",
-                                    "attrs": {
-                                        "quantaId": "e75c4e28-aee1-43ad-a40d-0c8a641206ed",
-                                        "id": "000000",
-                                        "label": "👰‍♀️ Wedding"
-                                    }
-                                },
-                                {
-                                    "type": "text",
-                                    "text": " "
-                                }
-                            ]
-                        },
-                        {
-                            "type": "paragraph",
-                            "attrs": {
-                                "quantaId": "70ec36c0-0146-4cdd-97c8-178396ca84e5",
-                                "textAlign": "left",
-                                "indent": 0
-                            }
-                        },
-                        {
-                            "type": "details",
-                            "attrs": {
-                                "open": true
-                            },
-                            "content": [
-                                {
-                                    "type": "detailsSummary",
+                                        "quantaId": "7f610cd6-3ae9-4c61-89e3-cef349d712a5",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
                                     "content": [
                                         {
                                             "type": "text",
@@ -2576,110 +2247,54 @@ export const SalesGuideTemplate: JSONContent = {
                                                     "type": "bold"
                                                 }
                                             ],
-                                            "text": "Q9. Now a wedding is quite personal. And at The BlackTies we offer a bespoke tailored service for every bride and groom. When we show up at your wedding, we are representing you, we are an extension of you - taking care of your guests. So, for the best results, I would like to understand a bit about you guys personally. "
+                                            "text": "Method 2:"
+                                        },
+                                        {
+                                            "type": "text",
+                                            "text": " Oh give me an example of something fun."
                                         }
                                     ]
                                 },
                                 {
-                                    "type": "detailsContent",
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "26e15e6e-0fb0-46cc-81fa-ed4f26c42936",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    },
                                     "content": [
                                         {
-                                            "type": "group",
-                                            "attrs": {
-                                                "quantaId": "a9da1bdb-4415-4864-bd8d-ee6ef7ff764d",
-                                                "pathos": 0,
-                                                "backgroundColor": "#EFEFEF",
-                                                "lens": "identity"
-                                            },
-                                            "content": [
+                                            "type": "text",
+                                            "marks": [
                                                 {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "3d062bbc-065f-45cf-b950-96d4b572838b",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q9a. How would you describe yourself and your partner?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q9b. What jobs do you guys do?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q9c. How did your partner propose?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q9d. What are your interests? Are you guys fans of magic? If not what else?"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "hardBreak"
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": "Q9e. Is there anything else you can tell me? And you’ll be surprised, all this helps quite the big when it comes to us doing magic at your wedding."
-                                                        }
-                                                    ]
+                                                    "type": "bold"
                                                 }
-                                            ]
+                                            ],
+                                            "text": "Method 3:"
                                         },
                                         {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "feabe17e-a588-468b-8b0f-2d32c0a42754",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "87949a39-7b8a-4b0c-aaf6-e33c80184e14",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
+                                            "type": "text",
+                                            "text": " What exactly do you mean by fun, what do you want"
                                         }
                                     ]
+                                },
+                                {
+                                    "type": "paragraph",
+                                    "attrs": {
+                                        "quantaId": "f716601c-c2c4-4610-9337-c3066b4638f6",
+                                        "textAlign": "left",
+                                        "indent": 0
+                                    }
                                 }
                             ]
-                        }
-                    ]
-                },
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "375ab720-6583-48f7-97c3-7148ad19ce01",
-                        "textAlign": "left",
-                        "indent": 0
-                    },
-                    "content": [
+                        },
                         {
-                            "type": "hardBreak"
+                            "type": "paragraph",
+                            "attrs": {
+                                "quantaId": "375ab720-6583-48f7-97c3-7148ad19ce01",
+                                "textAlign": "left",
+                                "indent": 0
+                            }
                         }
                     ]
                 }
