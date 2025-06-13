@@ -295,10 +295,12 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
 
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
-    documentMenuStyle.width = "100%"
+    documentMenuStyle.width = "fit-content"
     documentMenuStyle.position = 'fixed';
     documentMenuStyle.top = 0;
-    documentMenuStyle.left = 0;
+    documentMenuStyle.right = '80px'; // Account for minimap width (60px) + some padding
+    documentMenuStyle.left = 'auto';
+    documentMenuStyle.zIndex = 10001; // Higher than minimap's z-index of 10000
 
     React.useEffect(() => {
         if (!props.editor) return;
