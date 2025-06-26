@@ -302,6 +302,14 @@ export const GroupExtension = TipTapNode.create({
       // Determine overlay opacity for dimming
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
+      // Determine strip color based on completion state
+      let stripColor = 'transparent';
+      if (containsUncheckedTodo) {
+        stripColor = '#ff4444'; // Red for uncompleted
+      } else if (containsCheckItem || glowStyles.some(style => style.includes('hsl(104'))) {
+        stripColor = '#44aa44'; // Green for completed
+      }
+
       return (
         <NodeViewWrapper
           ref={nodeViewRef}
@@ -313,12 +321,27 @@ export const GroupExtension = TipTapNode.create({
               borderRadius: 10,
               position: 'relative',
               display: isHidden ? 'none' : 'block',
+              marginLeft: '8px',
             }}
             animate={{
               boxShadow: glowStyles.join(','),
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
+            <motion.div
+              style={{
+                position: 'absolute',
+                left: '-8px',
+                top: 0,
+                bottom: 0,
+                width: '8px',
+                pointerEvents: 'none',
+              }}
+              animate={{
+                backgroundColor: stripColor,
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            />
             <Group
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
