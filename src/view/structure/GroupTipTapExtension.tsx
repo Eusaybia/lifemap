@@ -174,7 +174,10 @@ export const GroupExtension = TipTapNode.create({
   parseHTML() {
     return [
       {
-        tag: "group",
+        tag: "div",
+        attrs: {
+          "data-group": "true",
+        },
       },
     ];
   },
@@ -188,7 +191,7 @@ export const GroupExtension = TipTapNode.create({
     }
   },
   renderHTML({ node, HTMLAttributes }) {
-    return ["div", HTMLAttributes, 0];
+    return ["div", { ...HTMLAttributes, "data-group": "true" }, 0];
   },
   addInputRules() {
     return [
