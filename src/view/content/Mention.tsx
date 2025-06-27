@@ -23,7 +23,11 @@ export const CustomMention = Mention.extend({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, { class: classes }),
+      mergeAttributes(HTMLAttributes, { 
+        class: classes,
+        'data-type': 'mention',
+        'data-id': node.attrs.id || node.attrs.label
+      }),
       `${node.attrs.label}`
     ]
   },
