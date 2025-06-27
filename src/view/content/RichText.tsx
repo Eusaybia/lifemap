@@ -141,7 +141,9 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   TableRow,
   TableHeader,
-  TableCell,
+  TableCell.configure({
+    content: 'block+',
+  }),
   TaskItem.configure({
     nested: true,
   }),
