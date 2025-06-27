@@ -6,7 +6,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "55885210-1acf-4950-90ad-2877cc2f85fd",
+                "quantaId": "c284e157-abea-4db5-98ba-8f2fd1ad6c51",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -75,7 +75,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "1efa02b5-cc4f-47ec-829c-abed5e774f64",
+                        "quantaId": "850a837b-8ff5-45b4-8146-6c89721c9d8c",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -83,7 +83,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "d8966427-005a-4186-9f2f-d6b385350045",
+                        "quantaId": "1efa02b5-cc4f-47ec-829c-abed5e774f64",
                         "textAlign": "left",
                         "indent": 0
                     },
@@ -184,7 +184,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "mention",
                                             "attrs": {
-                                                "quantaId": "e1019dd0-f4d6-4452-8b1f-70d4400c276b",
+                                                "quantaId": "ec885e9e-dcbc-49d3-ab7f-b78d0e04505f",
                                                 "id": null,
                                                 "label": "⭐️ important"
                                             }
@@ -194,7 +194,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "f366ff48-2c70-4b36-8c7c-846d90405e4b",
+                                        "quantaId": "1947ef43-a6ee-4849-a525-d0bacc11fb4f",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -215,7 +215,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "296e2ad0-b9de-4436-91fb-e5f809bb79af",
+                                        "quantaId": "e1019dd0-f4d6-4452-8b1f-70d4400c276b",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -357,7 +357,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "987390e6-3018-47a3-bb6a-395a9e838504",
+                        "quantaId": "712945a4-14f0-4855-b1d2-e68645922c29",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -365,7 +365,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "6ed2e840-30e1-4cba-90b5-8d10873d1cc7",
+                        "quantaId": "987390e6-3018-47a3-bb6a-395a9e838504",
                         "textAlign": "left",
                         "indent": 0
                     },
@@ -389,7 +389,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "d7d3e1fe-c567-4151-be9d-d8f6ec2dfed4",
+                        "quantaId": "149a5490-2b26-43a5-8e89-07ee8d054948",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -406,7 +406,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "3e7fa383-ef56-4112-ae04-e5015b7a566a",
+                                        "quantaId": "d7d3e1fe-c567-4151-be9d-d8f6ec2dfed4",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -420,7 +420,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "c9d965f3-0c18-49f8-a6fb-27f6953a89e3",
+                                        "quantaId": "73a80462-66ec-4e06-993d-82f92daff2c1",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -435,7 +435,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "04db1ccb-4ddc-4cf7-b222-e62cce69a185",
+                                "quantaId": "c9d965f3-0c18-49f8-a6fb-27f6953a89e3",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -457,7 +457,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "a8c4a43f-2073-4574-9eb6-74ceb34f30dd",
+                                        "quantaId": "76f95c01-64f9-4f09-9ffa-6e8d55b861db",
                                         "id": "000000",
                                         "label": "👰‍♀️ Prospect"
                                     }
@@ -494,7 +494,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "caa5ec86-52b2-4f13-91cc-d6e2c16def61",
+                                "quantaId": "a8c4a43f-2073-4574-9eb6-74ceb34f30dd",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -509,7 +509,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "8a47bf50-e58a-454d-86fd-557edbc7b0a3",
+                                        "quantaId": "986910f4-dd74-4490-ac7a-c03607b38080",
                                         "id": "000000",
                                         "label": "👰‍♀️ Wedding"
                                     }
@@ -523,7 +523,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "e04eba5e-a3b8-472c-a079-0deeffd251d1",
+                                "quantaId": "4023a27e-0214-4bfd-a535-451b66ddf1f3",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -531,7 +531,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "427f85d0-209b-4b33-b799-c3c4d7ccdb8c",
+                                "quantaId": "8a47bf50-e58a-454d-86fd-557edbc7b0a3",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -543,7 +543,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "25b09655-7a7f-4971-a7ae-ede52b4d75cd",
+                                        "quantaId": "c880a08f-2dfb-424a-8699-2fb6d620f685",
                                         "id": "000000",
                                         "label": "🎉 Event"
                                     }
@@ -555,7 +555,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "596bd6da-2632-4c66-bbd5-9b46b226a404",
+                                        "quantaId": "f1ca04e2-d4b7-4b1b-a103-601b3575b8e7",
                                         "id": "000000",
                                         "label": "🎉 Event"
                                     }
@@ -569,7 +569,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "eb32c4b1-9c64-4af4-8cf6-68cb75b91d54",
+                                "quantaId": "8acf25e9-2d46-4520-9c4e-920d1da27f72",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -577,7 +577,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "817f1ec1-d77c-4fb6-b104-d2dd2dd065f3",
+                                "quantaId": "25b09655-7a7f-4971-a7ae-ede52b4d75cd",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -591,7 +591,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "938a8a45-6ee9-439e-a038-85b0fd63b53d",
+                                "quantaId": "af5fb7a3-c566-4532-83d9-ae29964e4592",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -599,7 +599,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "7a0eebab-e315-47f8-8ee0-b535f992f08f",
+                                "quantaId": "938a8a45-6ee9-439e-a038-85b0fd63b53d",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -613,7 +613,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "9f69db91-62e8-4793-b2dc-7e6f7000ae98",
+                                "quantaId": "eff8a128-3570-4735-beed-c68d2617524d",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -621,7 +621,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "73c7730c-a73b-49ca-8739-560d04a70c1a",
+                                "quantaId": "9f69db91-62e8-4793-b2dc-7e6f7000ae98",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -635,7 +635,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "c89a8672-0f42-4996-9dfc-87c258f0bfb7",
+                                "quantaId": "9b6acc0c-17f5-4c60-8a90-e94ee8ff1a6b",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -645,7 +645,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "ccacbbce-bbab-4e21-be33-b32a5a3ccb39",
+                        "quantaId": "c89a8672-0f42-4996-9dfc-87c258f0bfb7",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -662,7 +662,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "71767324-ba4b-4683-a1c7-d23243612a8b",
+                                        "quantaId": "d855e581-534d-4eb5-92bd-ce5b8866f59d",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -676,7 +676,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "6a482f3f-0a77-47f4-a0f5-c477d3d5cb1d",
+                                "quantaId": "71767324-ba4b-4683-a1c7-d23243612a8b",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -728,7 +728,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "mention",
                                                     "attrs": {
-                                                        "quantaId": "f0a1618f-90b7-4422-8901-5cfb36aef40f",
+                                                        "quantaId": "86694f02-e6e4-4ce3-8ba3-c6dff7ae40b6",
                                                         "id": null,
                                                         "label": "⭐️ important"
                                                     }
@@ -743,7 +743,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "db1fcb3a-95d4-48d9-a41d-acf752256551",
+                                                "quantaId": "f0a1618f-90b7-4422-8901-5cfb36aef40f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -855,7 +855,15 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "4df29aed-aa9c-4307-ab7a-3aa3ffd107e0",
+                        "quantaId": "5ce5ee5d-69a1-4497-af6c-e219c241109c",
+                        "textAlign": "left",
+                        "indent": 0
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": {
+                        "quantaId": "cdb80f35-748d-496f-add7-434e814d216b",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -872,7 +880,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "75c7b5c4-a681-4744-a520-71ebf40ea583",
+                                        "quantaId": "4df29aed-aa9c-4307-ab7a-3aa3ffd107e0",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -904,330 +912,59 @@ export const SalesGuideTemplate: JSONContent = {
                                     },
                                     "content": [
                                         {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": false
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "detailsSummary",
-                                                            "content": [
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": "Q1. So how's the party planning so far? Fun? Stressful?"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "8535f2b3-d11e-4174-b787-2a20d937e0cb",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "0f3be206-b4a2-40e8-996e-a417784aaec7",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "mention",
-                                                                                    "attrs": {
-                                                                                        "quantaId": "3dbdc99e-c879-41e3-95c2-607fcce709b2",
-                                                                                        "id": "000000",
-                                                                                        "label": "👰‍♀️ Wedding "
-                                                                                    }
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " "
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Do you have a wedding planner or are you doing everything yourself? "
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "How long have you been planning this for? I know many brides plan for years for their wedding!"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "So what’s your partner's name?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Great and how long have you guys been engaged for"
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "b9e38dab-2dc9-4ccc-a61a-d10c2626b65b",
+                                                "quantaId": "7c11cb3e-168c-46a4-9e78-2c20f806242a",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
                                         },
                                         {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "detailsSummary",
-                                                            "content": [
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": "Q2. So can you walk me through the party?"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "76d085dd-2706-4334-891f-08cd44ff675a",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "ce4db397-f8d0-4a6a-a96a-caa3aa65a111",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "mention",
-                                                                                    "attrs": {
-                                                                                        "quantaId": "7e122dec-ffcc-4794-aea2-381d6b0f5502",
-                                                                                        "id": "000000",
-                                                                                        "label": "🎓 learning"
-                                                                                    }
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "  Let the prospect explain. Gauge their DISC type."
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "bc361caa-666f-4bf8-8177-f7a2a3fed259",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "ca1c652d-11fc-4253-ae06-ba684fb9fd0f",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q2a. So…what would a guest see, imagine they walk through the door, what do they first see? What will their experience throughout the night be like?"
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
+                                            "type": "scrollview",
                                             "attrs": {
-                                                "quantaId": "89397aef-511d-40da-9995-0c502849b184",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
+                                                "quantaId": "d0284cb0-0ea3-4d10-943f-8e991a8cb93e",
+                                                "pathos": 0,
+                                                "backgroundColor": "#EFEFEF",
+                                                "lens": "identity"
+                                            },
                                             "content": [
                                                 {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
+                                                    "type": "quote",
                                                     "content": [
                                                         {
-                                                            "type": "detailsSummary",
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": false
+                                                            },
                                                             "content": [
                                                                 {
-                                                                    "type": "text",
-                                                                    "marks": [
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
                                                                         {
-                                                                            "type": "bold"
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q1. So how's the party planning so far? Fun? Stressful?"
                                                                         }
-                                                                    ],
-                                                                    "text": "Q3. So here at the Black Ties, we don't just do magic - our main goal is to make your people "
+                                                                    ]
                                                                 },
                                                                 {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        },
-                                                                        {
-                                                                            "type": "underline"
-                                                                        }
-                                                                    ],
-                                                                    "text": "happy"
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": " and "
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        },
-                                                                        {
-                                                                            "type": "underline"
-                                                                        }
-                                                                    ],
-                                                                    "text": "excited"
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": ". So tell me about your guests. The more you can tell us the easier it is for us to enlighten them."
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "6f38f805-3c1a-411f-b21d-eaf68cc9526d",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
+                                                                    "type": "detailsContent",
                                                                     "content": [
                                                                         {
                                                                             "type": "paragraph",
                                                                             "attrs": {
-                                                                                "quantaId": "7ba18a97-c427-402e-a646-24c6cbaf386f",
+                                                                                "quantaId": "df43947c-3c67-4859-acd7-ba4f423e5849",
                                                                                 "textAlign": "left",
                                                                                 "indent": 0
                                                                             },
                                                                             "content": [
                                                                                 {
                                                                                     "type": "text",
-                                                                                    "text": "Q3a. [What cultural background are they from?] [Are they friends or family?] [Do you think they are more "
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "underline"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "excitable"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": ", or more "
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "underline"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "conservative"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "?] "
+                                                                                    "text": "dsdsdsds"
                                                                                 },
                                                                                 {
                                                                                     "type": "hardBreak"
@@ -1236,8 +973,10 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                     "type": "hardBreak"
                                                                                 },
                                                                                 {
-                                                                                    "type": "text",
-                                                                                    "text": "Q3b. Are there any kids at the party? If so, what age groups?"
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
                                                                                 },
                                                                                 {
                                                                                     "type": "hardBreak"
@@ -1246,8 +985,10 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                     "type": "hardBreak"
                                                                                 },
                                                                                 {
-                                                                                    "type": "text",
-                                                                                    "text": "Q3c. How do you think your guests will respond to the magic? (Is that something they’ll love?)"
+                                                                                    "type": "hardBreak"
+                                                                                },
+                                                                                {
+                                                                                    "type": "hardBreak"
                                                                                 },
                                                                                 {
                                                                                     "type": "hardBreak"
@@ -1256,597 +997,754 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                     "type": "hardBreak"
                                                                                 },
                                                                                 {
-                                                                                    "type": "text",
-                                                                                    "text": "3d. Prompts for people who don’t know what to say:"
+                                                                                    "type": "hardBreak"
                                                                                 }
                                                                             ]
-                                                                        },
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "group",
+                                                            "attrs": {
+                                                                "quantaId": "bad86954-d582-4a0d-888c-e58fc31457b4",
+                                                                "pathos": 0,
+                                                                "backgroundColor": "#EFEFEF",
+                                                                "lens": "identity"
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "paragraph",
+                                                                    "attrs": {
+                                                                        "quantaId": "094cf6c3-48d7-4615-9529-79bc3393dc3e",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
+                                                                    },
+                                                                    "content": [
                                                                         {
-                                                                            "type": "paragraph",
+                                                                            "type": "mention",
                                                                             "attrs": {
-                                                                                "quantaId": "dd544e13-4b5b-4cf6-b06a-64509270bb96",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
+                                                                                "quantaId": "90217819-4be1-4490-b3bd-241d20ca32aa",
+                                                                                "id": "000000",
+                                                                                "label": "👰‍♀️ Wedding "
                                                                             }
                                                                         },
                                                                         {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "12b0fd30-7f66-484b-bf1d-1bace0f20275",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "E.g. I’ve had clients tell me that their guests ___________________. And another time ___________________."
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "40e437ea-d347-4cbc-8c8a-20404c8adb50",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "detailsSummary",
-                                                            "content": [
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": "Q4. What made you think of hiring a magician?  "
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "cf7df08e-b035-4cfb-ba13-cde721683b22",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "76092652-4b28-4830-b247-5ce31c4f26c8",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "mention",
-                                                                                    "attrs": {
-                                                                                        "quantaId": "5ee0118e-7cad-46a9-8b33-0f3f94bf88cc",
-                                                                                        "id": "000000",
-                                                                                        "label": "🎓 learning "
-                                                                                    }
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " So have you seen magic before?"
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "728b33d7-356c-4fda-af25-aef11a2b74e5",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "detailsSummary",
-                                                            "content": [
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "bold"
-                                                                        }
-                                                                    ],
-                                                                    "text": "Q5. Before I let you know how our magic works, I want to know what you envisioned when you thought of a magician?"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "3ffdd361-6b58-4be3-890b-7fe5661f456a",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "7bf83779-8685-4dee-b5f0-65b0653d5289",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q5a. Great and what value do you think the magician will bring to yourself and the party?"
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "b925e021-f176-495e-9a35-088bbb0947dd",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "detailsSummary",
-                                                            "content": [
-                                                                {
-                                                                    "type": "text",
-                                                                    "text": "Q6. So what's the most important thing for you for at this party / event / wedding? "
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "type": "detailsContent",
-                                                            "content": [
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "386b0b59-804a-4d49-b068-a33fb31a17b2",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "5d79c450-660e-4776-bddd-4192bb7c4120",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "mention",
-                                                                                    "attrs": {
-                                                                                        "quantaId": "885b3aa8-8738-472d-bfea-c4a71429c4ce",
-                                                                                        "id": "000000",
-                                                                                        "label": "🎓 learning "
-                                                                                    }
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " What’s your deep down motivating factor? "
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "type": "group",
-                                                                    "attrs": {
-                                                                        "quantaId": "9986c4cd-fda9-43cb-8882-3b1afedaa077",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
-                                                                    },
-                                                                    "content": [
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "111fa633-2f5f-4d29-b01d-d08abd1c5f65",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q6a. And why is that important to you?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q6b. "
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "underline"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "Dive deep"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " into this core motive"
-                                                                                }
-                                                                            ]
+                                                                            "type": "text",
+                                                                            "text": " "
                                                                         },
                                                                         {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "9c54c430-3e71-4da8-8441-d5e574e3d1c5",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "bold"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "Method 1:"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " Why is fun important to you?"
-                                                                                }
-                                                                            ]
+                                                                            "type": "hardBreak"
                                                                         },
                                                                         {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "c8b0d875-fe0d-4eaf-9f35-63f5bd3593f2",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "bold"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "Method 2:"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " Oh give me an example of something fun."
-                                                                                }
-                                                                            ]
+                                                                            "type": "hardBreak"
                                                                         },
                                                                         {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "cbb00513-bcda-467c-bfb9-1796a3abb67f",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            },
-                                                                            "content": [
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "marks": [
-                                                                                        {
-                                                                                            "type": "bold"
-                                                                                        }
-                                                                                    ],
-                                                                                    "text": "Method 3:"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": " What exactly do you mean by fun, what do you want"
-                                                                                }
-                                                                            ]
+                                                                            "type": "text",
+                                                                            "text": "Do you have a wedding planner or are you doing everything yourself? "
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": "How long have you been planning this for? I know many brides plan for years for their wedding!"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": "So what’s your partner's name?"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": "Great and how long have you guys been engaged for"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
                                                                         }
                                                                     ]
                                                                 }
                                                             ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "62f54741-8a07-464a-a5ef-eaaef87e7a4e",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "86afd63b-0a56-4ce5-9245-5764e2fe137f",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Q7.  Have you looked at other magicians or other options? What were your thoughts on what you saw?"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "75897bd7-6a5d-474d-8ae6-f7c90f3199f3",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "6df3d295-c591-4541-b65c-d9bd463e3baa",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Q8. Have you planned any other parties / events in the past. What did you like or not like about them?"
                                                         }
                                                     ]
                                                 },
                                                 {
-                                                    "type": "group",
+                                                    "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "193c8d58-c6ed-432d-9c69-2520af41e2c9",
-                                                        "pathos": 0,
-                                                        "backgroundColor": "#EFEFEF",
-                                                        "lens": "identity"
-                                                    },
+                                                        "quantaId": "f551f9e8-a348-4886-b92d-618798d06f08",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q2. So can you walk me through the party?"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "d503ec91-33ce-4f88-8f0c-98292b9280e8",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "efb51087-9411-43c3-b85c-41f5ac95209d",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "mention",
+                                                                                            "attrs": {
+                                                                                                "quantaId": "abc46a07-30fc-4e49-9644-563d72bf9bbb",
+                                                                                                "id": "000000",
+                                                                                                "label": "🎓 learning"
+                                                                                            }
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "  Let the prospect explain. Gauge their DISC type."
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "d69a5360-3d3d-44d8-be6e-c07243b2b767",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "74ef575c-4b54-49da-97c6-52e566c3a857",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q2a. So…what would a guest see, imagine they walk through the door, what do they first see? What will their experience throughout the night be like?"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "47e4327f-7d37-4f4d-9228-73f46d6d232e",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q3. So here at the Black Ties, we don't just do magic - our main goal is to make your people "
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                },
+                                                                                {
+                                                                                    "type": "underline"
+                                                                                }
+                                                                            ],
+                                                                            "text": "happy"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": " and "
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                },
+                                                                                {
+                                                                                    "type": "underline"
+                                                                                }
+                                                                            ],
+                                                                            "text": "excited"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": ". So tell me about your guests. The more you can tell us the easier it is for us to enlighten them."
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "253ccd41-1c2b-4850-b446-bb96f5b8ed36",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "fe4180ef-12b3-424d-a606-b9607ae6f29b",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q3a. [What cultural background are they from?] [Are they friends or family?] [Do you think they are more "
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "underline"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "excitable"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": ", or more "
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "underline"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "conservative"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "?] "
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q3b. Are there any kids at the party? If so, what age groups?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q3c. How do you think your guests will respond to the magic? (Is that something they’ll love?)"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "3d. Prompts for people who don’t know what to say:"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "e16cc0e3-4b1e-4c3e-9daf-a96746a4316f",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    }
+                                                                                },
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "d074f83f-cc65-462b-9fda-28cbdde00f3e",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "E.g. I’ve had clients tell me that their guests ___________________. And another time ___________________."
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "f42cc54e-aad6-492b-9a8e-27c30fb49b7c",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q4. What made you think of hiring a magician?  "
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "c4239a36-0350-4023-bdd5-cc055f65d4d1",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "65a7f35d-300a-44cb-98c8-95e143c31b5d",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "mention",
+                                                                                            "attrs": {
+                                                                                                "quantaId": "a08655ea-5b8f-4026-bf03-eae8222599bf",
+                                                                                                "id": "000000",
+                                                                                                "label": "🎓 learning "
+                                                                                            }
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " So have you seen magic before?"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "51fec59e-8100-4a76-950f-649abbaf3bb0",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q5. Before I let you know how our magic works, I want to know what you envisioned when you thought of a magician?"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "6335ff16-20af-4024-abc3-a90aafa4ec4b",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "0a4c89b9-33d3-455b-adee-dc4bc1588966",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q5a. Great and what value do you think the magician will bring to yourself and the party?"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "d0df3a0d-1ab2-40ad-9f93-2f439446d971",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": "Q6. So what's the most important thing for you for at this party / event / wedding? "
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "6fe83040-793c-489c-87ec-5d6fa3b27fc0",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "a6e0fde3-1576-4984-999f-5bb8c9343d4e",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "mention",
+                                                                                            "attrs": {
+                                                                                                "quantaId": "8cf1060e-23c7-46e9-a348-3ecc23fcacd1",
+                                                                                                "id": "000000",
+                                                                                                "label": "🎓 learning "
+                                                                                            }
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " What’s your deep down motivating factor? "
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "type": "group",
+                                                                            "attrs": {
+                                                                                "quantaId": "73fa44bc-1c03-4baa-8e9b-990729d22a0a",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
+                                                                            },
+                                                                            "content": [
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "cae4bcfd-fbd5-40b8-a9bc-2f407681a643",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q6a. And why is that important to you?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q6b. "
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "underline"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "Dive deep"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " into this core motive"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "ebd95883-7ab7-443c-93df-e7acd23f8cc7",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "bold"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "Method 1:"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " Why is fun important to you?"
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "69ec17f9-c161-407d-ace5-154252d3b109",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "bold"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "Method 2:"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " Oh give me an example of something fun."
+                                                                                        }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "26336d6e-324c-4222-b64b-013ce97c8696",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "marks": [
+                                                                                                {
+                                                                                                    "type": "bold"
+                                                                                                }
+                                                                                            ],
+                                                                                            "text": "Method 3:"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": " What exactly do you mean by fun, what do you want"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "052e8016-1906-48dd-8ba2-b0bb8bbe4e57",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
                                                     "content": [
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "329a21af-c014-4e88-96d5-a1ce31fcdf3d",
+                                                                "quantaId": "7c1f9f3f-44cc-454a-adac-37fb763a068f",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             },
                                                             "content": [
                                                                 {
                                                                     "type": "text",
-                                                                    "text": "Q8a. So what did you like about what you "
-                                                                },
-                                                                {
-                                                                    "type": "text",
                                                                     "marks": [
                                                                         {
-                                                                            "type": "underline"
+                                                                            "type": "bold"
                                                                         }
                                                                     ],
-                                                                    "text": "saw"
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "text": " or "
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "marks": [
-                                                                        {
-                                                                            "type": "underline"
-                                                                        }
-                                                                    ],
-                                                                    "text": "heard"
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "text": ", so that we can bring it to your party? "
-                                                                },
-                                                                {
-                                                                    "type": "hardBreak"
-                                                                },
-                                                                {
-                                                                    "type": "hardBreak"
-                                                                },
-                                                                {
-                                                                    "type": "text",
-                                                                    "text": "Q8b. Prompts for people who don’t know what to say ____________"
+                                                                    "text": "Q7.  Have you looked at other magicians or other options? What were your thoughts on what you saw?"
                                                                 }
                                                             ]
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "866f8d27-048a-4b24-b26d-0ca1ae1b071c",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "739f10a6-48d4-4f9e-bf4b-811eaf4a30bf",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Q8. "
-                                                        },
-                                                        {
-                                                            "type": "mention",
-                                                            "attrs": {
-                                                                "quantaId": "abd19df6-f33f-4c10-b44f-11abbfd3f0e7",
-                                                                "id": "000000",
-                                                                "label": "👰‍♀️ Wedding"
-                                                            }
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " "
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "marks": [
-                                                                {
-                                                                    "type": "bold"
-                                                                }
-                                                            ],
-                                                            "text": "Tell me a bit about other weddings you have been to. What did you like or not like about them?"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "c583b423-08e5-4d7e-b9ab-036355e03aad",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
-                                        },
-                                        {
-                                            "type": "quote",
-                                            "content": [
-                                                {
-                                                    "type": "paragraph",
-                                                    "attrs": {
-                                                        "quantaId": "bda2ab36-8bc1-4a90-a6a7-26d2468df88e",
-                                                        "textAlign": "left",
-                                                        "indent": 0
-                                                    },
-                                                    "content": [
-                                                        {
-                                                            "type": "mention",
-                                                            "attrs": {
-                                                                "quantaId": "60ed625f-44bf-48d5-b1c1-63b8dd6aed61",
-                                                                "id": "000000",
-                                                                "label": "👰‍♀️ Wedding"
-                                                            }
-                                                        },
-                                                        {
-                                                            "type": "text",
-                                                            "text": " "
                                                         }
                                                     ]
                                                 },
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "33cc451c-70d2-4a8c-8d5a-bd5fa89fdf42",
+                                                        "quantaId": "bea47f4b-f588-4569-9d22-ce58c086fa76",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
                                                 },
                                                 {
-                                                    "type": "details",
-                                                    "attrs": {
-                                                        "open": true
-                                                    },
+                                                    "type": "quote",
                                                     "content": [
                                                         {
-                                                            "type": "detailsSummary",
+                                                            "type": "paragraph",
+                                                            "attrs": {
+                                                                "quantaId": "00137160-0734-4536-9680-f58002fd45db",
+                                                                "textAlign": "left",
+                                                                "indent": 0
+                                                            },
                                                             "content": [
                                                                 {
                                                                     "type": "text",
@@ -1855,73 +1753,252 @@ export const SalesGuideTemplate: JSONContent = {
                                                                             "type": "bold"
                                                                         }
                                                                     ],
-                                                                    "text": "Q9. Now a wedding is quite personal. And at The BlackTies we offer a bespoke tailored service for every bride and groom. When we show up at your wedding, we are representing you, we are an extension of you - taking care of your guests. So, for the best results, I would like to understand a bit about you guys personally. "
+                                                                    "text": "Q8. Have you planned any other parties / events in the past. What did you like or not like about them?"
                                                                 }
                                                             ]
                                                         },
                                                         {
-                                                            "type": "detailsContent",
+                                                            "type": "group",
+                                                            "attrs": {
+                                                                "quantaId": "1932fc21-326b-4b1d-9606-01eca95731c5",
+                                                                "pathos": 0,
+                                                                "backgroundColor": "#EFEFEF",
+                                                                "lens": "identity"
+                                                            },
                                                             "content": [
                                                                 {
-                                                                    "type": "group",
+                                                                    "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "b2b9db1a-b5a5-489c-9e15-9399ec5b3df3",
-                                                                        "pathos": 0,
-                                                                        "backgroundColor": "#EFEFEF",
-                                                                        "lens": "identity"
+                                                                        "quantaId": "e6c53c07-b78c-40d8-8d51-15d84a474265",
+                                                                        "textAlign": "left",
+                                                                        "indent": 0
                                                                     },
                                                                     "content": [
                                                                         {
-                                                                            "type": "paragraph",
+                                                                            "type": "text",
+                                                                            "text": "Q8a. So what did you like about what you "
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "underline"
+                                                                                }
+                                                                            ],
+                                                                            "text": "saw"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": " or "
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "underline"
+                                                                                }
+                                                                            ],
+                                                                            "text": "heard"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": ", so that we can bring it to your party? "
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "hardBreak"
+                                                                        },
+                                                                        {
+                                                                            "type": "text",
+                                                                            "text": "Q8b. Prompts for people who don’t know what to say ____________"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "ce88df0e-47e1-491f-b28b-3f0e8e08655f",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "paragraph",
+                                                            "attrs": {
+                                                                "quantaId": "c65ae964-5f2d-44f1-a8f5-bdf2a43bacae",
+                                                                "textAlign": "left",
+                                                                "indent": 0
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": "Q8. "
+                                                                },
+                                                                {
+                                                                    "type": "mention",
+                                                                    "attrs": {
+                                                                        "quantaId": "c6d46474-c9c5-407d-a2f0-86325d5b3051",
+                                                                        "id": "000000",
+                                                                        "label": "👰‍♀️ Wedding"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": " "
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "marks": [
+                                                                        {
+                                                                            "type": "bold"
+                                                                        }
+                                                                    ],
+                                                                    "text": "Tell me a bit about other weddings you have been to. What did you like or not like about them?"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "paragraph",
+                                                    "attrs": {
+                                                        "quantaId": "0f4e40ce-fa93-42b5-9adf-9cf202591da6",
+                                                        "textAlign": "left",
+                                                        "indent": 0
+                                                    }
+                                                },
+                                                {
+                                                    "type": "quote",
+                                                    "content": [
+                                                        {
+                                                            "type": "paragraph",
+                                                            "attrs": {
+                                                                "quantaId": "6cc5d246-2ca2-42ce-8bba-e5b4a4b498a6",
+                                                                "textAlign": "left",
+                                                                "indent": 0
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "mention",
+                                                                    "attrs": {
+                                                                        "quantaId": "a37b9b2d-c962-448a-9c9d-3069d8dc92ee",
+                                                                        "id": "000000",
+                                                                        "label": "👰‍♀️ Wedding"
+                                                                    }
+                                                                },
+                                                                {
+                                                                    "type": "text",
+                                                                    "text": " "
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "type": "paragraph",
+                                                            "attrs": {
+                                                                "quantaId": "c71552cd-7952-4d8d-9da8-63f2d02394eb",
+                                                                "textAlign": "left",
+                                                                "indent": 0
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "details",
+                                                            "attrs": {
+                                                                "open": true
+                                                            },
+                                                            "content": [
+                                                                {
+                                                                    "type": "detailsSummary",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "text",
+                                                                            "marks": [
+                                                                                {
+                                                                                    "type": "bold"
+                                                                                }
+                                                                            ],
+                                                                            "text": "Q9. Now a wedding is quite personal. And at The BlackTies we offer a bespoke tailored service for every bride and groom. When we show up at your wedding, we are representing you, we are an extension of you - taking care of your guests. So, for the best results, I would like to understand a bit about you guys personally. "
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "type": "detailsContent",
+                                                                    "content": [
+                                                                        {
+                                                                            "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "fd44bcc8-de1e-467e-82b9-5c55495cbdc1",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
+                                                                                "quantaId": "6a0f9173-bf55-4882-bcaf-ace6fc8f801e",
+                                                                                "pathos": 0,
+                                                                                "backgroundColor": "#EFEFEF",
+                                                                                "lens": "identity"
                                                                             },
                                                                             "content": [
                                                                                 {
-                                                                                    "type": "text",
-                                                                                    "text": "Q9a. How would you describe yourself and your partner?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q9b. What jobs do you guys do?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q9c. How did your partner propose?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q9d. What are your interests? Are you guys fans of magic? If not what else?"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "text",
-                                                                                    "text": "Q9e. Is there anything else you can tell me? And you’ll be surprised, all this helps quite the big when it comes to us doing magic at your wedding."
+                                                                                    "type": "paragraph",
+                                                                                    "attrs": {
+                                                                                        "quantaId": "4ee8f5a8-b4f6-4479-ac3d-f70bb98a3d25",
+                                                                                        "textAlign": "left",
+                                                                                        "indent": 0
+                                                                                    },
+                                                                                    "content": [
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q9a. How would you describe yourself and your partner?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q9b. What jobs do you guys do?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q9c. How did your partner propose?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q9d. What are your interests? Are you guys fans of magic? If not what else?"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "hardBreak"
+                                                                                        },
+                                                                                        {
+                                                                                            "type": "text",
+                                                                                            "text": "Q9e. Is there anything else you can tell me? And you’ll be surprised, all this helps quite the big when it comes to us doing magic at your wedding."
+                                                                                        }
+                                                                                    ]
                                                                                 }
                                                                             ]
                                                                         }
@@ -1932,14 +2009,6 @@ export const SalesGuideTemplate: JSONContent = {
                                                     ]
                                                 }
                                             ]
-                                        },
-                                        {
-                                            "type": "paragraph",
-                                            "attrs": {
-                                                "quantaId": "1e12b6bd-5445-44d9-95f2-be680e5190eb",
-                                                "textAlign": "left",
-                                                "indent": 0
-                                            }
                                         }
                                     ]
                                 },
@@ -1970,7 +2039,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "group",
                                                                     "attrs": {
-                                                                        "quantaId": "fb3f4f20-1f29-4b9a-a1bd-dff7444a34a2",
+                                                                        "quantaId": "1e12b6bd-5445-44d9-95f2-be680e5190eb",
                                                                         "pathos": 0,
                                                                         "backgroundColor": "#EFEFEF",
                                                                         "lens": "identity"
@@ -2062,31 +2131,31 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "paragraph",
                                                                             "attrs": {
+                                                                                "quantaId": "91f5e733-4440-4a06-8054-15d2ec1b1631",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "4de9b512-2279-4826-907d-d98dba9fdc51",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "95cc267e-37be-402d-9d3b-a86cf316deb9",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
                                                                                 "quantaId": "96826e00-5062-46e7-9bf3-5ae322c2a303",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "e735753b-2b1e-4cdb-b802-3f3c7267b80b",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "ad41e90b-e513-4cf0-a4fd-5a212af9dcf3",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "5004f8cd-e5ba-45ee-ac36-a842ef7f73e3",
                                                                                 "textAlign": "left",
                                                                                 "indent": 0
                                                                             },
@@ -2112,45 +2181,6 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 },
                                                                                 {
                                                                                     "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
-                                                                                },
-                                                                                {
-                                                                                    "type": "hardBreak"
                                                                                 }
                                                                             ]
                                                                         }
@@ -2169,7 +2199,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "4ecff5da-3382-425b-9a47-e1dbb23ac655",
+                                                                        "quantaId": "7a924aa6-c704-4a7e-8f3b-bbf03e290b45",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -2177,7 +2207,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "f36e4d2c-87ca-4ff8-b5b9-51b4d7bbb413",
+                                                                        "quantaId": "9ec45634-034a-4e13-af2f-476b10203528",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -2199,7 +2229,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "group",
             "attrs": {
-                "quantaId": "73e69112-ffd4-495d-9613-f516bc335b7a",
+                "quantaId": "4ecff5da-3382-425b-9a47-e1dbb23ac655",
                 "pathos": 0,
                 "backgroundColor": "#4455BB",
                 "lens": "identity"
@@ -2232,7 +2262,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "dde61025-35ba-4d40-947b-0844dca89404",
+                        "quantaId": "b4244a31-7034-43f4-b0e8-f833ebd0b514",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -2249,7 +2279,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "33c62141-59bf-4a1a-8b18-55f3b62b97cb",
+                                        "quantaId": "dde61025-35ba-4d40-947b-0844dca89404",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -2263,7 +2293,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "b3a2b1b2-4381-4c77-9d25-5059723a163e",
+                                        "quantaId": "49823af4-86eb-467c-862e-9eb40ff7dfe4",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -2278,7 +2308,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "764e1e90-58cc-4576-8a87-cfbc55a1cb95",
+                                "quantaId": "b3a2b1b2-4381-4c77-9d25-5059723a163e",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -2413,7 +2443,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b35b5533-5c9a-4965-bfdb-ea0e7c984bee",
+                                "quantaId": "802e4cce-b10a-4f5e-8b37-af081362636d",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2430,7 +2460,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "8d788f1b-0663-4737-a8c9-b2b3f2bf6755",
+                                                "quantaId": "b35b5533-5c9a-4965-bfdb-ea0e7c984bee",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2448,7 +2478,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "1b8167a7-c22a-4a7e-829e-5b18fe2556e9",
+                                "quantaId": "3e89ff84-3654-4258-ae1e-097a419b3175",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2456,7 +2486,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "47d88ed8-19c4-48bb-a7d6-87f7d03d9639",
+                                "quantaId": "1b8167a7-c22a-4a7e-829e-5b18fe2556e9",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -2566,7 +2596,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "eb42c3cd-b126-489e-bcba-de2eef1296f9",
+                                        "quantaId": "df5d8c64-15c3-46f1-8f75-03dc2bf5aef1",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -2580,7 +2610,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "5d28d752-4f3d-4b34-8d7d-db0178610cd0",
+                                "quantaId": "28182d97-b214-4593-82c6-4132a9f05e5b",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2594,7 +2624,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "163ae802-153b-4dec-bdaa-d469d48f3ea3",
+                                                "quantaId": "eb42c3cd-b126-489e-bcba-de2eef1296f9",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2824,7 +2854,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "8cb2986c-a7a7-4fc4-b3cb-e90f64ab5254",
+                                        "quantaId": "37488fe8-1c9d-4964-b5ea-ae8d69480d51",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -2840,7 +2870,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "ab77e086-7a55-4452-b584-779db5473dc2",
+                        "quantaId": "8cb2986c-a7a7-4fc4-b3cb-e90f64ab5254",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -2868,7 +2898,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b44f0a56-5a69-4ed5-8ab3-40168da80066",
+                                "quantaId": "cca47053-6986-450f-a790-91f46b7ec4ff",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2885,7 +2915,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d3c1b865-5435-4e9c-8b01-c7b734124bbf",
+                                                "quantaId": "b44f0a56-5a69-4ed5-8ab3-40168da80066",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2903,7 +2933,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d8b349bd-32e4-4ee6-83e4-7bd64388447d",
+                                "quantaId": "84fd1251-6a6b-409a-9a0e-baec21f68c35",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2916,7 +2946,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "6249645b-e283-49c6-964f-45ca0086afae",
+                                "quantaId": "d8b349bd-32e4-4ee6-83e4-7bd64388447d",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -2942,7 +2972,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "f639f3d4-565c-4e57-93f0-550123f0c269",
+                        "quantaId": "e5241aec-87ac-46d5-8618-65fe8f2cd0a2",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -2967,7 +2997,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "cd51d908-34e9-442b-acdf-542686c1ddde",
+                                                "quantaId": "f639f3d4-565c-4e57-93f0-550123f0c269",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2986,7 +3016,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "539ac45c-4fc9-49e7-8073-7f90b5af7035",
+                                                "quantaId": "4369a664-1ddc-45b0-b22b-29013dcb3414",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -2994,7 +3024,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "9b1f2ce4-3713-46f9-9031-ba243373ec8b",
+                                                "quantaId": "539ac45c-4fc9-49e7-8073-7f90b5af7035",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3008,7 +3038,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "851a5dbb-3336-4fa1-a88c-3a576bd5921c",
+                                                "quantaId": "0e2ad62d-b457-4c50-a0f1-6964c92113e2",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3016,7 +3046,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "7bed3d16-d9b4-4d5f-bb20-607b45c49fdf",
+                                                "quantaId": "851a5dbb-3336-4fa1-a88c-3a576bd5921c",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3030,7 +3060,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "7154a09e-d1f8-4b42-9c13-1837152f26f0",
+                                                "quantaId": "184fd972-1664-4627-b4e1-15a6212c8536",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3038,7 +3068,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "446cde27-ae0a-4682-8582-4e49f077d879",
+                                                "quantaId": "7154a09e-d1f8-4b42-9c13-1837152f26f0",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3071,7 +3101,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "5e139d15-c3b6-4a18-a7ed-6cabc991fc1e",
+                                                "quantaId": "2d3009d1-50c9-47dc-8d59-bc935beed085",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3079,7 +3109,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d80a15e8-bd4e-4274-b859-b71c2430c595",
+                                                "quantaId": "5e139d15-c3b6-4a18-a7ed-6cabc991fc1e",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3093,7 +3123,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "55d1f3b4-9f26-4578-aa50-598f52e9afa9",
+                                                "quantaId": "2142e04e-12b9-4375-a8de-36913a0aa2ab",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3101,7 +3131,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "2b3c2c3b-4358-4609-80d2-7f8f4e529a37",
+                                                "quantaId": "55d1f3b4-9f26-4578-aa50-598f52e9afa9",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3134,7 +3164,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "a24b4d94-0756-4695-b09b-0f8c866d5487",
+                                                "quantaId": "18e1a145-cdf2-4528-8a1c-7273821cacfc",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3142,7 +3172,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "f1bb8597-d082-4fd4-aa60-724280aaa8a7",
+                                                "quantaId": "a24b4d94-0756-4695-b09b-0f8c866d5487",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3156,7 +3186,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "1625b76f-7ae9-4e3c-bdeb-2ad52fdc003f",
+                                                "quantaId": "8428257b-b42a-4324-b944-053a1641f465",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3174,7 +3204,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "32ab3fff-e838-46ea-8dc5-4033efacb16b",
+                                                "quantaId": "1625b76f-7ae9-4e3c-bdeb-2ad52fdc003f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3193,7 +3223,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "8a92e00d-ecaf-4a65-8da0-cc51d9ee14e9",
+                                                "quantaId": "d91652f4-4a56-4d03-a64c-e9e6a7bf6d3c",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3201,7 +3231,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "690741b3-f27c-4ce7-a42d-d859aee1e9bc",
+                                                "quantaId": "8a92e00d-ecaf-4a65-8da0-cc51d9ee14e9",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3215,7 +3245,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "f5a50517-59ee-44c6-9bba-aeafe14ed581",
+                                                "quantaId": "f95b4b99-b74c-4eed-b774-54139a175613",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3223,7 +3253,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "a9fd0e57-5ae2-4dc6-81a5-3f66ee42f84c",
+                                                "quantaId": "f5a50517-59ee-44c6-9bba-aeafe14ed581",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3237,7 +3267,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "5a5e76b7-d4d8-4724-9790-d92a58b6c403",
+                                                "quantaId": "d9d4ab9b-e3b8-48bc-98ff-2af9fd936fae",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3245,7 +3275,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d470726b-b1e2-4ca7-947c-a0763104c81a",
+                                                "quantaId": "5a5e76b7-d4d8-4724-9790-d92a58b6c403",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3321,7 +3351,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "1fec890d-f84a-4d94-a4d7-01255f211a3f",
+                                                                        "quantaId": "ea1bbb56-1142-4362-9a29-2b27f82db6a2",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -3339,7 +3369,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "3309a2a0-03ed-4067-8aae-0ae16d1c9148",
+                                                                        "quantaId": "99ee50f8-5304-40d0-b4d4-60ca4d6831ac",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -3363,7 +3393,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4dcd4a49-b28f-45d8-9f21-04e8f6761fe6",
+                                                "quantaId": "1fec890d-f84a-4d94-a4d7-01255f211a3f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3399,7 +3429,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "39a2feea-3ea3-42b9-8996-a9174988412d",
+                                                "quantaId": "3a9396c8-9fe0-4880-8a85-62dc0135733b",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3407,7 +3437,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4610ce43-accd-4eb8-9bc6-1427ce1b6652",
+                                                "quantaId": "39a2feea-3ea3-42b9-8996-a9174988412d",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3440,7 +3470,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "11855cc1-25a6-4d02-9fce-ce76fb88d253",
+                                                "quantaId": "785a4b90-9005-4713-b331-8a157dfc801f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3448,7 +3478,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "7f11d057-fe3b-46d8-bb55-2d26543ae04b",
+                                                "quantaId": "11855cc1-25a6-4d02-9fce-ce76fb88d253",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3476,7 +3506,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "667f2051-bf12-4647-9c26-a20aeb30a903",
+                                                "quantaId": "9f01bd15-0e07-4034-8810-f392f2c53fd7",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3484,7 +3514,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "79cc124a-7147-425b-9b47-a8152d260739",
+                                                "quantaId": "667f2051-bf12-4647-9c26-a20aeb30a903",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3517,7 +3547,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "18bb93cb-6484-4bec-8cab-0b62c86cb2a5",
+                                                "quantaId": "454e9dbb-020a-4200-9e59-d7f626e7e170",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3525,7 +3555,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d6a081e2-3a61-498c-af66-9053284d08da",
+                                                "quantaId": "18bb93cb-6484-4bec-8cab-0b62c86cb2a5",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3539,7 +3569,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "155ead71-25ca-445a-af0b-2fa913567d98",
+                                                "quantaId": "e830e2e2-eb1b-4229-a08f-0a31b73757d9",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3547,7 +3577,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "c19c1a8a-4aef-43ec-9bc2-63182e219c14",
+                                                "quantaId": "155ead71-25ca-445a-af0b-2fa913567d98",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3561,7 +3591,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "a27dd1c0-ff25-4828-86eb-22049672b32d",
+                                                "quantaId": "1df973ad-98d0-4d0b-b91d-5ac43faeecb6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3569,7 +3599,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "864bef67-13c4-4e5d-badc-31861187bc68",
+                                                "quantaId": "c9836ef5-8fd3-4318-ac32-a5b0721abaef",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3577,7 +3607,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "2267263e-82cf-44ce-bfdf-400bd5a7a3a7",
+                                                "quantaId": "28e67e0d-e426-47fe-8256-3bdebbd16df3",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3593,7 +3623,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "8988ce3c-27ac-4cab-9676-e5a2780da13d",
+                "quantaId": "a27dd1c0-ff25-4828-86eb-22049672b32d",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -3639,7 +3669,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "619e276d-2984-4394-8cf3-16a4f6d3a36c",
+                        "quantaId": "20c14dfe-5917-45c5-8952-9c43e3d5aa7a",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3650,7 +3680,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "3da6aca7-6933-422d-af9b-528706dbae6f",
+                                "quantaId": "619e276d-2984-4394-8cf3-16a4f6d3a36c",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3701,7 +3731,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "7db9b49c-76fe-41bb-8398-dafa5c2e4bef",
+                        "quantaId": "6d9076a4-0bb0-4e29-ac88-5dc77179e95d",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3709,7 +3739,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "8a5050cc-9f92-4ab8-ba1b-fbd7b523b11d",
+                        "quantaId": "7db9b49c-76fe-41bb-8398-dafa5c2e4bef",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -3726,7 +3756,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "ca8e0bac-8058-45dc-80ca-7ef97960ffcd",
+                                        "quantaId": "a37d525c-6f26-4b16-8e7c-897ba3cd2a79",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -3740,7 +3770,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "643985ea-dd39-4e52-bd38-134faf7ea2ac",
+                                "quantaId": "309abd25-dbed-405b-9a14-4d9837677a1b",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3748,7 +3778,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d59bb96a-edb9-479d-a016-d5567c5e39c4",
+                                "quantaId": "ca8e0bac-8058-45dc-80ca-7ef97960ffcd",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3813,7 +3843,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "0ced7fd6-e1fd-4dc8-981a-ef2b41a983e1",
+                        "quantaId": "e2812d96-d248-4d91-b658-d34be40fa52a",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3824,7 +3854,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "0542249e-fa6d-4606-b167-873df7c54b82",
+                                "quantaId": "0ced7fd6-e1fd-4dc8-981a-ef2b41a983e1",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3872,7 +3902,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "33f30148-f32c-4d50-81e3-c83077847457",
+                                "quantaId": "25bc3644-5f76-4cc6-95ca-f3c701703985",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3885,7 +3915,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b7e9f8da-dd34-426b-9263-d94c7016bd3f",
+                                "quantaId": "33f30148-f32c-4d50-81e3-c83077847457",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3920,7 +3950,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "27a32ead-6486-49c7-95c7-98273a0c4850",
+                                "quantaId": "3e427eeb-2b4a-4ec2-9a2a-74541baa8604",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3928,7 +3958,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "672f77a9-0b0e-4634-8c4c-b50ff0863554",
+                                "quantaId": "27a32ead-6486-49c7-95c7-98273a0c4850",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3943,7 +3973,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "f1a348c8-54a7-48ae-bb30-bb263ea4c740",
+                        "quantaId": "b7ecc501-501c-4e98-9494-ca8a1c8df7ac",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3951,7 +3981,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "8f787857-b5b3-40b4-ba18-724f102eefe9",
+                        "quantaId": "f1a348c8-54a7-48ae-bb30-bb263ea4c740",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -3979,7 +4009,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "8765ab68-de6b-4ed7-ac19-5fbda7814c2f",
+                                "quantaId": "05432b75-965b-4b6f-991f-a1305bcf1c3c",
                                 "textAlign": "start",
                                 "indent": 0
                             }
@@ -3996,7 +4026,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "0220dd35-5f40-4011-8b18-1d1f017b2f1b",
+                                                "quantaId": "8765ab68-de6b-4ed7-ac19-5fbda7814c2f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -4016,7 +4046,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "84dd91f1-dcd4-491a-a734-3b685c253968",
+                        "quantaId": "73452e88-cfb0-4bf7-9eda-af347d56b258",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4027,7 +4057,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "28e94ddf-f452-4f40-80aa-277cff54fc22",
+                                "quantaId": "84dd91f1-dcd4-491a-a734-3b685c253968",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4039,7 +4069,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "120d31cb-f964-4b66-a7fe-542396497304",
+                                        "quantaId": "8f2dc2b6-62ae-4575-a370-6169b890ece1",
                                         "id": "000000",
                                         "label": "👰‍♀️ Prospect"
                                     }
@@ -4053,7 +4083,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "ef4b53fb-c6b6-4aba-b994-7e3972aba7ac",
+                                "quantaId": "0ad49e83-25d1-47e6-8277-e9451d8daa93",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4061,7 +4091,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "645dc6e9-84fd-43df-8654-65a94178e3f6",
+                                "quantaId": "7e57af5b-acc0-4902-89a1-0c03def144fb",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4069,7 +4099,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "4ede0baa-0aeb-4216-82ee-b7177cffcba7",
+                                "quantaId": "120d31cb-f964-4b66-a7fe-542396497304",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4092,7 +4122,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "bfa496fe-c6ee-40ea-98a0-a94812271e4d",
+                                "quantaId": "5033c54e-2b25-4a1e-80f0-3053279b0e07",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4100,7 +4130,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a157fe6d-bd10-4470-ab08-254c1ff845e9",
+                                "quantaId": "bfa496fe-c6ee-40ea-98a0-a94812271e4d",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4119,7 +4149,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "544d3d29-d7ee-4be7-ae47-19d5989b58d3",
+                                "quantaId": "b6420153-ac7d-408e-9f70-4cc231348639",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4127,7 +4157,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "8051a9b0-45a4-49e1-8e91-cddfb84c3ffc",
+                                "quantaId": "544d3d29-d7ee-4be7-ae47-19d5989b58d3",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4167,7 +4197,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "0e54b2a8-810e-4511-8c9a-0325c9bca41a",
+                        "quantaId": "5a078295-a9c3-40f5-93a2-b0694ceb840c",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4178,7 +4208,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "af426b28-ece5-41df-a71c-4dcb6e9a1b74",
+                                "quantaId": "0e54b2a8-810e-4511-8c9a-0325c9bca41a",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4239,7 +4269,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "fabbb904-cabd-4c5d-9bb4-66a8912bee25",
+                                "quantaId": "80abd05a-2fb2-4ca0-96ca-6e26c81cae64",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4247,7 +4277,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "7c8474d6-9b5b-478e-bba9-a1f39f69fb30",
+                                "quantaId": "fabbb904-cabd-4c5d-9bb4-66a8912bee25",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4332,7 +4362,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "67b73be5-eb7d-46c6-bfec-e7d85f7c3576",
+                        "quantaId": "753fcf44-850b-447d-bb28-a235024a3b7f",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4349,7 +4379,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "e0b2cfc2-f2ea-46f5-a076-1b7ddb09a3ae",
+                                        "quantaId": "67b73be5-eb7d-46c6-bfec-e7d85f7c3576",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -4363,7 +4393,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "7058c4a5-698c-4ba4-ba96-5891d0ad5a2b",
+                                        "quantaId": "a9ca55cd-6eed-48d1-a4f5-a535408c64fa",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -4378,7 +4408,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "66fba656-2252-40b6-9568-d216f16498f1",
+                                "quantaId": "7058c4a5-698c-4ba4-ba96-5891d0ad5a2b",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4490,7 +4520,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "58662102-be6e-49dd-af41-3d525ff57963",
+                                "quantaId": "b3f15db5-f940-498f-8366-1c954a9880d5",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4498,7 +4528,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "10a8ffc2-615a-4df6-94ea-0644a77ed20e",
+                                "quantaId": "58662102-be6e-49dd-af41-3d525ff57963",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4751,7 +4781,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a3eaffae-95b2-4b9d-8fe6-02ff2d2039c2",
+                                "quantaId": "bec656c9-a17b-409b-a285-011c9947d910",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4759,7 +4789,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "7cb3f46f-b3e0-44f9-b05d-a7870cc585d8",
+                                "quantaId": "a3eaffae-95b2-4b9d-8fe6-02ff2d2039c2",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4903,7 +4933,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "55885210-1acf-4950-90ad-2877cc2f85fd",
+                        "quantaId": "5fe3ef4a-046c-46bb-ba23-d6a321e0e6c4",
                         "textAlign": "left",
                         "indent": 0
                     },
