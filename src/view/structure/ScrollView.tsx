@@ -32,7 +32,7 @@ export const ScrollView = (props: { children: any, lens: ScrollViewLenses, quant
             style={{
                 position: "relative", // Keep relative for Grip positioning
                 minHeight: 20,
-                maxHeight: 400, // Key difference from Group - max height constraint
+                maxHeight: 720, // Key difference from Group - max height constraint (400 * 1.8)
                 overflowY: "auto", // Enable vertical scrolling
                 overflowX: "hidden", // Hide horizontal scrollbar
                 borderRadius: `10px`,
