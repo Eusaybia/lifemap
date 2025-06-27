@@ -26,6 +26,7 @@ export const backup = {
       const updatedBackups = [newBackup, ...backupsArray].slice(0, MAX_REVISIONS)
 
       localStorage.setItem(BACKUP_KEY, JSON.stringify(updatedBackups))
+      console.log('Content backed up successfully at', new Date(newBackup.timestamp).toLocaleTimeString())
     } catch (e) {
       console.error('Failed to store backup content:', e)
     }
