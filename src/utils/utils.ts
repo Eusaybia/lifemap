@@ -200,6 +200,8 @@ export const getSelectedNodeType = (editor: Editor) => {
     switch (selection.node.type.name) {
       case "group":
         return "group"
+      case "scrollview":
+        return "scrollview"
       case "portal":
         return "portal"
       default:

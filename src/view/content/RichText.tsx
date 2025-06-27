@@ -50,6 +50,7 @@ import { ConversationExtension } from '../structure/ConversationExtension'
 import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
+import { ScrollViewExtension } from '../structure/ScrollViewExtension'
 import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
@@ -152,7 +153,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Underline,
   UniqueID.configure({
     // TODO: Add more nodes
-    types: ['paragraph', 'mention', 'group'],
+    types: ['paragraph', 'mention', 'group', 'scrollview'],
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -178,6 +179,7 @@ export const customExtensions: Extensions = [
   FadeIn,
   FocusModePlugin,
   GroupExtension,
+  ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
   LocationExtension,
