@@ -338,6 +338,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"admin-editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
@@ -350,6 +352,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"call-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
@@ -362,6 +366,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"learning-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
