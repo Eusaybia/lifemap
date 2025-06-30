@@ -248,11 +248,11 @@ export const GroupExtension = TipTapNode.create({
         const handleScroll = () => {
           const rect = nodeElement.getBoundingClientRect();
           const viewportHeight = window.innerHeight;
-          // Calculate the top (25%) and bottom (75%) boundaries of the middle band
-          const topBoundary = viewportHeight * 0.25;
-          const bottomBoundary = viewportHeight * 0.75;
+          // Calculate very focused area - only 10% of viewport height centered around middle
+          const topBoundary = viewportHeight * 0.45;   // 45% from top
+          const bottomBoundary = viewportHeight * 0.55; // 55% from top
 
-          // Check if the element overlaps with the middle 50% band
+          // Check if the element overlaps with the narrow 10% focus band
           const centered = rect.bottom > topBoundary && rect.top < bottomBoundary;
           setIsCentered(centered);
         };
