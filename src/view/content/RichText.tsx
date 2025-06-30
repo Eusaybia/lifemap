@@ -269,6 +269,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
     editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
+    autofocus: true, // Auto-focus the editor on load
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
