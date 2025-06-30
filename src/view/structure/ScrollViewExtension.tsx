@@ -311,6 +311,9 @@ export const ScrollViewExtension = TipTapNode.create({
                 width: '8px',
                 pointerEvents: 'none',
               }}
+              initial={{
+                backgroundColor: 'transparent',
+              }}
               animate={{
                 backgroundColor: stripColor,
               }}
