@@ -223,7 +223,7 @@ export const GroupExtension = TipTapNode.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(true);
+      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -244,8 +244,7 @@ export const GroupExtension = TipTapNode.create({
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
         if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
-          setIsCentered(false);
-          return;
+          return; // No observer or state updates needed outside call-mode
         }
 
         const scrollParent = nodeElement.closest('.scrollview') as HTMLElement | null;
