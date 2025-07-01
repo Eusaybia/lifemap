@@ -191,12 +191,11 @@ export const ScrollViewExtension = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const nodeViewRef = useRef<HTMLDivElement>(null);
+      const overlayRef = useRef<HTMLDivElement>(null);
 
       // State for document attributes
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
-      // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(true);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -216,15 +215,23 @@ export const ScrollViewExtension = TipTapNode.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
-          // If not in call-mode, ensure isCentered is false
-          setIsCentered(false);
-          return;
+        const overlayElement = overlayRef.current;
+        if (!nodeElement || !overlayElement) return;
+
+        // A function to set opacity directly on the DOM element
+        const setDimmed = (dim: boolean) => {
+          overlayElement.style.transition = 'opacity 0.2s ease-in-out';
+          overlayElement.style.opacity = dim ? '0.8' : '0';
+        };
+
+        if (docAttributes.selectedFocusLens !== 'call-mode') {
+          setDimmed(false);
+          return; // No observer needed
         }
 
         const observer = new IntersectionObserver(
           ([entry]) => {
-            setIsCentered(entry.isIntersecting);
+            setDimmed(!entry.isIntersecting);
           },
           {
             root: null,
@@ -233,19 +240,19 @@ export const ScrollViewExtension = TipTapNode.create({
           }
         );
 
-        // Immediate check to avoid initial dim before observer callback
+        // Perform an initial synchronous check to prevent flash of dimmed content
         const rect = nodeElement.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
         const topBoundary = viewportHeight * 0.25;
         const bottomBoundary = viewportHeight * 0.75;
-        setIsCentered(rect.bottom > topBoundary && rect.top < bottomBoundary);
+        setDimmed(!(rect.bottom > topBoundary && rect.top < bottomBoundary));
 
         observer.observe(nodeElement);
 
         return () => {
           observer.disconnect();
         };
-      }, [docAttributes.selectedFocusLens, nodeViewRef]);
+      }, [docAttributes.selectedFocusLens]);
 
       let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
       const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
@@ -270,9 +277,6 @@ export const ScrollViewExtension = TipTapNode.create({
 
       // Determine if the scrollview should be hidden (display: none)
       const isHidden = shouldHideScrollView(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
-
-      // Determine overlay opacity for dimming
-      const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
       // Determine strip color based on completion state
       let stripColor = 'transparent';
@@ -334,6 +338,7 @@ export const ScrollViewExtension = TipTapNode.create({
               })()}
             </ScrollView>
             <motion.div
+              ref={overlayRef}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -343,10 +348,8 @@ export const ScrollViewExtension = TipTapNode.create({
                 backgroundColor: 'black',
                 borderRadius: 10,
                 pointerEvents: 'none',
+                opacity: 0,
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
             />
           </motion.div>
         </NodeViewWrapper>

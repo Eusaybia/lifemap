@@ -42,7 +42,7 @@ export const QuoteExtension = Node.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(true);
+      const overlayRef = useRef<HTMLDivElement>(null);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -62,17 +62,25 @@ export const QuoteExtension = Node.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
-          // If not in call-mode, ensure isCentered is false
-          setIsCentered(false);
-          return;
+        const overlayElement = overlayRef.current;
+        if (!nodeElement || !overlayElement) return;
+
+        // A function to set opacity directly on the DOM element
+        const setDimmed = (dim: boolean) => {
+          overlayElement.style.transition = 'opacity 0.2s ease-in-out';
+          overlayElement.style.opacity = dim ? '0.8' : '0';
+        };
+
+        if (docAttributes.selectedFocusLens !== 'call-mode') {
+          setDimmed(false);
+          return; // No observer needed
         }
 
         const scrollParent = nodeElement.closest('.scrollview') as HTMLElement | null;
 
         const observer = new IntersectionObserver(
           ([entry]) => {
-            setIsCentered(entry.isIntersecting);
+            setDimmed(!entry.isIntersecting);
           },
           {
             root: scrollParent,
@@ -84,31 +92,26 @@ export const QuoteExtension = Node.create({
           }
         );
 
-        // Immediate check to avoid initial dim before observer callback
+        // Perform an initial synchronous check to prevent flash of dimmed content
         const rect = nodeElement.getBoundingClientRect();
-        let topBoundary: number;
-        let bottomBoundary: number;
+        let topBoundary: number, bottomBoundary: number;
         if (scrollParent) {
           const parentRect = scrollParent.getBoundingClientRect();
-          const parentHeight = parentRect.height;
-          topBoundary = parentRect.top + parentHeight * 0.45;
-          bottomBoundary = parentRect.top + parentHeight * 0.55;
+          topBoundary = parentRect.top + parentRect.height * 0.45;
+          bottomBoundary = parentRect.top + parentRect.height * 0.55;
         } else {
           const viewportHeight = window.innerHeight;
           topBoundary = viewportHeight * 0.45;
           bottomBoundary = viewportHeight * 0.55;
         }
-        setIsCentered(rect.bottom > topBoundary && rect.top < bottomBoundary);
+        setDimmed(!(rect.bottom > topBoundary && rect.top < bottomBoundary));
 
         observer.observe(nodeElement);
 
         return () => {
           observer.disconnect();
         };
-      }, [docAttributes.selectedFocusLens, nodeViewRef]);
-
-      // Determine overlay opacity for dimming
-      const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
+      }, [docAttributes.selectedFocusLens]);
 
       return (
         <NodeViewWrapper
@@ -129,6 +132,7 @@ export const QuoteExtension = Node.create({
             </div>
             <NodeViewContent />
             <motion.div
+              ref={overlayRef}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -138,10 +142,8 @@ export const QuoteExtension = Node.create({
                 backgroundColor: 'black',
                 borderRadius: 5,
                 pointerEvents: 'none',
+                opacity: 0,
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
             />
           </motion.div>
         </NodeViewWrapper>
