@@ -190,6 +190,22 @@ export const ScrollViewExtension = TipTapNode.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      // Force re-render when docAttrs changes via ProseMirror plugin
+      const [, forceUpdate] = React.useState({});
+      
+      React.useEffect(() => {
+        const handleTransaction = ({ transaction }: any) => {
+          if (transaction.getMeta('forceGroupUpdate')) {
+            forceUpdate({});
+          }
+        };
+        
+        props.editor.on('transaction', handleTransaction);
+        return () => {
+          props.editor.off('transaction', handleTransaction);
+        };
+      }, [props.editor]);
+
       const nodeViewRef = useRef<HTMLDivElement>(null);
       const overlayRef = useRef<HTMLDivElement>(null);
 
