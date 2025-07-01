@@ -162,11 +162,11 @@ export const ScrollViewExtension = TipTapNode.create({
       nodeInputRule({
         find: REGEX_SCROLL_VIEW,
         type: this.type,
-        getAttributes: (match) => {
+        getAttributes: (match: any) => {
           return {};
         },
         editor: this.editor,
-        handler: ({ state, range, match }) => {
+        handler: ({ state, range, match }: { state: any; range: { from: number; to: number }; match: RegExpMatchArray; }) => {
           const { tr } = state;
           const start = range.from;
           const end = range.to;
@@ -182,7 +182,7 @@ export const ScrollViewExtension = TipTapNode.create({
           tr.insert(start, scrollViewNode);
           tr.setSelection(state.selection.constructor.near(tr.doc.resolve(start + 2)));
         },
-      })
+      } as any)
     ]
   },
   onSelectionUpdate() {
@@ -197,7 +197,7 @@ export const ScrollViewExtension = TipTapNode.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(true);
+      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -218,8 +218,7 @@ export const ScrollViewExtension = TipTapNode.create({
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
         if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
-          setIsCentered(false);
-          return;
+          return; // Skip observer and state updates outside call-mode
         }
 
         const observer = new IntersectionObserver(

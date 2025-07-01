@@ -42,7 +42,7 @@ export const QuoteExtension = Node.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(true);
+      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -63,8 +63,7 @@ export const QuoteExtension = Node.create({
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
         if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
-          setIsCentered(false);
-          return;
+          return; // Skip observer and state updates outside call-mode
         }
 
         const scrollParent = nodeElement.closest('.scrollview') as HTMLElement | null;
