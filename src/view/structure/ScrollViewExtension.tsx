@@ -196,6 +196,8 @@ export const ScrollViewExtension = TipTapNode.create({
       // State for document attributes
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // State to track if the node is centered
+      const [isCentered, setIsCentered] = useState(true);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -215,23 +217,14 @@ export const ScrollViewExtension = TipTapNode.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        const overlayElement = overlayRef.current;
-        if (!nodeElement || !overlayElement) return;
-
-        // A function to set opacity directly on the DOM element
-        const setDimmed = (dim: boolean) => {
-          overlayElement.style.transition = 'opacity 0.2s ease-in-out';
-          overlayElement.style.opacity = dim ? '0.8' : '0';
-        };
-
-        if (docAttributes.selectedFocusLens !== 'call-mode') {
-          setDimmed(false);
-          return; // No observer needed
+        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
+          setIsCentered(false);
+          return;
         }
 
         const observer = new IntersectionObserver(
           ([entry]) => {
-            setDimmed(!entry.isIntersecting);
+            setIsCentered(prev => prev === entry.isIntersecting ? prev : entry.isIntersecting);
           },
           {
             root: null,
@@ -240,13 +233,24 @@ export const ScrollViewExtension = TipTapNode.create({
           }
         );
 
-        // Perform an initial synchronous check to prevent flash of dimmed content
-        const rect = nodeElement.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const topBoundary = viewportHeight * 0.25;
-        const bottomBoundary = viewportHeight * 0.75;
-        setDimmed(!(rect.bottom > topBoundary && rect.top < bottomBoundary));
+        const computeInitialCenter = () => {
+          const rect = nodeElement.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const topBoundary = viewportHeight * 0.25;
+          const bottomBoundary = viewportHeight * 0.75;
+          const isInitiallyCentered = rect.bottom > topBoundary && rect.top < bottomBoundary;
+          setIsCentered(prev => prev === isInitiallyCentered ? prev : isInitiallyCentered);
+        };
 
+        // Use requestAnimationFrame to ensure DOM layout is complete
+        requestAnimationFrame(() => {
+          computeInitialCenter();
+          // Additional fallback check after a short delay
+          setTimeout(() => {
+            computeInitialCenter();
+          }, 50);
+        });
+        
         observer.observe(nodeElement);
 
         return () => {
@@ -277,6 +281,9 @@ export const ScrollViewExtension = TipTapNode.create({
 
       // Determine if the scrollview should be hidden (display: none)
       const isHidden = shouldHideScrollView(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
+
+      // Determine overlay opacity for dimming
+      const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
       // Determine strip color based on completion state
       let stripColor = 'transparent';
@@ -338,7 +345,6 @@ export const ScrollViewExtension = TipTapNode.create({
               })()}
             </ScrollView>
             <motion.div
-              ref={overlayRef}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -348,8 +354,10 @@ export const ScrollViewExtension = TipTapNode.create({
                 backgroundColor: 'black',
                 borderRadius: 10,
                 pointerEvents: 'none',
-                opacity: 0,
               }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: dimmingOpacity }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
             />
           </motion.div>
         </NodeViewWrapper>
