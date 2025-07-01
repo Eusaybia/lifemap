@@ -6,7 +6,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "c284e157-abea-4db5-98ba-8f2fd1ad6c51",
+                "quantaId": "573253d6-e96a-4b63-a6d2-43e925848113",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -14,44 +14,6 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "text",
                     "text": "     ​"
-                }
-            ]
-        },
-        {
-            "type": "group",
-            "attrs": {
-                "quantaId": "bc41c7b8-1468-4205-925b-45647a4c2edc",
-                "pathos": 0,
-                "backgroundColor": "#EFEFEF",
-                "lens": "identity"
-            },
-            "content": [
-                {
-                    "type": "paragraph",
-                    "attrs": {
-                        "quantaId": "0adab5bf-3a3a-4bc3-a661-492ba72d8d06",
-                        "textAlign": "left",
-                        "indent": 0
-                    },
-                    "content": [
-                        {
-                            "type": "text",
-                            "marks": [
-                                {
-                                    "type": "textStyle",
-                                    "attrs": {
-                                        "color": null,
-                                        "fontFamily": null,
-                                        "fontSize": "36px"
-                                    }
-                                },
-                                {
-                                    "type": "bold"
-                                }
-                            ],
-                            "text": "Prospect Name"
-                        }
-                    ]
                 }
             ]
         },
@@ -138,7 +100,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "5326a052-9d2e-4b9e-b553-1c26541ea81a",
+                        "quantaId": "9e749965-cb1d-401a-8607-b895a3d31953",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -146,7 +108,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "ec203504-1158-4f00-8dcc-66ac673cff78",
+                        "quantaId": "5326a052-9d2e-4b9e-b553-1c26541ea81a",
                         "textAlign": "left",
                         "indent": 0
                     },
@@ -220,7 +182,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "mention",
                                             "attrs": {
-                                                "quantaId": "b780c429-ebca-4914-9080-7f2c49dbaa8b",
+                                                "quantaId": "f2b75232-4177-411e-86a1-30968f2be74a",
                                                 "id": null,
                                                 "label": "⭐️ important"
                                             }
@@ -230,7 +192,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "7500b1bd-ea42-493a-8c28-baf00e4d0e2a",
+                                        "quantaId": "a6756c5b-658c-4cd0-bcaa-b41b578d3472",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -251,7 +213,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "ec885e9e-dcbc-49d3-ab7f-b78d0e04505f",
+                                        "quantaId": "b780c429-ebca-4914-9080-7f2c49dbaa8b",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -396,7 +358,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "77d083f9-51de-4c75-becf-6a19f0a5299d",
+                        "quantaId": "ede7aeb0-df23-4464-8969-bc599e77d4fb",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -404,7 +366,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "712945a4-14f0-4855-b1d2-e68645922c29",
+                        "quantaId": "77d083f9-51de-4c75-becf-6a19f0a5299d",
                         "textAlign": "left",
                         "indent": 0
                     },
@@ -428,7 +390,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "b0221e23-2cc5-44ff-a1f5-163844e28fcd",
+                        "quantaId": "319a682c-a515-4a65-b602-ad1de65a0584",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -445,7 +407,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "149a5490-2b26-43a5-8e89-07ee8d054948",
+                                        "quantaId": "b0221e23-2cc5-44ff-a1f5-163844e28fcd",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -459,7 +421,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "ec33cc4c-b6c6-42cc-b78a-2f50a1dfb0da",
+                                        "quantaId": "7f61fae4-d984-41ea-8dd5-0c2f3e5dc48d",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -474,7 +436,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "73a80462-66ec-4e06-993d-82f92daff2c1",
+                                "quantaId": "ec33cc4c-b6c6-42cc-b78a-2f50a1dfb0da",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -496,7 +458,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "8d784339-a338-4be7-bd2e-222816572e4d",
+                                        "quantaId": "f664fb26-b98d-46c2-9e9a-d583beb1ed80",
                                         "id": "000000",
                                         "label": "👰‍♀️ Prospect"
                                     }
@@ -533,7 +495,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "76f95c01-64f9-4f09-9ffa-6e8d55b861db",
+                                "quantaId": "8d784339-a338-4be7-bd2e-222816572e4d",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -548,7 +510,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "0bd14fcd-afd6-4b66-92f4-d452d265c59e",
+                                        "quantaId": "4af5cbc4-6ec4-4181-a6e7-bcb21c26a84b",
                                         "id": "000000",
                                         "label": "👰‍♀️ Wedding"
                                     }
@@ -562,7 +524,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "9d614827-c806-411f-9d1f-ebd89b1b5208",
+                                "quantaId": "da3d8fe3-30c0-4eee-a9c6-bf59faeed434",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -570,7 +532,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "986910f4-dd74-4490-ac7a-c03607b38080",
+                                "quantaId": "0bd14fcd-afd6-4b66-92f4-d452d265c59e",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -582,7 +544,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "fd01428b-1741-4440-b475-c087bdb800bd",
+                                        "quantaId": "0221f847-c1ac-4029-8cb3-e76997dadb02",
                                         "id": "000000",
                                         "label": "🎉 Event"
                                     }
@@ -594,7 +556,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "ef82b357-729b-48e8-b017-7950d45c7e05",
+                                        "quantaId": "1b5cfc80-34cf-4b88-9215-d9e2a9d5ca07",
                                         "id": "000000",
                                         "label": "🎉 Event"
                                     }
@@ -608,7 +570,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "f9c4fd61-4b9f-4585-989a-7fa0e0303328",
+                                "quantaId": "e3cd9809-0068-4a58-99ab-d0b57e7eba14",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -616,7 +578,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "c880a08f-2dfb-424a-8699-2fb6d620f685",
+                                "quantaId": "fd01428b-1741-4440-b475-c087bdb800bd",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -630,7 +592,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "59583c6b-31f8-4fd8-8842-c9c42b49e4cf",
+                                "quantaId": "662c4289-b5ca-46ce-bc87-8d876f650777",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -638,7 +600,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "af5fb7a3-c566-4532-83d9-ae29964e4592",
+                                "quantaId": "59583c6b-31f8-4fd8-8842-c9c42b49e4cf",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -652,7 +614,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d8302a3d-274e-4892-96ce-2f8d7a483bb9",
+                                "quantaId": "eb458529-b235-4504-be16-633ff981b7e6",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -660,7 +622,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "eff8a128-3570-4735-beed-c68d2617524d",
+                                "quantaId": "d8302a3d-274e-4892-96ce-2f8d7a483bb9",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -674,7 +636,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a9c84957-a02b-4039-9c77-d985f8fb78eb",
+                                "quantaId": "1c80efa0-52ef-4d8e-8c8c-8683eb0268d7",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -684,7 +646,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "9b6acc0c-17f5-4c60-8a90-e94ee8ff1a6b",
+                        "quantaId": "a9c84957-a02b-4039-9c77-d985f8fb78eb",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -701,7 +663,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "2d6c73a8-1d8b-42c8-afcb-2536f349fd9a",
+                                        "quantaId": "24718299-578e-4fa2-ac2d-a15f06efb296",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -715,7 +677,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d855e581-534d-4eb5-92bd-ce5b8866f59d",
+                                "quantaId": "2d6c73a8-1d8b-42c8-afcb-2536f349fd9a",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -767,7 +729,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "mention",
                                                     "attrs": {
-                                                        "quantaId": "f119ae31-1fc0-4a54-b2e5-cd37fd42f0f8",
+                                                        "quantaId": "da36f3e8-ff4b-49bd-8dd9-9415cfdcc9bd",
                                                         "id": null,
                                                         "label": "⭐️ important"
                                                     }
@@ -782,7 +744,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "86694f02-e6e4-4ce3-8ba3-c6dff7ae40b6",
+                                                "quantaId": "f119ae31-1fc0-4a54-b2e5-cd37fd42f0f8",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -894,7 +856,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "12545bae-515a-442d-a178-61a788cb1ae5",
+                        "quantaId": "03d2517f-ac84-456f-986d-ef085d3d79a7",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -902,7 +864,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "163412ad-1dd1-4f70-a782-23389061e341",
+                        "quantaId": "98d09799-3449-46e5-8276-52ca2e762780",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -919,7 +881,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "5ce5ee5d-69a1-4497-af6c-e219c241109c",
+                                        "quantaId": "12545bae-515a-442d-a178-61a788cb1ae5",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -953,7 +915,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "77c36b2c-6478-4d29-8b1c-1585317d37f4",
+                                                "quantaId": "c77e0ce6-e0a8-45f0-98f4-fe357dfb783d",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -961,7 +923,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "scrollview",
                                             "attrs": {
-                                                "quantaId": "7c11cb3e-168c-46a4-9e78-2c20f806242a",
+                                                "quantaId": "77c36b2c-6478-4d29-8b1c-1585317d37f4",
                                                 "pathos": 0,
                                                 "backgroundColor": "#EFEFEF",
                                                 "lens": "identity"
@@ -1064,7 +1026,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "mention",
                                                                             "attrs": {
-                                                                                "quantaId": "ad6b4f1e-2e24-4cb3-8089-68dfa0a6a902",
+                                                                                "quantaId": "67d33850-a387-401b-8fcd-11e7772f300e",
                                                                                 "id": "000000",
                                                                                 "label": "👰‍♀️ Wedding "
                                                                             }
@@ -1125,7 +1087,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "196f0125-c0e6-4c0a-a34e-216044b90896",
+                                                        "quantaId": "ec6c0922-3c85-4376-8b54-5a3f186310ba",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1159,7 +1121,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "90217819-4be1-4490-b3bd-241d20ca32aa",
+                                                                                "quantaId": "ad6b4f1e-2e24-4cb3-8089-68dfa0a6a902",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1176,7 +1138,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                         {
                                                                                             "type": "mention",
                                                                                             "attrs": {
-                                                                                                "quantaId": "2de4bd53-1242-4eec-8dbc-a426935bd437",
+                                                                                                "quantaId": "cf3a4d03-24c4-4f67-aa06-c5e951e87fea",
                                                                                                 "id": "000000",
                                                                                                 "label": "🎓 learning"
                                                                                             }
@@ -1192,7 +1154,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "abc46a07-30fc-4e49-9644-563d72bf9bbb",
+                                                                                "quantaId": "2de4bd53-1242-4eec-8dbc-a426935bd437",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1223,7 +1185,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "8e569d04-697c-4fa5-bc3a-25b7302976b5",
+                                                        "quantaId": "563e881a-0099-40bd-8602-b9dfc9bd8fef",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1299,7 +1261,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "47e4327f-7d37-4f4d-9228-73f46d6d232e",
+                                                                                "quantaId": "8e569d04-697c-4fa5-bc3a-25b7302976b5",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1378,7 +1340,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 {
                                                                                     "type": "paragraph",
                                                                                     "attrs": {
-                                                                                        "quantaId": "5283658b-8a44-4932-96b7-b83f491b2b08",
+                                                                                        "quantaId": "2ce0a792-c018-4446-9cba-bf40e897cec9",
                                                                                         "textAlign": "left",
                                                                                         "indent": 0
                                                                                     }
@@ -1386,7 +1348,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 {
                                                                                     "type": "paragraph",
                                                                                     "attrs": {
-                                                                                        "quantaId": "e16cc0e3-4b1e-4c3e-9daf-a96746a4316f",
+                                                                                        "quantaId": "5283658b-8a44-4932-96b7-b83f491b2b08",
                                                                                         "textAlign": "left",
                                                                                         "indent": 0
                                                                                     },
@@ -1408,7 +1370,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "9c5b1604-7375-4145-9cf0-f9183f8bcc3b",
+                                                        "quantaId": "dd346fab-8faa-4b35-aa35-0e54c0bab4a7",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1442,7 +1404,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "f42cc54e-aad6-492b-9a8e-27c30fb49b7c",
+                                                                                "quantaId": "9c5b1604-7375-4145-9cf0-f9183f8bcc3b",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1462,7 +1424,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                         {
                                                                                             "type": "mention",
                                                                                             "attrs": {
-                                                                                                "quantaId": "4dd70cb9-56c9-4d68-8dec-8a6b3759f7f1",
+                                                                                                "quantaId": "3d0fb528-657f-4238-b3a6-0485ef5ce275",
                                                                                                 "id": "000000",
                                                                                                 "label": "🎓 learning "
                                                                                             }
@@ -1484,7 +1446,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "1fefd702-f1e2-4aee-9a41-9a9ae7675f41",
+                                                        "quantaId": "c6e5a0da-06cf-4098-b6de-10de5377acda",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1518,7 +1480,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "a08655ea-5b8f-4026-bf03-eae8222599bf",
+                                                                                "quantaId": "4dd70cb9-56c9-4d68-8dec-8a6b3759f7f1",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1549,7 +1511,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "0ba0ba8f-e5b7-432b-a345-152b158fce29",
+                                                        "quantaId": "e2fae0e8-f619-46e2-83eb-0babf63a6b6f",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1578,7 +1540,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "d0df3a0d-1ab2-40ad-9f93-2f439446d971",
+                                                                                "quantaId": "0ba0ba8f-e5b7-432b-a345-152b158fce29",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1595,7 +1557,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                         {
                                                                                             "type": "mention",
                                                                                             "attrs": {
-                                                                                                "quantaId": "15b92251-bd7e-4eee-9342-982b878a586d",
+                                                                                                "quantaId": "3d123554-243e-40e6-acf1-cb3a492b589d",
                                                                                                 "id": "000000",
                                                                                                 "label": "🎓 learning "
                                                                                             }
@@ -1611,7 +1573,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "8cf1060e-23c7-46e9-a348-3ecc23fcacd1",
+                                                                                "quantaId": "15b92251-bd7e-4eee-9342-982b878a586d",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -1737,7 +1699,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "6b83b529-44e2-4ee7-b587-da60cf2c484c",
+                                                        "quantaId": "af172397-fd5a-4f3b-9eff-272cdcfc794e",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1748,7 +1710,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "052e8016-1906-48dd-8ba2-b0bb8bbe4e57",
+                                                                "quantaId": "6b83b529-44e2-4ee7-b587-da60cf2c484c",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             },
@@ -1769,7 +1731,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "3d5c3016-066b-4fee-99e3-1f81991ec153",
+                                                        "quantaId": "6c644422-0509-483f-89ca-36bc181f4869",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1780,7 +1742,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "bea47f4b-f588-4569-9d22-ce58c086fa76",
+                                                                "quantaId": "3d5c3016-066b-4fee-99e3-1f81991ec153",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             },
@@ -1862,7 +1824,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "fdbaf32f-01eb-4ece-8034-8bc30667b2e5",
+                                                        "quantaId": "b9a1b4f3-0338-4992-9bac-87ac6ef68f0d",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1873,7 +1835,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "ce88df0e-47e1-491f-b28b-3f0e8e08655f",
+                                                                "quantaId": "fdbaf32f-01eb-4ece-8034-8bc30667b2e5",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             },
@@ -1890,7 +1852,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "mention",
                                                                     "attrs": {
-                                                                        "quantaId": "cad5a3ba-0405-450d-8bfe-9b483b6d604a",
+                                                                        "quantaId": "bfa935d7-dcc4-43b9-810e-4ba07506e940",
                                                                         "id": "000000",
                                                                         "label": "👰‍♀️ Wedding"
                                                                     }
@@ -1915,7 +1877,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                 {
                                                     "type": "paragraph",
                                                     "attrs": {
-                                                        "quantaId": "e8a78bde-c138-405c-85af-74f20467d981",
+                                                        "quantaId": "02236a0b-53c5-4800-9843-ae25d24fe75e",
                                                         "textAlign": "left",
                                                         "indent": 0
                                                     }
@@ -1926,7 +1888,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "c6d46474-c9c5-407d-a2f0-86325d5b3051",
+                                                                "quantaId": "cad5a3ba-0405-450d-8bfe-9b483b6d604a",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             },
@@ -1934,7 +1896,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "mention",
                                                                     "attrs": {
-                                                                        "quantaId": "a3b81cd3-ef75-49fa-8c4f-cefd3294e1f6",
+                                                                        "quantaId": "2a56515b-d270-4bf1-b00e-5ad24d1dacf6",
                                                                         "id": "000000",
                                                                         "label": "👰‍♀️ Wedding"
                                                                     }
@@ -1948,7 +1910,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                         {
                                                             "type": "paragraph",
                                                             "attrs": {
-                                                                "quantaId": "4d95189e-5080-4c83-8ffd-f5e706aac287",
+                                                                "quantaId": "78e6d552-c3b2-425d-86fa-af3790fcdd64",
                                                                 "textAlign": "left",
                                                                 "indent": 0
                                                             }
@@ -1979,7 +1941,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "group",
                                                                             "attrs": {
-                                                                                "quantaId": "a37b9b2d-c962-448a-9c9d-3069d8dc92ee",
+                                                                                "quantaId": "a3b81cd3-ef75-49fa-8c4f-cefd3294e1f6",
                                                                                 "pathos": 0,
                                                                                 "backgroundColor": "#EFEFEF",
                                                                                 "lens": "identity"
@@ -2109,7 +2071,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 {
                                                                                     "type": "mention",
                                                                                     "attrs": {
-                                                                                        "quantaId": "1de0262e-d8aa-4304-95ca-17d5e20474b4",
+                                                                                        "quantaId": "dc5c07f2-54f0-44d9-98f7-bebbaaf69f5c",
                                                                                         "id": null,
                                                                                         "label": "⭐️ important"
                                                                                     }
@@ -2137,7 +2099,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                                 {
                                                                                     "type": "mention",
                                                                                     "attrs": {
-                                                                                        "quantaId": "71ffcf33-b833-4375-96e2-cfb7952f132f",
+                                                                                        "quantaId": "e9e41302-bcad-4b09-942c-8b08f6f80f7e",
                                                                                         "id": null,
                                                                                         "label": "⭐️ important"
                                                                                     }
@@ -2150,7 +2112,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "paragraph",
                                                                             "attrs": {
-                                                                                "quantaId": "9a6881c4-7950-465b-b363-0fcddfb44d52",
+                                                                                "quantaId": "1de0262e-d8aa-4304-95ca-17d5e20474b4",
                                                                                 "textAlign": "left",
                                                                                 "indent": 0
                                                                             },
@@ -2224,31 +2186,31 @@ export const SalesGuideTemplate: JSONContent = {
                                                                         {
                                                                             "type": "paragraph",
                                                                             "attrs": {
+                                                                                "quantaId": "e8762cad-df0d-4153-ab5e-e3a13d6da25b",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "906c494b-e7ca-41ef-bc6a-41137cc9acf9",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
+                                                                                "quantaId": "8a2b8905-0a96-4b8f-923a-f06ee368cf8f",
+                                                                                "textAlign": "left",
+                                                                                "indent": 0
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            "type": "paragraph",
+                                                                            "attrs": {
                                                                                 "quantaId": "52f48c35-ea7e-4bc6-9514-4a2e8d5f105c",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "62550eb7-51bf-40be-bb91-26f9aa5ffce2",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "f6212bc9-a2ef-48d1-bf36-12fe9fd9eff9",
-                                                                                "textAlign": "left",
-                                                                                "indent": 0
-                                                                            }
-                                                                        },
-                                                                        {
-                                                                            "type": "paragraph",
-                                                                            "attrs": {
-                                                                                "quantaId": "91f5e733-4440-4a06-8054-15d2ec1b1631",
                                                                                 "textAlign": "left",
                                                                                 "indent": 0
                                                                             },
@@ -2292,7 +2254,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "ba8d597d-58a5-4471-9a1c-38e329d7bd7a",
+                                                                        "quantaId": "528c7624-0f94-4bfd-b849-4018e182f534",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -2300,7 +2262,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "d4c1a6db-eebc-47c4-b0f7-8c36c70ff560",
+                                                                        "quantaId": "f591f400-59d8-45da-8d08-3825e643b4eb",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -2322,7 +2284,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "group",
             "attrs": {
-                "quantaId": "7a924aa6-c704-4a7e-8f3b-bbf03e290b45",
+                "quantaId": "ba8d597d-58a5-4471-9a1c-38e329d7bd7a",
                 "pathos": 0,
                 "backgroundColor": "#4455BB",
                 "lens": "identity"
@@ -2355,7 +2317,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "9ecaf74d-4b9c-4ff0-8b37-17ba32796d25",
+                        "quantaId": "b06edc68-f650-4a09-82e8-3c3cf3d6f2dd",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -2372,7 +2334,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "b4244a31-7034-43f4-b0e8-f833ebd0b514",
+                                        "quantaId": "9ecaf74d-4b9c-4ff0-8b37-17ba32796d25",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -2386,7 +2348,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "10a4bf37-d344-46ce-ad06-285ed4946bd5",
+                                        "quantaId": "8197f478-14c2-4d40-ab65-5f9c9afd6062",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -2401,7 +2363,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "49823af4-86eb-467c-862e-9eb40ff7dfe4",
+                                "quantaId": "10a4bf37-d344-46ce-ad06-285ed4946bd5",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -2536,7 +2498,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "6af0844d-3016-475b-b785-e0be1ac06f4a",
+                                "quantaId": "0fe38dd2-2277-4ab3-ae3d-a81eb4e42055",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2553,7 +2515,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "802e4cce-b10a-4f5e-8b37-af081362636d",
+                                                "quantaId": "6af0844d-3016-475b-b785-e0be1ac06f4a",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2571,7 +2533,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d9d99d56-5fc1-412d-b2ca-a6d940fecd5a",
+                                "quantaId": "442d65a2-f20e-41d5-ba28-ae8710a9c283",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2579,7 +2541,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "3e89ff84-3654-4258-ae1e-097a419b3175",
+                                "quantaId": "d9d99d56-5fc1-412d-b2ca-a6d940fecd5a",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -2689,7 +2651,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "96ca1bbb-62fd-4aa2-a3db-d1b85056e0e1",
+                                        "quantaId": "20eacb81-42d2-43cb-ae05-6de338ef99da",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -2703,7 +2665,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "c82f1dd6-6631-46b5-956d-5ea189f8f9c0",
+                                "quantaId": "16b9d173-6f23-4375-9213-e795ebc7a6a6",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -2717,7 +2679,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "df5d8c64-15c3-46f1-8f75-03dc2bf5aef1",
+                                                "quantaId": "96ca1bbb-62fd-4aa2-a3db-d1b85056e0e1",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -2947,7 +2909,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "bdf25342-ced1-4bbd-a000-ca7249151e0a",
+                                        "quantaId": "3ac732d6-9e61-4248-8701-bcfe87363194",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -2963,7 +2925,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "37488fe8-1c9d-4964-b5ea-ae8d69480d51",
+                        "quantaId": "bdf25342-ced1-4bbd-a000-ca7249151e0a",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -2991,7 +2953,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "23984ab2-0a23-41be-bdfc-085c6144dbd5",
+                                "quantaId": "0628b00a-ce3a-48a6-bafe-379125674db0",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3008,7 +2970,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "cca47053-6986-450f-a790-91f46b7ec4ff",
+                                                "quantaId": "23984ab2-0a23-41be-bdfc-085c6144dbd5",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3026,7 +2988,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "d289eba0-c071-4829-bbe9-3b26564c8ee4",
+                                "quantaId": "6287fde6-df6d-4974-aade-7a07bc377cfa",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3039,7 +3001,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "84fd1251-6a6b-409a-9a0e-baec21f68c35",
+                                "quantaId": "d289eba0-c071-4829-bbe9-3b26564c8ee4",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3065,7 +3027,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "eac4a39b-7b07-476e-86a4-4d1d716c2e9f",
+                        "quantaId": "ee12b4c0-3987-4df0-9786-da7777c229e1",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3090,7 +3052,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "e5241aec-87ac-46d5-8618-65fe8f2cd0a2",
+                                                "quantaId": "eac4a39b-7b07-476e-86a4-4d1d716c2e9f",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3109,7 +3071,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "cc30d0e6-cea3-4f84-a402-dcfeb7715276",
+                                                "quantaId": "e89076db-414b-479a-ab26-6464eebbe09b",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3117,7 +3079,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4369a664-1ddc-45b0-b22b-29013dcb3414",
+                                                "quantaId": "cc30d0e6-cea3-4f84-a402-dcfeb7715276",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3131,7 +3093,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "6b4355da-20ca-4855-9666-940cd33f59ca",
+                                                "quantaId": "7e59a842-9989-4ac3-b332-5a8c074777ac",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3139,7 +3101,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "0e2ad62d-b457-4c50-a0f1-6964c92113e2",
+                                                "quantaId": "6b4355da-20ca-4855-9666-940cd33f59ca",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3153,7 +3115,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "81ddbf9d-8410-4d5b-b4a3-088bf2805164",
+                                                "quantaId": "1e0c3461-5233-45a9-9e0d-48a9504cf72e",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3161,7 +3123,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "184fd972-1664-4627-b4e1-15a6212c8536",
+                                                "quantaId": "81ddbf9d-8410-4d5b-b4a3-088bf2805164",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3194,7 +3156,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "ac43993a-accc-4cfe-acb1-cc52cb8fcfce",
+                                                "quantaId": "8b1b79cf-db01-48f9-ba58-ed306fba9952",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3202,7 +3164,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "2d3009d1-50c9-47dc-8d59-bc935beed085",
+                                                "quantaId": "ac43993a-accc-4cfe-acb1-cc52cb8fcfce",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3216,7 +3178,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "6039e010-cc93-4fc8-a1f5-08f4c92d4e6e",
+                                                "quantaId": "225ce793-6357-4cf7-aaf8-8dc02adfdd20",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3224,7 +3186,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "2142e04e-12b9-4375-a8de-36913a0aa2ab",
+                                                "quantaId": "6039e010-cc93-4fc8-a1f5-08f4c92d4e6e",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3257,7 +3219,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "c96abd75-699d-494d-84a9-bd622922e6e5",
+                                                "quantaId": "05e4b8c6-3bd7-4b95-8ab7-b95a82ee3f09",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3265,7 +3227,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "18e1a145-cdf2-4528-8a1c-7273821cacfc",
+                                                "quantaId": "c96abd75-699d-494d-84a9-bd622922e6e5",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3279,7 +3241,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "f147748e-03c7-43dd-b605-3f6f0f27eed5",
+                                                "quantaId": "c0708441-0d95-4dc8-8dd5-ffbbcf65ddcc",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3297,7 +3259,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "8428257b-b42a-4324-b944-053a1641f465",
+                                                "quantaId": "f147748e-03c7-43dd-b605-3f6f0f27eed5",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3316,7 +3278,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4299044b-c0e8-42ab-b10a-68726081cf92",
+                                                "quantaId": "b4024055-6bc9-48c6-a46a-f0ad4da2e3b6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3324,7 +3286,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d91652f4-4a56-4d03-a64c-e9e6a7bf6d3c",
+                                                "quantaId": "4299044b-c0e8-42ab-b10a-68726081cf92",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3338,7 +3300,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "5e36a131-d68d-469d-8bc4-82a7801e1a83",
+                                                "quantaId": "00474544-70ee-46f1-a750-6d83027ad573",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3346,7 +3308,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "f95b4b99-b74c-4eed-b774-54139a175613",
+                                                "quantaId": "5e36a131-d68d-469d-8bc4-82a7801e1a83",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3360,7 +3322,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "80765896-06fb-4721-b0c0-6adf889cc49c",
+                                                "quantaId": "daad80b8-93d9-4823-834b-2dfcab376af6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3368,7 +3330,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "d9d4ab9b-e3b8-48bc-98ff-2af9fd936fae",
+                                                "quantaId": "80765896-06fb-4721-b0c0-6adf889cc49c",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3444,7 +3406,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "a1c6c1b5-e24c-4fc4-80cb-62af50636af6",
+                                                                        "quantaId": "e7109e6d-de78-416f-a689-b23cbead3d05",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -3462,7 +3424,7 @@ export const SalesGuideTemplate: JSONContent = {
                                                                 {
                                                                     "type": "paragraph",
                                                                     "attrs": {
-                                                                        "quantaId": "305971e4-46e9-4820-8548-a59b9ac88959",
+                                                                        "quantaId": "c6f9e8e9-e956-44fd-8787-18d207f01dc7",
                                                                         "textAlign": "left",
                                                                         "indent": 0
                                                                     }
@@ -3486,7 +3448,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "ea1bbb56-1142-4362-9a29-2b27f82db6a2",
+                                                "quantaId": "a1c6c1b5-e24c-4fc4-80cb-62af50636af6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3522,7 +3484,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "a268afc0-c46a-46f4-9e1b-a9e22d935bd6",
+                                                "quantaId": "84ecff5f-e51d-4058-8cb2-a37c34cba301",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3530,7 +3492,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "3a9396c8-9fe0-4880-8a85-62dc0135733b",
+                                                "quantaId": "a268afc0-c46a-46f4-9e1b-a9e22d935bd6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3563,7 +3525,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4cd5e69e-a6b8-4502-b12f-e35ad9928e86",
+                                                "quantaId": "fd1af022-324b-4f81-90af-dfd902966bab",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3571,7 +3533,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "785a4b90-9005-4713-b331-8a157dfc801f",
+                                                "quantaId": "4cd5e69e-a6b8-4502-b12f-e35ad9928e86",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3599,7 +3561,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "7cdb9348-a61f-49d4-8efd-5ca55d9b0873",
+                                                "quantaId": "831607f4-ee1b-4184-9a6e-a1832489c7e6",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3607,7 +3569,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "9f01bd15-0e07-4034-8810-f392f2c53fd7",
+                                                "quantaId": "7cdb9348-a61f-49d4-8efd-5ca55d9b0873",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3640,7 +3602,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4952cb51-3e5d-4d0d-9616-7cb11f8c163a",
+                                                "quantaId": "591dae06-4b0a-41f3-b68c-7c581d2e01f3",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3648,7 +3610,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "454e9dbb-020a-4200-9e59-d7f626e7e170",
+                                                "quantaId": "4952cb51-3e5d-4d0d-9616-7cb11f8c163a",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3662,7 +3624,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "fa58d805-898c-4b86-8c92-4987c8632979",
+                                                "quantaId": "138581ca-3025-40a6-8ee5-6217bcd9bd09",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3670,7 +3632,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "e830e2e2-eb1b-4229-a08f-0a31b73757d9",
+                                                "quantaId": "fa58d805-898c-4b86-8c92-4987c8632979",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -3684,7 +3646,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "4f4da9e5-2bd9-4133-815c-c0df903c8ef9",
+                                                "quantaId": "b8a27a49-5f1d-4b9e-8ed4-c4e695f4e58a",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3692,7 +3654,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "3977c90a-3b89-4134-9a41-e008d0d632e6",
+                                                "quantaId": "55ef782b-b417-427c-8195-936345dd53f1",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3700,7 +3662,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "5406df31-032a-4b2f-816c-71a9fcac6cb9",
+                                                "quantaId": "70fd0067-c915-4280-8760-e43cdf3d72aa",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             }
@@ -3716,7 +3678,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "1df973ad-98d0-4d0b-b91d-5ac43faeecb6",
+                "quantaId": "4f4da9e5-2bd9-4133-815c-c0df903c8ef9",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -3762,7 +3724,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "ab10e45e-6c3c-4199-90eb-251043b82304",
+                        "quantaId": "5d61ff23-b87b-47a4-8389-24a71ec45a10",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3773,7 +3735,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "20c14dfe-5917-45c5-8952-9c43e3d5aa7a",
+                                "quantaId": "ab10e45e-6c3c-4199-90eb-251043b82304",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3824,7 +3786,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "99223d73-9aee-4151-bb8c-412bab5a9dbe",
+                        "quantaId": "ce3e46ee-39ec-44e4-abf4-ff1b611dec4f",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3832,7 +3794,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "6d9076a4-0bb0-4e29-ac88-5dc77179e95d",
+                        "quantaId": "99223d73-9aee-4151-bb8c-412bab5a9dbe",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -3849,7 +3811,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "0e9eac36-90a2-4d88-8b49-f103e9cccd48",
+                                        "quantaId": "eb316d3d-442f-44a8-9664-65af30ece563",
                                         "id": "000000",
                                         "label": "🎓 learning "
                                     }
@@ -3863,7 +3825,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "9ba14d9d-23ec-46de-a28a-c88b8178df08",
+                                "quantaId": "cf85bd6f-bc6d-4252-a1fe-2c567f15442d",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -3871,7 +3833,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a37d525c-6f26-4b16-8e7c-897ba3cd2a79",
+                                "quantaId": "0e9eac36-90a2-4d88-8b49-f103e9cccd48",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3936,7 +3898,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "349f61cd-9df7-4ac3-ad2b-0f2edfc03e5a",
+                        "quantaId": "f475da70-84b3-4f94-a5b8-d6f291e5446f",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -3947,7 +3909,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "e2812d96-d248-4d91-b658-d34be40fa52a",
+                                "quantaId": "349f61cd-9df7-4ac3-ad2b-0f2edfc03e5a",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -3995,7 +3957,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b3f226d9-784e-4600-975a-bd6355a0b28e",
+                                "quantaId": "bbf1e910-068d-4957-a387-c7579f29b8a5",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4008,7 +3970,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "25bc3644-5f76-4cc6-95ca-f3c701703985",
+                                "quantaId": "b3f226d9-784e-4600-975a-bd6355a0b28e",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4043,7 +4005,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "92382a49-c902-4972-b224-86e716f6bd0d",
+                                "quantaId": "14b8452d-fb1f-49f8-a677-c61cf8609fae",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4051,7 +4013,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "3e427eeb-2b4a-4ec2-9a2a-74541baa8604",
+                                "quantaId": "92382a49-c902-4972-b224-86e716f6bd0d",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4066,7 +4028,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "5ff4d10f-3152-4406-b791-1c5f4edd19e1",
+                        "quantaId": "f1ef4ea9-d625-4610-b12c-9cd17a1ea73f",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4074,7 +4036,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "b7ecc501-501c-4e98-9494-ca8a1c8df7ac",
+                        "quantaId": "5ff4d10f-3152-4406-b791-1c5f4edd19e1",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -4102,7 +4064,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "1dc15f5f-867d-4e87-bc77-9ed1c413c170",
+                                "quantaId": "97162621-8a75-4519-8ef2-4bf5388de04c",
                                 "textAlign": "start",
                                 "indent": 0
                             }
@@ -4119,7 +4081,7 @@ export const SalesGuideTemplate: JSONContent = {
                                         {
                                             "type": "paragraph",
                                             "attrs": {
-                                                "quantaId": "05432b75-965b-4b6f-991f-a1305bcf1c3c",
+                                                "quantaId": "1dc15f5f-867d-4e87-bc77-9ed1c413c170",
                                                 "textAlign": "left",
                                                 "indent": 0
                                             },
@@ -4139,7 +4101,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "9fa559f3-f9b6-4ccd-a6f1-cfb8d7692ac9",
+                        "quantaId": "2f5eae8e-5aae-448b-8d1f-c65216037615",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4150,7 +4112,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "73452e88-cfb0-4bf7-9eda-af347d56b258",
+                                "quantaId": "9fa559f3-f9b6-4ccd-a6f1-cfb8d7692ac9",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4162,7 +4124,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "dccedf10-9f87-4a35-a97f-ff18a1935330",
+                                        "quantaId": "2aed48c7-0fd3-4b0e-9b4a-027d719300f6",
                                         "id": "000000",
                                         "label": "👰‍♀️ Prospect"
                                     }
@@ -4176,7 +4138,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "c6840c72-977c-47db-95ab-bad8b3e9fd9a",
+                                "quantaId": "f491a8b7-edf7-4ee2-a205-da83df5d9ea7",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4184,7 +4146,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a25a804e-8908-468c-bac3-6917eaf8559f",
+                                "quantaId": "3e791553-670f-4793-bd02-7ffcbfaf2238",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4192,7 +4154,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "8f2dc2b6-62ae-4575-a370-6169b890ece1",
+                                "quantaId": "dccedf10-9f87-4a35-a97f-ff18a1935330",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4215,7 +4177,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "cb7d36c7-8809-4f8c-b367-1a7d0c96c621",
+                                "quantaId": "e4d97a5d-2646-4de4-9a29-4d2bb84f8bbf",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4223,7 +4185,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "5033c54e-2b25-4a1e-80f0-3053279b0e07",
+                                "quantaId": "cb7d36c7-8809-4f8c-b367-1a7d0c96c621",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4242,7 +4204,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "8c71a6f6-3455-4664-935a-f861cf2b299f",
+                                "quantaId": "334736a8-3bde-415b-9bec-3d3a90383549",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4250,7 +4212,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b6420153-ac7d-408e-9f70-4cc231348639",
+                                "quantaId": "8c71a6f6-3455-4664-935a-f861cf2b299f",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4290,7 +4252,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "60be90b9-99d3-4163-af23-6ffcbdc260cf",
+                        "quantaId": "76779bdb-5995-425d-9e10-4e4479001cc8",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4301,7 +4263,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "5a078295-a9c3-40f5-93a2-b0694ceb840c",
+                                "quantaId": "60be90b9-99d3-4163-af23-6ffcbdc260cf",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4362,7 +4324,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "60cf9407-cbd2-47ae-842b-d5b231c47ef5",
+                                "quantaId": "5c576334-4e09-4686-898e-95e74253d881",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4370,7 +4332,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "80abd05a-2fb2-4ca0-96ca-6e26c81cae64",
+                                "quantaId": "60cf9407-cbd2-47ae-842b-d5b231c47ef5",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4455,7 +4417,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "6033f0bb-270d-429a-b4c6-9569cebc03fd",
+                        "quantaId": "6b69b4e6-46ab-4731-9122-c112436af0db",
                         "textAlign": "left",
                         "indent": 0
                     }
@@ -4472,7 +4434,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "753fcf44-850b-447d-bb28-a235024a3b7f",
+                                        "quantaId": "6033f0bb-270d-429a-b4c6-9569cebc03fd",
                                         "textAlign": "left",
                                         "indent": 0
                                     },
@@ -4486,7 +4448,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "paragraph",
                                     "attrs": {
-                                        "quantaId": "04f12216-b008-4c87-b4aa-271750ba3862",
+                                        "quantaId": "315b3b70-aeae-4c46-92c1-f831f4b07746",
                                         "textAlign": "left",
                                         "indent": 0
                                     }
@@ -4501,7 +4463,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a9ca55cd-6eed-48d1-a4f5-a535408c64fa",
+                                "quantaId": "04f12216-b008-4c87-b4aa-271750ba3862",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4613,7 +4575,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "920eae37-4257-4062-bad9-bc108ac7586e",
+                                "quantaId": "3c02ad3c-727a-4f5f-aae1-0a494b80c998",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4621,7 +4583,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "b3f15db5-f940-498f-8366-1c954a9880d5",
+                                "quantaId": "920eae37-4257-4062-bad9-bc108ac7586e",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4874,7 +4836,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "9bd2c41b-33a8-489a-a947-271ef7ba9007",
+                                "quantaId": "0ed7fc3a-f537-4b42-b2bd-dc41fba83da1",
                                 "textAlign": "left",
                                 "indent": 0
                             }
@@ -4882,7 +4844,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "bec656c9-a17b-409b-a285-011c9947d910",
+                                "quantaId": "9bd2c41b-33a8-489a-a947-271ef7ba9007",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -4974,7 +4936,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "group",
             "attrs": {
-                "quantaId": "8736167b-9474-4e41-b227-e2021784d58f",
+                "quantaId": "b4defb83-52e1-485c-a104-7c5994d1e0e5",
                 "pathos": 0,
                 "backgroundColor": "#EFEFEF",
                 "lens": "identity"
@@ -4983,7 +4945,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "paragraph",
                     "attrs": {
-                        "quantaId": "a8a7e8c9-a961-4aa2-9a00-c9ec4444bbb5",
+                        "quantaId": "c303db43-4b76-4347-a648-6430cb3f5848",
                         "textAlign": "left",
                         "indent": 0
                     },
@@ -4995,7 +4957,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "mention",
                             "attrs": {
-                                "quantaId": "286143d9-b8a6-4e92-a159-a9a43eb7d259",
+                                "quantaId": "8f134196-d669-4a6b-b233-e9442020dabc",
                                 "id": null,
                                 "label": "⭐️ important"
                             }
@@ -5023,7 +4985,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "mention",
                             "attrs": {
-                                "quantaId": "f0ee57f8-7211-43d2-9fd0-eb5603a795e3",
+                                "quantaId": "5d384702-0cab-4950-bf00-01ee9d5f6c97",
                                 "id": null,
                                 "label": "⭐️ important"
                             }
@@ -5035,7 +4997,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "8a498a66-0324-4225-bb51-06e38c7549dc",
+                "quantaId": "9d74151c-c8bf-4684-839a-adeb556061ec",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -5049,7 +5011,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "7f3d7fe4-64c5-46ee-a137-b5ac3f153810",
+                "quantaId": "4665e472-f370-49ec-a744-83462c019745",
                 "textAlign": "left",
                 "indent": 0
             }
@@ -5065,7 +5027,7 @@ export const SalesGuideTemplate: JSONContent = {
                 {
                     "type": "group",
                     "attrs": {
-                        "quantaId": "8736167b-9474-4e41-b227-e2021784d58f",
+                        "quantaId": "7f3d7fe4-64c5-46ee-a137-b5ac3f153810",
                         "pathos": 0,
                         "backgroundColor": "#EFEFEF",
                         "lens": "identity"
@@ -5074,7 +5036,7 @@ export const SalesGuideTemplate: JSONContent = {
                         {
                             "type": "paragraph",
                             "attrs": {
-                                "quantaId": "a8a7e8c9-a961-4aa2-9a00-c9ec4444bbb5",
+                                "quantaId": "1c37fc4b-2ddc-4f9e-ae42-63f357a51207",
                                 "textAlign": "left",
                                 "indent": 0
                             },
@@ -5086,7 +5048,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "fb4bfda4-e857-4d02-a8e7-751541d72471",
+                                        "quantaId": "a196db82-f2b7-491a-a112-269b5da56b71",
                                         "id": null,
                                         "label": "⭐️ important"
                                     }
@@ -5114,7 +5076,7 @@ export const SalesGuideTemplate: JSONContent = {
                                 {
                                     "type": "mention",
                                     "attrs": {
-                                        "quantaId": "286143d9-b8a6-4e92-a159-a9a43eb7d259",
+                                        "quantaId": "a7abebc2-5662-4363-8569-322b6ecedb1e",
                                         "id": null,
                                         "label": "⭐️ important"
                                     }
@@ -5128,7 +5090,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "3d14bac1-6946-4150-9ecc-567e494a0ad9",
+                "quantaId": "fb4bfda4-e857-4d02-a8e7-751541d72471",
                 "textAlign": "left",
                 "indent": 0
             },
@@ -5142,7 +5104,7 @@ export const SalesGuideTemplate: JSONContent = {
         {
             "type": "paragraph",
             "attrs": {
-                "quantaId": "c284e157-abea-4db5-98ba-8f2fd1ad6c51",
+                "quantaId": "f1ccc20a-399e-4846-b1b5-132c68f0260e",
                 "textAlign": "left",
                 "indent": 0
             },
