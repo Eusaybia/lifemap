@@ -86,7 +86,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
-    }, [])
+    }, [props.value])
 
     useScrollEnd(() => {
         if (props.onChange) {
