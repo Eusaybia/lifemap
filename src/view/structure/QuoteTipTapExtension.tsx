@@ -4,8 +4,77 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule 
 import { motion } from "framer-motion";
 import { purple } from "../Theme";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
+import { JSONContent } from "@tiptap/core";
+import { defaultDocumentAttributes } from "./DocumentAttributesExtension";
 
 export const doubleDoubleQuoteInputRegex = /""([^""]*)""/
+
+export const shouldHideQuote = (
+  quoteNode: JSONContent,
+  selectedEventType: DocumentAttributes['selectedEventLens'],
+  selectedFocusLens: DocumentAttributes['selectedFocusLens']
+): boolean => {
+  let isIrrelevant = false;
+  let isLearningGroup = false;
+  let hasRelevantEventType = false; // Track if we find a relevant event type
+
+  type EventTypes = DocumentAttributes['selectedEventLens'];
+  const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
+  // Ensure selectedEventType is valid before filtering
+  const validSelectedEventType = eventTypes.includes(selectedEventType) ? selectedEventType : defaultDocumentAttributes.selectedEventLens;
+  const irrelevantEventTypes = eventTypes.filter((eventType) => eventType !== validSelectedEventType);
+
+  quoteNode.content?.forEach((childNode: JSONContent) => {
+    // Unlike groups, quotes can have mentions directly or within other blocks like details/paragraphs
+    const checkContent = (node: JSONContent) => {
+      if (node.type === 'mention') {
+        const label = node.attrs?.label as string;
+        if (!label) return;
+
+        if (label.includes('🎓 learning')) {
+          isLearningGroup = true;
+        }
+
+        const labelParts = label.split(' ');
+        let mentionEventType = "";
+
+        if (labelParts.length === 1) {
+          mentionEventType = labelParts[0].toLowerCase();
+        } else if (labelParts.length >= 2) {
+          mentionEventType = labelParts[1].toLowerCase();
+        }
+
+        if (mentionEventType === validSelectedEventType) {
+          hasRelevantEventType = true;
+        }
+
+        if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
+          isIrrelevant = true;
+        }
+      }
+
+      // Recursively check content of nested nodes
+      if (node.content) {
+        node.content.forEach(checkContent);
+      }
+    };
+
+    checkContent(childNode);
+  });
+
+  if (hasRelevantEventType) {
+    isIrrelevant = false;
+  }
+
+  if (isIrrelevant) {
+    return true;
+  }
+  if (selectedFocusLens === 'call-mode' && isLearningGroup) {
+    return true;
+  }
+
+  return false;
+};
 
 export const QuoteExtension = Node.create({
   name: "quote",
@@ -36,6 +105,22 @@ export const QuoteExtension = Node.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
+      // Force re-render when docAttrs changes via ProseMirror plugin
+      const [, forceUpdate] = React.useState({});
+      
+      React.useEffect(() => {
+        const handleTransaction = ({ transaction }: any) => {
+          if (transaction.getMeta('forceGroupUpdate')) {
+            forceUpdate({});
+          }
+        };
+        
+        props.editor.on('transaction', handleTransaction);
+        return () => {
+          props.editor.off('transaction', handleTransaction);
+        };
+      }, [props.editor]);
+
       const nodeViewRef = useRef<HTMLDivElement>(null);
 
       // State for document attributes
@@ -113,6 +198,9 @@ export const QuoteExtension = Node.create({
 
       // Determine overlay opacity for dimming
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
+      
+      // Determine if the quote should be hidden
+      const isHidden = shouldHideQuote(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
 
       return (
         <NodeViewWrapper
@@ -121,6 +209,7 @@ export const QuoteExtension = Node.create({
         >
           <motion.div style={{
             position: 'relative',
+            display: isHidden ? 'none' : 'block', // Hide the node if it's irrelevant
             boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 5px 5px -3px rgba(0, 0, 0, 0.2)`,
             backgroundColor: "#F3DFAB", 
             borderRadius: 5, 

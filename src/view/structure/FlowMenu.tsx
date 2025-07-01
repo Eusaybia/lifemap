@@ -382,6 +382,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"wedding"}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
@@ -394,6 +396,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"corporate"}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
@@ -406,6 +410,8 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     value={"birthday"}
                     onClick={() => {
                         props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
                     }}
                 >
                     <motion.div>
@@ -1091,6 +1097,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
+                        'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
