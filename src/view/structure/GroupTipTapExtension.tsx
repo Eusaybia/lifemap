@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
 import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONContent } from "@tiptap/core";
+import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
@@ -34,9 +35,10 @@ export const shouldHideGroup = (
 ): boolean => {
   let isIrrelevant = false;
   let isLearningGroup = false;
+  let hasRelevantEventType = false; // Track if we find a relevant event type
 
-  // console.log("Selected event type from perspective of group: ", selectedEventType)
-  // console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
+  console.log("Selected event type from perspective of group: ", selectedEventType)
+  console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
@@ -52,8 +54,7 @@ export const shouldHideGroup = (
           if (!label) return; // Skip if label is missing
 
           // Check for Learning Tag
-          // TODO: Confirm the exact string for the learning tag
-          if (label.includes('🎓 learning')) { // Assuming this is the learning tag
+          if (label.includes('🎓 learning')) {
             isLearningGroup = true;
           }
 
@@ -62,16 +63,18 @@ export const shouldHideGroup = (
           let mentionEventType = "";
 
           if (labelParts.length === 1) {
+            // Just the mention text
             mentionEventType = labelParts[0].toLowerCase();
           }
           else if (labelParts.length >= 2) {
+            // Just the mention text, not the emoji
             mentionEventType = labelParts[1].toLowerCase();
           }
 
           // This handles the case where the node contains a mention of the selected event type
           if (mentionEventType === validSelectedEventType) {
-            isIrrelevant = false;
-            return // Exit the inner loop early if relevant event type found
+            hasRelevantEventType = true;
+            // Don't return here, need to check all children for learning tags too
           }
 
           if (irrelevantEventTypes.includes(mentionEventType as EventTypes)) {
@@ -82,6 +85,11 @@ export const shouldHideGroup = (
       })
     }
   });
+
+  // If we found a relevant event type, the node is not irrelevant regardless of other mentions
+  if (hasRelevantEventType) {
+    isIrrelevant = false;
+  }
 
   // Determine if the group should be hidden
   if (isIrrelevant) {
@@ -215,9 +223,46 @@ export const GroupExtension = TipTapNode.create({
     //   this.editor.commands.updateAttributes(this.name, { refinement: newRefinement });
     // }
   },
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('groupUpdater'),
+        view: () => ({
+          update: (view, prevState) => {
+            // Check if docAttrs changed
+            const oldDocAttrs = prevState.doc.firstChild?.attrs;
+            const newDocAttrs = view.state.doc.firstChild?.attrs;
+            
+            // Force re-render when event type or focus lens changes
+            if (oldDocAttrs?.selectedEventLens !== newDocAttrs?.selectedEventLens || 
+                oldDocAttrs?.selectedFocusLens !== newDocAttrs?.selectedFocusLens) {
+              // Force re-render of all group nodes
+              view.dispatch(view.state.tr.setMeta('forceGroupUpdate', true));
+            }
+          }
+        })
+      })
+    ];
+  },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const nodeViewRef = useRef<HTMLDivElement>(null);
+
+      // Force re-render when docAttrs changes via ProseMirror plugin
+      const [, forceUpdate] = React.useState({});
+      
+      React.useEffect(() => {
+        const handleTransaction = ({ transaction }: any) => {
+          if (transaction.getMeta('forceGroupUpdate')) {
+            forceUpdate({});
+          }
+        };
+        
+        const editor = props.editor.on('transaction', handleTransaction);
+        return () => {
+          props.editor.off('transaction', handleTransaction);
+        };
+      }, [props.editor]);
 
       // State for document attributes
       // @ts-ignore
