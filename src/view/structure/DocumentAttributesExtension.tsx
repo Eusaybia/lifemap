@@ -55,6 +55,47 @@ export const DocumentAttributeExtension = Extension.create({
 
   // No node-specific properties
 
+  // Add onCreate hook to set up initial dimming state and listeners
+  onCreate() {
+    const currentAttributes = this.editor.commands.getDocumentAttributes();
+    
+    // Helper function to manage ProseMirror element CSS class
+    const manageProseMirrorDimming = (shouldDim: boolean) => {
+      const proseMirrorElement = this.editor.view.dom;
+      const bodyElement = document.body;
+      
+      if (shouldDim) {
+        proseMirrorElement.classList.add('call-mode-dimmed');
+        bodyElement.classList.add('call-mode-dimmed');
+      } else {
+        proseMirrorElement.classList.remove('call-mode-dimmed');
+        bodyElement.classList.remove('call-mode-dimmed');
+      }
+    };
+    
+    // Set initial call mode dimming state
+    manageProseMirrorDimming(currentAttributes.selectedFocusLens === 'call-mode');
+    
+    // Listen for attribute changes
+    const handleAttributeUpdate = (event: CustomEvent<DocumentAttributes>) => {
+      manageProseMirrorDimming(event.detail.selectedFocusLens === 'call-mode');
+    };
+    
+    window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
+    
+    // Store cleanup function for onDestroy
+    this.storage.cleanup = () => {
+      window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
+    };
+  },
+
+  // Clean up listeners on destroy
+  onDestroy() {
+    if (this.storage.cleanup) {
+      this.storage.cleanup();
+    }
+  },
+
   // Define custom commands for interacting with localStorage
   addCommands(): Partial<RawCommands> {
     return {

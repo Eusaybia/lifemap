@@ -9,6 +9,16 @@ export type GroupLenses = "identity" | "hideUnimportantNodes";
 
 export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string }) => {
 
+    // Helper function to make color opaque
+    const getOpaqueBackground = (color: string) => {
+        // If color has alpha channel (8 character hex), make it fully opaque
+        if (color && color.length === 9 && color.startsWith('#')) {
+            return color.substring(0, 7); // Remove alpha channel
+        }
+        
+        return color || offWhite;
+    };
+
     // TODO: Exit animation doesn't work
     // TODO: Fix stretchy border: https://github.com/framer/motion/issues/1249
 
@@ -23,7 +33,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             }}
             animate={{
                 // opacity: 1,
-                backgroundColor: props.backgroundColor || offWhite,
+                backgroundColor: getOpaqueBackground(props.backgroundColor || offWhite),
             }}
             exit={{
                 // opacity: 0,

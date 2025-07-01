@@ -392,3 +392,38 @@ input[type="checkbox"] {
   ...
 }
 */
+
+/* Call Mode base document dimming */
+.ProseMirror.call-mode-dimmed {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Alternative overlay approach if background doesn't work */
+.ProseMirror.call-mode-dimmed::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Dim the page margins/background when in call mode */
+body.call-mode-dimmed::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: -2; /* Behind everything, including the ProseMirror overlay */
+  transition: opacity 0.2s ease-in-out;
+}
