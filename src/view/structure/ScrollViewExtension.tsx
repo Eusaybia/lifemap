@@ -196,7 +196,7 @@ export const ScrollViewExtension = TipTapNode.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(false);
+      const [isCentered, setIsCentered] = useState(true);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -216,36 +216,34 @@ export const ScrollViewExtension = TipTapNode.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        if (!nodeElement) return;
-
-        const handleScroll = () => {
-          const rect = nodeElement.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          // Calculate the top (25%) and bottom (75%) boundaries of the middle band
-          const topBoundary = viewportHeight * 0.25;
-          const bottomBoundary = viewportHeight * 0.75;
-
-          // Check if the element overlaps with the middle 50% band
-          const centered = rect.bottom > topBoundary && rect.top < bottomBoundary;
-          setIsCentered(centered);
-        };
-
-        const throttledHandler = throttle(handleScroll, 100);
-
-        let scrollContainer: HTMLElement | Window = window;
-        // TODO: Find the correct scrollable container if needed
-
-        if (docAttributes.selectedFocusLens === 'call-mode') {
-          scrollContainer.addEventListener('scroll', throttledHandler);
-          handleScroll(); // Initial check
-        } else {
-          // Ensure not marked as centered if not in call-mode
+        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
+          // If not in call-mode, ensure isCentered is false
           setIsCentered(false);
+          return;
         }
 
-        // Cleanup
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            setIsCentered(entry.isIntersecting);
+          },
+          {
+            root: null,
+            rootMargin: '-25% 0% -25% 0%',
+            threshold: 0.0,
+          }
+        );
+
+        // Immediate check to avoid initial dim before observer callback
+        const rect = nodeElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const topBoundary = viewportHeight * 0.25;
+        const bottomBoundary = viewportHeight * 0.75;
+        setIsCentered(rect.bottom > topBoundary && rect.top < bottomBoundary);
+
+        observer.observe(nodeElement);
+
         return () => {
-          scrollContainer.removeEventListener('scroll', throttledHandler);
+          observer.disconnect();
         };
       }, [docAttributes.selectedFocusLens, nodeViewRef]);
 
