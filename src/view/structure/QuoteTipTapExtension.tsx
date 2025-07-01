@@ -4,7 +4,6 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule 
 import { motion } from "framer-motion";
 import { purple } from "../Theme";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
-import { throttle } from 'lodash';
 
 export const doubleDoubleQuoteInputRegex = /""([^""]*)""/
 
@@ -43,7 +42,7 @@ export const QuoteExtension = Node.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(false);
+      const [isCentered, setIsCentered] = useState(true);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -63,35 +62,48 @@ export const QuoteExtension = Node.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        if (!nodeElement) return;
-
-        const handleScroll = () => {
-          const rect = nodeElement.getBoundingClientRect();
-          const viewportHeight = window.innerHeight;
-          // Calculate very focused area - only 10% of viewport height centered around middle
-          const topBoundary = viewportHeight * 0.45;   // 45% from top
-          const bottomBoundary = viewportHeight * 0.55; // 55% from top
-
-          // Check if the element overlaps with the narrow 10% focus band
-          const centered = rect.bottom > topBoundary && rect.top < bottomBoundary;
-          setIsCentered(centered);
-        };
-
-        const throttledHandler = throttle(handleScroll, 100);
-
-        let scrollContainer: HTMLElement | Window = window;
-
-        if (docAttributes.selectedFocusLens === 'call-mode') {
-          scrollContainer.addEventListener('scroll', throttledHandler);
-          handleScroll(); // Initial check
-        } else {
-          // Ensure not marked as centered if not in call-mode
+        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
+          // If not in call-mode, ensure isCentered is false
           setIsCentered(false);
+          return;
         }
 
-        // Cleanup
+        const scrollParent = nodeElement.closest('.scrollview') as HTMLElement | null;
+
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            setIsCentered(entry.isIntersecting);
+          },
+          {
+            root: scrollParent,
+            // A negative margin shrinks the root's bounding box.
+            // '-45% 0% -45% 0%' means the "viewport" for intersection is a 10%
+            // horizontal band in the vertical middle of the scroll container.
+            rootMargin: '-45% 0% -45% 0%',
+            threshold: 0.0, // Trigger as soon as any part of the element enters the zone
+          }
+        );
+
+        // Immediate check to avoid initial dim before observer callback
+        const rect = nodeElement.getBoundingClientRect();
+        let topBoundary: number;
+        let bottomBoundary: number;
+        if (scrollParent) {
+          const parentRect = scrollParent.getBoundingClientRect();
+          const parentHeight = parentRect.height;
+          topBoundary = parentRect.top + parentHeight * 0.45;
+          bottomBoundary = parentRect.top + parentHeight * 0.55;
+        } else {
+          const viewportHeight = window.innerHeight;
+          topBoundary = viewportHeight * 0.45;
+          bottomBoundary = viewportHeight * 0.55;
+        }
+        setIsCentered(rect.bottom > topBoundary && rect.top < bottomBoundary);
+
+        observer.observe(nodeElement);
+
         return () => {
-          scrollContainer.removeEventListener('scroll', throttledHandler);
+          observer.disconnect();
         };
       }, [docAttributes.selectedFocusLens, nodeViewRef]);
 
