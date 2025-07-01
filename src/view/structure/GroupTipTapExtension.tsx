@@ -223,7 +223,7 @@ export const GroupExtension = TipTapNode.create({
       // @ts-ignore
       const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
       // State to track if the node is centered
-      const overlayRef = useRef<HTMLDivElement>(null);
+      const [isCentered, setIsCentered] = useState(true);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -243,51 +243,49 @@ export const GroupExtension = TipTapNode.create({
       // Effect to handle scroll listener for centerline intersection
       useEffect(() => {
         const nodeElement = nodeViewRef.current;
-        const overlayElement = overlayRef.current;
-        if (!nodeElement || !overlayElement) return;
-
-        // A function to set opacity directly on the DOM element
-        const setDimmed = (dim: boolean) => {
-          overlayElement.style.transition = 'opacity 0.2s ease-in-out';
-          overlayElement.style.opacity = dim ? '0.8' : '0';
-        };
-
-        if (docAttributes.selectedFocusLens !== 'call-mode') {
-          setDimmed(false);
-          return; // No observer needed
+        if (!nodeElement || docAttributes.selectedFocusLens !== 'call-mode') {
+          setIsCentered(false);
+          return;
         }
 
         const scrollParent = nodeElement.closest('.scrollview') as HTMLElement | null;
 
         const observer = new IntersectionObserver(
           ([entry]) => {
-            // Not centered means it should be dimmed
-            setDimmed(!entry.isIntersecting);
+            setIsCentered(prev => prev === entry.isIntersecting ? prev : entry.isIntersecting);
           },
           {
             root: scrollParent,
-            // A negative margin shrinks the root's bounding box.
-            // '-45% 0% -45% 0%' means the "viewport" for intersection is a 10%
-            // horizontal band in the vertical middle of the scroll container.
             rootMargin: '-45% 0% -45% 0%',
-            threshold: 0.0, // Trigger as soon as any part of the element enters the zone
+            threshold: 0.0,
           }
         );
 
-        // Perform an initial synchronous check to prevent flash of dimmed content
-        const rect = nodeElement.getBoundingClientRect();
-        let topBoundary: number, bottomBoundary: number;
-        if (scrollParent) {
-          const parentRect = scrollParent.getBoundingClientRect();
-          topBoundary = parentRect.top + parentRect.height * 0.45;
-          bottomBoundary = parentRect.top + parentRect.height * 0.55;
-        } else {
-          const viewportHeight = window.innerHeight;
-          topBoundary = viewportHeight * 0.45;
-          bottomBoundary = viewportHeight * 0.55;
-        }
-        setDimmed(!(rect.bottom > topBoundary && rect.top < bottomBoundary));
+        const computeInitialCenter = () => {
+          const rect = nodeElement.getBoundingClientRect();
+          let topBoundary: number, bottomBoundary: number;
+          if (scrollParent) {
+            const parentRect = scrollParent.getBoundingClientRect();
+            topBoundary = parentRect.top + parentRect.height * 0.45;
+            bottomBoundary = parentRect.top + parentRect.height * 0.55;
+          } else {
+            const viewportHeight = window.innerHeight;
+            topBoundary = viewportHeight * 0.45;
+            bottomBoundary = viewportHeight * 0.55;
+          }
+          const isInitiallyCentered = rect.bottom > topBoundary && rect.top < bottomBoundary;
+          setIsCentered(prev => prev === isInitiallyCentered ? prev : isInitiallyCentered);
+        };
 
+        // Use requestAnimationFrame to ensure DOM layout is complete
+        requestAnimationFrame(() => {
+          computeInitialCenter();
+          // Additional fallback check after a short delay
+          setTimeout(() => {
+            computeInitialCenter();
+          }, 50);
+        });
+        
         observer.observe(nodeElement);
 
         return () => {
@@ -318,6 +316,9 @@ export const GroupExtension = TipTapNode.create({
 
       // Determine if the group should be hidden (display: none)
       const isHidden = shouldHideGroup(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
+
+      // Determine overlay opacity for dimming
+      const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
       // Determine strip color based on completion state
       let stripColor = 'transparent';
@@ -379,7 +380,6 @@ export const GroupExtension = TipTapNode.create({
               })()}
             </Group>
             <motion.div
-              ref={overlayRef}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -389,8 +389,10 @@ export const GroupExtension = TipTapNode.create({
                 backgroundColor: 'black',
                 borderRadius: 10,
                 pointerEvents: 'none',
-                opacity: 0,
               }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: dimmingOpacity }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
             />
           </motion.div>
         </NodeViewWrapper>
