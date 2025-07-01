@@ -134,6 +134,7 @@ export const officialExtensions = (quantaId: string) => {return [
     heading: false,
     codeBlock: false,
     gapcursor: false,
+    // document: false, // Re-enable default document
   }),
   Table.configure({
     resizable: true,

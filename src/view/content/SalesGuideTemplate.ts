@@ -7,7 +7,7 @@ export const SalesGuideTemplate: JSONContent = {
             "type": "paragraph",
             "attrs": {
                 "quantaId": "c284e157-abea-4db5-98ba-8f2fd1ad6c51",
-                "textAlign": "left",
+                // "textAlign": "left",
                 "indent": 0
             },
             "content": [
