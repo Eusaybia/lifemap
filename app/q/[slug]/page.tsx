@@ -42,7 +42,7 @@ export default function Page({ params }: { params: { slug: string } }) {
             paddingLeft: padding,
             paddingRight: minimapWidth + padding,
         }}>
-            <div style={{
+            <div className="center-content" style={{
                 width: '100%',
                 maxWidth: maxContentWidth,
                 position: 'relative',
