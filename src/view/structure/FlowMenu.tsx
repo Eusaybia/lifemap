@@ -416,44 +416,6 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 </Option>
             </FlowSwitch>
 
-            <FlowSwitch value={irrelevantEventNodesDisplayLens} isLens>
-                <Option
-                    value="show"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'show' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            👁️ Show all irrelevant event nodes
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value="hide"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'hide' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🙈 Hide all irrelevant event nodes
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value="dim"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ irrelevantEventNodesDisplayLens: 'dim' as DocumentAttributes['irrelevantEventNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🕶️ Dim all irrelevant event nodes
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
 
             <FlowSwitch value={unimportantNodesDisplayLens} isLens>
                 <Option
