@@ -423,44 +423,6 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             </FlowSwitch>
 
 
-            <FlowSwitch value={unimportantNodesDisplayLens} isLens>
-                <Option
-                    value="show"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'show' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            👁️ Show unimportant nodes
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value="hide"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'hide' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🙈 Hide unimportant nodes
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value="dim"
-                    onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ unimportantNodesDisplayLens: 'dim' as DocumentAttributes['unimportantNodesDisplayLens'] }).run();
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🔅️ Dim all unimportant nodes
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
 
         </motion.div>
     )
