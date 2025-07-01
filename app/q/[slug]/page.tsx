@@ -1,6 +1,7 @@
 'use client'
 
 import React from "react";
+import { useEffect } from "react";
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Quanta } from "../../../src/core/Quanta";
@@ -20,6 +21,38 @@ export default function Page({ params }: { params: { slug: string } }) {
     const maxContentWidth = 1200; // Maximum width for optimal reading experience
 
     useAudibleRenders(false);
+
+    // Scroll jiggle workaround for IntersectionObserver issues
+    useEffect(() => {
+        const triggerScrollJiggle = () => {
+            const currentScroll = window.scrollY;
+            window.scrollTo(0, currentScroll + 1);
+            setTimeout(() => {
+                window.scrollTo(0, currentScroll);
+            }, 10);
+        };
+
+        // Trigger on page load
+        const timeout = setTimeout(() => {
+            triggerScrollJiggle();
+        }, 100);
+
+        // Listen for focus lens changes via localStorage
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'docAttributes') {
+                setTimeout(() => {
+                    triggerScrollJiggle();
+                }, 50);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        return () => {
+            clearTimeout(timeout);
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 
     const mainContent = (
         <>
