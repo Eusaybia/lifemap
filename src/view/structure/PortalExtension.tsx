@@ -380,7 +380,12 @@ const PortalExtension = Node.create({
                 <option value="all">Show all</option>
                 <option value="important">Show only important</option>
               </select>
-              {showMode === 'important' && portalContent ? (
+
+              <div style={{ display: showMode === 'important' ? 'none' : 'block' }}>
+                <NodeViewContent node={props.node} />
+              </div>
+
+              {showMode === 'important' && portalContent && (
                 <Group
                   lens="identity"
                   quantaId={portalContent.attrs.quantaId}
@@ -391,8 +396,6 @@ const PortalExtension = Node.create({
                     dangerouslySetInnerHTML={{ __html: filteredHtml ?? '' }}
                   />
                 </Group>
-              ) : (
-                <NodeViewContent node={props.node} />
               )}
             </div>
           </NodeViewWrapper>
