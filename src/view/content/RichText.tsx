@@ -320,7 +320,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       }
 
       // Set global editability based on the lens
-      const shouldBeEditable = documentAttributes.selectedFocusLens === "admin-editing" || documentAttributes.selectedFocusLens === "call-mode";
+      const shouldBeEditable = documentAttributes.selectedFocusLens === "admin-editing" || documentAttributes.selectedFocusLens === "call-mode" || documentAttributes.selectedFocusLens === "dev-mode";
       if (editor.isEditable !== shouldBeEditable) {
         editor.setEditable(shouldBeEditable);
       }
@@ -332,7 +332,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       const documentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
       console.log("Initial Document Attributes", documentAttributes);
       setCurrentFocusLens(documentAttributes.selectedFocusLens); // Set initial state
-      const shouldBeEditable = documentAttributes.selectedFocusLens === 'admin-editing' || documentAttributes.selectedFocusLens === 'call-mode';
+      const shouldBeEditable = documentAttributes.selectedFocusLens === 'admin-editing' || documentAttributes.selectedFocusLens === 'call-mode' || documentAttributes.selectedFocusLens === 'dev-mode';
       editor.setEditable(shouldBeEditable);
 
       // Listen for attribute changes from localStorage to update state
