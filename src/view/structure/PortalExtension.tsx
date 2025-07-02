@@ -14,12 +14,12 @@ import {
   isTextSelection,
   mergeAttributes,
 } from "@tiptap/core";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
 import { Grip } from "../content/Grip";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { GroupLenses } from "./Group";
+import { GroupLenses, Group } from "./Group";
 import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { motion } from "framer-motion";
 
@@ -130,6 +130,9 @@ const PortalExtension = Node.create({
         // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
         const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
         const [showMode, setShowMode] = useState<'all' | 'important'>('all');
+        const [filteredHtml, setFilteredHtml] = useState<string | null>(null);
+
+        const portalContent = props.node.content.firstChild;
 
         // If the input is updated, this handler is called
         const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,6 +239,67 @@ const PortalExtension = Node.create({
         };
 
         useEffect(() => {
+          if (showMode !== 'important') {
+            setFilteredHtml(null);
+            return;
+          }
+
+          const portalContent = props.node.content.firstChild;
+          if (!portalContent || portalContent.type.name !== 'group') {
+            return;
+          }
+
+          const importantParagraphs: JSONContent[] = [];
+
+          portalContent.content.forEach(paragraphNode => {
+            if (paragraphNode.type.name !== 'paragraph') {
+              return;
+            }
+
+            const lines: ProseMirrorNode[][] = [];
+            let currentLine: ProseMirrorNode[] = [];
+
+            paragraphNode.content.forEach(inlineNode => {
+              if (inlineNode.type.name === 'hardBreak') {
+                lines.push(currentLine);
+                currentLine = [];
+              } else {
+                currentLine.push(inlineNode);
+              }
+            });
+            lines.push(currentLine);
+
+            const importantLinesContent: JSONContent[] = [];
+            lines.forEach(line => {
+              const hasImportant = line.some(
+                n => n.type.name === 'mention' && (n.attrs.label as string)?.includes('⭐️ important')
+              );
+              if (hasImportant && line.length > 0) {
+                line.forEach(n => importantLinesContent.push(n.toJSON()));
+                importantLinesContent.push({ type: 'hardBreak' });
+              }
+            });
+
+            if (importantLinesContent.length > 0) {
+              importantLinesContent.pop(); // remove trailing hardBreak
+              importantParagraphs.push({
+                type: 'paragraph',
+                attrs: paragraphNode.attrs,
+                content: importantLinesContent,
+              });
+            }
+          });
+          
+          const filteredDoc: JSONContent = {
+            type: 'doc', // generateHTML requires a doc
+            content: importantParagraphs
+          };
+
+          const html = generateHTML(filteredDoc, props.editor.options.extensions);
+          setFilteredHtml(html);
+        }, [showMode, props.node, props.editor.options.extensions]);
+
+        useEffect(() => {
         // Update the transclusion if the document has changed
         // TODO: To optimise, make it only if the particular node or referencedQuantaId has changed
           props.editor.on("update", handleEditorUpdate);
@@ -316,10 +380,17 @@ const PortalExtension = Node.create({
                 <option value="all">Show all</option>
                 <option value="important">Show only important</option>
               </select>
-              {showMode === 'important' ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-                  Portal hidden - showing only important content
-                </div>
+              {showMode === 'important' && portalContent ? (
+                <Group
+                  lens="identity"
+                  quantaId={portalContent.attrs.quantaId}
+                  backgroundColor={portalContent.attrs.backgroundColor}
+                >
+                  <div
+                    className="ProseMirror"
+                    dangerouslySetInnerHTML={{ __html: filteredHtml ?? '' }}
+                  />
+                </Group>
               ) : (
                 <NodeViewContent node={props.node} />
               )}
