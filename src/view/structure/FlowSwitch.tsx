@@ -20,15 +20,17 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     let timer: NodeJS.Timeout | null = null;
 
-    const switchElementsRefs = props.children.map(() => React.createRef<HTMLDivElement>());
+    // Filter out undefined/null children first
+    const validChildren = props.children.filter(child => child != null);
+    const switchElementsRefs = validChildren.map(() => React.createRef<HTMLDivElement>());
 
-    const switchElements = props.children.map((child, index) => 
+    const switchElements = validChildren.map((child, index) => 
         (<motion.div
             ref={switchElementsRefs[index]}
             initial={{ opacity: 0.2, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             onClick={() => {
-                if (typeof child.props.onClick === 'function') {
+                if (child && child.props && typeof child.props.onClick === 'function') {
                     child.props.onClick()
                 }
             }}
@@ -56,9 +58,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     // Scroll to the element with the key === props.value
     React.useEffect(() => {
-        // Find the element
-        const index = props.children.findIndex(child => {
-            return child.props.value === props.value
+        // Find the element in valid children
+        const index = validChildren.findIndex(child => {
+            return child && child.props && child.props.value === props.value
         })
 
         if (index !== -1 && switchElementsRefs[index].current) {
