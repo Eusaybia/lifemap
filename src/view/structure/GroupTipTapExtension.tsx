@@ -397,6 +397,7 @@ export const GroupExtension = TipTapNode.create({
                 top: '10px',
                 bottom: '10px',
                 width: '8px',
+                borderRadius: '2px',
                 pointerEvents: 'none',
               }}
               initial={{
