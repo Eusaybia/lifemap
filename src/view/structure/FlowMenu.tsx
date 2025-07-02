@@ -113,43 +113,52 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
 
 // Memoize ActionSwitch to prevent re-renders if props haven't changed
 const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor }) => {
+    // @ts-ignore - getDocumentAttributes exists via the extension
+    const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
+    const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
 
     return (
         <FlowSwitch value={props.selectedAction} isLens>
-            <Option
-                value={"Copy node to clipboard"}
-                onClick={() => {
-                    copySelectedNodeToClipboard(props.editor)
-                }}
-            >
-                <motion.div>
-                    <span>
-                        📋 Copy node to clipboard
-                    </span>
-                </motion.div>
-            </Option>
-            <Option
-                value={"Replace page with 'Sales Guide' template"}
-                onClick={() => {
-                    props.editor.commands.setContent(SalesGuideTemplate);
-                }}
-            >
-                <motion.div>
-                    <span>
-                        💰 Insert Sales Guide Template
-                    </span>
-                </motion.div>
-            </Option>
-            <Option
-                value={"Copy quanta id"}
-                onClick={() => handleCopyQuantaIdAction(props.editor)}
-            >
-                <motion.div>
-                    <span>
-                        🆔 Copy quanta id
-                    </span>
-                </motion.div>
-            </Option>
+            {isDevMode && (
+                <Option
+                    value={"Copy node to clipboard"}
+                    onClick={() => {
+                        copySelectedNodeToClipboard(props.editor)
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            📋 Copy node to clipboard
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
+            {isDevMode && (
+                <Option
+                    value={"Replace page with 'Sales Guide' template"}
+                    onClick={() => {
+                        props.editor.commands.setContent(SalesGuideTemplate);
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            💰 Insert Sales Guide Template
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
+            {isDevMode && (
+                <Option
+                    value={"Copy quanta id"}
+                    onClick={() => handleCopyQuantaIdAction(props.editor)}
+                >
+                    <motion.div>
+                        <span>
+                            🆔 Copy quanta id
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
             <Option
                 value={"Insert 2 columns"}
                 onClick={() => {
@@ -186,16 +195,18 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
-            <Option
-                value={"Copy content"}
-                onClick={() => handleCopyNodeJSONContentToClipboardAction(props.editor)}
-            >
-                <motion.div>
-                    <span style={{}}>
-                        📑 Copy content
-                    </span>
-                </motion.div>
-            </Option>
+            {isDevMode && (
+                <Option
+                    value={"Copy content"}
+                    onClick={() => handleCopyNodeJSONContentToClipboardAction(props.editor)}
+                >
+                    <motion.div>
+                        <span style={{}}>
+                            📑 Copy content
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
             <Option
                 value={"Add Details"}
                 onClick={() => props.editor.commands.setDetails()}
@@ -227,23 +238,25 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
-            <Option
-                value={"Revert to last valid content"}
-                onClick={() => {
-                    const lastValidContent = backup.getLastValidContent();
-                    if (lastValidContent) {
-                        props.editor.commands.setContent(lastValidContent);
-                    } else {
-                        console.warn('No valid backup content found');
-                    }
-                }}
-            >
-                <motion.div>
-                    <span>
-                        ↩️ Revert to last valid content
-                    </span>
-                </motion.div>
-            </Option>
+            {isDevMode && (
+                <Option
+                    value={"Revert to last valid content"}
+                    onClick={() => {
+                        const lastValidContent = backup.getLastValidContent();
+                        if (lastValidContent) {
+                            props.editor.commands.setContent(lastValidContent);
+                        } else {
+                            console.warn('No valid backup content found');
+                        }
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            ↩️ Revert to last valid content
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
         </FlowSwitch>
     )
 })
@@ -373,6 +386,20 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                     <motion.div>
                         <span style={{ fontFamily: 'Inter' }}>
                             🎓 Learning Mode
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"dev-mode" as DocumentAttributes['selectedFocusLens']}
+                    onClick={() => {
+                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'dev-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        // Refresh page after a short delay to allow the attribute to be set
+                        setTimeout(() => window.location.reload(), 100);
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ fontFamily: 'Inter' }}>
+                            🔧 Dev Mode
                         </span>
                     </motion.div>
                 </Option>

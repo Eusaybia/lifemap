@@ -32,7 +32,7 @@ declare module '@tiptap/core' {
 
 // Define the structure of the attributes
 export interface DocumentAttributes {
-  selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode';
+  selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode' | 'dev-mode';
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
