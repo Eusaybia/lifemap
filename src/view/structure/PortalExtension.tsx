@@ -129,6 +129,7 @@ const PortalExtension = Node.create({
         // On node instantiation, useState will draw from the node attributes
         // If the attributes are updated, this will re-render, therefore this state is always synced with the node attributes
         const [referencedQuantaId, setReferencedQuantaId] = useState(props.node.attrs.referencedQuantaId);
+        const [showMode, setShowMode] = useState<'all' | 'important'>('all');
 
         // If the input is updated, this handler is called
         const handleReferencedQuantaIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,35 +297,32 @@ const PortalExtension = Node.create({
               contentEditable={false}
             >
               <Grip />
-              {(() => {
-                // Need to switch all other instances of using "as" to "satisfies"
-                switch (props.node.attrs.lens satisfies PortalLenses) {
-                  case "identity":
-                    return <NodeViewContent node={props.node} />;
-                  case "hideUnimportantNodes":
-                    return (
-                      <div style={{ position: 'relative' }}>
-                        <NodeViewContent node={props.node} />
-                        {!checkForImportantMention(props.node) && (
-                          <motion.div
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              backgroundColor: 'black',
-                              opacity: 0.8,
-                              borderRadius: 10,
-                            }}
-                          />
-                        )}
-                      </div>
-                    );
-                  default:
-                    return <NodeViewContent node={props.node} />;
-                }
-              })()}
+              <select
+                value={showMode}
+                onChange={(e) => setShowMode(e.target.value as 'all' | 'important')}
+                style={{
+                  position: 'absolute',
+                  top: '15px',
+                  right: '15px',
+                  zIndex: 2,
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  backgroundColor: 'white'
+                }}
+                contentEditable={false}
+              >
+                <option value="all">Show all</option>
+                <option value="important">Show only important</option>
+              </select>
+              {showMode === 'important' ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                  Portal hidden - showing only important content
+                </div>
+              ) : (
+                <NodeViewContent node={props.node} />
+              )}
             </div>
           </NodeViewWrapper>
         );
