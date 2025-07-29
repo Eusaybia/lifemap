@@ -39,7 +39,7 @@ const parseMentionsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) =>
 }
 
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
-    char: "#",
+    char: "@",
     allowSpaces: true,
     items: ({ query, editor }): (MentionSuggestion)[] => {
         let mentions = parseMentionsAndKeyValueTags(editor.getJSON());
@@ -203,7 +203,7 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
                     key={index}
                     onClick={() => selectItem(index)}
                 >
-                    {item.mentionLabel}
+                    📍 {item.mentionLabel}
                 </motion.div>
             )) :
                 <div className="item">No result</div>

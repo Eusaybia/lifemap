@@ -427,3 +427,12 @@ body.call-mode-dimmed::before {
   z-index: -2; /* Behind everything, including the ProseMirror overlay */
   transition: opacity 0.2s ease-in-out;
 }
+
+/* Mention pin and text styling */
+.mention .mention-pin {
+  margin-right: 2px;
+}
+
+.mention .mention-text {
+  /* Text styling can be added here if needed */
+}

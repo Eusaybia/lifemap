@@ -28,7 +28,16 @@ export const CustomMention = Mention.extend({
         'data-type': 'mention',
         'data-id': node.attrs.id || node.attrs.label
       }),
-      `${node.attrs.label}`
+      [
+        'span',
+        { class: 'mention-pin' },
+        '📍'
+      ],
+      [
+        'span',
+        { class: 'mention-text' },
+        `${node.attrs.label}`
+      ]
     ]
   },
   draggable: true,
