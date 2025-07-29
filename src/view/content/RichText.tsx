@@ -36,11 +36,11 @@ import { DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
-import { mentionSuggestionOptions } from './TagTipTapExtension'
+import { locationSuggestionOptions } from './LocationTipTapExtension'
 import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
-import { CustomMention } from './Mention'
+import { CustomLocation } from './Location'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -156,7 +156,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Underline,
   UniqueID.configure({
     // TODO: Add more nodes
-    types: ['paragraph', 'mention', 'group', 'scrollview'],
+    types: ['paragraph', 'location', 'group', 'scrollview'],
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -170,12 +170,12 @@ export const customExtensions: Extensions = [
   CustomLink.configure({
     openOnClick: true,
   }),
-  CustomMention.configure(
+  CustomLocation.configure(
     {
       HTMLAttributes: {
-        class: 'mention',
+        class: 'location',
       },
-      suggestion: mentionSuggestionOptions,
+      suggestion: locationSuggestionOptions,
     }
   ),
   DocumentAttributeExtension,

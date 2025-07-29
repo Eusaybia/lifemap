@@ -141,7 +141,8 @@
   }
 }
 
-.mention {
+Location {
+  display: inline-flex;
   width: max-content;
   /* 61px */
   height: fit-content;
@@ -428,11 +429,11 @@ body.call-mode-dimmed::before {
   transition: opacity 0.2s ease-in-out;
 }
 
-/* Mention pin and text styling */
-.mention .mention-pin {
+/* Location pin and text styling */
+Location .location-pin {
   margin-right: 2px;
 }
 
-.mention .mention-text {
+Location .location-text {
   /* Text styling can be added here if needed */
 }
