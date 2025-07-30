@@ -41,13 +41,13 @@ import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomLocation } from './Location'
+import { LocationAiExtended } from './LocationAiDetection'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { ConversationExtension } from '../structure/ConversationExtension'
-import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { ScrollViewExtension } from '../structure/ScrollViewExtension'
@@ -142,9 +142,7 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   TableRow,
   TableHeader,
-  TableCell.configure({
-    content: 'block+',
-  }),
+  TableCell,
   TaskItem.configure({
     nested: true,
   }),
@@ -185,7 +183,6 @@ export const customExtensions: Extensions = [
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
-  LocationExtension,
   MathExtension,
   MessageExtension,
   PortalExtension,
@@ -193,7 +190,25 @@ export const customExtensions: Extensions = [
   QuoteExtension,
   WarningExtension,
   HighlightImportantLinePlugin,
-  // EmptyNodeCleanupExtension,
+  LocationAiExtended.configure({
+    // Your Tiptap Content AI app id
+    appId: 'x0q7vmd9',
+    // This needs to be your generated JWT and MUST NOT be the OpenAI API key!
+    token: process.env.NEXT_PUBLIC_TIPTAP_JWT_TOKEN as string,
+    autocompletion: true,
+    onLoading: () => {
+      console.log('AI location detection started...');
+    },
+    onChunk: ({ response }) => {
+      console.log('AI chunk received:', response);
+    },
+    onSuccess: ({ response }) => {
+      console.log('AI location detection completed:', response);
+    },
+    onError: (error) => {
+      console.error('AI location detection error:', error);
+    },
+  }),
 ]
 
 export const agents: Extensions = [
@@ -389,7 +404,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
   return editor
 }
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
-export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
+export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void, aiJwt?: string }) => {
   let content = props.text
 
   
