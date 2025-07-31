@@ -74,6 +74,7 @@
     "framer-motion": "10.12.22",
     "highlight.js": "11.7.0",
     "iframe-resizer-react": "1.1.0",
+    "jose": "^6.0.12",
     "jsonwebtoken": "9.0.1",
     "katex": "0.16.4",
     "lowlight": "2.8.1",

@@ -35,9 +35,14 @@ export const LocationAiExtended = Ai.extend({
             }
           }
 
-          console.log('Calling aiTextPrompt...');
+          const promptText = `Translate the following text to French and add some emojis: ${selectedText}`;
+          console.log('📤 Calling aiTextPrompt...');
+          console.log('📤 Full prompt being sent:', promptText);
+          console.log('📤 Prompt length:', promptText.length);
+          console.log('📤 Options passed:', options);
+          
           return editor.commands.aiTextPrompt({
-            text: `Translate the following text to French and add some emojis: ${selectedText}`,
+            text: promptText,
             ...options,
           })
         },

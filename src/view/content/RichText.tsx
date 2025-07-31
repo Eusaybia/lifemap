@@ -194,10 +194,42 @@ export const customExtensions: Extensions = [
     // Your Tiptap Content AI app id
     appId: 'x0q7vmd9',
     // This needs to be your generated JWT and MUST NOT be the OpenAI API key!
-    token: process.env.NEXT_PUBLIC_TIPTAP_JWT_TOKEN as string,
+    token: (() => {
+      // Fetch token from API endpoint dynamically
+      return fetch('/api/getAiToken')
+        .then(response => response.json())
+        .then(data => data.token)
+        .catch(error => {
+          console.error('Failed to fetch AI token:', error);
+          return 'fallback-token';
+        });
+    }) as any,
     autocompletion: true,
     onLoading: () => {
       console.log('AI location detection started...');
+      
+      // Log token information for debugging - fetch fresh token
+      fetch('/api/getAiToken')
+        .then(response => response.json())
+        .then(data => {
+          const token = data.token;
+          console.log('🔑 JWT Token being used:', token);
+          console.log('🔑 Token type:', typeof token);
+          console.log('🔑 Token length:', token?.length || 0);
+          if (token) {
+            console.log('🔑 Full token:', token);
+            // Try to decode and show payload (for debugging)
+            try {
+              const decodedPayload = JSON.parse(atob(token.split('.')[1]));
+              console.log('🔑 Token payload:', decodedPayload);
+            } catch (e) {
+              console.log('🔑 Could not decode token payload:', e);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('🔑 Error fetching token for logging:', error);
+        });
     },
     onChunk: ({ response }) => {
       console.log('AI chunk received:', response);
