@@ -194,16 +194,7 @@ export const customExtensions: Extensions = [
     // Your Tiptap Content AI app id
     appId: 'x0q7vmd9',
     // This needs to be your generated JWT and MUST NOT be the OpenAI API key!
-    token: (() => {
-      // Fetch token from API endpoint dynamically
-      return fetch('/api/getAiToken')
-        .then(response => response.json())
-        .then(data => data.token)
-        .catch(error => {
-          console.error('Failed to fetch AI token:', error);
-          return 'fallback-token';
-        });
-    }) as any,
+    token: "klbF2siF6sv9pyQ7IpYNdxNkK4QDc2R7LmNS7LihqN2IegehiQTg9miQxCtrbxR5",
     autocompletion: true,
     onLoading: () => {
       console.log('AI location detection started...');
