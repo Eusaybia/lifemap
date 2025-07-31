@@ -345,22 +345,6 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
 
     return (
         <motion.div style={documentMenuStyle}>
-            <IconButton
-                onClick={() => props.editor.commands.aiDetectLocations()}
-                style={{
-                    fontSize: '14px',
-                    padding: '8px 12px',
-                    minHeight: 'auto',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: 'white',
-                    marginRight: '10px'
-                }}
-            >
-                🇫🇷 AI
-            </IconButton>
             <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option

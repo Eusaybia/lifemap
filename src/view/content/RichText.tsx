@@ -41,13 +41,13 @@ import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomLocation } from './Location'
-import { LocationAiExtended } from './LocationAiDetection'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { ConversationExtension } from '../structure/ConversationExtension'
+import { LocationExtension } from './LocationTipTapExtension'
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { ScrollViewExtension } from '../structure/ScrollViewExtension'
@@ -142,7 +142,9 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   TableRow,
   TableHeader,
-  TableCell,
+  TableCell.configure({
+    content: 'block+',
+  }),
   TaskItem.configure({
     nested: true,
   }),
@@ -183,6 +185,7 @@ export const customExtensions: Extensions = [
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
+  LocationExtension,
   MathExtension,
   MessageExtension,
   PortalExtension,
@@ -190,48 +193,7 @@ export const customExtensions: Extensions = [
   QuoteExtension,
   WarningExtension,
   HighlightImportantLinePlugin,
-  LocationAiExtended.configure({
-    // Your Tiptap Content AI app id
-    appId: 'x0q7vmd9',
-    // This needs to be your generated JWT and MUST NOT be the OpenAI API key!
-    token: "klbF2siF6sv9pyQ7IpYNdxNkK4QDc2R7LmNS7LihqN2IegehiQTg9miQxCtrbxR5",
-    autocompletion: true,
-    onLoading: () => {
-      console.log('AI location detection started...');
-      
-      // Log token information for debugging - fetch fresh token
-      fetch('/api/getAiToken')
-        .then(response => response.json())
-        .then(data => {
-          const token = data.token;
-          console.log('🔑 JWT Token being used:', token);
-          console.log('🔑 Token type:', typeof token);
-          console.log('🔑 Token length:', token?.length || 0);
-          if (token) {
-            console.log('🔑 Full token:', token);
-            // Try to decode and show payload (for debugging)
-            try {
-              const decodedPayload = JSON.parse(atob(token.split('.')[1]));
-              console.log('🔑 Token payload:', decodedPayload);
-            } catch (e) {
-              console.log('🔑 Could not decode token payload:', e);
-            }
-          }
-        })
-        .catch(error => {
-          console.error('🔑 Error fetching token for logging:', error);
-        });
-    },
-    onChunk: ({ response }) => {
-      console.log('AI chunk received:', response);
-    },
-    onSuccess: ({ response }) => {
-      console.log('AI location detection completed:', response);
-    },
-    onError: (error) => {
-      console.error('AI location detection error:', error);
-    },
-  }),
+  // EmptyNodeCleanupExtension,
 ]
 
 export const agents: Extensions = [
@@ -427,7 +389,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
   return editor
 }
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
-export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void, aiJwt?: string }) => {
+export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
 
   
