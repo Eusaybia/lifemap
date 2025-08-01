@@ -8,6 +8,7 @@ import { Quanta } from "../../../src/core/Quanta";
 import { offWhite } from "../../../src/view/Theme";
 import { MainEditor } from "../../../src/view/content/RichText";
 import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
+import { AiEmojifyFixedButton } from "../../../src/components/ai-emojify-fixed-button";
 import { useAudibleRenders } from "react-audible-debug";
 
 const Minimap = dynamic(() => import('../../../src/view/structure/Minimap').then(mod => mod.Minimap), {
@@ -75,6 +76,7 @@ export default function Page({ params }: { params: { slug: string } }) {
             paddingLeft: padding,
             paddingRight: minimapWidth + padding,
         }}>
+            <AiEmojifyFixedButton editor={editor} />
             <div className="center-content" style={{
                 width: '100%',
                 maxWidth: maxContentWidth,

@@ -47,7 +47,8 @@ import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { ConversationExtension } from '../structure/ConversationExtension'
-import { LocationExtension } from './LocationTipTapExtension'
+// import { LocationExtension } from './LocationTipTapExtension'
+import { Ai } from "@tiptap-pro/extension-ai"
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { ScrollViewExtension } from '../structure/ScrollViewExtension'
@@ -185,7 +186,7 @@ export const customExtensions: Extensions = [
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
-  LocationExtension,
+  // LocationExtension,
   MathExtension,
   MessageExtension,
   PortalExtension,
@@ -193,6 +194,10 @@ export const customExtensions: Extensions = [
   QuoteExtension,
   WarningExtension,
   HighlightImportantLinePlugin,
+  Ai.configure({
+    appId: 'x0q7vmd9',
+    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTQwMDU4NzEsIm5iZiI6MTc1NDAwNTg3MSwiZXhwIjoxNzU0MDkyMjcxLCJpc3MiOiJodHRwczovL2Nsb3VkLnRpcHRhcC5kZXYiLCJhdWQiOiI1MjRmNjczZi0yNTQ1LTRkNDQtYTFmOC1mNDUwZDUxMzE3YTEifQ.Jp_2Q7pyEJeBcaogFLuoR2rLF-WIQM0M7weAezFD8ec',
+  }),
   // EmptyNodeCleanupExtension,
 ]
 
