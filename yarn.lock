@@ -2699,10 +2699,10 @@
   resolved "https://registry.npmjs.org/@tiptap/extension-table-row/-/extension-table-row-2.11.7.tgz"
   integrity sha512-K254RiXWGXGjz5Cm835hqfQiwnYXm8aw6oOa3isDh4A1B+1Ev4DB2vEDKMrgaOor3nbTsSYmAx2iEMrZSbpaRg==
 
-"@tiptap/extension-table@2.11.7":
-  version "2.11.7"
-  resolved "https://registry.npmjs.org/@tiptap/extension-table/-/extension-table-2.11.7.tgz"
-  integrity sha512-rfwWkNXz/EZuhc8lylsCWPbx0Xr5FlIhreWFyeoXYrDEO3x4ytYcVOpNmbabJYP2semfM0PvPR5o84zfFkLZyg==
+"@tiptap/extension-table@3.0.7":
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-table/-/extension-table-3.0.7.tgz#e25c91d4bfb0151fcaa8810057d33382dd3b2f46"
+  integrity sha512-S4tvIgagzWnvXLHfltXucgS9TlBwPcQTjQR4llbxmKHAQM4+e77+NGcXXDcQ7E1TdAp3Tk8xRGerGIP7kjCFRA==
 
 "@tiptap/extension-task-item@2.9.1":
   version "2.9.1"
