@@ -2523,7 +2523,7 @@
 
 "@tiptap/extension-bubble-menu@2.9.1":
   version "2.9.1"
-  resolved "https://registry.npmjs.org/@tiptap/extension-bubble-menu/-/extension-bubble-menu-2.9.1.tgz"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-bubble-menu/-/extension-bubble-menu-2.9.1.tgz#b130d8a0e2879a9378c2e1978c8c3122a1418fa8"
   integrity sha512-DWUF6NG08/bZDWw0jCeotSTvpkyqZTi4meJPomG9Wzs/Ol7mEwlNCsCViD999g0+IjyXFatBk4DfUq1YDDu++Q==
   dependencies:
     tippy.js "^6.3.7"
@@ -10089,7 +10089,7 @@ tinyspy@^3.0.2:
 
 tippy.js@6.3.7, tippy.js@^6.3.7:
   version "6.3.7"
-  resolved "https://registry.npmjs.org/tippy.js/-/tippy.js-6.3.7.tgz"
+  resolved "https://registry.yarnpkg.com/tippy.js/-/tippy.js-6.3.7.tgz#8ccfb651d642010ed9a32ff29b0e9e19c5b8c61c"
   integrity sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==
   dependencies:
     "@popperjs/core" "^2.9.0"
