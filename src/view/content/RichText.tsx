@@ -62,6 +62,7 @@ import { Plugin, Transaction } from 'prosemirror-state'
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
+import { LocationRouteExtension } from './LocationRouteExtension'
 
 // Add interface for Google Cloud Natural Language API response
 interface LocationEntity {
@@ -191,6 +192,7 @@ export const customExtensions: Extensions = [
   FadeIn,
   FocusModePlugin,
   GroupExtension,
+  LocationRouteExtension,
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,

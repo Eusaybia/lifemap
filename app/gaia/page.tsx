@@ -42,6 +42,58 @@ export default function PhysicalSpacePage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
+  const [detectedRoutes, setDetectedRoutes] = useState<Array<{from: string, to: string, intent: string, confidence: number}>>([]);
+  const [detectedLocations, setDetectedLocations] = useState<Array<{location: string, intent: string, confidence: number}>>([]);
+
+  // Define route mappings and location coordinates globally
+  const routeMappings: { [key: string]: { from: [number, number], to: [number, number], color: string } } = {
+    'Sydney-Brisbane': { from: [151.2093, -33.8688], to: [153.0251, -27.4698], color: '#22c55e' },
+    'Sydney-Shanghai': { from: [151.2093, -33.8688], to: [121.4737, 31.2304], color: '#3b82f6' },
+    'Shanghai-San Francisco': { from: [121.4737, 31.2304], to: [-122.4194, 37.7749], color: '#06b6d4' },
+    'Sydney-San Francisco': { from: [151.2093, -33.8688], to: [-122.4194, 37.7749], color: '#10b981' },
+    'Sydney-Singapore': { from: [151.2093, -33.8688], to: [103.8198, 1.3521], color: '#8b5cf6' },
+    'Singapore-Malaysia': { from: [103.8198, 1.3521], to: [101.6869, 3.1390], color: '#f59e0b' },
+    'Malaysia-Hong Kong': { from: [101.6869, 3.1390], to: [114.1694, 22.3193], color: '#eab308' },
+    'Sydney-Shenzhen': { from: [151.2093, -33.8688], to: [114.0579, 22.5431], color: '#ec4899' },
+    'Sydney-Hubei': { from: [151.2093, -33.8688], to: [114.3416, 30.5468], color: '#14b8a6' },
+    'Sydney-Rajasthan': { from: [151.2093, -33.8688], to: [75.7873, 26.9124], color: '#6366f1' },
+    'Sydney-Kansas City': { from: [151.2093, -33.8688], to: [-94.5786, 39.0997], color: '#ef4444' },
+    'Sydney-Tibet': { from: [151.2093, -33.8688], to: [91.1172, 29.6440], color: '#6b7280' },
+    'Sydney-Essaouira': { from: [151.2093, -33.8688], to: [-9.7700, 31.5125], color: '#f97316' }
+  };
+
+  const locationCoords: { [key: string]: [number, number] } = {
+    'Sydney': [151.2093, -33.8688],
+    'Brisbane': [153.0251, -27.4698],
+    'Shanghai': [121.4737, 31.2304],
+    'San Francisco': [-122.4194, 37.7749],
+    'Singapore': [103.8198, 1.3521],
+    'Malaysia': [101.6869, 3.1390],
+    'Hong Kong': [114.1694, 22.3193],
+    'Shenzhen': [114.0579, 22.5431],
+    'Hubei': [114.3416, 30.5468],
+    'Rajasthan': [75.7873, 26.9124],
+    'Kansas City': [-94.5786, 39.0997],
+    'Tibet': [91.1172, 29.6440],
+    'Essaouira': [-9.7700, 31.5125]
+  };
+
+  // Listen for route updates from the editor
+  useEffect(() => {
+    const handleRoutesUpdated = (event: CustomEvent) => {
+      const { routes, locations } = event.detail;
+      setDetectedRoutes(routes);
+      setDetectedLocations(locations);
+      console.log('Routes updated:', routes);
+      console.log('Locations updated:', locations);
+    };
+
+    window.addEventListener('routesUpdated', handleRoutesUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('routesUpdated', handleRoutesUpdated as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     // Load Mapbox GL JS dynamically
@@ -643,6 +695,8 @@ export default function PhysicalSpacePage() {
           'text-halo-width': 1
         }
       });
+
+
     });
 
     // Cleanup function
@@ -652,7 +706,119 @@ export default function PhysicalSpacePage() {
         map.current = null;
       }
     };
-  }, [mapboxLoaded]);
+  }, [mapboxLoaded, detectedRoutes, detectedLocations]);
+
+  // Handle route updates
+  useEffect(() => {
+    if (!map.current || !mapboxLoaded) return;
+
+    // Wait for map to be fully loaded before adding sources
+    const addDynamicRoutes = () => {
+      try {
+        // Clear existing highlighted routes
+        detectedRoutes.forEach((_, index) => {
+          const sourceId = `highlighted-route-${index}`;
+          const layerId = `highlighted-route-line-${index}`;
+          
+          if (map.current.getLayer(layerId)) {
+            map.current.removeLayer(layerId);
+          }
+          if (map.current.getSource(sourceId)) {
+            map.current.removeSource(sourceId);
+          }
+        });
+
+        // Clear existing highlighted locations
+        detectedLocations.forEach((_, index) => {
+          const sourceId = `highlighted-location-${index}`;
+          const layerId = `highlighted-location-marker-${index}`;
+          
+          if (map.current.getLayer(layerId)) {
+            map.current.removeLayer(layerId);
+          }
+          if (map.current.getSource(sourceId)) {
+            map.current.removeSource(sourceId);
+          }
+        });
+
+        // Add new highlighted routes
+        detectedRoutes.forEach((route, index) => {
+          const routeKey = `${route.from}-${route.to}`;
+          const reverseRouteKey = `${route.to}-${route.from}`;
+          const routeMapping = routeMappings[routeKey] || routeMappings[reverseRouteKey];
+
+          if (routeMapping) {
+            const highlightedRoute = createArc(routeMapping.from, routeMapping.to, 100);
+            
+            map.current.addSource(`highlighted-route-${index}`, {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: highlightedRoute
+                }
+              }
+            });
+
+            map.current.addLayer({
+              id: `highlighted-route-line-${index}`,
+              type: 'line',
+              source: `highlighted-route-${index}`,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': routeMapping.color,
+                'line-width': 12,
+                'line-opacity': 1,
+                'line-dasharray': [2, 2]
+              }
+            });
+          }
+        });
+
+        // Add new highlighted locations
+        detectedLocations.forEach((location, index) => {
+          const coords = locationCoords[location.location];
+          if (coords) {
+            map.current.addSource(`highlighted-location-${index}`, {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                properties: { name: location.location },
+                geometry: { type: 'Point', coordinates: coords }
+              }
+            });
+
+            map.current.addLayer({
+              id: `highlighted-location-marker-${index}`,
+              type: 'circle',
+              source: `highlighted-location-${index}`,
+              paint: {
+                'circle-radius': 15,
+                'circle-color': '#ef4444',
+                'circle-stroke-width': 4,
+                'circle-stroke-color': '#ffffff',
+                'circle-opacity': 0.9
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error adding dynamic routes:', error);
+      }
+    };
+
+    // Check if map is ready, if not wait for it
+    if (map.current.isStyleLoaded()) {
+      addDynamicRoutes();
+    } else {
+      map.current.once('style.load', addDynamicRoutes);
+    }
+  }, [detectedRoutes, detectedLocations, mapboxLoaded]);
 
   return (
     <div className="flex h-screen">
@@ -660,6 +826,23 @@ export default function PhysicalSpacePage() {
       <div style={{ position: 'absolute', top: '5rem', right: '5rem', zIndex: 10, backgroundColor: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 0 10px rgba(0,0,0,0.2)', width: '400px', height: '500px', overflow: 'auto' }}>
         <Quanta quantaId="gaia-travel-notes-f7a8b9c0-1234-5678-9abc-def012345678" userId="default-user" />
       </div>
+
+      {/* Detected Routes Status */}
+      {(detectedRoutes.length > 0 || detectedLocations.length > 0) && (
+        <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 10, backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', padding: '1rem', borderRadius: '0.5rem', maxWidth: '300px' }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Detected Routes:</h3>
+          {detectedRoutes.map((route, index) => (
+            <div key={index} style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              📍 {route.from} → {route.to} ({route.intent})
+            </div>
+          ))}
+          {detectedLocations.map((location, index) => (
+            <div key={`loc-${index}`} style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              🎯 {location.location} ({location.intent})
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Left side - Globe (now full screen) */}
       <div className="w-full relative">
