@@ -649,7 +649,8 @@ export default function PhysicalSpacePage() {
             ['==', ['get', 'routeId'], 'sydney-rajasthan'], '#6366f1',
             ['==', ['get', 'routeId'], 'sydney-kansascity'], '#ef4444',
             ['==', ['get', 'routeId'], 'sydney-tibet'], '#6b7280',
-            ['==', ['get', 'routeId'], 'sydney-essaouira'], '#f97316'
+            ['==', ['get', 'routeId'], 'sydney-essaouira'], '#f97316',
+            '#000000'
           ],
           'icon-opacity': 0.9
         }
