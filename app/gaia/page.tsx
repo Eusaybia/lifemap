@@ -2,8 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import MapboxMap from '../../components/MapboxMap';
-import RichText from '../../src/view/content/RichText';
-import { QuantaStore } from '../../src/backend/QuantaStore'; // Corrected: No curly braces for default export
+import { Quanta } from '../../src/core/Quanta';
 
 // We'll need to install mapbox-gl: yarn add mapbox-gl @types/mapbox-gl
 declare global {
@@ -43,21 +42,6 @@ export default function PhysicalSpacePage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
-
-  const initialContent = {
-    type: 'doc',
-    content: [
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            text: 'This is an overlay editor on the globe.',
-          },
-        ],
-      },
-    ],
-  };
 
   useEffect(() => {
     // Load Mapbox GL JS dynamically
@@ -277,6 +261,12 @@ export default function PhysicalSpacePage() {
         ...createArrowMarkers(sydneyToEssaouira, 'sydney-essaouira')
       ];
 
+      const arrowImage = new Image(15, 15);
+      arrowImage.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><polygon fill="#ffffff" points="0,0 15,7.5 0,15"/></svg>';
+      arrowImage.onload = () => {
+        map.current.addImage('arrow-icon', arrowImage);
+      };
+
       map.current.addSource('route-arrows', {
         type: 'geojson',
         data: {
@@ -284,12 +274,6 @@ export default function PhysicalSpacePage() {
           features: allArrows
         }
       });
-
-      const arrowImage = new Image(15, 15);
-      arrowImage.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><polygon fill="#ffffff" points="0,0 15,7.5 0,15"/></svg>';
-      arrowImage.onload = () => {
-        map.current.addImage('arrow-icon', arrowImage);
-      };
 
       // Add city markers
       map.current.addSource('journey-cities', {
@@ -407,55 +391,6 @@ export default function PhysicalSpacePage() {
         }
       });
 
-      // Add glowing effect lines (wider, more transparent)
-      map.current.addLayer({
-        id: 'sydney-shanghai-glow',
-        type: 'line',
-        source: 'sydney-shanghai-route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 15,
-          'line-opacity': 0.3,
-          'line-blur': 2
-        }
-      }, 'sydney-shanghai-line');
-
-      map.current.addLayer({
-        id: 'shanghai-sf-glow',
-        type: 'line',
-        source: 'shanghai-sf-route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#06b6d4',
-          'line-width': 15,
-          'line-opacity': 0.3,
-          'line-blur': 2
-        }
-      }, 'shanghai-sf-line');
-
-      map.current.addLayer({
-        id: 'sydney-sf-glow',
-        type: 'line',
-        source: 'sydney-sf-route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#10b981',
-          'line-width': 15,
-          'line-opacity': 0.3,
-          'line-blur': 2
-        }
-      }, 'sydney-sf-line');
-
       // Add new line layers with colors
       map.current.addLayer({
         id: 'sydney-singapore-line',
@@ -520,6 +455,55 @@ export default function PhysicalSpacePage() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#f97316', 'line-width': 7, 'line-opacity': 0.8 }
       });
+
+      // Add glowing effect lines (wider, more transparent)
+      map.current.addLayer({
+        id: 'sydney-shanghai-glow',
+        type: 'line',
+        source: 'sydney-shanghai-route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 15,
+          'line-opacity': 0.3,
+          'line-blur': 2
+        }
+      }, 'sydney-shanghai-line');
+
+      map.current.addLayer({
+        id: 'shanghai-sf-glow',
+        type: 'line',
+        source: 'shanghai-sf-route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 15,
+          'line-opacity': 0.3,
+          'line-blur': 2
+        }
+      }, 'shanghai-sf-line');
+
+      map.current.addLayer({
+        id: 'sydney-sf-glow',
+        type: 'line',
+        source: 'sydney-sf-route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#10b981',
+          'line-width': 15,
+          'line-opacity': 0.3,
+          'line-blur': 2
+        }
+      }, 'sydney-sf-line');
 
       // Add glow layers similarly
       map.current.addLayer({
@@ -672,14 +656,11 @@ export default function PhysicalSpacePage() {
 
   return (
     <div className="flex h-screen">
-       <QuantaStore quantaId="gaia-editor" userId="default-user">
-          <div style={{ position: 'absolute', top: '5rem', left: '5rem', zIndex: 10, backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', boxShadow: '0 0 10px rgba(0,0,0,0.2)', width: '400px', height: '500px', overflow: 'auto' }}>
-              <RichText
-                  text={initialContent}
-                  lenses={['text']}
-              />
-          </div>
-      </QuantaStore>
+      {/* Travel Notes Overlay */}
+      <div style={{ position: 'absolute', top: '5rem', right: '5rem', zIndex: 10, backgroundColor: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 0 10px rgba(0,0,0,0.2)', width: '400px', height: '500px', overflow: 'auto' }}>
+        <Quanta quantaId="gaia-travel-notes-f7a8b9c0-1234-5678-9abc-def012345678" userId="default-user" />
+      </div>
+
       {/* Left side - Globe (now full screen) */}
       <div className="w-full relative">
         {/* Map Container */}
