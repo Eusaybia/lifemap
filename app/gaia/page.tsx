@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import MapboxMap from '../../components/MapboxMap';
+import RichText from '../../src/view/content/RichText';
+import { QuantaStore } from '../../src/backend/QuantaStore'; // Corrected: No curly braces for default export
 
 // We'll need to install mapbox-gl: yarn add mapbox-gl @types/mapbox-gl
 declare global {
@@ -41,6 +43,21 @@ export default function PhysicalSpacePage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const [mapboxLoaded, setMapboxLoaded] = useState(false);
+
+  const initialContent = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'This is an overlay editor on the globe.',
+          },
+        ],
+      },
+    ],
+  };
 
   useEffect(() => {
     // Load Mapbox GL JS dynamically
@@ -96,6 +113,7 @@ export default function PhysicalSpacePage() {
       const rajasthan = [75.7873, 26.9124] as [number, number]; // Jaipur
       const kansasCity = [-94.5786, 39.0997] as [number, number];
       const tibet = [91.1172, 29.6440] as [number, number]; // Lhasa
+      const essaouira = [-9.7700, 31.5125] as [number, number];
 
       // Create arc paths
       const sydneyToShanghai = createArc(sydney, shanghai, 100);
@@ -109,6 +127,7 @@ export default function PhysicalSpacePage() {
       const sydneyToRajasthan = createArc(sydney, rajasthan, 100);
       const sydneyToKansasCity = createArc(sydney, kansasCity, 150);
       const sydneyToTibet = createArc(sydney, tibet, 100);
+      const sydneyToEssaouira = createArc(sydney, essaouira, 150);
 
       // Add journey line sources
       map.current.addSource('sydney-shanghai-route', {
@@ -211,6 +230,14 @@ export default function PhysicalSpacePage() {
           geometry: { type: 'LineString', coordinates: sydneyToTibet }
         }
       });
+      map.current.addSource('sydney-essaouira-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToEssaouira }
+        }
+      });
 
       // Add arrow markers for line directions
       const createArrowMarkers = (lineCoords: number[][], routeId: string) => {
@@ -246,7 +273,8 @@ export default function PhysicalSpacePage() {
         ...createArrowMarkers(sydneyToHubei, 'sydney-hubei'),
         ...createArrowMarkers(sydneyToRajasthan, 'sydney-rajasthan'),
         ...createArrowMarkers(sydneyToKansasCity, 'sydney-kansascity'),
-        ...createArrowMarkers(sydneyToTibet, 'sydney-tibet')
+        ...createArrowMarkers(sydneyToTibet, 'sydney-tibet'),
+        ...createArrowMarkers(sydneyToEssaouira, 'sydney-essaouira')
       ];
 
       map.current.addSource('route-arrows', {
@@ -323,6 +351,11 @@ export default function PhysicalSpacePage() {
               type: 'Feature',
               properties: { city: 'Tibet (Lhasa)', status: 'future' },
               geometry: { type: 'Point', coordinates: tibet }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Essaouira, Morocco', status: 'future' },
+              geometry: { type: 'Point', coordinates: essaouira }
             }
           ]
         }
@@ -480,6 +513,13 @@ export default function PhysicalSpacePage() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#6b7280', 'line-width': 7, 'line-opacity': 0.8 }
       });
+      map.current.addLayer({
+        id: 'sydney-essaouira-line',
+        type: 'line',
+        source: 'sydney-essaouira-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#f97316', 'line-width': 7, 'line-opacity': 0.8 }
+      });
 
       // Add glow layers similarly
       map.current.addLayer({
@@ -538,6 +578,13 @@ export default function PhysicalSpacePage() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#6b7280', 'line-width': 15, 'line-opacity': 0.3, 'line-blur': 2 }
       }, 'sydney-tibet-line');
+      map.current.addLayer({
+        id: 'sydney-essaouira-glow',
+        type: 'line',
+        source: 'sydney-essaouira-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#f97316', 'line-width': 15, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-essaouira-line');
 
       // Add arrow symbols
       map.current.addLayer({
@@ -565,7 +612,8 @@ export default function PhysicalSpacePage() {
             ['==', ['get', 'routeId'], 'sydney-hubei'], '#14b8a6',
             ['==', ['get', 'routeId'], 'sydney-rajasthan'], '#6366f1',
             ['==', ['get', 'routeId'], 'sydney-kansascity'], '#ef4444',
-            ['==', ['get', 'routeId'], 'sydney-tibet'], '#6b7280'
+            ['==', ['get', 'routeId'], 'sydney-tibet'], '#6b7280',
+            ['==', ['get', 'routeId'], 'sydney-essaouira'], '#f97316'
           ],
           'icon-opacity': 0.9
         }
@@ -624,8 +672,16 @@ export default function PhysicalSpacePage() {
 
   return (
     <div className="flex h-screen">
-      {/* Left side - Globe (2/3 of screen on desktop) */}
-      <div className="w-full md:w-2/3 relative">
+       <QuantaStore quantaId="gaia-editor" userId="default-user">
+          <div style={{ position: 'absolute', top: '5rem', left: '5rem', zIndex: 10, backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', boxShadow: '0 0 10px rgba(0,0,0,0.2)', width: '400px', height: '500px', overflow: 'auto' }}>
+              <RichText
+                  text={initialContent}
+                  lenses={['text']}
+              />
+          </div>
+      </QuantaStore>
+      {/* Left side - Globe (now full screen) */}
+      <div className="w-full relative">
         {/* Map Container */}
         <div 
           ref={mapContainer} 
@@ -645,129 +701,7 @@ export default function PhysicalSpacePage() {
       </div>
 
       {/* Right side - Maps sidebar (1/3 of screen on desktop, hidden on mobile) */}
-      <div className="hidden md:block w-1/3 bg-amber-50 border-l border-gray-200 overflow-y-auto">
-        <div className="p-6 relative">
-          {/* Maps Section */}
-          <div>
-            <div className="grid grid-cols-1 gap-4 relative">
-            {/* Arrow overlay container - Hand-drawn arrows only */}
-            <div className="absolute inset-0 pointer-events-none z-10">
-              
-            </div>
-
-            {/* San Francisco Map (Future - Top) */}
-            <div id="san-francisco-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[-122.4194, 37.7749] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={10}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">San Francisco, USA</h3>
-            </div>
-
-            {/* Shanghai Map (Future) */}
-            <div id="shanghai-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[121.4737, 31.2304] as [number, number]}
-                style="mapbox://styles/theaussiestew/cm6r2jbtu000c01r9cgl81jtf"
-                zoom={8}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Shanghai, China</h3>
-            </div>
-
-            {/* Sydney Map (Present) */}
-            <div id="sydney-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[151.2093, -33.8688] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={10}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Northern Beaches</h3>
-            </div>
-
-            {/* Central Coast Map (Near Future) - Zoomed in more */}
-            <div id="central-coast-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[151.2173, -33.2320] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={7}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Central Coast, Australia</h3>
-            </div>
-
-            {/* Sydney Map (Present) */}
-            <div id="sydney-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[151.2093, -33.8688] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={10}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Sydney, Australia</h3>
-            </div>
-
-            {/* Newport Map (Local) */}
-            <div id="newport-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[151.3181, -33.6567] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={12}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Newport, Sydney</h3>
-            </div>
-
-            {/* Ocean Shores Map (Coastal - Bottom) */}
-            <div id="ocean-shores-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[153.5376, -28.5093] as [number, number]}
-                style="mapbox://styles/mapbox/satellite-v9"
-                zoom={14}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Ocean Shores, Byron Bay</h3>
-            </div>
-
-            {/* Mount Warning Map */}
-            <div id="mount-warning-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[153.27083, -28.39722] as [number, number]}
-                style="mapbox://styles/mapbox/satellite-v9"
-                zoom={8}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Mount Warning, Northern Rivers</h3>
-            </div>
-
-            {/* Dangar Island Map */}
-            <div id="dangar-island-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[151.242904663, -33.540199279] as [number, number]}
-                style="mapbox://styles/mapbox/streets-v11"
-                zoom={12}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Dangar Island, Sydney</h3>
-            </div>
-
-            {/* Shanghai Past Map */}
-            <div id="shanghai-past-map-card" className="bg-white rounded-xl shadow-lg p-2">
-              <MapboxMap 
-                center={[121.473842, 31.230437] as [number, number]}
-                style="mapbox://styles/theaussiestew/cm6r2jbtu000c01r9cgl81jtf"
-                zoom={10}
-                className="w-full h-32"
-              />
-              <h3 className="font-semibold text-gray-800 mt-2 text-sm">Shanghai, China</h3>
-            </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 } 
