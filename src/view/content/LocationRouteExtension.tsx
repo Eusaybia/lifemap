@@ -35,19 +35,30 @@ export const LocationRouteExtension = Extension.create({
   addProseMirrorPlugins() {
     let lastAnalyzedText = '';
     let isAnalyzing = false;
+    let lastAnalysisTime = 0;
+    const ANALYSIS_COOLDOWN = 5000; // 5 second cooldown between analyses
 
     // Debounced function to analyze text for routes
     const analyzeTextForRoutes = debounce(async (text: string) => {
-      // Prevent duplicate analysis
-      if (isAnalyzing || text === lastAnalyzedText || text.trim().length < 10) {
+      const now = Date.now();
+      
+      // Prevent duplicate analysis and enforce cooldown
+      if (isAnalyzing || 
+          text === lastAnalyzedText || 
+          text.trim().length < 10 ||
+          (now - lastAnalysisTime) < ANALYSIS_COOLDOWN) {
+        console.log('🚫 Skipping analysis - cooldown or duplicate');
         return;
       }
 
       isAnalyzing = true;
       lastAnalyzedText = text;
+      lastAnalysisTime = now;
 
       try {
-        console.log('Analyzing text for routes:', text.substring(0, 50) + '...');
+        console.log('🔍 Analyzing text for routes:', text.substring(0, 50) + '...');
+        console.log('🔍 Full text length:', text.length);
+        console.log('🔍 Full text:', JSON.stringify(text));
         
         const response = await fetch('/api/analyze-routes', {
           method: 'POST',
@@ -64,24 +75,32 @@ export const LocationRouteExtension = Extension.create({
 
         const analysis: RouteAnalysis = await response.json();
         
-        // Update global state
-        detectedRoutes = analysis.routes;
-        detectedLocations = analysis.single_locations;
+        // Only update if the analysis is actually different
+        const routesChanged = JSON.stringify(detectedRoutes) !== JSON.stringify(analysis.routes);
+        const locationsChanged = JSON.stringify(detectedLocations) !== JSON.stringify(analysis.single_locations);
+        
+        if (routesChanged || locationsChanged) {
+          // Update global state
+          detectedRoutes = analysis.routes;
+          detectedLocations = analysis.single_locations;
 
-        console.log('Detected routes:', detectedRoutes);
-        console.log('Detected locations:', detectedLocations);
+          console.log('✅ Updated detected routes:', detectedRoutes);
+          console.log('✅ Updated detected locations:', detectedLocations);
 
-        // Dispatch custom event to notify map component
-        window.dispatchEvent(new CustomEvent('routesUpdated', {
-          detail: { routes: detectedRoutes, locations: detectedLocations }
-        }));
+          // Dispatch custom event to notify map component
+          window.dispatchEvent(new CustomEvent('routesUpdated', {
+            detail: { routes: detectedRoutes, locations: detectedLocations }
+          }));
+        } else {
+          console.log('🔄 Analysis result unchanged, skipping update');
+        }
 
       } catch (error) {
         console.error('Error analyzing routes:', error);
       } finally {
         isAnalyzing = false;
       }
-    }, 2000); // 2 second debounce
+    }, 3000); // 3 second debounce
 
     return [
       new Plugin({
@@ -93,6 +112,11 @@ export const LocationRouteExtension = Extension.create({
           apply(tr, oldState) {
             const newState = tr.doc.textContent;
             
+            // Skip analysis if this transaction was from auto-tagging or other internal systems
+            if (tr.getMeta('fromAutoTagging') || tr.getMeta('fromLocationRouteAnalysis')) {
+              return null;
+            }
+            
             // Only analyze if there's a meaningful change and the text is long enough
             if (newState !== oldState && newState.trim().length > 10) {
               // Check if the text contains location-related keywords
@@ -101,7 +125,11 @@ export const LocationRouteExtension = Extension.create({
                 newState.toLowerCase().includes(keyword)
               );
               
-              if (hasLocationContent) {
+              // Also check if the change is significant enough (not just minor edits)
+              const textLengthDifference = Math.abs(newState.length - (oldState || '').length);
+              const significantChange = textLengthDifference > 5 || newState.split(' ').length !== (oldState || '').split(' ').length;
+              
+              if (hasLocationContent && significantChange) {
                 analyzeTextForRoutes(newState);
               }
             }

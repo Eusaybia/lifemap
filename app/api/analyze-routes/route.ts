@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    console.log('Analyzing text for routes:', text.substring(0, 100) + '...');
+    console.log('Analyzing text for routes (full text):', JSON.stringify(text));
+    console.log('Text length:', text.length);
 
     // Use OpenRouter with structured outputs for reliable location detection
     const openRouterApiKey = process.env.OPENAI_API_KEY;
@@ -137,6 +138,7 @@ Text to analyze: "${text}"`,
       
       // For now, return a smart mock response that analyzes the actual text
       console.log('Returning smart mock response for testing');
+      console.log('Input text for mock analysis:', JSON.stringify(text));
       
       const mockAnalysis: RouteAnalysis = {
         routes: [],
@@ -147,6 +149,7 @@ Text to analyze: "${text}"`,
       const locationWords = ['Sydney', 'Brisbane', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
       
       const lowerText = text.toLowerCase();
+      console.log('Lowercase text:', lowerText);
       
       // Check for "from X to Y" patterns
       locationWords.forEach(fromLocation => {
