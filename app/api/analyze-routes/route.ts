@@ -41,18 +41,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
-    console.log('Making OpenRouter API call...');
+    console.log('Making OpenAI API call...');
     
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openRouterApiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': 'LifeMap',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'user',
