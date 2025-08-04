@@ -26,16 +26,20 @@ const createArc = (start: [number, number], end: [number, number], steps = 100) 
 
 // Helper function to calculate bearing between two points for arrow direction
 const calculateBearing = (start: [number, number], end: [number, number]) => {
-  const startLat = start[1] * Math.PI / 180;
-  const startLng = start[0] * Math.PI / 180;
-  const endLat = end[1] * Math.PI / 180;
-  const endLng = end[0] * Math.PI / 180;
+  // Simple bearing calculation for map direction
+  const deltaLng = end[0] - start[0];
+  const deltaLat = end[1] - start[1];
   
-  const dLng = endLng - startLng;
-  const y = Math.sin(dLng) * Math.cos(endLat);
-  const x = Math.cos(startLat) * Math.sin(endLat) - Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng);
+  // Calculate angle in degrees (0 = east, 90 = north, 180 = west, 270 = south)
+  let bearing = Math.atan2(deltaLat, deltaLng) * 180 / Math.PI;
   
-  return Math.atan2(y, x) * 180 / Math.PI;
+  // Convert to map rotation (0 = north, 90 = east, 180 = south, 270 = west)
+  bearing = 90 - bearing;
+  
+  // Normalize to 0-360
+  bearing = (bearing + 360) % 360;
+  
+  return bearing;
 };
 
 export default function PhysicalSpacePage() {
@@ -773,16 +777,31 @@ export default function PhysicalSpacePage() {
     // Wait for map to be fully loaded before adding sources
     const addDynamicRoutes = async () => {
       try {
-        // Clear existing highlighted routes
+        // Clear existing highlighted routes and arrows
         detectedRoutes.forEach((_, index) => {
-          const sourceId = `highlighted-route-${index}`;
-          const layerId = `highlighted-route-line-${index}`;
+          const routeSourceId = `highlighted-route-${index}`;
+          const routeLayerId = `highlighted-route-line-${index}`;
+          const routeGlowLayerId = `highlighted-route-glow-${index}`;
+          const arrowSourceId = `highlighted-route-arrows-${index}`;
+          const arrowLayerId = `highlighted-route-arrows-${index}`;
           
-          if (map.current.getLayer(layerId)) {
-            map.current.removeLayer(layerId);
+          // Remove route line and glow
+          if (map.current.getLayer(routeLayerId)) {
+            map.current.removeLayer(routeLayerId);
           }
-          if (map.current.getSource(sourceId)) {
-            map.current.removeSource(sourceId);
+          if (map.current.getLayer(routeGlowLayerId)) {
+            map.current.removeLayer(routeGlowLayerId);
+          }
+          if (map.current.getSource(routeSourceId)) {
+            map.current.removeSource(routeSourceId);
+          }
+          
+          // Remove route arrows
+          if (map.current.getLayer(arrowLayerId)) {
+            map.current.removeLayer(arrowLayerId);
+          }
+          if (map.current.getSource(arrowSourceId)) {
+            map.current.removeSource(arrowSourceId);
           }
         });
 
@@ -834,6 +853,7 @@ export default function PhysicalSpacePage() {
             console.log('🎯 Adding route to map:', routeKey);
             const highlightedRoute = createArc(routeMapping.from, routeMapping.to, 100);
             
+            // Add the route line
             map.current.addSource(`highlighted-route-${index}`, {
               type: 'geojson',
               data: {
@@ -846,6 +866,24 @@ export default function PhysicalSpacePage() {
               }
             });
 
+            // Add glow effect layer first (wider, more transparent)
+            map.current.addLayer({
+              id: `highlighted-route-glow-${index}`,
+              type: 'line',
+              source: `highlighted-route-${index}`,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': routeMapping.color,
+                'line-width': 15,
+                'line-opacity': 0.3,
+                'line-blur': 2
+              }
+            });
+
+            // Add main route line
             map.current.addLayer({
               id: `highlighted-route-line-${index}`,
               type: 'line',
@@ -856,11 +894,125 @@ export default function PhysicalSpacePage() {
               },
               paint: {
                 'line-color': routeMapping.color,
-                'line-width': 12,
-                'line-opacity': 1,
-                'line-dasharray': [2, 2]
+                'line-width': 7,
+                'line-opacity': 0.8
               }
             });
+
+            // Create directional arrows along the route
+            const createRouteArrows = (lineCoords: number[][], routeIndex: number, color: string) => {
+              const arrows = [];
+              const numArrows = 3; // Number of arrows per route
+              
+              for (let i = 0; i < numArrows; i++) {
+                const progress = (i + 1) / (numArrows + 1); // Distribute arrows along the line
+                const coordIndex = Math.floor(progress * (lineCoords.length - 1));
+                const coord = lineCoords[coordIndex];
+                
+                // Use a larger sample distance to get better direction
+                const sampleDistance = Math.max(20, Math.floor(lineCoords.length / 10));
+                const nextCoordIndex = Math.min(coordIndex + sampleDistance, lineCoords.length - 1);
+                const nextCoord = lineCoords[nextCoordIndex];
+                
+                // Only create arrow if we have a meaningful direction
+                if (coordIndex !== nextCoordIndex) {
+                  const bearing = calculateBearing([coord[0], coord[1]], [nextCoord[0], nextCoord[1]]);
+                  
+                  arrows.push({
+                    type: 'Feature',
+                    properties: { 
+                      bearing: bearing,
+                      routeIndex: routeIndex,
+                      color: color
+                    },
+                    geometry: { type: 'Point', coordinates: coord }
+                  });
+                }
+              }
+              console.log('🏹 Created arrows for route:', routeIndex, arrows.length, 'arrows with bearings:', arrows.map(a => a.properties.bearing));
+              return arrows;
+            };
+
+            const routeArrows = createRouteArrows(highlightedRoute, index, routeMapping.color);
+
+            // Add arrow source and layer
+            map.current.addSource(`highlighted-route-arrows-${index}`, {
+              type: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: routeArrows
+              }
+            });
+
+            console.log('🏹 Added arrow source for route:', index);
+
+            // Create and add custom arrow icon
+            const addArrowIcon = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return;
+              
+              canvas.width = 24;
+              canvas.height = 24;
+              
+              // Draw arrow shape pointing right (east)
+              ctx.fillStyle = '#ffffff';
+              ctx.strokeStyle = '#333333';
+              ctx.lineWidth = 2;
+              
+              ctx.beginPath();
+              // Create a clearer arrow pointing right
+              ctx.moveTo(2, 8);   // Left point
+              ctx.lineTo(18, 12); // Right tip
+              ctx.lineTo(2, 16);  // Bottom left
+              ctx.lineTo(6, 12);  // Back to center
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+              
+              // Add the icon to the map
+              const imageData = canvas.toDataURL();
+              const img = new Image();
+              img.onload = () => {
+                if (!map.current.hasImage('route-arrow')) {
+                  map.current.addImage('route-arrow', img);
+                  console.log('✅ Added custom arrow icon');
+                }
+                addArrowLayer();
+              };
+              img.src = imageData;
+            };
+
+            const addArrowLayer = () => {
+              try {
+                map.current.addLayer({
+                  id: `highlighted-route-arrows-${index}`,
+                  type: 'symbol',
+                  source: `highlighted-route-arrows-${index}`,
+                  layout: {
+                    'icon-image': 'route-arrow',
+                    'icon-size': 1.0,
+                    'icon-rotate': ['get', 'bearing'],
+                    'icon-rotation-alignment': 'map',
+                    'icon-allow-overlap': true,
+                    'icon-ignore-placement': true
+                  },
+                  paint: {
+                    'icon-opacity': 1.0
+                  }
+                });
+                console.log('✅ Added arrow layer for route:', index);
+              } catch (error) {
+                console.error('❌ Error adding arrow layer:', error);
+              }
+            };
+
+            // Create icon and add layer
+            if (!map.current.hasImage('route-arrow')) {
+              addArrowIcon();
+            } else {
+              addArrowLayer();
+            }
           } else {
             console.log('❌ Could not geocode route:', routeKey);
           }
