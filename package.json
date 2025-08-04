@@ -95,6 +95,7 @@
     "react-minimap": "https://github.com/keploy/react-minimap.git",
     "react-simple-minimap": "^1.0.1",
     "reactflow": "11.10.1",
+    "roughjs": "^4.6.6",
     "sass": "1.59.2",
     "three": "0.155.0",
     "tippy.js": "6.3.7",

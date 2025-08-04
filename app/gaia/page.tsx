@@ -88,11 +88,25 @@ export default function PhysicalSpacePage() {
       const sydney = [151.2093, -33.8688] as [number, number];
       const shanghai = [121.4737, 31.2304] as [number, number];
       const sanFrancisco = [-122.4194, 37.7749] as [number, number];
+      const singapore = [103.8198, 1.3521] as [number, number];
+      const malaysia = [101.6869, 3.1390] as [number, number]; // Kuala Lumpur
+      const hongKong = [114.1694, 22.3193] as [number, number];
+      const shenzhen = [114.0579, 22.5431] as [number, number];
+      const hubei = [114.3416, 30.5468] as [number, number]; // Wuhan
+      const rajasthan = [75.7873, 26.9124] as [number, number]; // Jaipur
+      const kansasCity = [-94.5786, 39.0997] as [number, number];
 
       // Create arc paths
       const sydneyToShanghai = createArc(sydney, shanghai, 100);
       const shanghaiToSanFrancisco = createArc(shanghai, sanFrancisco, 100);
       const sydneyToSanFrancisco = createArc(sydney, sanFrancisco, 150); // More steps for longer arc
+      const sydneyToSingapore = createArc(sydney, singapore, 100);
+      const singaporeToMalaysia = createArc(singapore, malaysia, 100);
+      const malaysiaToHongKong = createArc(malaysia, hongKong, 100);
+      const sydneyToShenzhen = createArc(sydney, shenzhen, 100);
+      const sydneyToHubei = createArc(sydney, hubei, 100);
+      const sydneyToRajasthan = createArc(sydney, rajasthan, 100);
+      const sydneyToKansasCity = createArc(sydney, kansasCity, 150);
 
       // Add journey line sources
       map.current.addSource('sydney-shanghai-route', {
@@ -131,6 +145,63 @@ export default function PhysicalSpacePage() {
         }
       });
 
+      map.current.addSource('sydney-singapore-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToSingapore }
+        }
+      });
+      map.current.addSource('singapore-malaysia-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: singaporeToMalaysia }
+        }
+      });
+      map.current.addSource('malaysia-hongkong-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: malaysiaToHongKong }
+        }
+      });
+      map.current.addSource('sydney-shenzhen-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToShenzhen }
+        }
+      });
+      map.current.addSource('sydney-hubei-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToHubei }
+        }
+      });
+      map.current.addSource('sydney-rajasthan-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToRajasthan }
+        }
+      });
+      map.current.addSource('sydney-kansascity-route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: sydneyToKansasCity }
+        }
+      });
+
       // Add arrow markers for line directions
       const createArrowMarkers = (lineCoords: number[][], routeId: string) => {
         const markers = [];
@@ -149,13 +220,6 @@ export default function PhysicalSpacePage() {
             properties: { bearing, routeId },
             geometry: { type: 'Point', coordinates: coord }
           });
-          
-          // Add reverse arrow for two-headed effect
-          markers.push({
-            type: 'Feature',
-            properties: { bearing: bearing + 180, routeId },
-            geometry: { type: 'Point', coordinates: coord }
-          });
         }
         return markers;
       };
@@ -164,7 +228,14 @@ export default function PhysicalSpacePage() {
       const allArrows = [
         ...createArrowMarkers(sydneyToShanghai, 'sydney-shanghai'),
         ...createArrowMarkers(shanghaiToSanFrancisco, 'shanghai-sf'),
-        ...createArrowMarkers(sydneyToSanFrancisco, 'sydney-sf')
+        ...createArrowMarkers(sydneyToSanFrancisco, 'sydney-sf'),
+        ...createArrowMarkers(sydneyToSingapore, 'sydney-singapore'),
+        ...createArrowMarkers(singaporeToMalaysia, 'singapore-malaysia'),
+        ...createArrowMarkers(malaysiaToHongKong, 'malaysia-hongkong'),
+        ...createArrowMarkers(sydneyToShenzhen, 'sydney-shenzhen'),
+        ...createArrowMarkers(sydneyToHubei, 'sydney-hubei'),
+        ...createArrowMarkers(sydneyToRajasthan, 'sydney-rajasthan'),
+        ...createArrowMarkers(sydneyToKansasCity, 'sydney-kansascity')
       ];
 
       map.current.addSource('route-arrows', {
@@ -174,6 +245,12 @@ export default function PhysicalSpacePage() {
           features: allArrows
         }
       });
+
+      const arrowImage = new Image(15, 15);
+      arrowImage.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><polygon fill="#ffffff" points="0,0 15,7.5 0,15"/></svg>';
+      arrowImage.onload = () => {
+        map.current.addImage('arrow-icon', arrowImage);
+      };
 
       // Add city markers
       map.current.addSource('journey-cities', {
@@ -195,6 +272,41 @@ export default function PhysicalSpacePage() {
               type: 'Feature',
               properties: { city: 'San Francisco', status: 'future' },
               geometry: { type: 'Point', coordinates: sanFrancisco }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Singapore', status: 'future' },
+              geometry: { type: 'Point', coordinates: singapore }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Malaysia', status: 'future' },
+              geometry: { type: 'Point', coordinates: malaysia }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Hong Kong', status: 'future' },
+              geometry: { type: 'Point', coordinates: hongKong }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Shenzhen', status: 'future' },
+              geometry: { type: 'Point', coordinates: shenzhen }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Hubei (Wuhan)', status: 'future' },
+              geometry: { type: 'Point', coordinates: hubei }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Rajasthan (Jaipur)', status: 'future' },
+              geometry: { type: 'Point', coordinates: rajasthan }
+            },
+            {
+              type: 'Feature',
+              properties: { city: 'Kansas City', status: 'future' },
+              geometry: { type: 'Point', coordinates: kansasCity }
             }
           ]
         }
@@ -211,7 +323,7 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#3b82f6', // Blue color
-          'line-width': 3,
+          'line-width': 5,
           'line-opacity': 0.8
         }
       });
@@ -226,7 +338,7 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#06b6d4', // Cyan color
-          'line-width': 3,
+          'line-width': 5,
           'line-opacity': 0.8
         }
       });
@@ -241,7 +353,7 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#10b981', // Green color
-          'line-width': 3,
+          'line-width': 5,
           'line-opacity': 0.8
         }
       });
@@ -257,7 +369,7 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#3b82f6',
-          'line-width': 8,
+          'line-width': 12,
           'line-opacity': 0.3,
           'line-blur': 2
         }
@@ -273,7 +385,7 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#06b6d4',
-          'line-width': 8,
+          'line-width': 12,
           'line-opacity': 0.3,
           'line-blur': 2
         }
@@ -289,11 +401,113 @@ export default function PhysicalSpacePage() {
         },
         paint: {
           'line-color': '#10b981',
-          'line-width': 8,
+          'line-width': 12,
           'line-opacity': 0.3,
           'line-blur': 2
         }
       }, 'sydney-sf-line');
+
+      // Add new line layers with colors
+      map.current.addLayer({
+        id: 'sydney-singapore-line',
+        type: 'line',
+        source: 'sydney-singapore-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#8b5cf6', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'singapore-malaysia-line',
+        type: 'line',
+        source: 'singapore-malaysia-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#f59e0b', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'malaysia-hongkong-line',
+        type: 'line',
+        source: 'malaysia-hongkong-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#eab308', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'sydney-shenzhen-line',
+        type: 'line',
+        source: 'sydney-shenzhen-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#ec4899', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'sydney-hubei-line',
+        type: 'line',
+        source: 'sydney-hubei-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#14b8a6', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'sydney-rajasthan-line',
+        type: 'line',
+        source: 'sydney-rajasthan-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#6366f1', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+      map.current.addLayer({
+        id: 'sydney-kansascity-line',
+        type: 'line',
+        source: 'sydney-kansascity-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#ef4444', 'line-width': 5, 'line-opacity': 0.8 }
+      });
+
+      // Add glow layers similarly
+      map.current.addLayer({
+        id: 'sydney-singapore-glow',
+        type: 'line',
+        source: 'sydney-singapore-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#8b5cf6', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-singapore-line');
+      map.current.addLayer({
+        id: 'singapore-malaysia-glow',
+        type: 'line',
+        source: 'singapore-malaysia-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#f59e0b', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'singapore-malaysia-line');
+      map.current.addLayer({
+        id: 'malaysia-hongkong-glow',
+        type: 'line',
+        source: 'malaysia-hongkong-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#eab308', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'malaysia-hongkong-line');
+      map.current.addLayer({
+        id: 'sydney-shenzhen-glow',
+        type: 'line',
+        source: 'sydney-shenzhen-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#ec4899', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-shenzhen-line');
+      map.current.addLayer({
+        id: 'sydney-hubei-glow',
+        type: 'line',
+        source: 'sydney-hubei-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#14b8a6', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-hubei-line');
+      map.current.addLayer({
+        id: 'sydney-rajasthan-glow',
+        type: 'line',
+        source: 'sydney-rajasthan-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#6366f1', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-rajasthan-line');
+      map.current.addLayer({
+        id: 'sydney-kansascity-glow',
+        type: 'line',
+        source: 'sydney-kansascity-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#ef4444', 'line-width': 12, 'line-opacity': 0.3, 'line-blur': 2 }
+      }, 'sydney-kansascity-line');
 
       // Add arrow symbols
       map.current.addLayer({
@@ -301,8 +515,8 @@ export default function PhysicalSpacePage() {
         type: 'symbol',
         source: 'route-arrows',
         layout: {
-          'icon-image': 'triangle', // Use built-in triangle
-          'icon-size': 0.8,
+          'icon-image': 'arrow-icon', // Use built-in triangle
+          'icon-size': 0.5,
           'icon-rotate': ['get', 'bearing'],
           'icon-rotation-alignment': 'map',
           'icon-allow-overlap': true,
@@ -313,7 +527,14 @@ export default function PhysicalSpacePage() {
             'case',
             ['==', ['get', 'routeId'], 'sydney-shanghai'], '#3b82f6',
             ['==', ['get', 'routeId'], 'shanghai-sf'], '#06b6d4',
-            '#10b981'
+            ['==', ['get', 'routeId'], 'sydney-sf'], '#10b981',
+            ['==', ['get', 'routeId'], 'sydney-singapore'], '#8b5cf6',
+            ['==', ['get', 'routeId'], 'singapore-malaysia'], '#f59e0b',
+            ['==', ['get', 'routeId'], 'malaysia-hongkong'], '#eab308',
+            ['==', ['get', 'routeId'], 'sydney-shenzhen'], '#ec4899',
+            ['==', ['get', 'routeId'], 'sydney-hubei'], '#14b8a6',
+            ['==', ['get', 'routeId'], 'sydney-rajasthan'], '#6366f1',
+            ['==', ['get', 'routeId'], 'sydney-kansascity'], '#ef4444'
           ],
           'icon-opacity': 0.9
         }
