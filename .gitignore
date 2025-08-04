@@ -37,4 +37,7 @@ yarn-error.log*
 # vercel
 .vercel
 tsconfig.tsbuildinfo
-.gitignore
+
+# Google Cloud SDK
+google-cloud-sdk/
+google-cloud-cli-darwin-arm.tar.gz
