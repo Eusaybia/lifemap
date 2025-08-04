@@ -59,7 +59,11 @@ export default function PhysicalSpacePage() {
     'Sydney-Rajasthan': { from: [151.2093, -33.8688], to: [75.7873, 26.9124], color: '#6366f1' },
     'Sydney-Kansas City': { from: [151.2093, -33.8688], to: [-94.5786, 39.0997], color: '#ef4444' },
     'Sydney-Tibet': { from: [151.2093, -33.8688], to: [91.1172, 29.6440], color: '#6b7280' },
-    'Sydney-Essaouira': { from: [151.2093, -33.8688], to: [-9.7700, 31.5125], color: '#f97316' }
+    'Sydney-Essaouira': { from: [151.2093, -33.8688], to: [-9.7700, 31.5125], color: '#f97316' },
+    'Shanghai-Auckland': { from: [121.4737, 31.2304], to: [174.7633, -36.8485], color: '#8b5cf6' },
+    'London-Tokyo': { from: [-0.1278, 51.5074], to: [139.6503, 35.6762], color: '#10b981' },
+    'Tokyo-Beijing': { from: [139.6503, 35.6762], to: [116.4074, 39.9042], color: '#f59e0b' },
+    'Beijing-New York': { from: [116.4074, 39.9042], to: [-74.0060, 40.7128], color: '#ec4899' }
   };
 
   const locationCoords: { [key: string]: [number, number] } = {
@@ -75,7 +79,17 @@ export default function PhysicalSpacePage() {
     'Rajasthan': [75.7873, 26.9124],
     'Kansas City': [-94.5786, 39.0997],
     'Tibet': [91.1172, 29.6440],
-    'Essaouira': [-9.7700, 31.5125]
+    'Essaouira': [-9.7700, 31.5125],
+    'Auckland': [174.7633, -36.8485],
+    'London': [-0.1278, 51.5074],
+    'Tokyo': [139.6503, 35.6762],
+    'Beijing': [116.4074, 39.9042],
+    'New York': [-74.0060, 40.7128],
+    'Paris': [2.3522, 48.8566],
+    'Mumbai': [72.8777, 19.0760],
+    'Dubai': [55.2708, 25.2048],
+    'Cairo': [31.2357, 30.0444],
+    'Washington': [-77.0369, 38.9072]
   };
 
   // Listen for route updates from the editor
@@ -709,12 +723,55 @@ export default function PhysicalSpacePage() {
     };
   }, [mapboxLoaded, detectedRoutes, detectedLocations]);
 
-  // Handle route updates
+  // Handle route updates with dynamic geocoding
   useEffect(() => {
     if (!map.current || !mapboxLoaded) return;
 
+    // Cache for geocoded coordinates
+    const geocodeCache = new Map<string, [number, number]>();
+
+    // Function to geocode a location using our API
+    const geocodeLocation = async (location: string): Promise<[number, number] | null> => {
+      if (geocodeCache.has(location)) {
+        return geocodeCache.get(location)!;
+      }
+
+      // Check if we already have coordinates for this location
+      if (locationCoords[location]) {
+        const coords: [number, number] = locationCoords[location];
+        geocodeCache.set(location, coords);
+        return coords;
+      }
+
+      try {
+        console.log('🌍 Geocoding unknown location:', location);
+        const response = await fetch('/api/geocode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location })
+        });
+
+        if (!response.ok) {
+          console.error('Geocoding failed for:', location);
+          return null;
+        }
+
+        const data = await response.json();
+        if (data.coordinates) {
+          const coords: [number, number] = [data.coordinates.longitude, data.coordinates.latitude];
+          geocodeCache.set(location, coords);
+          console.log('📍 Geocoded', location, 'to:', coords);
+          return coords;
+        }
+      } catch (error) {
+        console.error('Geocoding error for', location, ':', error);
+      }
+
+      return null;
+    };
+
     // Wait for map to be fully loaded before adding sources
-    const addDynamicRoutes = () => {
+    const addDynamicRoutes = async () => {
       try {
         // Clear existing highlighted routes
         detectedRoutes.forEach((_, index) => {
@@ -742,13 +799,39 @@ export default function PhysicalSpacePage() {
           }
         });
 
-        // Add new highlighted routes
-        detectedRoutes.forEach((route, index) => {
+        // Add new highlighted routes with dynamic geocoding
+        for (const [index, route] of detectedRoutes.entries()) {
           const routeKey = `${route.from}-${route.to}`;
           const reverseRouteKey = `${route.to}-${route.from}`;
-          const routeMapping = routeMappings[routeKey] || routeMappings[reverseRouteKey];
+          console.log('🔍 Processing route:', routeKey);
+          
+          let routeMapping = routeMappings[routeKey] || routeMappings[reverseRouteKey];
+          
+          // If no existing mapping, try to geocode both locations
+          if (!routeMapping) {
+            console.log('🌍 No existing mapping, geocoding route:', routeKey);
+            
+            const [fromCoords, toCoords] = await Promise.all([
+              geocodeLocation(route.from),
+              geocodeLocation(route.to)
+            ]);
+
+            if (fromCoords && toCoords) {
+              // Create dynamic route mapping
+              routeMapping = {
+                from: fromCoords,
+                to: toCoords,
+                color: '#ff6b6b' // Dynamic routes get a distinct red color
+              };
+              
+              // Cache the mapping for future use
+              routeMappings[routeKey] = routeMapping;
+              console.log('✅ Created dynamic mapping for:', routeKey, routeMapping);
+            }
+          }
 
           if (routeMapping) {
+            console.log('🎯 Adding route to map:', routeKey);
             const highlightedRoute = createArc(routeMapping.from, routeMapping.to, 100);
             
             map.current.addSource(`highlighted-route-${index}`, {
@@ -778,13 +861,16 @@ export default function PhysicalSpacePage() {
                 'line-dasharray': [2, 2]
               }
             });
+          } else {
+            console.log('❌ Could not geocode route:', routeKey);
           }
-        });
+        }
 
-        // Add new highlighted locations
-        detectedLocations.forEach((location, index) => {
-          const coords = locationCoords[location.location];
+        // Add new highlighted locations with dynamic geocoding
+        for (const [index, location] of detectedLocations.entries()) {
+          const coords = await geocodeLocation(location.location);
           if (coords) {
+            console.log('🎯 Adding location marker:', location.location);
             map.current.addSource(`highlighted-location-${index}`, {
               type: 'geojson',
               data: {
@@ -806,8 +892,10 @@ export default function PhysicalSpacePage() {
                 'circle-opacity': 0.9
               }
             });
+          } else {
+            console.log('❌ Could not geocode location:', location.location);
           }
-        });
+        }
       } catch (error) {
         console.error('Error adding dynamic routes:', error);
       }
