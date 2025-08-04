@@ -63,6 +63,20 @@ import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExte
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 
+// Add interface for Google Cloud Natural Language API response
+interface LocationEntity {
+  name: string;
+  type: string;
+  mentions: Array<{
+    text: {
+      content: string;
+      beginOffset: number;
+    };
+    type: string;
+    probability: number;
+  }>;
+}
+
 lowlight.registerLanguage('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
@@ -138,7 +152,7 @@ export const officialExtensions = (quantaId: string) => {return [
   TableRow,
   TableHeader,
   TableCell.configure({
-    content: 'block+',
+    // Remove the invalid content property
   }),
   TaskItem.configure({
     nested: true,
@@ -408,6 +422,96 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }
 
   let editor = MainEditor(content, true, false)
+  
+  // Add state for location tagging
+  const [isTaggingLocations, setIsTaggingLocations] = React.useState(false);
+
+  // Function to tag locations using Google Cloud Natural Language API
+  const tagLocations = React.useCallback(async () => {
+    if (!editor) return;
+    
+    setIsTaggingLocations(true);
+    
+    try {
+      // Get the plain text content from the editor
+      const plainText = editor.getText();
+      
+      if (!plainText.trim()) {
+        alert('No text to analyze');
+        return;
+      }
+
+      // Send text to our API endpoint
+      const response = await fetch('/api/analyze-locations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: plainText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze locations');
+      }
+
+      const data = await response.json();
+      const locations: LocationEntity[] = data.entities;
+
+      if (locations.length === 0) {
+        alert('No locations found in the text');
+        return;
+      }
+
+      // Create replacements array with position information
+      const replacements: { from: number; to: number; text: string; entityName: string }[] = [];
+      
+      locations.forEach(entity => {
+        entity.mentions.forEach(mention => {
+          if (mention.text.beginOffset >= 0) {
+            // The `beginOffset` is a 0-based index into the plain text.
+            // Tiptap/ProseMirror positions are 1-based and start *after* the opening tag of a node (e.g., <p>).
+            // This +1 adjustment accounts for that offset in a simple document.
+            const fromPos = mention.text.beginOffset + 1;
+            const toPos = fromPos + mention.text.content.length;
+
+            replacements.push({
+              from: fromPos,
+              to: toPos,
+              text: mention.text.content,
+              entityName: entity.name
+            });
+          }
+        });
+      });
+
+      // Sort replacements in reverse order to avoid position shifts
+      replacements.sort((a, b) => b.from - a.from);
+
+      // Apply replacements using a single transaction
+      editor.commands.command(({ tr, state }) => {
+        replacements.forEach(({ from, to, text, entityName }) => {
+          // Validate that the position is within bounds
+          if (from >= 0 && to <= state.doc.content.size && from < to) {
+            const locationNode = state.schema.nodes.location.create({
+              id: entityName,
+              label: text,
+            });
+            tr.replaceWith(from, to, locationNode);
+          }
+        });
+        return true;
+      });
+      
+      alert(`Successfully tagged ${locations.length} location(s)!`);
+      
+    } catch (error) {
+      console.error('Error tagging locations:', error);
+      alert('Failed to tag locations. Please try again.');
+    } finally {
+      setIsTaggingLocations(false);
+    }
+  }, [editor]);
+
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
@@ -457,6 +561,30 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     return (
       <div key={props.quanta?.id} style={{width: '100%'}}>
+        {/* Add Tag Locations button */}
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            onClick={tagLocations}
+            disabled={isTaggingLocations}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: isTaggingLocations ? '#ccc' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: isTaggingLocations ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            {isTaggingLocations ? 'Tagging Locations...' : 'Tag Locations'}
+          </button>
+          {isTaggingLocations && (
+            <span style={{ fontSize: '0.875rem', color: '#666' }}>
+              Analyzing text for locations...
+            </span>
+          )}
+        </div>
+
         {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
         {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>
