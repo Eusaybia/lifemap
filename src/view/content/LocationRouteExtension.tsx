@@ -100,7 +100,7 @@ export const LocationRouteExtension = Extension.create({
       } finally {
         isAnalyzing = false;
       }
-    }, 3000); // 3 second debounce
+    }, 5000); // 5 second debounce - wait for typing to complete
 
     return [
       new Plugin({
@@ -110,7 +110,21 @@ export const LocationRouteExtension = Extension.create({
             return null;
           },
           apply(tr, oldState) {
-            const newState = tr.doc.textContent;
+            // Extract text including location node labels
+            let newState = '';
+            tr.doc.descendants((node) => {
+              if (node.isText) {
+                newState += node.text;
+              } else if (node.type.name === 'location' && node.attrs.label) {
+                newState += node.attrs.label;
+              }
+              return true;
+            });
+            
+            // Fallback to simple text content if needed
+            if (!newState) {
+              newState = tr.doc.textContent;
+            }
             
             // Skip analysis if this transaction was from auto-tagging or other internal systems
             if (tr.getMeta('fromAutoTagging') || tr.getMeta('fromLocationRouteAnalysis')) {
@@ -118,18 +132,22 @@ export const LocationRouteExtension = Extension.create({
             }
             
             // Only analyze if there's a meaningful change and the text is long enough
-            if (newState !== oldState && newState.trim().length > 10) {
+            if (newState !== oldState && newState.trim().length > 15) {
               // Check if the text contains location-related keywords
               const locationKeywords = ['from', 'to', 'travel', 'visit', 'go', 'fly', 'drive'];
               const hasLocationContent = locationKeywords.some(keyword => 
                 newState.toLowerCase().includes(keyword)
               );
               
+              // Only trigger if text looks complete (no trailing incomplete words)
+              const looksComplete = !newState.trim().endsWith(' ') || newState.trim().length > 25;
+              
               // Also check if the change is significant enough (not just minor edits)
               const textLengthDifference = Math.abs(newState.length - (oldState || '').length);
               const significantChange = textLengthDifference > 5 || newState.split(' ').length !== (oldState || '').split(' ').length;
               
-              if (hasLocationContent && significantChange) {
+              if (hasLocationContent && significantChange && looksComplete) {
+                console.log('📝 Triggering route analysis for text:', newState);
                 analyzeTextForRoutes(newState);
               }
             }

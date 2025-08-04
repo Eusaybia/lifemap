@@ -134,68 +134,14 @@ Text to analyze: "${text}"`,
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenRouter API error:', response.status, errorText);
+      console.error('OpenAI API error:', response.status, errorText);
       
-      // For now, return a smart mock response that analyzes the actual text
-      console.log('Returning smart mock response for testing');
-      console.log('Input text for mock analysis:', JSON.stringify(text));
-      
-      const mockAnalysis: RouteAnalysis = {
-        routes: [],
-        single_locations: []
-      };
-
-      // Simple pattern matching for common locations
-      const locationWords = ['Sydney', 'Brisbane', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
-      
-      const lowerText = text.toLowerCase();
-      console.log('Lowercase text:', lowerText);
-      
-      // Check for "from X to Y" patterns
-      locationWords.forEach(fromLocation => {
-        locationWords.forEach(toLocation => {
-          if (fromLocation !== toLocation) {
-            const patterns = [
-              `from ${fromLocation.toLowerCase()} to ${toLocation.toLowerCase()}`,
-              `${fromLocation.toLowerCase()} to ${toLocation.toLowerCase()}`,
-              `travel from ${fromLocation.toLowerCase()} to ${toLocation.toLowerCase()}`,
-              `go from ${fromLocation.toLowerCase()} to ${toLocation.toLowerCase()}`,
-              `fly from ${fromLocation.toLowerCase()} to ${toLocation.toLowerCase()}`
-            ];
-            
-            const foundPattern = patterns.some(pattern => lowerText.includes(pattern));
-            
-            if (foundPattern) {
-              mockAnalysis.routes.push({
-                from: fromLocation,
-                to: toLocation,
-                intent: 'travel',
-                confidence: 0.9
-              });
-            }
-          }
-        });
-      });
-
-      // Check for single location mentions (only if not already in a route)
-      locationWords.forEach(location => {
-        if (lowerText.includes(location.toLowerCase())) {
-          const inRoute = mockAnalysis.routes.some(route => 
-            route.from === location || route.to === location
-          );
-          
-          if (!inRoute) {
-            mockAnalysis.single_locations.push({
-              location: location,
-              intent: 'visit',
-              confidence: 0.8
-            });
-          }
-        }
-      });
-
-      console.log('Smart mock analysis result:', mockAnalysis);
-      return NextResponse.json(mockAnalysis);
+      // Return error when OpenAI API fails - no mock fallback
+      return NextResponse.json({ 
+        error: 'OpenAI API call failed', 
+        status: response.status,
+        details: errorText 
+      }, { status: 500 });
     }
 
     const data = await response.json();
