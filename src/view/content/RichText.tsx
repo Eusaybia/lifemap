@@ -22,7 +22,7 @@ import DetailsContent from '@tiptap-pro/extension-details-content'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
-import { throttle } from 'lodash'
+import { throttle, debounce } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
 import { lowlight } from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
@@ -423,95 +423,105 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   let editor = MainEditor(content, true, false)
   
-  // Add state for location tagging
-  const [isTaggingLocations, setIsTaggingLocations] = React.useState(false);
+  // Real-time function for tagging locations (no debounce)
+  const tagLocationsRealTime = React.useCallback(async (editorInstance: Editor) => {
+    if (!editorInstance || editorInstance.isDestroyed) return;
 
-  // Function to tag locations using Google Cloud Natural Language API
-  const tagLocations = React.useCallback(async () => {
-    if (!editor) return;
-    
-    setIsTaggingLocations(true);
-    
-    try {
-      // Get the plain text content from the editor
-      const plainText = editor.getText();
+    // Simple list of locations to detect
+    const locationWords = ['Sydney', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
+
+    // Get existing tagged locations to avoid re-tagging
+    const existingLocations = new Set<string>();
+    editorInstance.state.doc.descendants((node) => {
+      if (node.type.name === 'location') {
+        existingLocations.add(node.attrs.label);
+      }
+      return true;
+    });
+
+    const plainText = editorInstance.getText();
+    if (!plainText.trim()) return;
+
+    // Find locations that could be tagged
+    const locationsToTag: string[] = [];
+    locationWords.forEach(location => {
+      if (plainText.includes(location) && !existingLocations.has(location)) {
+        locationsToTag.push(location);
+      }
+    });
+
+    if (locationsToTag.length === 0) return;
+
+    // Walk through the document and find text nodes that contain untagged locations
+    editorInstance.commands.command(({ tr, state }) => {
+      tr.setMeta('fromAutoTagging', true);
       
-      if (!plainText.trim()) {
-        alert('No text to analyze');
-        return;
-      }
+      let hasChanges = false;
 
-      // Send text to our API endpoint
-      const response = await fetch('/api/analyze-locations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: plainText }),
-      });
+      state.doc.descendants((node, pos) => {
+        // Only process text nodes
+        if (node.isText && node.text) {
+          locationsToTag.forEach(locationName => {
+            const text = node.text!;
+            const index = text.indexOf(locationName);
+            
+            if (index !== -1) {
+              // Calculate absolute position in document
+              const from = pos + index;
+              const to = from + locationName.length;
+              
+              // Make sure we're not overwriting an existing location tag
+              let alreadyTagged = false;
+              state.doc.nodesBetween(from, to, (checkNode) => {
+                if (checkNode.type.name === 'location') {
+                  alreadyTagged = true;
+                }
+              });
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze locations');
-      }
-
-      const data = await response.json();
-      const locations: LocationEntity[] = data.entities;
-
-      if (locations.length === 0) {
-        alert('No locations found in the text');
-        return;
-      }
-
-      // Create replacements array with position information
-      const replacements: { from: number; to: number; text: string; entityName: string }[] = [];
-      
-      locations.forEach(entity => {
-        entity.mentions.forEach(mention => {
-          if (mention.text.beginOffset >= 0) {
-            // The `beginOffset` is a 0-based index into the plain text.
-            // Tiptap/ProseMirror positions are 1-based and start *after* the opening tag of a node (e.g., <p>).
-            // This +1 adjustment accounts for that offset in a simple document.
-            const fromPos = mention.text.beginOffset + 1;
-            const toPos = fromPos + mention.text.content.length;
-
-            replacements.push({
-              from: fromPos,
-              to: toPos,
-              text: mention.text.content,
-              entityName: entity.name
-            });
-          }
-        });
-      });
-
-      // Sort replacements in reverse order to avoid position shifts
-      replacements.sort((a, b) => b.from - a.from);
-
-      // Apply replacements using a single transaction
-      editor.commands.command(({ tr, state }) => {
-        replacements.forEach(({ from, to, text, entityName }) => {
-          // Validate that the position is within bounds
-          if (from >= 0 && to <= state.doc.content.size && from < to) {
-            const locationNode = state.schema.nodes.location.create({
-              id: entityName,
-              label: text,
-            });
-            tr.replaceWith(from, to, locationNode);
-          }
-        });
+              if (!alreadyTagged && from >= 0 && to <= state.doc.content.size) {
+                const locationNode = state.schema.nodes.location.create({
+                  id: locationName,
+                  label: locationName,
+                });
+                tr.replaceWith(from, to, locationNode);
+                hasChanges = true;
+                
+                // Remove this location from the list to avoid tagging it multiple times
+                const locationIndex = locationsToTag.indexOf(locationName);
+                if (locationIndex > -1) {
+                  locationsToTag.splice(locationIndex, 1);
+                }
+              }
+            }
+          });
+        }
         return true;
       });
       
-      alert(`Successfully tagged ${locations.length} location(s)!`);
-      
-    } catch (error) {
-      console.error('Error tagging locations:', error);
-      alert('Failed to tag locations. Please try again.');
-    } finally {
-      setIsTaggingLocations(false);
-    }
-  }, [editor]);
+      return hasChanges;
+    });
 
+  }, []);
+
+  // Trigger the function on every editor update
+  React.useEffect(() => {
+    if (editor) {
+      const handleUpdate = ({ editor: editorInstance, transaction }: { editor: Editor; transaction: Transaction }) => {
+        // Ignore updates that were triggered by our own tagging to prevent a loop
+        if (transaction.getMeta('fromAutoTagging')) {
+          return;
+        }
+        tagLocationsRealTime(editorInstance);
+      };
+      
+      editor.on('update', handleUpdate);
+      
+      return () => {
+        editor.off('update', handleUpdate);
+      };
+    }
+  }, [editor, tagLocationsRealTime]);
+  
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
@@ -539,7 +549,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     // Only apply template if URL ID matches stored ID
     if (newSalesGuideId === urlId && editor) {
       setTimeout(() => {
-        (editor as Editor)!.commands.setContent(SalesGuideTemplate);
+        editor.commands.setContent(SalesGuideTemplate);
         console.log("Applied sales guide template to", urlId);
 
         // Mark template as applied
@@ -561,30 +571,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     return (
       <div key={props.quanta?.id} style={{width: '100%'}}>
-        {/* Add Tag Locations button */}
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button
-            onClick={tagLocations}
-            disabled={isTaggingLocations}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: isTaggingLocations ? '#ccc' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: isTaggingLocations ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-            }}
-          >
-            {isTaggingLocations ? 'Tagging Locations...' : 'Tag Locations'}
-          </button>
-          {isTaggingLocations && (
-            <span style={{ fontSize: '0.875rem', color: '#666' }}>
-              Analyzing text for locations...
-            </span>
-          )}
-        </div>
-
         {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
         {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>
