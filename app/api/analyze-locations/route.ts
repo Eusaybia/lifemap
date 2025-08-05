@@ -24,88 +24,121 @@ export async function POST(req: NextRequest) {
 
     console.log('Received text for analysis:', text.substring(0, 100) + '...');
 
-    // For now, let's create a mock response to test the functionality
-    // TODO: Replace with actual Google Cloud API call once authentication is resolved
-    
-    // Mock location detection for common city names
-    const mockLocationEntities: LocationEntity[] = [];
-    const locationWords = ['Sydney', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
-    
-    locationWords.forEach(location => {
-      const index = text.toLowerCase().indexOf(location.toLowerCase());
-      if (index !== -1) {
-        mockLocationEntities.push({
-          name: location,
-          type: 'LOCATION',
-          mentions: [{
-            text: {
-              content: location,
-              beginOffset: index
-            },
-            type: 'PROPER',
-            probability: 0.95
-          }]
-        });
-      }
-    });
-
-    console.log('Mock locations found:', mockLocationEntities.length);
-
-    return NextResponse.json({ entities: mockLocationEntities });
-
-    /* 
-    // Commented out Google Cloud API call until authentication is resolved
+    // Use Compromise for entity extraction
     try {
-      // Import the Google Cloud client library inside the function
-      const { LanguageServiceClient } = require('@google-cloud/language').v2;
+      const nlp = (await import('compromise')).default;
+      const doc = nlp(text);
       
-      // Create client with explicit project ID
-      const client = new LanguageServiceClient({
-        projectId: 'eusaybia-lifemap',
+      // Extract different entity types
+      const places = doc.places().out('array');
+      const people = doc.people().out('array');
+      const organizations = doc.organizations().out('array');
+      
+      console.log('Compromise extracted entities:', {
+        places: places.length,
+        people: people.length,
+        organizations: organizations.length
       });
 
-      console.log('Google Cloud client created successfully');
-
-      const document = {
-        content: text,
-        type: 'PLAIN_TEXT',
-      };
-
-      console.log('Calling Google Cloud Natural Language API...');
-
-      // Detects entities in the document
-      const [result] = await client.analyzeEntities({ 
-        document,
-        encodingType: 'UTF8'
-      });
+      // Convert to our expected format
+      const entities: LocationEntity[] = [];
       
-      console.log('API call successful, entities found:', result.entities?.length || 0);
+      // Add places as location entities
+      places.forEach((place: string, index: number) => {
+        const beginOffset = text.indexOf(place);
+        if (beginOffset !== -1) {
+          entities.push({
+            name: place,
+            type: 'LOCATION',
+            mentions: [{
+              text: {
+                content: place,
+                beginOffset: beginOffset
+              },
+              type: 'PROPER',
+              probability: 0.9
+            }]
+          });
+        }
+      });
 
-      const entities = result.entities || [];
+      // Add people as person entities (for completeness)
+      people.forEach((person: string, index: number) => {
+        const beginOffset = text.indexOf(person);
+        if (beginOffset !== -1) {
+          entities.push({
+            name: person,
+            type: 'PERSON',
+            mentions: [{
+              text: {
+                content: person,
+                beginOffset: beginOffset
+              },
+              type: 'PROPER',
+              probability: 0.9
+            }]
+          });
+        }
+      });
 
-      // Filter for locations with high confidence
-      const locations = entities.filter((entity: any) => 
-        entity.type === 'LOCATION' &&
-        entity.mentions?.[0]?.probability > 0.7
-      );
+      // Add organizations as organization entities
+      organizations.forEach((org: string, index: number) => {
+        const beginOffset = text.indexOf(org);
+        if (beginOffset !== -1) {
+          entities.push({
+            name: org,
+            type: 'ORGANIZATION',
+            mentions: [{
+              text: {
+                content: org,
+                beginOffset: beginOffset
+              },
+              type: 'PROPER',
+              probability: 0.9
+            }]
+          });
+        }
+      });
 
-      console.log('Filtered locations:', locations.length);
+      console.log('Processed entities:', entities.length);
 
-      return NextResponse.json({ entities: locations });
-    } catch (apiError) {
-      console.error('Google Cloud API error:', apiError);
-      // Fall back to mock response
+      return NextResponse.json({ entities });
+
+    } catch (compromiseError) {
+      console.error('Compromise error:', compromiseError);
+      
+      // Fallback to mock implementation
+      const mockLocationEntities: LocationEntity[] = [];
+      const locationWords = ['Sydney', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
+      
+      locationWords.forEach(location => {
+        const index = text.toLowerCase().indexOf(location.toLowerCase());
+        if (index !== -1) {
+          mockLocationEntities.push({
+            name: location,
+            type: 'LOCATION',
+            mentions: [{
+              text: {
+                content: location,
+                beginOffset: index
+              },
+              type: 'PROPER',
+              probability: 0.95
+            }]
+          });
+        }
+      });
+
+      console.log('Fallback mock locations found:', mockLocationEntities.length);
       return NextResponse.json({ entities: mockLocationEntities });
     }
-    */
 
   } catch (error) {
-    console.error('Detailed error in analyze-locations:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
-    return NextResponse.json({ 
-      error: 'Failed to analyze entities', 
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('Error in analyze-locations:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200 });
 } 

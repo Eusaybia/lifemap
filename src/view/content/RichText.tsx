@@ -429,9 +429,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const tagLocationsRealTime = React.useCallback(async (editorInstance: Editor) => {
     if (!editorInstance || editorInstance.isDestroyed) return;
 
-    // Simple list of locations to detect
-    const locationWords = ['Sydney', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
-
     // Get existing tagged locations to avoid re-tagging
     const existingLocations = new Set<string>();
     editorInstance.state.doc.descendants((node) => {
@@ -444,13 +441,33 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const plainText = editorInstance.getText();
     if (!plainText.trim()) return;
 
-    // Find locations that could be tagged
-    const locationsToTag: string[] = [];
-    locationWords.forEach(location => {
-      if (plainText.includes(location) && !existingLocations.has(location)) {
-        locationsToTag.push(location);
-      }
-    });
+    // Use Compromise to detect locations
+    let locationsToTag: string[] = [];
+    try {
+      const nlp = (await import('compromise')).default;
+      const doc = nlp(plainText);
+      const places = doc.places().out('array');
+      
+      // Filter out existing locations and add new ones
+      places.forEach((place: string) => {
+        if (!existingLocations.has(place)) {
+          locationsToTag.push(place);
+        }
+      });
+      
+      console.log('📍 Compromise detected locations:', places);
+    } catch (error) {
+      console.error('Compromise error, falling back to regex:', error);
+      
+      // Fallback to regex-based detection
+      const locationWords = ['Sydney', 'Shanghai', 'Singapore', 'Malaysia', 'Hong Kong', 'Shenzhen', 'Kansas City', 'Tibet', 'Essaouira', 'Morocco', 'San Francisco', 'Washington', 'New York', 'London', 'Paris', 'Tokyo', 'Beijing', 'Mumbai', 'Dubai', 'Cairo'];
+      
+      locationWords.forEach(location => {
+        if (plainText.includes(location) && !existingLocations.has(location)) {
+          locationsToTag.push(location);
+        }
+      });
+    }
 
     if (locationsToTag.length === 0) return;
 
