@@ -1,14 +1,14 @@
-import './LocationList.scss';
+import './PeopleList.scss';
 import './styles.scss';
 import { Mention, MentionOptions } from '@tiptap/extension-mention';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { mergeAttributes, nodeInputRule } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 
-export const LocationPluginKey = new PluginKey('location');
+export const PeoplePluginKey = new PluginKey('people');
 
-export const CustomLocation = Mention.extend({
-  name: 'location',
+export const CustomPeople = Mention.extend({
+  name: 'people',
   addOptions(): MentionOptions {
     return {
       ...this.parent?.(),
@@ -16,34 +16,34 @@ export const CustomLocation = Mention.extend({
       renderLabel: ({ node }: { node: ProsemirrorNode }) => ( node.attrs.label ),
       suggestion: {
         ...this.parent?.().suggestion,
-        pluginKey: LocationPluginKey,
+        pluginKey: PeoplePluginKey,
       }
     };
   },
   renderHTML({ node, HTMLAttributes }) {
     // Add a class based on the 'data' attribute
-    let classes = 'location'
+    let classes = 'people'
     if ((node.attrs.label as string).includes('⭐️ important')) {
-      classes = 'glow location'
+      classes = 'glow people'
     } else if ((node.attrs.label as string).includes('✅ complete')) {
-      classes = 'green-glow location'
+      classes = 'green-glow people'
     }
 
     return [
-      'Location',
+      'People',
       mergeAttributes(HTMLAttributes, { 
         class: classes,
-        'data-type': 'location',
+        'data-type': 'people',
         'data-id': node.attrs.id || node.attrs.label
       }),
       [
         'span',
-        { class: 'location-pin' },
-        '📍'
+        { class: 'people-pin' },
+        '👤'
       ],
       [
         'span',
-        { class: 'location-text' },
+        { class: 'people-text' },
         `${node.attrs.label}`
       ]
     ]
@@ -71,4 +71,4 @@ export const CustomLocation = Mention.extend({
   //     );
   //   });
   // },
-});
+}); 

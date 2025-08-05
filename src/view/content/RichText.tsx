@@ -38,6 +38,7 @@ import { BubbleMenu } from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomLocation } from './Location'
+import { CustomPeople } from './People'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -63,6 +64,8 @@ import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExte
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { LocationRouteExtension } from './LocationRouteExtension'
+import { PeopleRouteExtension } from './PeopleRouteExtension'
+import { peopleSuggestionOptions } from './PeopleTipTapExtension'
 
 // Add interface for Google Cloud Natural Language API response
 interface LocationEntity {
@@ -188,11 +191,20 @@ export const customExtensions: Extensions = [
       suggestion: locationSuggestionOptions,
     }
   ),
+  CustomPeople.configure(
+    {
+      HTMLAttributes: {
+        class: 'people',
+      },
+      suggestion: peopleSuggestionOptions,
+    }
+  ),
   DocumentAttributeExtension,
   FadeIn,
   FocusModePlugin,
   GroupExtension,
   LocationRouteExtension,
+  PeopleRouteExtension,
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
@@ -425,6 +437,109 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   let editor = MainEditor(content, true, false)
   
+  // Real-time function for tagging people (no debounce)
+  const tagPeopleRealTime = React.useCallback(async (editorInstance: Editor) => {
+    if (!editorInstance || editorInstance.isDestroyed) return;
+
+    // Get existing tagged people to avoid re-tagging
+    const existingPeople = new Set<string>();
+    editorInstance.state.doc.descendants((node) => {
+      if (node.type.name === 'people') {
+        existingPeople.add(node.attrs.label);
+      }
+      return true;
+    });
+
+    const plainText = editorInstance.getText();
+    if (!plainText.trim()) return;
+
+    // Use Compromise to detect people
+    let peopleToTag: string[] = [];
+    try {
+      const nlp = (await import('compromise')).default;
+      const doc = nlp(plainText);
+      const people = doc.people().out('array');
+      
+      // Filter out existing people and add new ones
+      people.forEach((person: string) => {
+        if (!existingPeople.has(person)) {
+          peopleToTag.push(person);
+        }
+      });
+      
+      console.log('👤 Compromise detected people:', people);
+    } catch (error) {
+      console.error('Compromise error for people detection, falling back to regex:', error);
+      
+      // Fallback to regex-based detection
+      const peoplePatterns = [
+        /\b(Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+[A-Z][a-z]+\b/gi,
+        /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g // Capitalized words (potential names)
+      ];
+      
+      peoplePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(plainText)) !== null) {
+          if (!existingPeople.has(match[0])) {
+            peopleToTag.push(match[0]);
+          }
+        }
+      });
+    }
+
+    if (peopleToTag.length === 0) return;
+
+    // Walk through the document and find text nodes that contain untagged people
+    editorInstance.commands.command(({ tr, state }) => {
+      tr.setMeta('fromAutoTagging', true);
+      
+      let hasChanges = false;
+
+      state.doc.descendants((node, pos) => {
+        // Only process text nodes
+        if (node.isText && node.text) {
+          peopleToTag.forEach(personName => {
+            const text = node.text!;
+            const index = text.indexOf(personName);
+            
+            if (index !== -1) {
+              // Calculate absolute position in document
+              const from = pos + index;
+              const to = from + personName.length;
+              
+              // Make sure we're not overwriting an existing people tag
+              let alreadyTagged = false;
+              state.doc.nodesBetween(from, to, (checkNode) => {
+                if (checkNode.type.name === 'people') {
+                  alreadyTagged = true;
+                }
+              });
+
+              if (!alreadyTagged && from >= 0 && to <= state.doc.content.size) {
+                const peopleNode = state.schema.nodes.people.create({
+                  id: personName,
+                  label: personName,
+                });
+                tr.replaceWith(from, to, peopleNode);
+                hasChanges = true;
+                
+                // Remove this person from the list to avoid tagging them multiple times
+                const personIndex = peopleToTag.indexOf(personName);
+                if (personIndex > -1) {
+                  peopleToTag.splice(personIndex, 1);
+                }
+              }
+            }
+          });
+        }
+        return true;
+      });
+      
+      return hasChanges;
+    });
+
+  }, []);
+
   // Real-time function for tagging locations (no debounce)
   const tagLocationsRealTime = React.useCallback(async (editorInstance: Editor) => {
     if (!editorInstance || editorInstance.isDestroyed) return;
@@ -522,7 +637,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   }, []);
 
-  // Trigger the function on every editor update
+  // Trigger the functions on every editor update
   React.useEffect(() => {
     if (editor) {
       const handleUpdate = ({ editor: editorInstance, transaction }: { editor: Editor; transaction: Transaction }) => {
@@ -530,6 +645,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         if (transaction.getMeta('fromAutoTagging')) {
           return;
         }
+        tagPeopleRealTime(editorInstance);
         tagLocationsRealTime(editorInstance);
       };
       
@@ -539,7 +655,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         editor.off('update', handleUpdate);
       };
     }
-  }, [editor, tagLocationsRealTime]);
+  }, [editor, tagPeopleRealTime, tagLocationsRealTime]);
   
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {

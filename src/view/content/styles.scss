@@ -141,7 +141,9 @@
   }
 }
 
-Location {
+
+
+Location, People {
   display: inline-flex;
   width: max-content;
   /* 61px */
@@ -435,5 +437,14 @@ Location .location-pin {
 }
 
 Location .location-text {
+  /* Text styling can be added here if needed */
+}
+
+/* People pin and text styling */
+People .people-pin {
+  margin-right: 2px;
+}
+
+People .people-text {
   /* Text styling can be added here if needed */
 }

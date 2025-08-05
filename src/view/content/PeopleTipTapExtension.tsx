@@ -1,4 +1,4 @@
-import './LocationList.scss'
+import './PeopleList.scss'
 import { MentionOptions } from "@tiptap/extension-mention";
 import { JSONContent, ReactRenderer } from "@tiptap/react";
 import { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
@@ -6,74 +6,74 @@ import React from "react";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import tippy, { Instance as TippyInstance } from "tippy.js";
 import { motion } from "framer-motion";
-import { LocationPluginKey } from './Location';
+import { PeoplePluginKey } from './People';
 
 
-export type LocationSuggestion = {
+export type PeopleSuggestion = {
     id: string;
-    locationLabel: string;
+    peopleLabel: string;
 };
 
-interface LocationProps extends SuggestionProps {
-    items: LocationSuggestion[];
+interface PeopleProps extends SuggestionProps {
+    items: PeopleSuggestion[];
 }
 
-const parseLocationsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) => {
-    const locations = (jsonContentOfEntireEditor.content || []).flatMap(parseLocationsAndKeyValueTags)
-    if (jsonContentOfEntireEditor.attrs && jsonContentOfEntireEditor.type === 'location') {
-        const locationSuggestion: LocationSuggestion = {
+const parsePeopleAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) => {
+    const people = (jsonContentOfEntireEditor.content || []).flatMap(parsePeopleAndKeyValueTags)
+    if (jsonContentOfEntireEditor.attrs && jsonContentOfEntireEditor.type === 'people') {
+        const peopleSuggestion: PeopleSuggestion = {
             id: jsonContentOfEntireEditor.attrs.id,
-            locationLabel: jsonContentOfEntireEditor.attrs.label
+            peopleLabel: jsonContentOfEntireEditor.attrs.label
         }
-        locations.push(locationSuggestion)
+        people.push(peopleSuggestion)
         console.log("data", jsonContentOfEntireEditor)
     }
-    const uniqueLocations: (LocationSuggestion)[] = locations.filter((location, index, self) =>
-        index === self.findIndex((l) => (
-            l.id === location.id && l.locationLabel === location.locationLabel
+    const uniquePeople: (PeopleSuggestion)[] = people.filter((person, index, self) =>
+        index === self.findIndex((p) => (
+            p.id === person.id && p.peopleLabel === person.peopleLabel
         ))
     );
 
-    console.log("unique locations list", uniqueLocations)
+    console.log("unique people list", uniquePeople)
 
-    return uniqueLocations
+    return uniquePeople
 }
 
-export const locationSuggestionOptions: MentionOptions["suggestion"] = {
+export const peopleSuggestionOptions: MentionOptions["suggestion"] = {
     char: "@",
     allowSpaces: true,
-    pluginKey: LocationPluginKey,
-    items: ({ query, editor }): (LocationSuggestion)[] => {
-        let locations = parseLocationsAndKeyValueTags(editor.getJSON());
+    pluginKey: PeoplePluginKey,
+    items: ({ query, editor }): (PeopleSuggestion)[] => {
+        let people = parsePeopleAndKeyValueTags(editor.getJSON());
 
-        const queryLocationSelection: LocationSuggestion = {
+        const queryPeopleSelection: PeopleSuggestion = {
             id: "000000",
-            locationLabel: query
+            peopleLabel: query
         };
 
-        let locationSuggestions: LocationSuggestion[] = locations.concat(query.length > 0 ? [queryLocationSelection] : [])
+        let peopleSuggestions: PeopleSuggestion[] = people.concat(query.length > 0 ? [queryPeopleSelection] : [])
             // Filter for suggestions that start with the query
-            .filter((locationSuggestion) => {
-                if (typeof locationSuggestion === "string") {
+            .filter((peopleSuggestion) => {
+                if (typeof peopleSuggestion === "string") {
                     // This is referring to key value pairs, which have the node name "keyValuePair"
-                    return (locationSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
+                    return (peopleSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
                 } else {
-                    // This is referring to tags, which have the node name "location"
-                    return (locationSuggestion as LocationSuggestion).locationLabel.toLowerCase().startsWith(query.toLowerCase())
+                    // This is referring to tags, which have the node name "people"
+                    return (peopleSuggestion as PeopleSuggestion).peopleLabel.toLowerCase().startsWith(query.toLowerCase())
                 }
             })
             .slice(0, 5)
 
-            console.log("locations", locationSuggestions)
-        return locationSuggestions
+            console.log("people", peopleSuggestions)
+        return peopleSuggestions
     },
     render: () => {
-        let component: ReactRenderer<LocationRef> | undefined;
+        let component: ReactRenderer<PeopleRef> | undefined;
         let popup: TippyInstance | undefined;
 
         return {
             onStart: (props) => {
-                component = new ReactRenderer(LocationList, {
+                component = new ReactRenderer(PeopleList, {
                     props,
                     editor: props.editor,
                 });
@@ -128,14 +128,14 @@ export const locationSuggestionOptions: MentionOptions["suggestion"] = {
     },
 };
 
-type LocationRef = {
+type PeopleRef = {
     onKeyDown: (props: SuggestionKeyDownProps) => boolean;
 };
 
 
 // Based off the following:
 // https://github.com/ueberdosis/tiptap/blob/fc67cb1b7166c1ab6b6e0174539c9e29c364eace/demos/src/Nodes/Mention/React/MentionList.jsx#L66
-const LocationList = forwardRef<LocationRef, LocationProps>((props, ref) => {
+const PeopleList = forwardRef<PeopleRef, PeopleProps>((props, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
 
     const selectItem = (index: number) => {
@@ -148,16 +148,16 @@ const LocationList = forwardRef<LocationRef, LocationProps>((props, ref) => {
 
         const suggestion = props.items[index];
 
-        // Set all of the attributes of our Location based on the suggestion data. The fields
+        // Set all of the attributes of our People based on the suggestion data. The fields
         // of `suggestion` will depend on whatever data you return from your `items`
         // function in your "suggestion" options handler. We are returning the
-        // `LocationSuggestion` type we defined above, which we've indicated via the `items`
-        // in `LocationProps`.
-        const locationItem = {
+        // `PeopleSuggestion` type we defined above, which we've indicated via the `items`
+        // in `PeopleProps`.
+        const peopleItem = {
             id: suggestion.id,
-            label: suggestion.locationLabel,
+            label: suggestion.peopleLabel,
         };
-        props.command(locationItem);
+        props.command(peopleItem);
     };
 
     const upHandler = () => {
@@ -199,13 +199,13 @@ const LocationList = forwardRef<LocationRef, LocationProps>((props, ref) => {
 
     return (
         <div className="items">
-            {props.items.length > 0 ? props.items.map((item: LocationSuggestion, index) => (
+            {props.items.length > 0 ? props.items.map((item: PeopleSuggestion, index) => (
                 <motion.div
                     className={`item ${index === selectedIndex ? "is-selected" : ""}`}
                     key={index}
                     onClick={() => selectItem(index)}
                 >
-                    📍 {item.locationLabel}
+                    👤 {item.peopleLabel}
                 </motion.div>
             )) :
                 <div className="item">No result</div>
@@ -214,4 +214,4 @@ const LocationList = forwardRef<LocationRef, LocationProps>((props, ref) => {
     );
 })
 
-LocationList.displayName = "LocationList"
+PeopleList.displayName = "PeopleList" 
