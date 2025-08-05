@@ -67,6 +67,9 @@ import { LocationRouteExtension } from './LocationRouteExtension'
 import { PeopleRouteExtension } from './PeopleRouteExtension'
 import { peopleSuggestionOptions } from './PeopleTipTapExtension'
 
+// Feature flag to temporarily disable Location and People extensions
+const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
+
 // Add interface for Google Cloud Natural Language API response
 interface LocationEntity {
   name: string;
