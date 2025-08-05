@@ -186,28 +186,31 @@ export const customExtensions: Extensions = [
   CustomLink.configure({
     openOnClick: true,
   }),
-  CustomLocation.configure(
-    {
-      HTMLAttributes: {
-        class: 'location',
-      },
-      suggestion: locationSuggestionOptions,
-    }
-  ),
-  CustomPeople.configure(
-    {
-      HTMLAttributes: {
-        class: 'people',
-      },
-      suggestion: peopleSuggestionOptions,
-    }
-  ),
+  // Conditionally include Location and People extensions
+  ...(DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS ? [] : [
+    CustomLocation.configure(
+      {
+        HTMLAttributes: {
+          class: 'location',
+        },
+        suggestion: locationSuggestionOptions,
+      }
+    ),
+    CustomPeople.configure(
+      {
+        HTMLAttributes: {
+          class: 'people',
+        },
+        suggestion: peopleSuggestionOptions,
+      }
+    ),
+    LocationRouteExtension,
+    PeopleRouteExtension,
+  ]),
   DocumentAttributeExtension,
   FadeIn,
   FocusModePlugin,
   GroupExtension,
-  LocationRouteExtension,
-  PeopleRouteExtension,
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
@@ -642,7 +645,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   // Trigger the functions on every editor update
   React.useEffect(() => {
-    if (editor) {
+    if (editor && !DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS) {
       const handleUpdate = ({ editor: editorInstance, transaction }: { editor: Editor; transaction: Transaction }) => {
         // Ignore updates that were triggered by our own tagging to prevent a loop
         if (transaction.getMeta('fromAutoTagging')) {
