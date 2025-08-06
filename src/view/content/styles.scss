@@ -457,3 +457,26 @@ Field .field-pin {
 Field .field-text {
   /* Text styling can be added here if needed */
 }
+
+Field .field-handle {
+  margin-left: 4px;
+  cursor: pointer;
+  color: #666;
+  font-size: 12px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  user-select: none;
+  display: inline-block;
+}
+
+Field .field-handle:hover {
+  opacity: 1;
+  color: #333;
+  transform: scale(1.1);
+}
+
+Field .field-handle.active {
+  color: #2196F3 !important;
+  opacity: 1 !important;
+  transform: scale(1.2) !important;
+}

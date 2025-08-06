@@ -84,7 +84,8 @@ export const FieldExtension = Mark.create<FieldOptions>({
     return ['Field', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
       class: 'field',
       'data-type': 'field',
-      'data-id': HTMLAttributes.fieldId
+      'data-id': HTMLAttributes.fieldId,
+      'data-field-id': HTMLAttributes.fieldId
     }), 
       [
         'span',
@@ -95,6 +96,14 @@ export const FieldExtension = Mark.create<FieldOptions>({
         'span',
         { class: 'field-text' },
         0
+      ],
+      [
+        'span',
+        { 
+          class: 'field-handle',
+          'data-field-id': HTMLAttributes.fieldId
+        },
+        '⚬'
       ]
     ]
   },
