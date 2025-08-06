@@ -66,6 +66,7 @@ import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { LocationRouteExtension } from './LocationRouteExtension'
 import { PeopleRouteExtension } from './PeopleRouteExtension'
 import { peopleSuggestionOptions } from './PeopleTipTapExtension'
+import { FieldExtension } from './FieldTipTapExtension'
 
 // Feature flag to temporarily disable Location and People extensions
 const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
@@ -186,6 +187,7 @@ export const customExtensions: Extensions = [
   CustomLink.configure({
     openOnClick: true,
   }),
+  FieldExtension,
   // Conditionally include Location and People extensions
   ...(DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS ? [] : [
     CustomLocation.configure(

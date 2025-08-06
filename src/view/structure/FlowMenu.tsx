@@ -12,6 +12,7 @@ import FormatAlignCentre from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRight from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
+import CircleIcon from '@mui/icons-material/Circle';
 import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
@@ -86,6 +87,36 @@ const handleAddImage = (editor: Editor) => {
     } else {
         return false
     }
+}
+
+// Generate a unique ID for fields
+const generateFieldId = (): string => {
+    return `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Field functionality to segment highlighted text with a Mark
+const handleCreateField = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for field creation');
+        return false;
+    }
+    
+    const fieldId = generateFieldId();
+    
+    // Create a field mark with the field ID
+    editor.chain()
+        .focus()
+        .setField({ 
+            fieldId: fieldId,
+            class: 'field-mark'
+        })
+        .run();
+    
+    console.log('Field created with ID:', fieldId);
+    return true;
 }
 
 // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
@@ -1092,6 +1123,23 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
                     }[getSelectedNodeType(props.editor)] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleCreateField(props.editor)}
+                        style={{ 
+                            color: black
+                        }}
+                        variant="plain"
+                        title="Create Field"
+                    >
+                        <CircleIcon style={{ 
+                            stroke: black, 
+                            strokeWidth: '2px', 
+                            fill: 'transparent' 
+                        }} />
+                    </IconButton>
+                </Tag>
             </motion.div>
         </BubbleMenu>
     )
