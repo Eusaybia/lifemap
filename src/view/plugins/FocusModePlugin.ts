@@ -9,16 +9,16 @@ export const FocusModePlugin = Extension.create({
         }
     },
 
-    // @ts-ignore
     addCommands() {
         return {
-            // @ts-ignore
-            toggleFocus: ({ editor }) => {
-                // Toggle the focus state
-                editor.setOptions('focusMode', {
-                    focusModeEnabled: !editor.options.focusMode.focusModeEnabled,
-                });
-            },
-        };
+            toggleFocusMode: 
+                () => 
+                ({ editor }) => {
+                    // Toggle the focus mode state
+                    const currentState = this.options.focusModeEnabled
+                    this.options.focusModeEnabled = !currentState
+                    return true
+                },
+        }
     },
 })

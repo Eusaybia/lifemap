@@ -15,6 +15,8 @@ import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
 import CircleIcon from '@mui/icons-material/Circle';
 import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
+import { LightOrbIcon } from "../content/LightOrbIcon"
+import { CloudIcon } from "../content/CloudIcon"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
@@ -116,6 +118,34 @@ const handleCreateField = (editor: Editor) => {
         .run();
     
     console.log('Field created with ID:', fieldId);
+    return true;
+}
+
+// Focus functionality
+const handleToggleFocus = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for focus');
+        return false;
+    }
+    
+    editor.chain().focus().toggleFocus().run();
+    return true;
+}
+
+// Confusion aura functionality  
+const handleToggleConfusion = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for confusion aura');
+        return false;
+    }
+    
+    editor.chain().focus().toggleConfusionAura().run();
     return true;
 }
 
@@ -1138,6 +1168,32 @@ export const FlowMenu = (props: { editor: Editor }) => {
                             strokeWidth: '2px', 
                             fill: 'transparent' 
                         }} />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleToggleFocus(props.editor)}
+                        style={{ 
+                            color: props.editor.isActive('focusMark') ? '#fef3c7' : black
+                        }}
+                        variant={props.editor.isActive('focusMark') ? "solid" : "plain"}
+                        title="Focus"
+                    >
+                        <LightOrbIcon />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleToggleConfusion(props.editor)}
+                        style={{ 
+                            color: props.editor.isActive('highlight', { color: 'var(--tt-color-highlight-gray)' }) ? '#e5e7eb' : black
+                        }}
+                        variant={props.editor.isActive('highlight', { color: 'var(--tt-color-highlight-gray)' }) ? "solid" : "plain"}
+                        title="Confusion Aura"
+                    >
+                        <CloudIcon />
                     </IconButton>
                 </Tag>
             </motion.div>
