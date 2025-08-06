@@ -66,6 +66,9 @@ export const FieldExtension = Mark.create<FieldOptions>({
   parseHTML() {
     return [
       {
+        tag: 'Field[data-type="field"]',
+      },
+      {
         tag: 'span[data-field-id]',
       },
       {
@@ -74,38 +77,26 @@ export const FieldExtension = Mark.create<FieldOptions>({
       {
         tag: 'span.field-tag',
       },
-      {
-        tag: 'span[data-field-type="field-mark"]',
-      },
     ]
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-      class: `${HTMLAttributes.class || 'field-mark'} field-tag`,
-      style: `
-        background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%);
-        border: 1px solid #81c784;
-        border-radius: 6px;
-        padding: 1px 6px;
-        margin: 0 1px;
-        display: inline;
-        font-size: 0.9em;
-        font-weight: 500;
-        color: #2e7d32;
-        text-decoration: none;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        vertical-align: baseline;
-        line-height: inherit;
-        position: relative;
-        overflow-wrap: break-word;
-        word-break: break-word;
-        white-space: normal;
-        box-decoration-break: clone;
-        -webkit-box-decoration-break: clone;
-      `,
-      'data-field-type': 'field-mark',
-    }), 0]
+    return ['Field', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      class: 'field',
+      'data-type': 'field',
+      'data-id': HTMLAttributes.fieldId
+    }), 
+      [
+        'span',
+        { class: 'field-pin' },
+        '⭕'
+      ],
+      [
+        'span',
+        { class: 'field-text' },
+        0
+      ]
+    ]
   },
 
   addCommands() {
