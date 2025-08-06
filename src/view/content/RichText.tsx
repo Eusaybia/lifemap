@@ -74,7 +74,10 @@ import { BlockageMarkExtension } from './BlockageMarkExtension'
 import { UnawarenessExtension } from './UnawarenessExtension'
 
 // Feature flag to temporarily disable Location and People extensions
-const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
+const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = false
+
+// Feature flag to disable auto-detection/tagging while keeping extensions enabled
+const DISABLE_AUTO_TAGGING = true
 
 // Add interface for Google Cloud Natural Language API response
 interface LocationEntity {
@@ -657,7 +660,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   // Trigger the functions on every editor update
   React.useEffect(() => {
-    if (editor && !DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS) {
+    if (editor && !DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS && !DISABLE_AUTO_TAGGING) {
       const handleUpdate = ({ editor: editorInstance, transaction }: { editor: Editor; transaction: Transaction }) => {
         // Ignore updates that were triggered by our own tagging to prevent a loop
         if (transaction.getMeta('fromAutoTagging')) {
