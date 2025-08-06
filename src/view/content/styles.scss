@@ -458,10 +458,12 @@ Field .field-text {
   /* Text styling can be added here if needed */
 }
 
-/* CSS Variables for Focus and Confusion */
+/* CSS Variables for Focus, Confusion, Clarity, and Unawareness */
 :root {
   --tt-color-highlight-yellow: #fef3c7;
   --tt-color-highlight-gray: #e5e7eb;
+  --tt-color-clarity: #f0f9ff;
+  --tt-color-unawareness: #f9fafb;
   --tt-radius-lg: 8px;
   --tt-radius-xs: 2px;
 }
@@ -510,9 +512,8 @@ Field .field-text {
     0 0 24px 16px rgba(107, 114, 128, 0.2);
 }
 
-/* Clarity mark styling with glass/gel effect */
-.ProseMirror mark.clarity-mark,
-.ProseMirror mark[data-clarity] {
+/* Clarity aura styling with glass/gel effect */
+.ProseMirror mark[style*="var(--tt-color-clarity)"] {
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.8) 0%,
@@ -520,7 +521,7 @@ Field .field-text {
     rgba(248, 250, 252, 0.4) 50%,
     rgba(241, 245, 249, 0.6) 75%,
     rgba(255, 255, 255, 0.3) 100%
-  );
+  ) !important;
   border-radius: var(--tt-radius-lg);
   padding: 0.25rem 0.5rem;
   position: relative;
@@ -546,4 +547,39 @@ Field .field-text {
     border-radius: var(--tt-radius-xs);
     pointer-events: none;
   }
+}
+
+/* Blockage mark styling with subtle dark, murky red effect */
+.ProseMirror mark.blockage-mark,
+.ProseMirror mark[data-blockage] {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(87, 13, 13, 0.8) 0%,
+    rgba(127, 29, 29, 0.7) 30%,
+    rgba(153, 27, 27, 0.6) 70%,
+    rgba(185, 28, 28, 0.4) 100%
+  );
+  border-radius: var(--tt-radius-lg);
+  padding: 0.25rem 0.5rem;
+  position: relative;
+  color: rgba(254, 202, 202, 0.9);
+  box-shadow: 
+    0 0 0 1px rgba(127, 29, 29, 0.5),
+    0 0 3px 2px rgba(127, 29, 29, 0.3),
+    0 0 6px 4px rgba(127, 29, 29, 0.2);
+}
+
+/* Unawareness aura styling with consistent dark grey cloud effect */
+.ProseMirror mark[style*="var(--tt-color-unawareness)"] {
+  background: rgba(55, 65, 81, 0.8) !important;
+  border-radius: var(--tt-radius-lg);
+  padding: 0.25rem 0.5rem;
+  position: relative;
+  color: rgba(209, 213, 219, 0.9);
+  filter: blur(1.5px);
+  box-shadow: 
+    0 0 8px 4px rgba(55, 65, 81, 0.6),
+    0 0 16px 8px rgba(55, 65, 81, 0.4),
+    0 0 24px 12px rgba(55, 65, 81, 0.3),
+    0 0 32px 16px rgba(55, 65, 81, 0.2);
 }

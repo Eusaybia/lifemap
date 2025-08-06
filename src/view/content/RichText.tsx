@@ -70,6 +70,8 @@ import { FieldExtension } from './FieldTipTapExtension'
 import { FocusMarkExtension } from './FocusMarkExtension'
 import { ConfusionAuraExtension } from './ConfusionAuraExtension'
 import { ClarityMarkExtension } from './ClarityMarkExtension'
+import { BlockageMarkExtension } from './BlockageMarkExtension'
+import { UnawarenessExtension } from './UnawarenessExtension'
 
 // Feature flag to temporarily disable Location and People extensions
 const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
@@ -184,6 +186,7 @@ export const officialExtensions = (quantaId: string) => {return [
 ] as Extensions}
 
 export const customExtensions: Extensions = [
+  BlockageMarkExtension,
   CalculationExtension,
   ClarityMarkExtension,
   CommentExtension,
@@ -194,6 +197,7 @@ export const customExtensions: Extensions = [
   }),
   FieldExtension,
   FocusMarkExtension,
+  UnawarenessExtension,
   // Conditionally include Location and People extensions
   ...(DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS ? [] : [
     CustomLocation.configure(

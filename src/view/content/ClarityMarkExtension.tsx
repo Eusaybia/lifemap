@@ -1,116 +1,48 @@
-import { Mark, mergeAttributes } from '@tiptap/core'
-
-export interface ClarityOptions {
-  HTMLAttributes: Record<string, any>
-}
+import { Extension } from '@tiptap/core'
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    clarity: {
+    clarityAura: {
       /**
-       * Set a clarity mark
+       * Toggle clarity aura using highlight
        */
-      setClarity: () => ReturnType
-      /**
-       * Toggle a clarity mark
-       */
-      toggleClarity: () => ReturnType
-      /**
-       * Unset a clarity mark
-       */
-      unsetClarity: () => ReturnType
+      toggleClarityAura: () => ReturnType
     }
   }
 }
 
-export const ClarityMarkExtension = Mark.create<ClarityOptions>({
-  name: 'clarityMark',
-
-  addOptions() {
-    return {
-      HTMLAttributes: {},
-    }
-  },
-
-  addAttributes() {
-    return {}
-  },
-
-  parseHTML() {
-    return [
-      {
-        tag: 'mark[data-clarity]',
-      },
-    ]
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return [
-      'mark',
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        'data-clarity': '',
-        class: 'clarity-mark',
-      }),
-      0,
-    ]
-  },
+export const ClarityMarkExtension = Extension.create({
+  name: 'clarityAura',
 
   addCommands() {
     return {
-      setClarity:
+      toggleClarityAura:
         () =>
-        ({ commands, state }) => {
-          // Remove any existing clarity marks first
-          const { tr } = state
-          let hasExistingClarity = false
-
-          state.doc.descendants((node, pos) => {
-            if (node.marks) {
-              const clarityMark = node.marks.find(mark => mark.type.name === 'clarityMark')
-              if (clarityMark) {
-                tr.removeMark(pos, pos + node.nodeSize, clarityMark)
-                hasExistingClarity = true
-              }
-            }
-          })
-
-          if (hasExistingClarity) {
-            commands.command(({ dispatch }) => {
-              if (dispatch) {
-                dispatch(tr)
-              }
-              return true
-            })
-          }
-
-          return commands.setMark(this.name)
-        },
-
-      toggleClarity:
-        () =>
-        ({ commands, state }) => {
-          // Check if current selection has clarity
+        ({ commands, state, editor }) => {
           const { from, to } = state.selection
-          const hasClarity = state.doc.rangeHasMark(from, to, state.schema.marks.clarityMark)
           
-          if (hasClarity) {
-            return commands.unsetClarity()
-          } else {
-            return commands.setClarity()
+          // Check if there's selected text
+          if (from === to) {
+            return false
           }
-        },
 
-      unsetClarity:
-        () =>
-        ({ commands }) => {
-          return commands.unsetMark(this.name)
+          // Check if already has clarity highlight
+          const isActive = editor.isActive('highlight', { color: 'var(--tt-color-clarity)' })
+          
+          if (isActive) {
+            // Remove clarity aura
+            return commands.unsetHighlight()
+          } else {
+            // Apply clarity aura
+            return commands.setHighlight({ color: 'var(--tt-color-clarity)' })
+          }
         },
     }
   },
 
   addKeyboardShortcuts() {
     return {
-      'Mod-F4': () => this.editor.commands.toggleClarity(),
+      'Mod-F4': () => this.editor.commands.toggleClarityAura(),
     }
   },
 })

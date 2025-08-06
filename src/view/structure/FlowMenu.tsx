@@ -18,6 +18,8 @@ import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, p
 import { LightOrbIcon } from "../content/LightOrbIcon"
 import { CloudIcon } from "../content/CloudIcon"
 import { CrystalIcon } from "../content/CrystalIcon"
+import { WallIcon } from "../content/WallIcon"
+import { DimIcon } from "../content/DimIcon"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
@@ -160,7 +162,35 @@ const handleToggleClarity = (editor: Editor) => {
         return false;
     }
     
-    editor.chain().focus().toggleClarity().run();
+    editor.chain().focus().toggleClarityAura().run();
+    return true;
+}
+
+// Blockage functionality  
+const handleToggleBlockage = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for blockage');
+        return false;
+    }
+    
+    editor.chain().focus().toggleBlockage().run();
+    return true;
+}
+
+// Unawareness functionality  
+const handleToggleUnawareness = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for unawareness');
+        return false;
+    }
+    
+    editor.chain().focus().toggleUnawarenessAura().run();
     return true;
 }
 
@@ -1216,12 +1246,38 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         size="sm"
                         onClick={() => handleToggleClarity(props.editor)}
                         style={{ 
-                            color: props.editor.isActive('clarityMark') ? '#bae6fd' : black
+                            color: props.editor.isActive('highlight', { color: 'var(--tt-color-clarity)' }) ? '#bae6fd' : black
                         }}
-                        variant={props.editor.isActive('clarityMark') ? "solid" : "plain"}
+                        variant={props.editor.isActive('highlight', { color: 'var(--tt-color-clarity)' }) ? "solid" : "plain"}
                         title="Clarity"
                     >
                         <CrystalIcon />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleToggleBlockage(props.editor)}
+                        style={{ 
+                            color: props.editor.isActive('blockageMark') ? '#fecaca' : black
+                        }}
+                        variant={props.editor.isActive('blockageMark') ? "solid" : "plain"}
+                        title="Blockage"
+                    >
+                        <WallIcon />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleToggleUnawareness(props.editor)}
+                        style={{ 
+                            color: props.editor.isActive('highlight', { color: 'var(--tt-color-unawareness)' }) ? '#e5e7eb' : black
+                        }}
+                        variant={props.editor.isActive('highlight', { color: 'var(--tt-color-unawareness)' }) ? "solid" : "plain"}
+                        title="Unawareness"
+                    >
+                        <DimIcon />
                     </IconButton>
                 </Tag>
             </motion.div>
