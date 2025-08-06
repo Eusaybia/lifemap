@@ -67,7 +67,6 @@ import { LocationRouteExtension } from './LocationRouteExtension'
 import { PeopleRouteExtension } from './PeopleRouteExtension'
 import { peopleSuggestionOptions } from './PeopleTipTapExtension'
 import { FieldExtension } from './FieldTipTapExtension'
-import { useFieldConnector, FieldConnectionOverlay } from './FieldConnector'
 
 // Feature flag to temporarily disable Location and People extensions
 const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
@@ -427,8 +426,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
-  const { connectorManager, connections } = useFieldConnector();
-  const containerRef = React.useRef<HTMLDivElement>(null);
 
   
 
@@ -716,7 +713,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
 
     return (
-      <div key={props.quanta?.id} style={{width: '100%', position: 'relative'}} ref={containerRef}>
+      <div key={props.quanta?.id} style={{width: '100%'}}>
         {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
         {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>
@@ -728,10 +725,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
             <EditorContent editor={editor as Editor} />
           </div>
         </div>
-        <FieldConnectionOverlay 
-          connections={connections} 
-          containerRef={containerRef}
-        />
       </div>
     )
   } else {
