@@ -42,6 +42,9 @@ const calculateBearing = (start: [number, number], end: [number, number]) => {
   return bearing;
 };
 
+// Flag to control visibility of the diagnostic routes panel
+const SHOW_DIAGNOSTIC_PANEL = false;
+
 export default function PhysicalSpacePage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
@@ -1069,7 +1072,7 @@ export default function PhysicalSpacePage() {
       </div>
 
       {/* Detected Routes Status */}
-      {(detectedRoutes.length > 0 || detectedLocations.length > 0) && (
+      {SHOW_DIAGNOSTIC_PANEL && (detectedRoutes.length > 0 || detectedLocations.length > 0) && (
         <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 10, backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', padding: '1rem', borderRadius: '0.5rem', maxWidth: '300px' }}>
           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Detected Routes:</h3>
           {detectedRoutes.map((route, index) => (
