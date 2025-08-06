@@ -40,7 +40,7 @@ const parsePeopleAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) => {
 }
 
 export const peopleSuggestionOptions: MentionOptions["suggestion"] = {
-    char: "@",
+    char: "#",
     allowSpaces: true,
     pluginKey: PeoplePluginKey,
     items: ({ query, editor }): (PeopleSuggestion)[] => {
