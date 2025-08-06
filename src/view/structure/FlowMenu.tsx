@@ -17,6 +17,7 @@ import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import { LightOrbIcon } from "../content/LightOrbIcon"
 import { CloudIcon } from "../content/CloudIcon"
+import { CrystalIcon } from "../content/CrystalIcon"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
@@ -146,6 +147,20 @@ const handleToggleConfusion = (editor: Editor) => {
     }
     
     editor.chain().focus().toggleConfusionAura().run();
+    return true;
+}
+
+// Clarity functionality  
+const handleToggleClarity = (editor: Editor) => {
+    const { from, to } = editor.state.selection;
+    
+    // Check if there's selected text
+    if (from === to) {
+        console.log('No text selected for clarity');
+        return false;
+    }
+    
+    editor.chain().focus().toggleClarity().run();
     return true;
 }
 
@@ -1194,6 +1209,19 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         title="Confusion Aura"
                     >
                         <CloudIcon />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleToggleClarity(props.editor)}
+                        style={{ 
+                            color: props.editor.isActive('clarityMark') ? '#bae6fd' : black
+                        }}
+                        variant={props.editor.isActive('clarityMark') ? "solid" : "plain"}
+                        title="Clarity"
+                    >
+                        <CrystalIcon />
                     </IconButton>
                 </Tag>
             </motion.div>

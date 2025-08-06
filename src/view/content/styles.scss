@@ -509,3 +509,41 @@ Field .field-text {
     0 0 18px 12px rgba(107, 114, 128, 0.3),
     0 0 24px 16px rgba(107, 114, 128, 0.2);
 }
+
+/* Clarity mark styling with glass/gel effect */
+.ProseMirror mark.clarity-mark,
+.ProseMirror mark[data-clarity] {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.6) 25%,
+    rgba(248, 250, 252, 0.4) 50%,
+    rgba(241, 245, 249, 0.6) 75%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  border-radius: var(--tt-radius-lg);
+  padding: 0.25rem 0.5rem;
+  position: relative;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+  
+  /* Glass refraction effect */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 40%;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    border-radius: var(--tt-radius-xs);
+    pointer-events: none;
+  }
+}

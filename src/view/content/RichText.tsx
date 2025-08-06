@@ -69,6 +69,7 @@ import { peopleSuggestionOptions } from './PeopleTipTapExtension'
 import { FieldExtension } from './FieldTipTapExtension'
 import { FocusMarkExtension } from './FocusMarkExtension'
 import { ConfusionAuraExtension } from './ConfusionAuraExtension'
+import { ClarityMarkExtension } from './ClarityMarkExtension'
 
 // Feature flag to temporarily disable Location and People extensions
 const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = true
@@ -184,6 +185,7 @@ export const officialExtensions = (quantaId: string) => {return [
 
 export const customExtensions: Extensions = [
   CalculationExtension,
+  ClarityMarkExtension,
   CommentExtension,
   ConversationExtension,
   ConfusionAuraExtension,
