@@ -342,6 +342,8 @@ export const GroupExtension = TipTapNode.create({
       const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
       let containsUncheckedTodo = false;
       let containsCheckItem = false;
+      let hasConfusionHighlight = false;
+      let hasClarityHighlight = false;
 
       props.node.descendants((childNode) => {
         if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
@@ -352,6 +354,17 @@ export const GroupExtension = TipTapNode.create({
           if (!childNode.attrs.checked) {
             containsUncheckedTodo = true;
           }
+        }
+        // Check for confusion highlight (grey)
+        if (childNode.type.name === 'text' && childNode.marks) {
+          childNode.marks.forEach((mark) => {
+            if (mark.type.name === 'highlight' && mark.attrs.color === 'var(--tt-color-highlight-gray)') {
+              hasConfusionHighlight = true;
+            }
+            if (mark.type.name === 'highlight' && mark.attrs.color === 'var(--tt-color-clarity)') {
+              hasClarityHighlight = true;
+            }
+          });
         }
       });
       if (glowStyles.length > 1) glowStyles.splice(0, 1);
@@ -412,6 +425,8 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
               backgroundColor={props.node.attrs.backgroundColor}
+              hasConfusionHighlight={hasConfusionHighlight}
+              hasClarityHighlight={hasClarityHighlight}
             >
               {(() => {
                 switch (props.node.attrs.lens) {

@@ -72,6 +72,7 @@ import { ConfusionAuraExtension } from './ConfusionAuraExtension'
 import { ClarityMarkExtension } from './ClarityMarkExtension'
 import { BlockageMarkExtension } from './BlockageMarkExtension'
 import { UnawarenessExtension } from './UnawarenessExtension'
+import { MapExtension } from './MapTipTapExtension'
 
 // Feature flag to temporarily disable Location and People extensions
 const DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS = false
@@ -200,6 +201,7 @@ export const customExtensions: Extensions = [
   }),
   FieldExtension,
   FocusMarkExtension,
+  MapExtension,
   UnawarenessExtension,
   // Conditionally include Location and People extensions
   ...(DISABLE_LOCATION_AND_PEOPLE_EXTENSIONS ? [] : [

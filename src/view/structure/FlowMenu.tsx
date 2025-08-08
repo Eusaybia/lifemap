@@ -20,6 +20,7 @@ import { CloudIcon } from "../content/CloudIcon"
 import { CrystalIcon } from "../content/CrystalIcon"
 import { WallIcon } from "../content/WallIcon"
 import { DimIcon } from "../content/DimIcon"
+import { MapIcon } from "../content/MapIcon"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
@@ -191,6 +192,12 @@ const handleToggleUnawareness = (editor: Editor) => {
     }
     
     editor.chain().focus().toggleUnawarenessAura().run();
+    return true;
+}
+
+// Map functionality
+const handleInsertMap = (editor: Editor) => {
+    editor.chain().focus().insertMap().run();
     return true;
 }
 
@@ -1278,6 +1285,19 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         title="Unawareness"
                     >
                         <DimIcon />
+                    </IconButton>
+                </Tag>
+                <Tag isLens>
+                    <IconButton
+                        size="sm"
+                        onClick={() => handleInsertMap(props.editor)}
+                        style={{ 
+                            color: black
+                        }}
+                        variant="plain"
+                        title="Insert Map"
+                    >
+                        <MapIcon />
                     </IconButton>
                 </Tag>
             </motion.div>
