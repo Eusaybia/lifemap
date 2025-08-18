@@ -123,124 +123,7 @@ export default function PhysicalSpacePage() {
 
     // Set atmosphere style and add journey arcs
     map.current.on('style.load', () => {
-      map.current.setFog({}); // Set the default atmosphere style
-      
-      // Journey coordinates - only keeping Singapore and Hong Kong
-      const singapore = [103.8198, 1.3521] as [number, number];
-      const hongKong = [114.1694, 22.3193] as [number, number];
-
-      // Create arc path - only Singapore to Hong Kong
-      const singaporeToHongKong = createArc(singapore, hongKong, 100);
-
-      // Add journey line source - only Singapore to Hong Kong
-      map.current.addSource('singapore-hongkong-route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: singaporeToHongKong
-          }
-        }
-      });
-
-
-      // Add city markers - only Singapore and Hong Kong
-      map.current.addSource('journey-cities', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              properties: { city: 'Singapore', status: 'current' },
-              geometry: { type: 'Point', coordinates: singapore }
-            },
-            {
-              type: 'Feature',
-              properties: { city: 'Hong Kong', status: 'future' },
-              geometry: { type: 'Point', coordinates: hongKong }
-            }
-          ]
-        }
-      });
-
-      // Add Singapore to Hong Kong route line layer
-      map.current.addLayer({
-        id: 'singapore-hongkong-line',
-        type: 'line',
-        source: 'singapore-hongkong-route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#eab308',
-          'line-width': 7,
-          'line-opacity': 0.8
-        }
-      });
-
-      // Add Singapore to Hong Kong glow effect layer
-      map.current.addLayer({
-        id: 'singapore-hongkong-glow',
-        type: 'line',
-        source: 'singapore-hongkong-route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#eab308',
-          'line-width': 15,
-          'line-opacity': 0.3,
-          'line-blur': 2
-        }
-      }, 'singapore-hongkong-line');
-
-      // Add city markers
-      map.current.addLayer({
-        id: 'journey-cities-layer',
-        type: 'circle',
-        source: 'journey-cities',
-        paint: {
-          'circle-radius': [
-            'case',
-            ['==', ['get', 'status'], 'current'], 8,  // Larger for current location
-            6  // Smaller for future locations
-          ],
-          'circle-color': [
-            'case',
-            ['==', ['get', 'status'], 'current'], '#ef4444',  // Red for current
-            '#3b82f6'  // Blue for future
-          ],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-          'circle-opacity': 0.9
-        }
-      });
-
-      // Add city labels
-      map.current.addLayer({
-        id: 'journey-cities-labels',
-        type: 'symbol',
-        source: 'journey-cities',
-        layout: {
-          'text-field': ['get', 'city'],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': 12,
-          'text-offset': [0, -2],
-          'text-anchor': 'bottom'
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': '#000000',
-          'text-halo-width': 1
-        }
-      });
-
-
+      map.current.setFog({});
     });
 
     // Cleanup function
@@ -332,93 +215,7 @@ export default function PhysicalSpacePage() {
             map.current.removeSource(sourceId);
           }
         });
-
-        // Add new highlighted routes with dynamic geocoding
-        for (const [index, route] of detectedRoutes.entries()) {
-          const routeKey = `${route.from}-${route.to}`;
-          const reverseRouteKey = `${route.to}-${route.from}`;
-          console.log('🔍 Processing route:', routeKey);
-          
-          let routeMapping = routeMappings[routeKey] || routeMappings[reverseRouteKey];
-          
-          // If no existing mapping, try to geocode both locations
-          if (!routeMapping) {
-            console.log('🌍 No existing mapping, geocoding route:', routeKey);
-            
-            const [fromCoords, toCoords] = await Promise.all([
-              geocodeLocation(route.from),
-              geocodeLocation(route.to)
-            ]);
-
-            if (fromCoords && toCoords) {
-              // Create dynamic route mapping
-              routeMapping = {
-                from: fromCoords,
-                to: toCoords,
-                color: '#ff6b6b' // Dynamic routes get a distinct red color
-              };
-              
-              // Cache the mapping for future use
-              routeMappings[routeKey] = routeMapping;
-              console.log('✅ Created dynamic mapping for:', routeKey, routeMapping);
-            }
-          }
-
-          if (routeMapping) {
-            console.log('🎯 Adding route to map:', routeKey);
-            const highlightedRoute = createArc(routeMapping.from, routeMapping.to, 100);
-            
-            // Add the route line
-            map.current.addSource(`highlighted-route-${index}`, {
-              type: 'geojson',
-              data: {
-                type: 'Feature',
-                properties: {},
-                geometry: {
-                  type: 'LineString',
-                  coordinates: highlightedRoute
-                }
-              }
-            });
-
-            // Add glow effect layer first (wider, more transparent)
-            map.current.addLayer({
-              id: `highlighted-route-glow-${index}`,
-              type: 'line',
-              source: `highlighted-route-${index}`,
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': routeMapping.color,
-                'line-width': 15,
-                'line-opacity': 0.3,
-                'line-blur': 2
-              }
-            });
-
-            // Add main route line
-            map.current.addLayer({
-              id: `highlighted-route-line-${index}`,
-              type: 'line',
-              source: `highlighted-route-${index}`,
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': routeMapping.color,
-                'line-width': 7,
-                'line-opacity': 0.8
-              }
-            });
-
-          } else {
-            console.log('❌ Could not geocode route:', routeKey);
-          }
-        }
-
+ 
         // Add new highlighted locations with dynamic geocoding
         for (const [index, location] of detectedLocations.entries()) {
           const coords = await geocodeLocation(location.location);
@@ -432,7 +229,7 @@ export default function PhysicalSpacePage() {
                 geometry: { type: 'Point', coordinates: coords }
               }
             });
-
+ 
             map.current.addLayer({
               id: `highlighted-location-marker-${index}`,
               type: 'circle',
