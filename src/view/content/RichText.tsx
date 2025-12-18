@@ -67,6 +67,7 @@ import { Plugin, Transaction } from 'prosemirror-state'
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
+import { useEditorContext } from '../../contexts/EditorContext'
 
 lowlight.registerLanguage('js', js)
 
@@ -409,6 +410,18 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }
 
   let editor = MainEditor(content, true, false)
+  
+  // Share editor instance via context so DocumentFlowMenu can access it
+  const { setEditor } = useEditorContext()
+  React.useEffect(() => {
+    if (editor) {
+      setEditor(editor as Editor)
+    }
+    return () => {
+      setEditor(null)
+    }
+  }, [editor, setEditor])
+  
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
