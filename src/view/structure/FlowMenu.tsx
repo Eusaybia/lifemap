@@ -299,6 +299,20 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            <Option
+                value={"Add Lifemap Card"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertLifemapCard is added by the extension
+                    props.editor.commands.insertLifemapCard({ title: 'New Card' })
+                }}
+            >
+                <motion.div>
+                    <span>
+                        🗂️ Add Lifemap Card
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Revert to last valid content"}
