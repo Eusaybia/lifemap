@@ -23,6 +23,7 @@ import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 import { backup } from "../../backend/backup";
 import { yellow } from "@mui/material/colors";
+import { useEditorContext } from "../../contexts/EditorContext";
 
 export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties => {
     return {
@@ -77,15 +78,70 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
     return false
 }
 
-const handleAddImage = (editor: Editor) => {
-    const url = window.prompt('URL')
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 
-    if (url) {
-        editor.chain().focus().setImage({ src: url }).run()
-        return true
-    } else {
-        return false
+const handleAddImage = (editor: Editor) => {
+    console.log('[FlowMenu] handleAddImage called')
+    
+    // Create a hidden file input
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    
+    input.onchange = async (e) => {
+        console.log('[FlowMenu] File input changed')
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (!file) {
+            console.log('[FlowMenu] No file selected')
+            return
+        }
+        
+        console.log('[FlowMenu] File selected:', file.name, file.size)
+        
+        // Validate file size
+        if (file.size > MAX_IMAGE_SIZE) {
+            alert(`File size exceeds maximum allowed (${MAX_IMAGE_SIZE / (1024 * 1024)}MB)`)
+            return
+        }
+        
+        try {
+            console.log('[FlowMenu] Starting upload...')
+            
+            // Upload to Vercel Blob via API route
+            const response = await fetch(
+                `/api/upload?filename=${encodeURIComponent(file.name)}`,
+                {
+                    method: 'POST',
+                    body: file,
+                }
+            )
+            
+            console.log('[FlowMenu] Upload response status:', response.status)
+            
+            if (!response.ok) {
+                const error = await response.json()
+                throw new Error(error.error || 'Upload failed')
+            }
+            
+            const blob = await response.json()
+            
+            console.log('[FlowMenu] Image uploaded successfully:', blob.url)
+            console.log('[FlowMenu] Editor state:', editor ? 'exists' : 'null')
+            console.log('[FlowMenu] Editor editable:', editor?.isEditable)
+            
+            // Use setImage command which is simpler
+            const result = editor.chain().focus().setImage({ src: blob.url }).run()
+            
+            console.log('[FlowMenu] setImage result:', result)
+        } catch (error) {
+            console.error('[FlowMenu] Image upload failed:', error)
+            alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
     }
+    
+    // Trigger file picker
+    input.click()
+    return true
 }
 
 // For some reason if I hard code a string like "latex", it works, but if I use the variable mathLens it doesn't?
@@ -112,7 +168,12 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
  };
 
 // Memoize ActionSwitch to prevent re-renders if props haven't changed
-const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor }) => {
+const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor | null }) => {
+    // Return null if editor is not available yet
+    if (!props.editor) {
+        return null;
+    }
+    
     // @ts-ignore - getDocumentAttributes exists via the extension
     const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
@@ -298,7 +359,11 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
     </FlowSwitch>)
 }
 
-export const DocumentFlowMenu = (props: { editor: Editor }) => {
+export const DocumentFlowMenu = (props: { editor?: Editor }) => {
+    // Use editor from context (shared by RichText) if available, fallback to prop
+    const { editor: contextEditor } = useEditorContext()
+    const editor = contextEditor || props.editor
+    
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
 
     const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("admin-editing")
@@ -316,10 +381,11 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
     documentMenuStyle.zIndex = 10001; // Higher than minimap's z-index of 10000
 
     React.useEffect(() => {
-        if (!props.editor) return;
+        if (!editor) return;
 
         const loadAttributes = () => {
-            const currentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
+            // @ts-ignore - getDocumentAttributes exists via the extension
+            const currentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
             setSelectedFocusLens(currentAttributes.selectedFocusLens);
             setSelectedEventType(currentAttributes.selectedEventLens);
             setIrrelevantEventNodesDisplayLens(currentAttributes.irrelevantEventNodesDisplayLens);
@@ -341,16 +407,21 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
             window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
         };
 
-    }, [props.editor]);
+    }, [editor]);
+
+    // Don't render if no editor is available
+    if (!editor) {
+        return null
+    }
 
     return (
         <motion.div style={documentMenuStyle}>
-            <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
+            <ActionSwitch editor={editor} selectedAction={selectedAction} />
             <FlowSwitch value={selectedFocusLens} isLens>
                 <Option
                     value={"admin-editing" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -364,7 +435,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"call-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -378,7 +449,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"learning-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -392,7 +463,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"dev-mode" as DocumentAttributes['selectedFocusLens']}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'dev-mode' as DocumentAttributes['selectedFocusLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'dev-mode' as DocumentAttributes['selectedFocusLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -408,7 +479,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"wedding"}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -422,7 +493,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"corporate"}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
@@ -436,7 +507,7 @@ export const DocumentFlowMenu = (props: { editor: Editor }) => {
                 <Option
                     value={"birthday"}
                     onClick={() => {
-                        props.editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
+                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
                         // Refresh page after a short delay to allow the attribute to be set
                         setTimeout(() => window.location.reload(), 100);
                     }}
