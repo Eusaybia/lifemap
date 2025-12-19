@@ -42,6 +42,8 @@ import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
 import { TimePointMention, TimePointNode } from './TimePointMention'
+import { PomodoroNode } from './PomodoroNode'
+import { DurationExtension } from './DurationMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -185,6 +187,9 @@ export const customExtensions: Extensions = [
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
   TimePointMention,
+  // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
+  PomodoroNode,
+  DurationExtension,
   DocumentAttributeExtension,
   FadeIn,
   FocusModePlugin,
