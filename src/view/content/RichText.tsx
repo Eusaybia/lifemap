@@ -14,7 +14,7 @@ import Focus from '@tiptap/extension-focus'
 import TextStyle from '@tiptap/extension-text-style'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
-import Image from '@tiptap/extension-image'
+import { FramedImageExtension } from './FramedImageExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
@@ -113,7 +113,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Highlight.configure({
     multicolor: true,
   }),
-  Image,
+  FramedImageExtension,
   Placeholder.configure({
     includeChildren: true,
     showOnlyCurrent: true,

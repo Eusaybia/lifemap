@@ -577,14 +577,10 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
             borderBottom: '1px solid #e5e7eb',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>📊</span>
-            <Typography variant="subtitle2" sx={{ fontWeight: 500, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
-              2D Temporal Graph
-            </Typography>
             {/* Add Quanta Button */}
             <Button
               size="small"
@@ -592,7 +588,6 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               startIcon={<AddIcon />}
               onClick={() => addNode()}
               sx={{ 
-                ml: 2, 
                 textTransform: 'none',
                 fontSize: '12px',
                 py: 0.5,
@@ -601,8 +596,6 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
             >
               Add Quanta
             </Button>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {/* Zoom Controls */}
             <ButtonGroup size="small" variant="outlined">
               <IconButton size="small" onClick={zoomOut} title="Zoom Out">

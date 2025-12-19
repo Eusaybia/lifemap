@@ -85,6 +85,12 @@ export default function Page({ params }: { params: { slug: string } }) {
                 width: '100%',
                 maxWidth: maxContentWidth,
                 position: 'relative',
+                backgroundColor: '#ffffff',
+                borderRadius: 2,
+                marginTop: 20,
+                marginBottom: 40,
+                padding: '20px 40px 40px 40px',
+                boxShadow: '-4px 6px 12px -2px rgba(0, 0, 0, 0.15), -8px 12px 24px -4px rgba(0, 0, 0, 0.12), -16px 24px 48px -6px rgba(0, 0, 0, 0.1)',
             }}>
                 {/* Hide Minimap in graph mode */}
                 {!isGraphMode && <Minimap mainContentNode={mainContent} />}

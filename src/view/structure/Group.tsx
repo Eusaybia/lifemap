@@ -48,7 +48,7 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
                 minHeight: 20,
                 overflow: "hidden",
                 borderRadius: `10px`,
-                boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 10px 34px -3px rgba(0, 0, 0, 0.2)`,
+                boxShadow: `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`,
                 padding: `35px`,
                 margin: `10px 0px 10px 0px`,
             }}
