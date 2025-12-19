@@ -41,6 +41,7 @@ import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
+import { TimePointMention, TimePointNode } from './TimePointMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -56,6 +57,7 @@ import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension } from '../structure/LifemapCardExtension'
+import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -180,6 +182,9 @@ export const customExtensions: Extensions = [
       suggestion: mentionSuggestionOptions,
     }
   ),
+  // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
+  TimePointNode,
+  TimePointMention,
   DocumentAttributeExtension,
   FadeIn,
   FocusModePlugin,
@@ -195,6 +200,7 @@ export const customExtensions: Extensions = [
   QuoteExtension,
   WarningExtension,
   LifemapCardExtension,
+  QuantaFlowExtension,
   HighlightImportantLinePlugin,
   // EmptyNodeCleanupExtension,
 ]
