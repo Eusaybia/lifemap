@@ -407,7 +407,8 @@ const generateNodeId = () => `quanta-node-${nodeIdCounter++}`
 
 const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps) => {
   const { graphId, height, nodes: nodesJson, edges: edgesJson } = node.attrs;
-  const [graphHeight, setGraphHeight] = useState(height || 400);
+  // Use a fixed height of 700px for the graph
+  const [graphHeight, setGraphHeight] = useState(700);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
   // Register custom node types
@@ -630,6 +631,8 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               onInit={setReactFlowInstance}
               fitView
               fitViewOptions={{ padding: 0.2 }}
+              minZoom={0.1}
+              maxZoom={4}
               defaultEdgeOptions={{
                 type: 'handDrawn',
               }}
@@ -670,8 +673,8 @@ export const QuantaFlowExtension = TiptapNode.create({
         }),
       },
       height: {
-        default: 400,
-        parseHTML: (element) => parseInt(element.getAttribute('data-height') || '400'),
+        default: 700,
+        parseHTML: (element) => parseInt(element.getAttribute('data-height') || '700'),
         renderHTML: (attributes) => ({
           'data-height': attributes.height,
         }),

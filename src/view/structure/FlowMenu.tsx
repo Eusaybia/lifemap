@@ -313,6 +313,20 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            <Option
+                value={"Add 2D Temporal Graph"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertQuantaFlow is added by the extension
+                    props.editor.commands.insertQuantaFlow({ height: 400 })
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📊 Add 2D Temporal Graph
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Revert to last valid content"}
