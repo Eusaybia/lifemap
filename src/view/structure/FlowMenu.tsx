@@ -300,7 +300,7 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                 </motion.div>
             </Option>
             <Option
-                value={"Add Lifemap Card"}
+                value={"Add Lifemap Cards"}
                 onClick={() => {
                     if (!props.editor) return;
                     // @ts-ignore - insertLifemapCard is added by the extension
@@ -309,7 +309,7 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
             >
                 <motion.div>
                     <span>
-                        🗂️ Add Lifemap Card
+                        🗂️ Add Lifemap Cards
                     </span>
                 </motion.div>
             </Option>
