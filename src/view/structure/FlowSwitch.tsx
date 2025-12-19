@@ -14,9 +14,11 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
     // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
     // But this doesn't seem possible to detect currently
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
-    const [hasScrolled, setHasScrolled] = React.useState(false);
+    const [isUserScrolling, setIsUserScrolling] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
-    const [clickSound, setClickSound] = React.useState<HTMLAudioElement | null>(null);
+    const [tickSound, setTickSound] = React.useState<HTMLAudioElement | null>(null);
+    const isProgrammaticScroll = React.useRef(false);
+    const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
     let timer: NodeJS.Timeout | null = null;
 
@@ -39,8 +41,11 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 // TODO: Maybe it would be better to use Motion.js and its scroll functions
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
-                if (hasScrolled && clickSound) {
-                    clickSound.play().catch((error) => {
+                if (isUserScrolling && tickSound) {
+                    // Clone the audio to allow rapid successive plays for a mechanical tick effect
+                    const soundClone = tickSound.cloneNode() as HTMLAudioElement;
+                    soundClone.volume = 0.15;
+                    soundClone.play().catch((error) => {
                         console.log("Chrome cannot play sound without user interaction first")
                     });
                 }   
@@ -60,6 +65,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         })
 
         if (index !== -1 && switchElementsRefs[index].current) {
+            // Mark this as programmatic scroll so we don't play tick sounds
+            isProgrammaticScroll.current = true;
+            
             // The element was found, scroll to it
             switchElementsRefs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
@@ -79,6 +87,11 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                     behavior: 'smooth'
                 });
             }
+            
+            // Reset programmatic scroll flag after animation completes
+            setTimeout(() => {
+                isProgrammaticScroll.current = false;
+            }, 500);
 
         } else {
             console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
@@ -95,17 +108,41 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     }, 2000)
 
-    // Initialize audio on client side only
+    // Initialize audio on client side only - use click.mp3 for mechanical device feel
     React.useEffect(() => {
         const audio = new Audio("/click.mp3");
-        audio.volume = 0.1;
-        setClickSound(audio);
+        audio.volume = 0.15;
+        setTickSound(audio);
+        
+        // Cleanup timeout on unmount
+        return () => {
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Handle scroll events - used as onScroll prop for reliability
+    const handleScroll = React.useCallback(() => {
+        // If this is a programmatic scroll, don't treat it as user scrolling
+        if (isProgrammaticScroll.current) return;
+        
+        setIsUserScrolling(true);
+        
+        // Reset user scrolling state after scroll ends
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+        scrollTimeoutRef.current = setTimeout(() => {
+            setIsUserScrolling(false);
+        }, 150);
     }, []);
 
     return (
         <motion.div className="flow-menu"
             key={props.value}
             ref={flowSwitchContainerRef}
+            onScroll={handleScroll}
             style={{
                 scrollSnapType: "y mandatory",
                 scrollBehavior: "smooth",
