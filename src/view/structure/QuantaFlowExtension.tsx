@@ -231,49 +231,6 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
 
   return (
     <>
-      {/* NodeResizeControl - bottom-right resize handle */}
-      <NodeResizeControl
-        minWidth={300}
-        minHeight={200}
-        style={{
-          background: 'transparent',
-          border: 'none',
-        }}
-        position="bottom-right"
-      >
-        {/* Resize handle icon - diagonal lines */}
-        <div
-          style={{
-            width: 20,
-            height: 20,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'nwse-resize',
-            background: '#f9fafb',
-            borderRadius: '4px 0 8px 0',
-            border: '1px solid #e5e7eb',
-            borderRight: 'none',
-            borderBottom: 'none',
-          }}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M9 1L1 9M9 5L5 9M9 9L9 9"
-              stroke="#9ca3af"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
-      </NodeResizeControl>
-      
       <div
         style={{
           width: '100%',
@@ -385,7 +342,50 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
           bottom: -8,
         }}
       />
+      
       </div>
+      
+      {/* NodeResizeControl - positioned outside and after the main div so it's on top of iframe */}
+      <NodeResizeControl
+        minWidth={300}
+        minHeight={200}
+        style={{
+          background: 'transparent',
+          border: 'none',
+        }}
+        position="bottom-right"
+      >
+        <div
+          style={{
+            width: 20,
+            height: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nwse-resize',
+            background: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '4px',
+            border: '1px solid #d1d5db',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+            transform: 'translate(-17px, -17px)',
+          }}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 1L1 9M9 5L5 9M9 9L9 9"
+              stroke="#6b7280"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      </NodeResizeControl>
     </>
   )
 })
