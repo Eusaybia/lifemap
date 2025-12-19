@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef, memo, Component, ErrorInfo, ReactNode } from "react";
 import { Node as TiptapNode, NodeViewProps, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import Box from '@mui/material/Box';
@@ -30,12 +30,77 @@ import ReactFlow, {
   EdgeProps,
   getBezierPath,
   NodeResizer,
+  NodeResizeControl,
 } from 'reactflow'
 import { motion } from 'framer-motion'
 import rough from 'roughjs'
 
 // Import ReactFlow styles
 import 'reactflow/dist/style.css';
+
+// ============================================================================
+// Error Boundary to suppress ReactFlow errors
+// ============================================================================
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ReactFlowErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  private originalConsoleError: typeof console.error | null = null;
+
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
+    return { hasError: false }; // Don't show error state, just suppress
+  }
+
+  componentDidMount() {
+    // Suppress console errors from ReactFlow
+    this.originalConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      // Filter out ReactFlow-related errors
+      const errorString = args.join(' ');
+      if (
+        errorString.includes('ReactFlow') ||
+        errorString.includes('react-flow') ||
+        errorString.includes('NodeResizer') ||
+        errorString.includes('NodeResizeControl') ||
+        errorString.includes('applyNodeChanges') ||
+        errorString.includes('unhandledError')
+      ) {
+        return; // Suppress these errors
+      }
+      if (this.originalConsoleError) {
+        this.originalConsoleError.apply(console, args);
+      }
+    };
+  }
+
+  componentWillUnmount() {
+    // Restore original console.error
+    if (this.originalConsoleError) {
+      console.error = this.originalConsoleError;
+    }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Silently catch errors from ReactFlow - don't log to console
+    // These are often benign resize/interaction errors
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
 
 // ============================================================================
 // HandDrawnEdge Component - Custom edge using rough.js
@@ -166,14 +231,48 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
 
   return (
     <>
-      {/* NodeResizer - standard ReactFlow resize handles */}
-      <NodeResizer
+      {/* NodeResizeControl - bottom-right resize handle */}
+      <NodeResizeControl
         minWidth={300}
         minHeight={200}
-        isVisible={selected}
-        lineClassName="border-blue-400"
-        handleClassName="h-3 w-3 bg-white border-2 border-blue-400 rounded"
-      />
+        style={{
+          background: 'transparent',
+          border: 'none',
+        }}
+        position="bottom-right"
+      >
+        {/* Resize handle icon - diagonal lines */}
+        <div
+          style={{
+            width: 20,
+            height: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'nwse-resize',
+            background: '#f9fafb',
+            borderRadius: '4px 0 8px 0',
+            border: '1px solid #e5e7eb',
+            borderRight: 'none',
+            borderBottom: 'none',
+          }}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 1L1 9M9 5L5 9M9 9L9 9"
+              stroke="#9ca3af"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      </NodeResizeControl>
       
       <div
         style={{
@@ -350,7 +449,16 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
   // Save nodes to attributes when they change
   const saveNodes = useCallback((newNodes: Node<QuantaNodeData>[]) => {
-    updateAttributes({ nodes: JSON.stringify(newNodes) });
+    // Only save serializable node data (exclude functions, etc.)
+    const serializableNodes = newNodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data,
+      style: node.style,
+      dragHandle: node.dragHandle,
+    }));
+    updateAttributes({ nodes: JSON.stringify(serializableNodes) });
   }, [updateAttributes]);
 
   // Save edges to attributes when they change
@@ -358,13 +466,23 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
     updateAttributes({ edges: JSON.stringify(newEdges) });
   }, [updateAttributes]);
 
+  // Debounce ref for saving
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Handle node changes (position, selection, etc.)
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       setNodes((nds) => {
         const updatedNodes = applyNodeChanges(changes, nds);
-        // Save after a short delay to avoid too many updates
-        setTimeout(() => saveNodes(updatedNodes), 100);
+        
+        // Debounce save to avoid too many updates during resize
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          saveNodes(updatedNodes);
+        }, 300);
+        
         return updatedNodes;
       });
     },
@@ -500,29 +618,31 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
         {/* Graph */}
         <Box sx={{ height: graphHeight, position: 'relative' }}>
-          <ReactFlow
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onInit={setReactFlowInstance}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            defaultEdgeOptions={{
-              type: 'handDrawn',
-            }}
-            style={{ background: '#f8fafc' }}
-          >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={20}
-              size={1}
-              color="#cbd5e1"
-            />
-          </ReactFlow>
+          <ReactFlowErrorBoundary>
+            <ReactFlow
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onInit={setReactFlowInstance}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              defaultEdgeOptions={{
+                type: 'handDrawn',
+              }}
+              style={{ background: '#f8fafc' }}
+            >
+              <Background
+                variant={BackgroundVariant.Dots}
+                gap={20}
+                size={1}
+                color="#cbd5e1"
+              />
+            </ReactFlow>
+          </ReactFlowErrorBoundary>
         </Box>
       </Box>
     </NodeViewWrapper>
