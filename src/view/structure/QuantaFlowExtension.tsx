@@ -582,7 +582,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <span>📊</span>
-            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 500, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif" }}>
               2D Temporal Graph
             </Typography>
             {/* Add Quanta Button */}
@@ -596,6 +596,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
                 textTransform: 'none',
                 fontSize: '12px',
                 py: 0.5,
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
               }}
             >
               Add Quanta

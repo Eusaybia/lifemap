@@ -8,37 +8,59 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Generate a unique ID for each card instance
 const generateCardId = () => `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
-  const { cardId, title, description, imageUrl } = node.attrs;
+const interFontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif";
+
+// Individual card data type
+interface CardData {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+}
+
+// Single Card Component (used within the row)
+const SingleCard = ({ 
+  card, 
+  onUpdate, 
+  onDelete,
+  showDelete,
+}: { 
+  card: CardData; 
+  onUpdate: (updates: Partial<CardData>) => void;
+  onDelete: () => void;
+  showDelete: boolean;
+}) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(title);
-  const [editedDescription, setEditedDescription] = useState(description);
+  const [editedTitle, setEditedTitle] = useState(card.title);
+  const [editedDescription, setEditedDescription] = useState(card.description);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync with node attributes
   useEffect(() => {
-    setEditedTitle(title);
-  }, [title]);
+    setEditedTitle(card.title);
+  }, [card.title]);
 
   useEffect(() => {
-    setEditedDescription(description);
-  }, [description]);
+    setEditedDescription(card.description);
+  }, [card.description]);
 
   const handleTitleSubmit = () => {
-    updateAttributes({ title: editedTitle });
+    onUpdate({ title: editedTitle });
     setIsEditingTitle(false);
   };
 
   const handleDescriptionSubmit = () => {
-    updateAttributes({ description: editedDescription });
+    onUpdate({ description: editedDescription });
     setIsEditingDescription(false);
   };
 
@@ -50,7 +72,6 @@ const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size
     if (file.size > MAX_IMAGE_SIZE) {
       alert(`File size exceeds maximum allowed (${MAX_IMAGE_SIZE / (1024 * 1024)}MB)`);
       return;
@@ -59,7 +80,6 @@ const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
     setIsUploading(true);
 
     try {
-      // Upload to Vercel Blob via API route
       const response = await fetch(
         `/api/upload?filename=${encodeURIComponent(file.name)}`,
         {
@@ -74,23 +94,54 @@ const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
       }
 
       const blob = await response.json();
-      
-      // Update the card's image URL
-      updateAttributes({ imageUrl: blob.url });
+      onUpdate({ imageUrl: blob.url });
     } catch (error) {
       console.error('[LifemapCard] Image upload failed:', error);
       alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
-      // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   };
 
+  // Same box shadow as Group component
+  const groupBoxShadow = '0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 10px 34px -3px rgba(0, 0, 0, 0.2)';
+
   return (
-    <NodeViewWrapper>
+    <Card sx={{ 
+      width: 280, 
+      minWidth: 280, 
+      flexShrink: 0,
+      position: 'relative',
+      borderRadius: '10px',
+      boxShadow: groupBoxShadow,
+      transition: 'box-shadow 0.2s ease',
+      '&:hover': {
+        boxShadow: groupBoxShadow,
+      },
+    }}>
+      {/* Delete button */}
+      {showDelete && (
+        <IconButton
+          size="small"
+          onClick={onDelete}
+          sx={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            zIndex: 10,
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            '&:hover': {
+              backgroundColor: 'rgba(255,255,255,1)',
+            },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      )}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -100,112 +151,299 @@ const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
         style={{ display: 'none' }}
       />
 
-      <Card sx={{ maxWidth: 345, my: 2 }}>
-        {/* Clickable Image Area */}
-        <CardMedia
-          sx={{ 
-            height: 140, 
-            cursor: 'pointer',
-            backgroundColor: imageUrl ? 'transparent' : '#f5f5f5',
+      {/* Clickable Image Area */}
+      <CardMedia
+        sx={{ 
+          height: 180, 
+          cursor: 'pointer',
+          backgroundColor: card.imageUrl ? 'transparent' : '#f5f5f5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          '&:hover': {
+            opacity: 0.9,
+          },
+        }}
+        image={card.imageUrl || undefined}
+        title={editedTitle}
+        onClick={handleImageClick}
+      >
+        {isUploading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={24} />
+            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: interFontFamily }}>
+              Uploading...
+            </Typography>
+          </Box>
+        ) : !card.imageUrl && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontFamily: interFontFamily, fontSize: '0.8rem' }}>
+              🖼️ Click to upload
+            </Typography>
+          </Box>
+        )}
+      </CardMedia>
+
+      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+        {/* Editable Title */}
+        {isEditingTitle ? (
+          <TextField
+            fullWidth
+            variant="standard"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            onBlur={handleTitleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleTitleSubmit();
+              if (e.key === 'Escape') {
+                setEditedTitle(card.title);
+                setIsEditingTitle(false);
+              }
+            }}
+            autoFocus
+            sx={{ 
+              mb: 0.5,
+              '& .MuiInputBase-input': {
+                fontFamily: interFontFamily,
+                fontSize: '1rem',
+              },
+            }}
+          />
+        ) : (
+          <Typography 
+            variant="subtitle1" 
+            component="div"
+            onClick={() => setIsEditingTitle(true)}
+            sx={{ 
+              cursor: 'pointer', 
+              '&:hover': { backgroundColor: 'action.hover' }, 
+              borderRadius: 1, 
+              px: 0.5,
+              fontFamily: interFontFamily,
+              fontWeight: 500,
+              fontSize: '0.95rem',
+              lineHeight: 1.3,
+            }}
+          >
+            {editedTitle || 'Click to add title...'}
+          </Typography>
+        )}
+
+        {/* Editable Description */}
+        {isEditingDescription ? (
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            variant="outlined"
+            size="small"
+            value={editedDescription}
+            onChange={(e) => setEditedDescription(e.target.value)}
+            onBlur={handleDescriptionSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setEditedDescription(card.description);
+                setIsEditingDescription(false);
+              }
+            }}
+            autoFocus
+            sx={{
+              '& .MuiInputBase-input': {
+                fontFamily: interFontFamily,
+                fontSize: '0.8rem',
+              },
+            }}
+          />
+        ) : (
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'text.secondary',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: 'action.hover' },
+              borderRadius: 1,
+              px: 0.5,
+              minHeight: 32,
+              fontFamily: interFontFamily,
+              fontSize: '0.8rem',
+              lineHeight: 1.4,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+            onClick={() => setIsEditingDescription(true)}
+          >
+            {editedDescription || 'Click to add description...'}
+          </Typography>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// Skeleton Card with Add Button
+const AddCardSkeleton = ({ onClick }: { onClick: () => void }) => (
+  <Card 
+    onClick={onClick}
+    sx={{ 
+      width: 280, 
+      minWidth: 280, 
+      height: 260,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      backgroundColor: '#fafafa',
+      border: '2px dashed #e0e0e0',
+      boxShadow: 'none',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        backgroundColor: '#f0f0f0',
+        borderColor: '#bdbdbd',
+      },
+    }}
+  >
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+      <Box
+        sx={{
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          backgroundColor: '#e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'background-color 0.2s ease',
+          '&:hover': {
+            backgroundColor: '#d0d0d0',
+          },
+        }}
+      >
+        <AddIcon sx={{ fontSize: 28, color: '#757575' }} />
+      </Box>
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: 'text.secondary', 
+          fontFamily: interFontFamily,
+          fontSize: '0.85rem',
+        }}
+      >
+        Add Card
+      </Typography>
+    </Box>
+  </Card>
+);
+
+// Main Card Row Component
+const LifemapCardRowNodeView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+  const { rowId, cards: cardsJson } = node.attrs;
+  
+  // Parse cards from JSON string
+  const [cards, setCards] = useState<CardData[]>(() => {
+    try {
+      return cardsJson ? JSON.parse(cardsJson) : [createDefaultCard()];
+    } catch {
+      return [createDefaultCard()];
+    }
+  });
+
+  // Create a default card
+  function createDefaultCard(): CardData {
+    return {
+      id: generateCardId(),
+      title: 'New Card',
+      description: 'Click to edit description...',
+      imageUrl: '',
+    };
+  }
+
+  // Save cards to attributes
+  const saveCards = (newCards: CardData[]) => {
+    setCards(newCards);
+    updateAttributes({ cards: JSON.stringify(newCards) });
+  };
+
+  // Add a new card
+  const addCard = () => {
+    const newCards = [...cards, createDefaultCard()];
+    saveCards(newCards);
+  };
+
+  // Update a specific card
+  const updateCard = (cardId: string, updates: Partial<CardData>) => {
+    const newCards = cards.map(card => 
+      card.id === cardId ? { ...card, ...updates } : card
+    );
+    saveCards(newCards);
+  };
+
+  // Delete a card
+  const deleteCard = (cardId: string) => {
+    if (cards.length <= 1) return; // Keep at least one card
+    const newCards = cards.filter(card => card.id !== cardId);
+    saveCards(newCards);
+  };
+
+  return (
+    <NodeViewWrapper style={{ outline: 'none' }}>
+      <Box
+        sx={{
+          position: 'relative',
+          outline: 'none',
+          borderRadius: 2,
+          // Selection overlay effect
+          '&::after': selected ? {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            borderRadius: 2,
+            pointerEvents: 'none',
+            zIndex: 1,
+          } : {},
+        }}
+      >
+        {/* Inner scrollable container with padding for shadows */}
+        <Box
+          sx={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            '&:hover': {
-              opacity: 0.9,
+            gap: 2,
+            overflowX: 'auto',
+            py: 4, // Vertical padding for shadows
+            px: 3, // Horizontal padding for shadows
+            mx: -3, // Negative margin to counteract padding for full-width scroll
+            // Hide scrollbar but keep scroll functionality
+            scrollbarWidth: 'none', // Firefox
+            msOverflowStyle: 'none', // IE/Edge
+            '&::-webkit-scrollbar': {
+              display: 'none', // Chrome/Safari/Opera
             },
           }}
-          image={imageUrl || undefined}
-          title={editedTitle}
-          onClick={handleImageClick}
         >
-          {isUploading ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={32} />
-              <Typography variant="caption" color="text.secondary">
-                Uploading...
-              </Typography>
-            </Box>
-          ) : !imageUrl && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-              <Typography variant="body2" color="text.secondary">
-                🖼️ Click to upload image
-              </Typography>
-              <Typography variant="caption" color="text.disabled">
-                Max 5MB
-              </Typography>
-            </Box>
-          )}
-        </CardMedia>
-
-        <CardContent>
-          {/* Editable Title */}
-          {isEditingTitle ? (
-            <TextField
-              fullWidth
-              variant="standard"
-              value={editedTitle}
-              onChange={(e) => setEditedTitle(e.target.value)}
-              onBlur={handleTitleSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleTitleSubmit();
-                if (e.key === 'Escape') {
-                  setEditedTitle(title);
-                  setIsEditingTitle(false);
-                }
-              }}
-              autoFocus
-              sx={{ mb: 1 }}
+          {/* Render existing cards */}
+          {cards.map((card) => (
+            <SingleCard
+              key={card.id}
+              card={card}
+              onUpdate={(updates) => updateCard(card.id, updates)}
+              onDelete={() => deleteCard(card.id)}
+              showDelete={cards.length > 1}
             />
-          ) : (
-            <Typography 
-              gutterBottom 
-              variant="h5" 
-              component="div"
-              onClick={() => setIsEditingTitle(true)}
-              sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'action.hover' }, borderRadius: 1, px: 0.5 }}
-            >
-              {editedTitle}
-            </Typography>
-          )}
-
-          {/* Editable Description */}
-          {isEditingDescription ? (
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
-              size="small"
-              value={editedDescription}
-              onChange={(e) => setEditedDescription(e.target.value)}
-              onBlur={handleDescriptionSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setEditedDescription(description);
-                  setIsEditingDescription(false);
-                }
-              }}
-              autoFocus
-            />
-          ) : (
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: 'text.secondary',
-                cursor: 'pointer',
-                '&:hover': { backgroundColor: 'action.hover' },
-                borderRadius: 1,
-                px: 0.5,
-                minHeight: 40,
-              }}
-              onClick={() => setIsEditingDescription(true)}
-            >
-              {editedDescription || 'Click to add description...'}
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+          
+          {/* Add card skeleton */}
+          <AddCardSkeleton onClick={addCard} />
+        </Box>
+      </Box>
     </NodeViewWrapper>
   );
 };
@@ -213,36 +451,29 @@ const LifemapCardNodeView = ({ node, updateAttributes }: NodeViewProps) => {
 export const LifemapCardExtension = Node.create({
   name: "lifemapCard",
   group: "block",
-  atom: true, // Treat as a single unit (no nested content editing via Tiptap)
+  atom: true,
+  draggable: true,
+  selectable: true,
 
   addAttributes() {
     return {
-      cardId: {
+      rowId: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-card-id'),
+        parseHTML: (element) => element.getAttribute('data-row-id'),
         renderHTML: (attributes) => ({
-          'data-card-id': attributes.cardId,
+          'data-row-id': attributes.rowId,
         }),
       },
-      title: {
-        default: 'Lizard',
-        parseHTML: (element) => element.getAttribute('data-title'),
+      cards: {
+        default: JSON.stringify([{
+          id: generateCardId(),
+          title: 'New Card',
+          description: 'Click to edit description...',
+          imageUrl: '',
+        }]),
+        parseHTML: (element) => element.getAttribute('data-cards'),
         renderHTML: (attributes) => ({
-          'data-title': attributes.title,
-        }),
-      },
-      description: {
-        default: 'Lizards are a widespread group of squamate reptiles, with over 6,000 species, ranging across all continents except Antarctica',
-        parseHTML: (element) => element.getAttribute('data-description'),
-        renderHTML: (attributes) => ({
-          'data-description': attributes.description,
-        }),
-      },
-      imageUrl: {
-        default: '',
-        parseHTML: (element) => element.getAttribute('data-image-url'),
-        renderHTML: (attributes) => ({
-          'data-image-url': attributes.imageUrl,
+          'data-cards': attributes.cards,
         }),
       },
     };
@@ -261,7 +492,7 @@ export const LifemapCardExtension = Node.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(LifemapCardNodeView);
+    return ReactNodeViewRenderer(LifemapCardRowNodeView);
   },
 
   addCommands() {
@@ -269,13 +500,17 @@ export const LifemapCardExtension = Node.create({
       insertLifemapCard:
         (attrs?: { title?: string; description?: string; imageUrl?: string }) =>
         ({ commands }) => {
+          const initialCard = {
+            id: generateCardId(),
+            title: attrs?.title || 'New Card',
+            description: attrs?.description || 'Click to edit description...',
+            imageUrl: attrs?.imageUrl || '',
+          };
           return commands.insertContent({
             type: this.name,
             attrs: {
-              cardId: generateCardId(),
-              title: attrs?.title || 'Lizard',
-              description: attrs?.description || 'Lizards are a widespread group of squamate reptiles, with over 6,000 species, ranging across all continents except Antarctica',
-              imageUrl: attrs?.imageUrl || '',
+              rowId: generateCardId(),
+              cards: JSON.stringify([initialCard]),
             },
           });
         },

@@ -29,11 +29,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             ref={switchElementsRefs[index]}
             initial={{ opacity: 0.2, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            onClick={() => {
-                if (child && child.props && typeof child.props.onClick === 'function') {
-                    child.props.onClick()
-                }
-            }}
+            // Removed duplicate onClick - the Option component already handles clicks
             style={{
                 scrollSnapAlign: "center",
                 width: "fit-content",
