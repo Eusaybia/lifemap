@@ -4,6 +4,7 @@ import React from "react";
 import { useEffect } from "react";
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { Quanta } from "../../../src/core/Quanta";
 import { offWhite } from "../../../src/view/Theme";
 import { MainEditor } from "../../../src/view/content/RichText";
@@ -15,6 +16,8 @@ const Minimap = dynamic(() => import('../../../src/view/structure/Minimap').then
 });
 
 export default function Page({ params }: { params: { slug: string } }) {
+    const searchParams = useSearchParams();
+    const isGraphMode = searchParams.get('mode') === 'graph';
     const padding = 20;
     const editor = MainEditor("", true);
     const minimapWidth = 60; // Update to match new default minimap width
@@ -56,10 +59,13 @@ export default function Page({ params }: { params: { slug: string } }) {
 
     const mainContent = (
         <>
-            <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
-                {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
-            </motion.div>
-            <motion.div style={{ padding: `0px 0px 40px 0px` }}>
+            {/* Hide DocumentFlowMenu in graph mode - only show selection-based FlowMenu */}
+            {!isGraphMode && (
+                <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
+                    {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
+                </motion.div>
+            )}
+            <motion.div style={{ padding: isGraphMode ? '10px 0px' : '0px 0px 40px 0px' }}>
                 <Quanta quantaId={params.slug} userId={'000000'} />
             </motion.div>
         </>
@@ -72,15 +78,16 @@ export default function Page({ params }: { params: { slug: string } }) {
             minHeight: '100vh',
             display: 'flex',
             justifyContent: 'center',
-            paddingLeft: padding,
-            paddingRight: minimapWidth + padding,
+            paddingLeft: isGraphMode ? 10 : padding,
+            paddingRight: isGraphMode ? 10 : minimapWidth + padding,
         }}>
             <div className="center-content" style={{
                 width: '100%',
                 maxWidth: maxContentWidth,
                 position: 'relative',
             }}>
-                <Minimap mainContentNode={mainContent} />
+                {/* Hide Minimap in graph mode */}
+                {!isGraphMode && <Minimap mainContentNode={mainContent} />}
                 {mainContent}
             </div>
         </div>
