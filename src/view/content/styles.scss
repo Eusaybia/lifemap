@@ -173,6 +173,11 @@
   outline: 1px solid grey;
 }
 
+/* Slightly rounded images */
+.ProseMirror img {
+  border-radius: 2px;
+}
+
 /* Reset the appearance */
 input[type="checkbox"] {
   -webkit-appearance: none;
