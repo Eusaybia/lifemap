@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Quanta } from '../../core/Quanta';
 import { QuantaId } from '../../core/Model';
 import React from 'react'
@@ -7,7 +7,54 @@ import { Grip } from '../content/Grip';
 
 export type GroupLenses = "identity" | "hideUnimportantNodes";
 
-export const Group = (props: { children: any, lens: GroupLenses, quantaId: QuantaId, backgroundColor?: string }) => {
+// Collapse toggle chevron component
+const CollapseChevron = ({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) => (
+    <motion.div
+        onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+        }}
+        style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            padding: 4,
+        }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+    >
+        <motion.svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            animate={{ rotate: isCollapsed ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+        >
+            <path
+                d="M3 6L8 11L13 6"
+                stroke="#888"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </motion.svg>
+    </motion.div>
+);
+
+export const Group = (props: { 
+    children: any, 
+    lens: GroupLenses, 
+    quantaId: QuantaId, 
+    backgroundColor?: string,
+    isCollapsed?: boolean,
+    onToggleCollapse?: () => void,
+}) => {
 
     // Helper function to make color opaque
     const getOpaqueBackground = (color: string) => {
@@ -45,16 +92,33 @@ export const Group = (props: { children: any, lens: GroupLenses, quantaId: Quant
             }}
             style={{
                 position: "relative", // Keep relative for Grip positioning
-                minHeight: 20,
+                minHeight: props.isCollapsed ? 48 : 20,
                 overflow: "hidden",
                 borderRadius: `10px`,
                 boxShadow: `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`,
-                padding: `35px`,
+                padding: props.isCollapsed ? '12px 35px' : '35px',
                 margin: `10px 0px 10px 0px`,
             }}
         >
             <Grip/>
-            {props.children}
+            {props.onToggleCollapse && (
+                <CollapseChevron 
+                    isCollapsed={props.isCollapsed || false} 
+                    onToggle={props.onToggleCollapse} 
+                />
+            )}
+            <AnimatePresence>
+                {!props.isCollapsed && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {props.children}
+                    </motion.div>
+                )}
+            </AnimatePresence>
             {/* Overlay is now handled in the NodeView */}
         </motion.div>
     )

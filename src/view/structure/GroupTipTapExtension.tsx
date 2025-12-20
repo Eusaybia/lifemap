@@ -196,6 +196,7 @@ export const GroupExtension = TipTapNode.create({
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
       backgroundColor: { default: offWhite },
       lens: { default: "identity" as GroupLenses },
+      collapsed: { default: false },
     }
   },
   renderHTML({ node, HTMLAttributes }) {
@@ -412,6 +413,10 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
               backgroundColor={props.node.attrs.backgroundColor}
+              isCollapsed={props.node.attrs.collapsed}
+              onToggleCollapse={() => {
+                props.updateAttributes({ collapsed: !props.node.attrs.collapsed });
+              }}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
