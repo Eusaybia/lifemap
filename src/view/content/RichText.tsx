@@ -14,7 +14,7 @@ import Focus from '@tiptap/extension-focus'
 import TextStyle from '@tiptap/extension-text-style'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
-import { FramedImageExtension } from './FramedImageExtension'
+import Image from '@tiptap/extension-image'
 import { MapboxMapExtension } from './MapboxMapExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
@@ -114,7 +114,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Highlight.configure({
     multicolor: true,
   }),
-  FramedImageExtension,
+  Image,
   Placeholder.configure({
     includeChildren: true,
     showOnlyCurrent: true,
