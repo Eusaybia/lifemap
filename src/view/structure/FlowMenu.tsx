@@ -327,6 +327,20 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            <Option
+                value={"Add Mapbox Map"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertMapboxMap is added by the extension
+                    props.editor.commands.insertMapboxMap()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        🗺️ Add Mapbox Map
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Revert to last valid content"}

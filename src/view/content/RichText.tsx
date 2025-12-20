@@ -15,6 +15,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
 import { FramedImageExtension } from './FramedImageExtension'
+import { MapboxMapExtension } from './MapboxMapExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
@@ -198,6 +199,7 @@ export const customExtensions: Extensions = [
   Indent,
   KeyValuePairExtension,
   LocationExtension,
+  MapboxMapExtension,
   MathExtension,
   MessageExtension,
   PortalExtension,
