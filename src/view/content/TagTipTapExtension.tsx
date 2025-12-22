@@ -39,7 +39,7 @@ const parseMentionsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) =>
 }
 
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
-    char: "#",
+    char: "/",  // Changed from # to / to avoid conflict with LocationMention which uses # for locations
     allowSpaces: true,
     items: ({ query, editor }): (MentionSuggestion)[] => {
         let mentions = parseMentionsAndKeyValueTags(editor.getJSON());
