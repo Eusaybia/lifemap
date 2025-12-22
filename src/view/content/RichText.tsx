@@ -61,6 +61,7 @@ import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExte
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
+import { DailyExtension } from '../structure/DailyExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -163,7 +164,7 @@ export const officialExtensions = (quantaId: string) => {return [
   Underline,
   UniqueID.configure({
     // TODO: Add more nodes
-    types: ['paragraph', 'mention', 'group', 'scrollview'],
+    types: ['paragraph', 'mention', 'group', 'scrollview', 'daily'],
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -209,6 +210,7 @@ export const customExtensions: Extensions = [
   LifemapCardExtension,
   QuantaFlowExtension,
   HighlightImportantLinePlugin,
+  DailyExtension,
   // EmptyNodeCleanupExtension,
 ]
 
