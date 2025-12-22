@@ -115,6 +115,118 @@ const createYearTimePoint = (year: number): TimePoint => ({
   emoji: '📆',
 })
 
+// ============================================================================
+// Month Parsing Helpers
+// ============================================================================
+
+const MONTHS: { [key: string]: number } = {
+  january: 0, jan: 0,
+  february: 1, feb: 1,
+  march: 2, mar: 2,
+  april: 3, apr: 3,
+  may: 4,
+  june: 5, jun: 5,
+  july: 6, jul: 6,
+  august: 7, aug: 7,
+  september: 8, sep: 8, sept: 8,
+  october: 9, oct: 9,
+  november: 10, nov: 10,
+  december: 11, dec: 11,
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+]
+
+const parseMonthName = (str: string): number | null => {
+  const lower = str.toLowerCase()
+  return MONTHS[lower] ?? null
+}
+
+const createMonthYearTimePoint = (month: number, year: number): TimePoint => {
+  const monthName = MONTH_NAMES[month]
+  return {
+    id: `timepoint:month-${year}-${month + 1}`,
+    label: `${monthName} ${year}`,
+    date: new Date(year, month, 1),
+    emoji: '📅',
+  }
+}
+
+const createMonthTimePoint = (month: number): TimePoint => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  // If the month is in the past this year, use next year
+  const year = month < currentMonth ? currentYear + 1 : currentYear
+  const monthName = MONTH_NAMES[month]
+  
+  return {
+    id: `timepoint:month-${year}-${month + 1}`,
+    label: `${monthName} ${year}`,
+    date: new Date(year, month, 1),
+    emoji: '📅',
+  }
+}
+
+const getMonthYearSuggestions = (query: string): TimePoint[] => {
+  const results: TimePoint[] = []
+  const lowerQuery = query.toLowerCase().trim()
+  
+  // Try to parse "Month Year" format (e.g., "April 2026", "Apr 2026")
+  const monthYearMatch = lowerQuery.match(/^([a-z]+)\s*(\d{2,4})?$/)
+  if (monthYearMatch) {
+    const [, monthStr, yearStr] = monthYearMatch
+    const month = parseMonthName(monthStr)
+    
+    if (month !== null) {
+      if (yearStr) {
+        // Month + Year provided
+        let year = parseInt(yearStr, 10)
+        // Handle 2-digit years (e.g., "26" -> 2026)
+        if (year < 100) {
+          year = year < 50 ? 2000 + year : 1900 + year
+        }
+        if (year >= 1900 && year <= 2200) {
+          results.push(createMonthYearTimePoint(month, year))
+          // Also suggest surrounding years
+          if (year > 1900) results.push(createMonthYearTimePoint(month, year - 1))
+          if (year < 2200) results.push(createMonthYearTimePoint(month, year + 1))
+        }
+      } else {
+        // Only month provided - show next occurrence
+        results.push(createMonthTimePoint(month))
+        // Also suggest next few years
+        const currentYear = new Date().getFullYear()
+        for (let y = currentYear; y <= currentYear + 3; y++) {
+          const tp = createMonthYearTimePoint(month, y)
+          if (!results.find(r => r.id === tp.id)) {
+            results.push(tp)
+          }
+        }
+      }
+      return results.slice(0, 6)
+    }
+  }
+  
+  // Partial month name matching (e.g., "Ap" -> April, "Au" -> August)
+  const partialMatches = Object.keys(MONTHS)
+    .filter(name => name.length > 3 && name.startsWith(lowerQuery)) // Only full month names
+    .map(name => MONTHS[name])
+    .filter((v, i, a) => a.indexOf(v) === i) // Unique months
+  
+  if (partialMatches.length > 0) {
+    for (const month of partialMatches) {
+      results.push(createMonthTimePoint(month))
+    }
+    return results.slice(0, 6)
+  }
+  
+  return results
+}
+
 const getYearSuggestions = (query: string): TimePoint[] => {
   const results: TimePoint[] = []
   const currentYear = new Date().getFullYear()
@@ -179,11 +291,19 @@ const fetchTimePoints = (query: string): TimePoint[] => {
   const timePoints = getTimePoints()
   if (!query) return timePoints
   
+  // Pure numeric query - year suggestions
   if (/^\d+$/.test(query)) {
     const yearSuggestions = getYearSuggestions(query)
     if (yearSuggestions.length > 0) return yearSuggestions
   }
   
+  // Try month/month+year parsing (e.g., "April", "April 2026", "Apr 26")
+  if (/^[a-zA-Z]/.test(query)) {
+    const monthYearSuggestions = getMonthYearSuggestions(query)
+    if (monthYearSuggestions.length > 0) return monthYearSuggestions
+  }
+  
+  // Fall back to filtering built-in timepoints
   return timePoints.filter((tp) => tp.label.toLowerCase().startsWith(query.toLowerCase()))
 }
 
@@ -192,9 +312,11 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 // ============================================================================
 
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
+const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
 
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   return `${tp.emoji} ${formatDate(tp.date)}`
 }
 
@@ -205,7 +327,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     if (index >= props.items.length) return
 
     const timePoint = props.items[index]
-    const formattedDate = isYearTimePoint(timePoint) ? timePoint.label : formatDate(timePoint.date)
+    const formattedDate = isYearTimePoint(timePoint) || isMonthTimePoint(timePoint) 
+      ? timePoint.label 
+      : formatDate(timePoint.date)
     const displayLabel = formatTimePointLabel(timePoint)
 
     props.command({
@@ -248,6 +372,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
               <span className="timepoint-label">{item.label}</span>
               {isYearTimePoint(item) ? (
                 <span className="timepoint-date">January 1st, {item.label}</span>
+              ) : isMonthTimePoint(item) ? (
+                <span className="timepoint-date">1st {item.label}</span>
               ) : (
                 <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
               )}
@@ -255,7 +381,7 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
           </motion.div>
         ))
       ) : (
-        <div className="timepoint-item">No matching dates</div>
+        <div className="timepoint-item">No matching dates.</div>
       )}
     </div>
   )
