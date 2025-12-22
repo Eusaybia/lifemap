@@ -341,6 +341,20 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            <Option
+                value={"Insert Daily Schedule"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertDaily is added by the DailyExtension
+                    props.editor.commands.insertDaily()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📅 Insert Daily Schedule
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Revert to last valid content"}

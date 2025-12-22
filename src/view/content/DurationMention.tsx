@@ -68,8 +68,20 @@ const getDurations = (): Duration[] => {
       emoji: '⏳',
     },
     {
+      id: 'duration:1h',
+      label: '1 hour',
+      seconds: 3600,
+      emoji: '⏳',
+    },
+    {
       id: 'duration:90m',
       label: '90 minutes',
+      seconds: 5400,
+      emoji: '⏳',
+    },
+    {
+      id: 'duration:1.5h',
+      label: '1.5 hours',
       seconds: 5400,
       emoji: '⏳',
     },
@@ -77,6 +89,30 @@ const getDurations = (): Duration[] => {
       id: 'duration:2h',
       label: '2 hours',
       seconds: 7200,
+      emoji: '⏳',
+    },
+    {
+      id: 'duration:2.5h',
+      label: '2.5 hours',
+      seconds: 9000,
+      emoji: '⏳',
+    },
+    {
+      id: 'duration:3h',
+      label: '3 hours',
+      seconds: 10800,
+      emoji: '⏳',
+    },
+    {
+      id: 'duration:3.5h',
+      label: '3.5 hours',
+      seconds: 12600,
+      emoji: '⏳',
+    },
+    {
+      id: 'duration:4h',
+      label: '4 hours',
+      seconds: 14400,
       emoji: '⏳',
     },
   ]
@@ -89,12 +125,67 @@ const fetchDurations = (query: string): Duration[] => {
     return durations
   }
   
-  // Filter based on query - match by label
-  const lowerQuery = query.toLowerCase()
-  return durations.filter((d) =>
-    d.label.toLowerCase().includes(lowerQuery) ||
-    d.id.toLowerCase().includes(lowerQuery)
-  )
+  // Strip leading ~ if present
+  let lowerQuery = query.toLowerCase().replace(/^~/, '').trim()
+  
+  // Extract numeric part and unit for smarter matching
+  const match = lowerQuery.match(/^(\d+\.?\d*)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)?$/i)
+  
+  if (match) {
+    const [, numStr, unit] = match
+    const num = parseFloat(numStr)
+    
+    // Match based on the number and unit type
+    return durations.filter((d) => {
+      const labelLower = d.label.toLowerCase()
+      
+      // Check if this is an hour-based query
+      if (!unit || unit.startsWith('h')) {
+        // Match hour-based durations
+        if (labelLower.includes('hour')) {
+          const hourMatch = labelLower.match(/^(\d+\.?\d*)\s*hour/)
+          if (hourMatch && parseFloat(hourMatch[1]) === num) return true
+        }
+        // Also match equivalent minutes (e.g., 1 hour = 60 minutes)
+        if (labelLower.includes('minute')) {
+          const minMatch = labelLower.match(/^(\d+)\s*minute/)
+          if (minMatch && parseInt(minMatch[1]) === num * 60) return true
+        }
+      }
+      
+      // Check if this is a minute-based query
+      if (unit && (unit.startsWith('m') && !unit.startsWith('mi') || unit.startsWith('min'))) {
+        if (labelLower.includes('minute')) {
+          const minMatch = labelLower.match(/^(\d+)\s*minute/)
+          if (minMatch && parseInt(minMatch[1]) === num) return true
+        }
+      }
+      
+      // Check if this is a second-based query
+      if (unit && unit.startsWith('s')) {
+        if (labelLower.includes('second')) {
+          const secMatch = labelLower.match(/^(\d+)\s*second/)
+          if (secMatch && parseInt(secMatch[1]) === num) return true
+        }
+      }
+      
+      return false
+    })
+  }
+  
+  // Fall back to simple text matching
+  const noSpaceQuery = lowerQuery.replace(/\s+/g, '')
+  
+  return durations.filter((d) => {
+    const labelLower = d.label.toLowerCase()
+    const labelNoSpace = labelLower.replace(/\s+/g, '')
+    const idLower = d.id.toLowerCase()
+    
+    return labelLower.includes(lowerQuery) ||
+           labelNoSpace.includes(noSpaceQuery) ||
+           idLower.includes(lowerQuery) ||
+           idLower.includes(noSpaceQuery)
+  })
 }
 
 // ============================================================================

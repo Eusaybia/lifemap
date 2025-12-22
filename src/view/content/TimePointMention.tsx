@@ -83,6 +83,52 @@ const formatDateWithDay = (date: Date): string => {
 // TimePoint Suggestions
 // ============================================================================
 
+// Solar time helpers - approximate times (can be refined with location-based calculation)
+const getSolarTimePoints = (): TimePoint[] => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  // Approximate times (these could be made location-aware in the future)
+  const dawn = new Date(today)
+  dawn.setHours(5, 30, 0) // ~5:30 AM
+  
+  const sunrise = new Date(today)
+  sunrise.setHours(6, 15, 0) // ~6:15 AM
+  
+  const goldenHourMorning = new Date(today)
+  goldenHourMorning.setHours(6, 45, 0) // ~6:45 AM
+  
+  const solarNoon = new Date(today)
+  solarNoon.setHours(12, 0, 0) // 12:00 PM
+  
+  const goldenHourEvening = new Date(today)
+  goldenHourEvening.setHours(17, 30, 0) // ~5:30 PM
+  
+  const sunset = new Date(today)
+  sunset.setHours(18, 15, 0) // ~6:15 PM
+  
+  const dusk = new Date(today)
+  dusk.setHours(18, 45, 0) // ~6:45 PM
+  
+  const blueHour = new Date(today)
+  blueHour.setHours(19, 0, 0) // ~7:00 PM
+  
+  const midnight = new Date(today)
+  midnight.setHours(0, 0, 0)
+  
+  return [
+    { id: 'timepoint:dawn', label: 'Dawn', date: dawn, emoji: '🌅' },
+    { id: 'timepoint:sunrise', label: 'Sunrise', date: sunrise, emoji: '🌄' },
+    { id: 'timepoint:golden-hour-morning', label: 'Golden Hour (Morning)', date: goldenHourMorning, emoji: '✨' },
+    { id: 'timepoint:solar-noon', label: 'Solar Noon', date: solarNoon, emoji: '☀️' },
+    { id: 'timepoint:golden-hour-evening', label: 'Golden Hour (Evening)', date: goldenHourEvening, emoji: '✨' },
+    { id: 'timepoint:sunset', label: 'Sunset', date: sunset, emoji: '🌇' },
+    { id: 'timepoint:dusk', label: 'Dusk', date: dusk, emoji: '🌆' },
+    { id: 'timepoint:blue-hour', label: 'Blue Hour', date: blueHour, emoji: '🔵' },
+    { id: 'timepoint:midnight', label: 'Midnight', date: midnight, emoji: '🌙' },
+  ]
+}
+
 const getTimePoints = (): TimePoint[] => {
   const now = new Date()
   const nextSeason = getNextSeason()
@@ -99,6 +145,8 @@ const getTimePoints = (): TimePoint[] => {
       date: nextSeason.date,
       emoji: nextSeason.emoji,
     },
+    // Solar time points
+    ...getSolarTimePoints(),
   ]
 }
 
@@ -287,12 +335,77 @@ const getYearSuggestions = (query: string): TimePoint[] => {
   return results
 }
 
+// Parse arbitrary time strings like "8:00am", "3pm", "14:30", "8am", "8:00 am"
+const parseTimeString = (query: string): TimePoint | null => {
+  const lowerQuery = query.toLowerCase().trim()
+  
+  // Match patterns: "8am", "8:00am", "8:00 am", "8 am", "14:30", "2:30pm"
+  const timeMatch = lowerQuery.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/)
+  if (!timeMatch) return null
+  
+  let [, hourStr, minuteStr, period] = timeMatch
+  let hour = parseInt(hourStr, 10)
+  const minute = minuteStr ? parseInt(minuteStr, 10) : 0
+  
+  // Validate hour and minute
+  if (minute < 0 || minute > 59) return null
+  
+  // Handle 12-hour format
+  if (period) {
+    if (hour < 1 || hour > 12) return null
+    if (period === 'pm' && hour !== 12) hour += 12
+    if (period === 'am' && hour === 12) hour = 0
+  } else {
+    // 24-hour format
+    if (hour < 0 || hour > 23) return null
+  }
+  
+  const now = new Date()
+  const timeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0)
+  
+  // Format the label nicely
+  const formattedTime = timeDate.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: minute > 0 ? '2-digit' : undefined,
+    hour12: true 
+  })
+  
+  return {
+    id: `timepoint:time-${hour}-${minute}`,
+    label: formattedTime,
+    date: timeDate,
+    emoji: '🕐',
+  }
+}
+
+const isCustomTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:time-')
+
 const fetchTimePoints = (query: string): TimePoint[] => {
   const timePoints = getTimePoints()
   if (!query) return timePoints
   
-  // Pure numeric query - year suggestions
+  // Try parsing as arbitrary time (e.g., "8:00am", "3pm", "14:30")
+  const timePoint = parseTimeString(query)
+  if (timePoint) {
+    return [timePoint]
+  }
+  
+  // Pure numeric query - could be year or time
   if (/^\d+$/.test(query)) {
+    // If it looks like a time (1-12 or 0-23), offer both interpretations
+    const num = parseInt(query, 10)
+    if (num >= 1 && num <= 12) {
+      // Could be hour - show AM/PM options
+      const amTime = parseTimeString(`${num}am`)
+      const pmTime = parseTimeString(`${num}pm`)
+      const results: TimePoint[] = []
+      if (amTime) results.push(amTime)
+      if (pmTime) results.push(pmTime)
+      // Also check year suggestions
+      const yearSuggestions = getYearSuggestions(query)
+      return [...results, ...yearSuggestions].slice(0, 6)
+    }
+    
     const yearSuggestions = getYearSuggestions(query)
     if (yearSuggestions.length > 0) return yearSuggestions
   }
@@ -313,10 +426,21 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
+const isSolarTimePoint = (tp: TimePoint): boolean => {
+  const solarIds = ['dawn', 'sunrise', 'golden-hour', 'solar-noon', 'sunset', 'dusk', 'blue-hour', 'midnight']
+  return solarIds.some(id => tp.id.includes(id))
+}
+const isTimeTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:time-')
+
+const formatTime = (date: Date): string => {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
 
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   return `${tp.emoji} ${formatDate(tp.date)}`
 }
 
@@ -327,9 +451,16 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     if (index >= props.items.length) return
 
     const timePoint = props.items[index]
-    const formattedDate = isYearTimePoint(timePoint) || isMonthTimePoint(timePoint) 
-      ? timePoint.label 
-      : formatDate(timePoint.date)
+    let formattedDate: string
+    if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
+      formattedDate = timePoint.label
+    } else if (isSolarTimePoint(timePoint)) {
+      formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
+    } else if (isTimeTimePoint(timePoint)) {
+      formattedDate = timePoint.label
+    } else {
+      formattedDate = formatDate(timePoint.date)
+    }
     const displayLabel = formatTimePointLabel(timePoint)
 
     props.command({
@@ -374,6 +505,10 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
                 <span className="timepoint-date">1st {item.label}</span>
+              ) : isSolarTimePoint(item) ? (
+                <span className="timepoint-date">~{formatTime(item.date)} today</span>
+              ) : isTimeTimePoint(item) ? (
+                <span className="timepoint-date">Today at {item.label}</span>
               ) : (
                 <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
               )}
