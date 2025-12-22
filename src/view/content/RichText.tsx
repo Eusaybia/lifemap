@@ -45,13 +45,14 @@ import { CustomMention } from './Mention'
 import { TimePointMention, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension } from './DurationMention'
+import { LocationMention, LocationNode } from './LocationMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
 import { SophiaAI } from '../../agents/Sophia'
 import { ConversationExtension } from '../structure/ConversationExtension'
-import { LocationExtension } from './LocationTipTapExtension'
+// LocationExtension removed - using LocationNode from LocationMention.tsx instead (supports pin emoji)
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { ScrollViewExtension } from '../structure/ScrollViewExtension'
@@ -189,6 +190,9 @@ export const customExtensions: Extensions = [
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
   TimePointMention,
+  // Location mentions - triggered by # for location insertion (Sydney, Tokyo, etc.)
+  LocationNode,
+  LocationMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   PomodoroNode,
   DurationExtension,
@@ -199,7 +203,8 @@ export const customExtensions: Extensions = [
   ScrollViewExtension,
   Indent,
   KeyValuePairExtension,
-  LocationExtension,
+  // LocationExtension removed - conflicts with LocationNode from LocationMention.tsx (both use name: "location")
+  // LocationNode supports inline mentions with pin emoji via # trigger
   MapboxMapExtension,
   MathExtension,
   MessageExtension,
