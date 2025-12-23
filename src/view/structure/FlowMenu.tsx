@@ -355,6 +355,34 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            <Option
+                value={"Insert Day Header"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertDayHeader is added by the DayHeaderExtension
+                    props.editor.commands.insertDayHeader()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        🌄 Insert Day Header
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
+                value={"Insert Temporal Space"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertTemporalSpace is added by the TemporalSpaceExtension
+                    props.editor.commands.insertTemporalSpace()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        ⏱️ Insert Temporal Space
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Revert to last valid content"}
