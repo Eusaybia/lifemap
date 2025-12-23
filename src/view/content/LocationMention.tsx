@@ -676,7 +676,7 @@ export const LocationMention = Extension.create<LocationOptions>({
     return {
       HTMLAttributes: { class: 'location-mention' },
       suggestion: {
-        char: '#',  // Use # for locations to avoid conflict with @ for timepoints
+        char: '!',  // Use ! for locations to avoid conflict with @ for timepoints
         allowSpaces: true,
         pluginKey: LocationPluginKey,
         items: ({ query }) => fetchLocations(query),
