@@ -80,81 +80,370 @@ const formatDateWithDay = (date: Date): string => {
 }
 
 // ============================================================================
+// Solar Time Calculations
+// ============================================================================
+
+interface UserLocation {
+  latitude: number
+  longitude: number
+  timezone: number // offset in hours from UTC
+  locationName?: string
+}
+
+interface SolarTimes {
+  astronomicalDawn: Date
+  nauticalDawn: Date
+  civilDawn: Date
+  sunrise: Date
+  goldenHourEnd: Date
+  solarNoon: Date
+  goldenHourStart: Date
+  sunset: Date
+  civilDusk: Date
+  nauticalDusk: Date
+  astronomicalDusk: Date
+}
+
+const LOCATION_STORAGE_KEY = 'lifemap-user-location'
+
+// Default location (Sydney, Australia) - will be overridden by geolocation
+const DEFAULT_LOCATION: UserLocation = {
+  latitude: -33.8688,
+  longitude: 151.2093,
+  timezone: 11, // AEDT
+  locationName: 'Sydney'
+}
+
+// Get stored location or default
+const getStoredLocation = (): UserLocation => {
+  if (typeof window === 'undefined') return DEFAULT_LOCATION
+  try {
+    const stored = localStorage.getItem(LOCATION_STORAGE_KEY)
+    if (stored) return JSON.parse(stored)
+  } catch (e) {
+    console.error('Failed to load location:', e)
+  }
+  return DEFAULT_LOCATION
+}
+
+// Store location
+const storeLocation = (location: UserLocation): void => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(location))
+  } catch (e) {
+    console.error('Failed to store location:', e)
+  }
+}
+
+// Request browser geolocation and update stored location
+const requestGeolocation = (): Promise<UserLocation> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      resolve(getStoredLocation())
+      return
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location: UserLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timezone: -new Date().getTimezoneOffset() / 60,
+          locationName: 'Current Location'
+        }
+        storeLocation(location)
+        resolve(location)
+      },
+      (error) => {
+        console.log('Geolocation error:', error.message)
+        resolve(getStoredLocation())
+      },
+      { timeout: 5000, maximumAge: 3600000 } // 1 hour cache
+    )
+  })
+}
+
+// Convert degrees to radians
+const toRadians = (degrees: number): number => degrees * (Math.PI / 180)
+
+// Convert radians to degrees
+const toDegrees = (radians: number): number => radians * (180 / Math.PI)
+
+// Calculate Julian Day Number
+const getJulianDay = (date: Date): number => {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  
+  const a = Math.floor((14 - month) / 12)
+  const y = year + 4800 - a
+  const m = month + 12 * a - 3
+  
+  return day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045
+}
+
+// Calculate solar declination (angle of sun relative to equator)
+const getSolarDeclination = (julianDay: number): number => {
+  const n = julianDay - 2451545.0 // Days since J2000.0
+  const L = (280.460 + 0.9856474 * n) % 360 // Mean longitude
+  const g = toRadians((357.528 + 0.9856003 * n) % 360) // Mean anomaly
+  const lambda = toRadians(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) // Ecliptic longitude
+  const epsilon = toRadians(23.439 - 0.0000004 * n) // Obliquity of ecliptic
+  
+  return toDegrees(Math.asin(Math.sin(epsilon) * Math.sin(lambda)))
+}
+
+// Calculate Equation of Time (difference between solar time and clock time)
+const getEquationOfTime = (julianDay: number): number => {
+  const n = julianDay - 2451545.0
+  const L = toRadians((280.460 + 0.9856474 * n) % 360)
+  const g = toRadians((357.528 + 0.9856003 * n) % 360)
+  const epsilon = toRadians(23.439 - 0.0000004 * n)
+  
+  const y = Math.tan(epsilon / 2) ** 2
+  const eot = y * Math.sin(2 * L) - 2 * 0.0167 * Math.sin(g) + 4 * 0.0167 * y * Math.sin(g) * Math.cos(2 * L)
+  
+  return toDegrees(eot) * 4 // Convert to minutes
+}
+
+// Calculate hour angle for a given solar elevation angle
+const getHourAngle = (latitude: number, declination: number, elevation: number): number | null => {
+  const latRad = toRadians(latitude)
+  const decRad = toRadians(declination)
+  const elevRad = toRadians(elevation)
+  
+  const cosH = (Math.sin(elevRad) - Math.sin(latRad) * Math.sin(decRad)) / (Math.cos(latRad) * Math.cos(decRad))
+  
+  // Check if sun rises/sets at this location on this day
+  if (cosH > 1) return null // Sun never rises (polar night)
+  if (cosH < -1) return null // Sun never sets (midnight sun)
+  
+  return toDegrees(Math.acos(cosH))
+}
+
+// Calculate solar noon time
+const getSolarNoon = (location: UserLocation, date: Date): Date => {
+  const julianDay = getJulianDay(date)
+  const eot = getEquationOfTime(julianDay)
+  
+  // Solar noon in minutes from midnight UTC
+  const solarNoonUTC = 720 - (location.longitude * 4) - eot
+  
+  // Convert to local time
+  const solarNoonLocal = solarNoonUTC + (location.timezone * 60)
+  
+  const result = new Date(date)
+  result.setHours(0, 0, 0, 0)
+  result.setMinutes(Math.round(solarNoonLocal))
+  
+  return result
+}
+
+// Calculate time for a specific solar elevation angle
+const getSolarEventTime = (location: UserLocation, date: Date, elevation: number, isRising: boolean): Date | null => {
+  const julianDay = getJulianDay(date)
+  const declination = getSolarDeclination(julianDay)
+  const hourAngle = getHourAngle(location.latitude, declination, elevation)
+  
+  if (hourAngle === null) return null
+  
+  const solarNoon = getSolarNoon(location, date)
+  const offset = (hourAngle / 15) * 60 // Convert degrees to minutes
+  
+  const result = new Date(solarNoon)
+  if (isRising) {
+    result.setMinutes(result.getMinutes() - Math.round(offset))
+  } else {
+    result.setMinutes(result.getMinutes() + Math.round(offset))
+  }
+  
+  return result
+}
+
+// Calculate all solar times for a given date and location
+const calculateSolarTimes = (location: UserLocation, date: Date = new Date()): SolarTimes => {
+  const today = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  
+  // Standard solar elevation angles:
+  // Sunrise/Sunset: -0.833° (accounting for refraction and sun's radius)
+  // Civil twilight: -6°
+  // Nautical twilight: -12°
+  // Astronomical twilight: -18°
+  // Golden hour: 6° above horizon
+  
+  const solarNoon = getSolarNoon(location, today)
+  
+  return {
+    astronomicalDawn: getSolarEventTime(location, today, -18, true) || new Date(today.setHours(4, 0, 0)),
+    nauticalDawn: getSolarEventTime(location, today, -12, true) || new Date(today.setHours(4, 30, 0)),
+    civilDawn: getSolarEventTime(location, today, -6, true) || new Date(today.setHours(5, 0, 0)),
+    sunrise: getSolarEventTime(location, today, -0.833, true) || new Date(today.setHours(6, 0, 0)),
+    goldenHourEnd: getSolarEventTime(location, today, 6, true) || new Date(today.setHours(7, 0, 0)),
+    solarNoon,
+    goldenHourStart: getSolarEventTime(location, today, 6, false) || new Date(today.setHours(17, 0, 0)),
+    sunset: getSolarEventTime(location, today, -0.833, false) || new Date(today.setHours(18, 0, 0)),
+    civilDusk: getSolarEventTime(location, today, -6, false) || new Date(today.setHours(18, 30, 0)),
+    nauticalDusk: getSolarEventTime(location, today, -12, false) || new Date(today.setHours(19, 0, 0)),
+    astronomicalDusk: getSolarEventTime(location, today, -18, false) || new Date(today.setHours(19, 30, 0)),
+  }
+}
+
+// Format time as HH:MM for solar events
+const formatSolarTime = (date: Date): string => {
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Cached location and solar times
+let cachedLocation: UserLocation | null = null
+let cachedSolarTimes: SolarTimes | null = null
+let lastCalculationDate: string | null = null
+
+// Get solar times (with caching)
+const getSolarTimesForToday = (): SolarTimes => {
+  const today = new Date().toDateString()
+  
+  if (cachedSolarTimes && lastCalculationDate === today) {
+    return cachedSolarTimes
+  }
+  
+  if (!cachedLocation) {
+    cachedLocation = getStoredLocation()
+    // Also trigger geolocation update in background
+    requestGeolocation().then(loc => {
+      cachedLocation = loc
+      cachedSolarTimes = calculateSolarTimes(loc)
+      lastCalculationDate = today
+    })
+  }
+  
+  cachedSolarTimes = calculateSolarTimes(cachedLocation)
+  lastCalculationDate = today
+  
+  return cachedSolarTimes
+}
+
+// ============================================================================
 // TimePoint Suggestions
 // ============================================================================
 
-// Time of day periods - common, easy-to-understand time blocks
+// Time of day periods - using actual solar times where applicable
 const getTimeOfDayPoints = (): TimePoint[] => {
+  const solar = getSolarTimesForToday()
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   
-  const dawn = new Date(today)
-  dawn.setHours(5, 30, 0) // ~5:30 AM
+  // Morning: after sunrise
+  const morning = new Date(solar.goldenHourEnd)
+  morning.setMinutes(morning.getMinutes() + 60) // ~1 hour after golden hour ends
   
-  const morning = new Date(today)
-  morning.setHours(8, 0, 0) // 8:00 AM
+  // Afternoon: between solar noon and golden hour
+  const afternoon = new Date(solar.solarNoon)
+  afternoon.setMinutes(afternoon.getMinutes() + 120) // ~2 hours after solar noon
   
-  const noon = new Date(today)
-  noon.setHours(12, 0, 0) // 12:00 PM
+  // Evening: after sunset
+  const evening = new Date(solar.sunset)
+  evening.setMinutes(evening.getMinutes() + 60) // ~1 hour after sunset
   
-  const afternoon = new Date(today)
-  afternoon.setHours(14, 0, 0) // 2:00 PM
-  
-  const dusk = new Date(today)
-  dusk.setHours(18, 0, 0) // 6:00 PM
-  
-  const evening = new Date(today)
-  evening.setHours(19, 30, 0) // 7:30 PM
-  
-  const night = new Date(today)
-  night.setHours(21, 0, 0) // 9:00 PM
+  // Night: after civil dusk
+  const night = new Date(solar.civilDusk)
+  night.setMinutes(night.getMinutes() + 90) // ~1.5 hours after civil dusk
   
   return [
-    { id: 'timepoint:dawn', label: 'Dawn', date: dawn, emoji: '🌅' },
-    { id: 'timepoint:morning', label: 'Morning', date: morning, emoji: '🌤️' },
-    { id: 'timepoint:noon', label: 'Noon', date: noon, emoji: '☀️' },
-    { id: 'timepoint:afternoon', label: 'Afternoon', date: afternoon, emoji: '🌞' },
-    { id: 'timepoint:dusk', label: 'Dusk', date: dusk, emoji: '🌆' },
-    { id: 'timepoint:evening', label: 'Evening', date: evening, emoji: '🌇' },
-    { id: 'timepoint:night', label: 'Night', date: night, emoji: '🌙' },
+    { id: 'timepoint:dawn', label: `Dawn (${formatSolarTime(solar.civilDawn)})`, date: solar.civilDawn, emoji: '🌅' },
+    { id: 'timepoint:morning', label: `Morning (${formatSolarTime(morning)})`, date: morning, emoji: '🌤️' },
+    { id: 'timepoint:noon', label: `Noon (${formatSolarTime(solar.solarNoon)})`, date: solar.solarNoon, emoji: '☀️' },
+    { id: 'timepoint:afternoon', label: `Afternoon (${formatSolarTime(afternoon)})`, date: afternoon, emoji: '🌞' },
+    { id: 'timepoint:dusk', label: `Dusk (${formatSolarTime(solar.civilDusk)})`, date: solar.civilDusk, emoji: '🌆' },
+    { id: 'timepoint:evening', label: `Evening (${formatSolarTime(evening)})`, date: evening, emoji: '🌇' },
+    { id: 'timepoint:night', label: `Night (${formatSolarTime(night)})`, date: night, emoji: '🌙' },
   ]
 }
 
-// Solar time helpers - approximate times (can be refined with location-based calculation)
+// Solar time helpers - calculated based on actual location
 const getSolarTimePoints = (): TimePoint[] => {
+  const solar = getSolarTimesForToday()
+  const location = cachedLocation || getStoredLocation()
+  const locationLabel = location.locationName ? ` (${location.locationName})` : ''
+  
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
-  // Approximate times (these could be made location-aware in the future)
-  const sunrise = new Date(today)
-  sunrise.setHours(6, 15, 0) // ~6:15 AM
-  
-  const goldenHourMorning = new Date(today)
-  goldenHourMorning.setHours(6, 45, 0) // ~6:45 AM
-  
-  const solarNoon = new Date(today)
-  solarNoon.setHours(12, 0, 0) // 12:00 PM
-  
-  const goldenHourEvening = new Date(today)
-  goldenHourEvening.setHours(17, 30, 0) // ~5:30 PM
-  
-  const sunset = new Date(today)
-  sunset.setHours(18, 15, 0) // ~6:15 PM
-  
-  const blueHour = new Date(today)
-  blueHour.setHours(19, 0, 0) // ~7:00 PM
-  
   const midnight = new Date(today)
   midnight.setHours(0, 0, 0)
   
   return [
-    { id: 'timepoint:sunrise', label: 'Sunrise', date: sunrise, emoji: '🌄' },
-    { id: 'timepoint:golden-hour-morning', label: 'Golden Hour (Morning)', date: goldenHourMorning, emoji: '✨' },
-    { id: 'timepoint:solar-noon', label: 'Solar Noon', date: solarNoon, emoji: '☀️' },
-    { id: 'timepoint:golden-hour-evening', label: 'Golden Hour (Evening)', date: goldenHourEvening, emoji: '✨' },
-    { id: 'timepoint:sunset', label: 'Sunset', date: sunset, emoji: '🌇' },
-    { id: 'timepoint:blue-hour', label: 'Blue Hour', date: blueHour, emoji: '🔵' },
-    { id: 'timepoint:midnight', label: 'Midnight', date: midnight, emoji: '🌙' },
+    { 
+      id: 'timepoint:astronomical-dawn', 
+      label: `Astronomical Dawn (${formatSolarTime(solar.astronomicalDawn)})`, 
+      date: solar.astronomicalDawn, 
+      emoji: '🌌' 
+    },
+    { 
+      id: 'timepoint:nautical-dawn', 
+      label: `Nautical Dawn (${formatSolarTime(solar.nauticalDawn)})`, 
+      date: solar.nauticalDawn, 
+      emoji: '🌊' 
+    },
+    { 
+      id: 'timepoint:civil-dawn', 
+      label: `Civil Dawn (${formatSolarTime(solar.civilDawn)})`, 
+      date: solar.civilDawn, 
+      emoji: '🌅' 
+    },
+    { 
+      id: 'timepoint:sunrise', 
+      label: `Sunrise (${formatSolarTime(solar.sunrise)})`, 
+      date: solar.sunrise, 
+      emoji: '🌄' 
+    },
+    { 
+      id: 'timepoint:golden-hour-morning', 
+      label: `Golden Hour End (${formatSolarTime(solar.goldenHourEnd)})`, 
+      date: solar.goldenHourEnd, 
+      emoji: '✨' 
+    },
+    { 
+      id: 'timepoint:solar-noon', 
+      label: `Local Solar Noon (${formatSolarTime(solar.solarNoon)})`, 
+      date: solar.solarNoon, 
+      emoji: '☀️' 
+    },
+    { 
+      id: 'timepoint:golden-hour-evening', 
+      label: `Golden Hour Start (${formatSolarTime(solar.goldenHourStart)})`, 
+      date: solar.goldenHourStart, 
+      emoji: '✨' 
+    },
+    { 
+      id: 'timepoint:sunset', 
+      label: `Sunset (${formatSolarTime(solar.sunset)})`, 
+      date: solar.sunset, 
+      emoji: '🌇' 
+    },
+    { 
+      id: 'timepoint:civil-dusk', 
+      label: `Civil Dusk (${formatSolarTime(solar.civilDusk)})`, 
+      date: solar.civilDusk, 
+      emoji: '🌆' 
+    },
+    { 
+      id: 'timepoint:nautical-dusk', 
+      label: `Nautical Dusk (${formatSolarTime(solar.nauticalDusk)})`, 
+      date: solar.nauticalDusk, 
+      emoji: '🌊' 
+    },
+    { 
+      id: 'timepoint:astronomical-dusk', 
+      label: `Astronomical Dusk (${formatSolarTime(solar.astronomicalDusk)})`, 
+      date: solar.astronomicalDusk, 
+      emoji: '🌌' 
+    },
+    { 
+      id: 'timepoint:midnight', 
+      label: 'Midnight', 
+      date: midnight, 
+      emoji: '🌙' 
+    },
   ]
 }
 
