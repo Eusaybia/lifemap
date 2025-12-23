@@ -83,15 +83,49 @@ const formatDateWithDay = (date: Date): string => {
 // TimePoint Suggestions
 // ============================================================================
 
+// Time of day periods - common, easy-to-understand time blocks
+const getTimeOfDayPoints = (): TimePoint[] => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  const dawn = new Date(today)
+  dawn.setHours(5, 30, 0) // ~5:30 AM
+  
+  const morning = new Date(today)
+  morning.setHours(8, 0, 0) // 8:00 AM
+  
+  const noon = new Date(today)
+  noon.setHours(12, 0, 0) // 12:00 PM
+  
+  const afternoon = new Date(today)
+  afternoon.setHours(14, 0, 0) // 2:00 PM
+  
+  const dusk = new Date(today)
+  dusk.setHours(18, 0, 0) // 6:00 PM
+  
+  const evening = new Date(today)
+  evening.setHours(19, 30, 0) // 7:30 PM
+  
+  const night = new Date(today)
+  night.setHours(21, 0, 0) // 9:00 PM
+  
+  return [
+    { id: 'timepoint:dawn', label: 'Dawn', date: dawn, emoji: '🌅' },
+    { id: 'timepoint:morning', label: 'Morning', date: morning, emoji: '🌤️' },
+    { id: 'timepoint:noon', label: 'Noon', date: noon, emoji: '☀️' },
+    { id: 'timepoint:afternoon', label: 'Afternoon', date: afternoon, emoji: '🌞' },
+    { id: 'timepoint:dusk', label: 'Dusk', date: dusk, emoji: '🌆' },
+    { id: 'timepoint:evening', label: 'Evening', date: evening, emoji: '🌇' },
+    { id: 'timepoint:night', label: 'Night', date: night, emoji: '🌙' },
+  ]
+}
+
 // Solar time helpers - approximate times (can be refined with location-based calculation)
 const getSolarTimePoints = (): TimePoint[] => {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   
   // Approximate times (these could be made location-aware in the future)
-  const dawn = new Date(today)
-  dawn.setHours(5, 30, 0) // ~5:30 AM
-  
   const sunrise = new Date(today)
   sunrise.setHours(6, 15, 0) // ~6:15 AM
   
@@ -107,9 +141,6 @@ const getSolarTimePoints = (): TimePoint[] => {
   const sunset = new Date(today)
   sunset.setHours(18, 15, 0) // ~6:15 PM
   
-  const dusk = new Date(today)
-  dusk.setHours(18, 45, 0) // ~6:45 PM
-  
   const blueHour = new Date(today)
   blueHour.setHours(19, 0, 0) // ~7:00 PM
   
@@ -117,13 +148,11 @@ const getSolarTimePoints = (): TimePoint[] => {
   midnight.setHours(0, 0, 0)
   
   return [
-    { id: 'timepoint:dawn', label: 'Dawn', date: dawn, emoji: '🌅' },
     { id: 'timepoint:sunrise', label: 'Sunrise', date: sunrise, emoji: '🌄' },
     { id: 'timepoint:golden-hour-morning', label: 'Golden Hour (Morning)', date: goldenHourMorning, emoji: '✨' },
     { id: 'timepoint:solar-noon', label: 'Solar Noon', date: solarNoon, emoji: '☀️' },
     { id: 'timepoint:golden-hour-evening', label: 'Golden Hour (Evening)', date: goldenHourEvening, emoji: '✨' },
     { id: 'timepoint:sunset', label: 'Sunset', date: sunset, emoji: '🌇' },
-    { id: 'timepoint:dusk', label: 'Dusk', date: dusk, emoji: '🌆' },
     { id: 'timepoint:blue-hour', label: 'Blue Hour', date: blueHour, emoji: '🔵' },
     { id: 'timepoint:midnight', label: 'Midnight', date: midnight, emoji: '🌙' },
   ]
@@ -145,7 +174,9 @@ const getTimePoints = (): TimePoint[] => {
       date: nextSeason.date,
       emoji: nextSeason.emoji,
     },
-    // Solar time points
+    // Time of day periods (Dawn, Morning, Noon, Afternoon, Dusk, Evening, Night)
+    ...getTimeOfDayPoints(),
+    // Solar time points (Sunrise, Sunset, Golden Hour, etc.)
     ...getSolarTimePoints(),
   ]
 }
@@ -426,8 +457,12 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
+const isTimeOfDayPoint = (tp: TimePoint): boolean => {
+  const timeOfDayIds = ['dawn', 'morning', 'noon', 'afternoon', 'dusk', 'evening', 'night']
+  return timeOfDayIds.some(id => tp.id === `timepoint:${id}`)
+}
 const isSolarTimePoint = (tp: TimePoint): boolean => {
-  const solarIds = ['dawn', 'sunrise', 'golden-hour', 'solar-noon', 'sunset', 'dusk', 'blue-hour', 'midnight']
+  const solarIds = ['sunrise', 'golden-hour', 'solar-noon', 'sunset', 'blue-hour', 'midnight']
   return solarIds.some(id => tp.id.includes(id))
 }
 const isTimeTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:time-')
@@ -439,6 +474,7 @@ const formatTime = (date: Date): string => {
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   return `${tp.emoji} ${formatDate(tp.date)}`
@@ -454,6 +490,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     let formattedDate: string
     if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
       formattedDate = timePoint.label
+    } else if (isTimeOfDayPoint(timePoint)) {
+      formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
     } else if (isSolarTimePoint(timePoint)) {
       formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
     } else if (isTimeTimePoint(timePoint)) {
@@ -505,6 +543,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
                 <span className="timepoint-date">1st {item.label}</span>
+              ) : isTimeOfDayPoint(item) ? (
+                <span className="timepoint-date">~{formatTime(item.date)} today</span>
               ) : isSolarTimePoint(item) ? (
                 <span className="timepoint-date">~{formatTime(item.date)} today</span>
               ) : isTimeTimePoint(item) ? (

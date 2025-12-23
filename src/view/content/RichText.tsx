@@ -62,7 +62,10 @@ import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExte
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
-import { DailyExtension } from '../structure/DailyExtension'
+import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
+import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
+import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
+import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -215,7 +218,16 @@ export const customExtensions: Extensions = [
   LifemapCardExtension,
   QuantaFlowExtension,
   HighlightImportantLinePlugin,
+  DailyYesterday,
+  DailyToday,
+  DailyTomorrow,
   DailyExtension,
+  DayHeaderTasks,
+  DayHeaderInsights,
+  DayHeaderObservations,
+  DayHeaderExtension,
+  TemporalSpaceExtension,
+  SlashMenuExtension,
   // EmptyNodeCleanupExtension,
 ]
 

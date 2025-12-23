@@ -7,8 +7,8 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Quanta } from "../../../src/core/Quanta";
 import { offWhite } from "../../../src/view/Theme";
-// MainEditor import removed - not used
-// DocumentFlowMenu hidden - import removed
+import { MainEditor } from "../../../src/view/content/RichText";
+import { DocumentFlowMenu } from "../../../src/view/structure/FlowMenu";
 import { useAudibleRenders } from "react-audible-debug";
 
 const Minimap = dynamic(() => import('../../../src/view/structure/Minimap').then(mod => mod.Minimap), {
@@ -19,40 +19,11 @@ export default function Page({ params }: { params: { slug: string } }) {
     const searchParams = useSearchParams();
     const isGraphMode = searchParams.get('mode') === 'graph';
     const padding = 20;
+    const editor = MainEditor("", true);
     const minimapWidth = 60; // Update to match new default minimap width
     const maxContentWidth = 1200; // Maximum width for optimal reading experience
 
     useAudibleRenders(false);
-
-    // Listen for postMessage from parent window (e.g., life-mapping-old page)
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'set-document-attribute') {
-                const { attribute, value } = event.data;
-                const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
-                
-                try {
-                    // Get current attributes from localStorage
-                    const storedAttrs = localStorage.getItem(LOCAL_STORAGE_KEY);
-                    const currentAttributes = storedAttrs ? JSON.parse(storedAttrs) : {};
-                    
-                    // Update with new attribute
-                    const updatedAttributes = { ...currentAttributes, [attribute]: value };
-                    
-                    // Save to localStorage
-                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedAttributes));
-                    
-                    // Dispatch custom event to notify components
-                    window.dispatchEvent(new CustomEvent('doc-attributes-updated', { detail: updatedAttributes }));
-                } catch (error) {
-                    console.error('Error handling document attribute message:', error);
-                }
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, []);
 
     // Scroll jiggle workaround for IntersectionObserver issues
     useEffect(() => {
@@ -88,7 +59,12 @@ export default function Page({ params }: { params: { slug: string } }) {
 
     const mainContent = (
         <>
-            {/* DocumentFlowMenu hidden */}
+            {/* Hide DocumentFlowMenu in graph mode - only show selection-based FlowMenu */}
+            {!isGraphMode && (
+                <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
+                    {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
+                </motion.div>
+            )}
             <motion.div style={{ padding: isGraphMode ? '10px 0px' : '0px 0px 40px 0px' }}>
                 <Quanta quantaId={params.slug} userId={'000000'} />
             </motion.div>
@@ -109,12 +85,6 @@ export default function Page({ params }: { params: { slug: string } }) {
                 width: '100%',
                 maxWidth: maxContentWidth,
                 position: 'relative',
-                backgroundColor: '#ffffff',
-                borderRadius: 2,
-                marginTop: 20,
-                marginBottom: 40,
-                padding: '20px 40px 40px 40px',
-                boxShadow: '-4px 6px 12px -2px rgba(0, 0, 0, 0.15), -8px 12px 24px -4px rgba(0, 0, 0, 0.12), -16px 24px 48px -6px rgba(0, 0, 0, 0.1)',
             }}>
                 {/* Hide Minimap in graph mode */}
                 {!isGraphMode && <Minimap mainContentNode={mainContent} />}
