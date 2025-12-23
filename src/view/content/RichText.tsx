@@ -46,6 +46,7 @@ import { TimePointMention, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
+import { HashtagMention, HashtagNode } from './HashtagMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -193,9 +194,12 @@ export const customExtensions: Extensions = [
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
   TimePointMention,
-  // Location mentions - triggered by # for location insertion (Sydney, Tokyo, etc.)
+  // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
   LocationMention,
+  // Hashtag mentions - triggered by # for tagging content
+  HashtagNode,
+  HashtagMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   PomodoroNode,
   DurationExtension,

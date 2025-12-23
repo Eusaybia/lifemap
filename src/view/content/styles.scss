@@ -190,11 +190,10 @@ input[type="checkbox"] {
   content: "";
   margin-top: 1px;
   display: inline-block;
-  width: 1em;
-  transform: scale(1.4);
-  height: 1em;
+  width: 1.2em;
+  height: 1.2em;
   border: 1.25px solid orange;
-  border-radius: 1px;
+  border-radius: 2px;
   box-sizing: border-box;
 }
 
@@ -202,15 +201,16 @@ input[type="checkbox"] {
 .ProseMirror input[type="checkbox"]:checked::before {
   content: "✔";
   color: green;
+  margin-top: 1px;
   display: inline-block;
-  width: 1em;
-  transform: scale(1.5);
-  height: 1em;
+  width: 1.2em;
+  height: 1.2em;
   border: 1.25px solid green;
-  border-radius: 1px;
+  border-radius: 2px;
   box-sizing: border-box;
-  line-height: 0.9;
-  /* Adjust this value to offset the tick vertically */
+  font-size: 0.85em;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .ProseMirror span {

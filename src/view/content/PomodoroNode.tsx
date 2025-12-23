@@ -6,65 +6,45 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 
 // ============================================================================
-// Audio utility functions
+// Audio utility functions - using actual MP3 files
 // ============================================================================
 
-const playStartTone = () => {
+const playStartSound = () => {
   if (typeof window === 'undefined') return
-  // Simple beep using Web Audio API
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
-    
-    oscillator.connect(gainNode)
-    gainNode.connect(audioContext.destination)
-    
-    oscillator.frequency.value = 880 // A5 note
-    oscillator.type = 'sine'
-    gainNode.gain.value = 0.3
-    
-    oscillator.start()
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
-    oscillator.stop(audioContext.currentTime + 0.2)
+    const audio = new Audio('/timer-start.mp3')
+    audio.volume = 0.5
+    audio.play().catch(err => {
+      console.log('Timer start sound failed:', err)
+    })
   } catch (err) {
     console.log('Audio play failed:', err)
   }
 }
 
-const playCompleteTone = () => {
+const playCompleteSound = () => {
   if (typeof window === 'undefined') return
-  // Double beep for completion
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    
-    // First beep
-    const osc1 = audioContext.createOscillator()
-    const gain1 = audioContext.createGain()
-    osc1.connect(gain1)
-    gain1.connect(audioContext.destination)
-    osc1.frequency.value = 880
-    osc1.type = 'sine'
-    gain1.gain.value = 0.3
-    osc1.start()
-    gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15)
-    osc1.stop(audioContext.currentTime + 0.15)
-    
-    // Second beep (higher)
-    setTimeout(() => {
-      const osc2 = audioContext.createOscillator()
-      const gain2 = audioContext.createGain()
-      osc2.connect(gain2)
-      gain2.connect(audioContext.destination)
-      osc2.frequency.value = 1100
-      osc2.type = 'sine'
-      gain2.gain.value = 0.3
-      osc2.start()
-      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
-      osc2.stop(audioContext.currentTime + 0.2)
-    }, 150)
+    const audio = new Audio('/timer-complete.mp3')
+    audio.volume = 0.5
+    audio.play().catch(err => {
+      console.log('Timer complete sound failed:', err)
+    })
   } catch (err) {
     console.log('Audio play failed:', err)
+  }
+}
+
+const playTickSound = () => {
+  if (typeof window === 'undefined') return
+  try {
+    const audio = new Audio('/tick.mp3')
+    audio.volume = 0.2
+    audio.play().catch(err => {
+      // Silently fail for tick sounds to avoid console spam
+    })
+  } catch (err) {
+    // Silently fail
   }
 }
 
@@ -114,7 +94,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
         
         if (now >= end && !hasPlayedCompleteTone.current) {
           hasPlayedCompleteTone.current = true
-          playCompleteTone()
+          playCompleteSound()
           // Change to completed state
           updateAttributes({
             status: 'completed',
@@ -127,7 +107,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   }, [status, startTime, duration, updateAttributes])
   
   const handlePlay = useCallback(() => {
-    playStartTone()
+    playStartSound()
     updateAttributes({
       status: 'active',
       startTime: new Date().toISOString(),
@@ -185,7 +165,9 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
           onClick={handlePlay}
           title="Start timer"
         >
-          ▶
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
         </button>
       </NodeViewWrapper>
     )
@@ -224,9 +206,11 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
         onClick={handlePause}
         title="Pause timer"
       >
-        ⏸
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        </svg>
       </button>
-      <span className="pomodoro-divider">||</span>
       <span className="pomodoro-time-icon">🕐</span>
       <span className="pomodoro-time-range">
         {formatTimeRange()} {isNow() && <span className="pomodoro-now">(Now)</span>}
