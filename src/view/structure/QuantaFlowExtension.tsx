@@ -31,6 +31,7 @@ import ReactFlow, {
   getBezierPath,
   NodeResizer,
   NodeResizeControl,
+  useStore,
 } from 'reactflow'
 import { motion } from 'framer-motion'
 import rough from 'roughjs'
@@ -226,8 +227,22 @@ interface QuantaNodeData {
   label: string
 }
 
+// Selector to get zoom level from React Flow store
+const zoomSelector = (state: any) => state.transform[2]
+
 const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: string; selected?: boolean }) => {
   const quantaId = data.quantaId || 'richtext-test'
+  
+  // Get current zoom level from React Flow store
+  const zoom = useStore(zoomSelector)
+  
+  // Calculate inverse scale to counteract zoom (makes text scale-invariant)
+  const inverseScale = 1 / zoom
+  
+  // Calculate scaled dimensions to maintain visual node size
+  // The node container scales up/down, but the content inside stays consistent
+  const scaledWidth = 100 * zoom // percentage
+  const scaledHeight = 100 * zoom // percentage
 
   return (
     <>
@@ -308,24 +323,35 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
       </motion.div>
 
 
-      {/* Iframe Container */}
+      {/* Iframe Container with scale-invariant content */}
       <div
         style={{
           flex: 1,
           overflow: 'hidden',
           background: '#fff',
+          position: 'relative',
         }}
       >
-        <iframe
-          src={`/q/${quantaId}?mode=graph`}
-          title={`Quanta: ${quantaId}`}
+        {/* Scale-invariant wrapper: scales content inversely to zoom */}
+        <div
           style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            display: 'block',
+            width: `${scaledWidth}%`,
+            height: `${scaledHeight}%`,
+            transform: `scale(${inverseScale})`,
+            transformOrigin: 'top left',
           }}
-        />
+        >
+          <iframe
+            src={`/q/${quantaId}?mode=graph`}
+            title={`Quanta: ${quantaId}`}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+            }}
+          />
+        </div>
       </div>
 
       {/* Bottom Handle - Source (sends connections) */}
@@ -347,8 +373,8 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
       
       {/* NodeResizeControl - positioned outside and after the main div so it's on top of iframe */}
       <NodeResizeControl
-        minWidth={300}
-        minHeight={200}
+        minWidth={180}
+        minHeight={100}
         style={{
           background: 'transparent',
           border: 'none',
@@ -425,7 +451,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
       return parsed.map((n: any) => ({
         ...n,
         dragHandle: '.custom-drag-handle',
-        style: n.style || { width: 1100, height: 700 }, // Default size for NodeResizer
+        style: n.style || { width: 280, height: 150 }, // Default size for NodeResizer
       }));
     } catch {
       return [];
@@ -469,6 +495,21 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
   // Debounce ref for saving
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounce ref for auto-fit
+  const autoFitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-fit helper with debounce
+  const scheduleAutoFit = useCallback(() => {
+    if (autoFitTimeoutRef.current) {
+      clearTimeout(autoFitTimeoutRef.current);
+    }
+    autoFitTimeoutRef.current = setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({ duration: 300, padding: 0.2 });
+      }
+    }, 350); // Slight delay after changes settle
+  }, [reactFlowInstance]);
 
   // Handle node changes (position, selection, etc.)
   const onNodesChange = useCallback(
@@ -484,10 +525,18 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
           saveNodes(updatedNodes);
         }, 300);
         
+        // Auto-fit after drag/resize ends (check for position or dimensions changes)
+        const hasDragOrResize = changes.some(
+          (c) => c.type === 'position' || c.type === 'dimensions'
+        );
+        if (hasDragOrResize) {
+          scheduleAutoFit();
+        }
+        
         return updatedNodes;
       });
     },
-    [saveNodes]
+    [saveNodes, scheduleAutoFit]
   );
 
   // Handle edge changes
@@ -508,10 +557,11 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
       setEdges((eds) => {
         const updatedEdges = addEdge({ ...params, type: 'handDrawn' }, eds);
         saveEdges(updatedEdges);
+        scheduleAutoFit();
         return updatedEdges;
       });
     },
-    [saveEdges]
+    [saveEdges, scheduleAutoFit]
   );
 
   // Add a new node programmatically
@@ -528,15 +578,17 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         },
         data: { quantaId, label: `Quanta: ${quantaId}` },
         dragHandle: '.custom-drag-handle',
-        style: { width: 1100, height: 700 }, // Initial size for NodeResizer
+        style: { width: 280, height: 150 }, // Initial size for NodeResizer
       };
       setNodes((nds) => {
         const updatedNodes = nds.concat(newNode);
         saveNodes(updatedNodes);
+        // Auto-fit after adding a new node
+        scheduleAutoFit();
         return updatedNodes;
       });
     },
-    [saveNodes]
+    [saveNodes, scheduleAutoFit]
   );
 
   // Zoom controls
@@ -555,6 +607,12 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   const fitView = useCallback(() => {
     if (reactFlowInstance) {
       reactFlowInstance.fitView({ duration: 200, padding: 0.2 });
+    }
+  }, [reactFlowInstance]);
+
+  const zoomTo100 = useCallback(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.zoomTo(1, { duration: 200 });
     }
   }, [reactFlowInstance]);
 
@@ -597,7 +655,20 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               Add Quanta
             </Button>
             {/* Zoom Controls */}
-            <ButtonGroup size="small" variant="outlined">
+            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root, & .MuiIconButton-root': { minWidth: 36, width: 36, height: 36 } }}>
+              <Button 
+                size="small" 
+                onClick={zoomTo100} 
+                title="Reset to 100%"
+                sx={{ 
+                  fontSize: '11px', 
+                  minWidth: '44px !important',
+                  width: '44px !important',
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+                }}
+              >
+                100%
+              </Button>
               <IconButton size="small" onClick={zoomOut} title="Zoom Out">
                 <ZoomOutIcon fontSize="small" />
               </IconButton>
