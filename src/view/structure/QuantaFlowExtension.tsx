@@ -12,6 +12,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import ReactFlow, {
   Controls,
   Background,
@@ -120,6 +122,10 @@ const HandDrawnEdge = memo(({
 }: EdgeProps) => {
   const svgRef = useRef<SVGGElement>(null)
   const pathRef = useRef<SVGPathElement>(null)
+  
+  // Get current zoom level for scale-invariant rendering
+  const zoom = useStore(zoomSelector)
+  const inverseScale = 1 / zoom
 
   // Get the bezier path for reference
   const [edgePath] = getBezierPath({
@@ -141,65 +147,64 @@ const HandDrawnEdge = memo(({
     // Create rough.js instance
     const rc = rough.svg(svgRef.current.ownerSVGElement!)
 
-    // Offset the start point to stop before the source node (so arrowhead is visible at top node)
-    const arrowOffset = 30 // Stop 30px from the source (which connects to top node)
-    const dx = targetX - sourceX
-    const dy = targetY - sourceY
-    const length = Math.sqrt(dx * dx + dy * dy)
-    const adjustedSourceX = length > arrowOffset ? sourceX + (dx / length) * arrowOffset : sourceX
-    const adjustedSourceY = length > arrowOffset ? sourceY + (dy / length) * arrowOffset : sourceY
+    // Scale-invariant sizes (appear same regardless of zoom)
+    const baseStrokeWidth = 2
+    const baseArrowSize = 12
+    const scaledStrokeWidth = baseStrokeWidth * inverseScale
+    const scaledArrowSize = baseArrowSize * inverseScale
 
     // Calculate control point for a natural curve
-    const midX = (adjustedSourceX + targetX) / 2
-    const midY = (adjustedSourceY + targetY) / 2
+    const midX = (sourceX + targetX) / 2
+    const midY = (sourceY + targetY) / 2
     
     // Add slight offset for curve
-    const offsetX = (targetY - adjustedSourceY) * 0.2
-    const offsetY = (adjustedSourceX - targetX) * 0.2
+    const offsetX = (targetY - sourceY) * 0.15
+    const offsetY = (sourceX - targetX) * 0.15
 
     const curvePoints: [number, number][] = [
-      [adjustedSourceX, adjustedSourceY],
+      [sourceX, sourceY],
       [midX + offsetX, midY + offsetY],
       [targetX, targetY],
     ]
 
-    // Draw the hand-drawn curve
+    // Draw the hand-drawn curve with scale-invariant stroke
     const curve = rc.curve(curvePoints, {
       stroke: '#262626',
-      strokeWidth: 2.5,
-      roughness: 1.0,
-      bowing: 0.3,
+      strokeWidth: scaledStrokeWidth,
+      roughness: 0.8,
+      bowing: 0.2,
     })
     curve.classList.add('rough-path')
     svgRef.current.appendChild(curve)
 
-    // Draw arrowhead at the START of the curve, perpendicular to the curve direction
-    const arrowSize = 14
-    // Calculate angle along the curve at the start point (from adjustedSource toward mid-control-point)
-    const curveAngle = Math.atan2((midY + offsetY) - adjustedSourceY, (midX + offsetX) - adjustedSourceX)
-    // Flip 180 degrees so arrow points in the opposite direction (toward source/top node)
+    // Draw arrowhead at the SOURCE end (pointing back toward the source node)
+    // Calculate angle from source toward the control point
+    const curveAngle = Math.atan2((midY + offsetY) - sourceY, (midX + offsetX) - sourceX)
+    // Flip 180 degrees so arrow points back toward source
     const flippedAngle = curveAngle + Math.PI
-    // Arrowhead: tip points opposite to curve direction, base is perpendicular
-    const tipX = adjustedSourceX + arrowSize * Math.cos(flippedAngle)
-    const tipY = adjustedSourceY + arrowSize * Math.sin(flippedAngle)
-    // Base corners are perpendicular to the flipped direction at adjustedSource
+    
+    // Arrow tip points back toward source, base is at the source point
+    const tipX = sourceX + scaledArrowSize * Math.cos(flippedAngle)
+    const tipY = sourceY + scaledArrowSize * Math.sin(flippedAngle)
+    
+    // Base corners are perpendicular to the flipped direction at source
     const arrowPoints: [number, number][] = [
-      [tipX, tipY], // Tip of arrow
-      [adjustedSourceX + arrowSize * 0.5 * Math.cos(flippedAngle + Math.PI / 2), adjustedSourceY + arrowSize * 0.5 * Math.sin(flippedAngle + Math.PI / 2)], // Base corner 1
-      [adjustedSourceX + arrowSize * 0.5 * Math.cos(flippedAngle - Math.PI / 2), adjustedSourceY + arrowSize * 0.5 * Math.sin(flippedAngle - Math.PI / 2)], // Base corner 2
+      [tipX, tipY], // Tip of arrow pointing toward source
+      [sourceX + scaledArrowSize * 0.4 * Math.cos(flippedAngle + Math.PI / 2), sourceY + scaledArrowSize * 0.4 * Math.sin(flippedAngle + Math.PI / 2)], // Base corner 1
+      [sourceX + scaledArrowSize * 0.4 * Math.cos(flippedAngle - Math.PI / 2), sourceY + scaledArrowSize * 0.4 * Math.sin(flippedAngle - Math.PI / 2)], // Base corner 2
     ]
 
     const arrowHead = rc.polygon(arrowPoints, {
       stroke: '#262626',
-      strokeWidth: 1.5,
+      strokeWidth: scaledStrokeWidth * 0.75,
       fill: '#262626',
       fillStyle: 'solid',
-      roughness: 1.2,
+      roughness: 0.8,
     })
     arrowHead.classList.add('rough-path')
     svgRef.current.appendChild(arrowHead)
 
-  }, [sourceX, sourceY, targetX, targetY])
+  }, [sourceX, sourceY, targetX, targetY, inverseScale])
 
   return (
     <g ref={svgRef}>
@@ -244,8 +249,55 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
   const scaledWidth = 100 * zoom // percentage
   const scaledHeight = 100 * zoom // percentage
 
+  // Fixed handle style (scales with zoom like normal elements)
+  const baseHandleStyle: React.CSSProperties = {
+    background: '#6366f1',
+    width: 16,
+    height: 16,
+    border: '2px solid white',
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+    borderRadius: '50%',
+  }
+
   return (
     <>
+      {/* Handles positioned ABOVE/OUTSIDE the node */}
+      {/* Top Handle - offset upward */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        isConnectable={true}
+        style={{ ...baseHandleStyle, top: -12 }}
+      />
+      
+      {/* Bottom Handle - offset downward */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        isConnectable={true}
+        style={{ ...baseHandleStyle, bottom: -12 }}
+      />
+      
+      {/* Left Handle - offset leftward */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        isConnectable={true}
+        style={{ ...baseHandleStyle, left: -12 }}
+      />
+      
+      {/* Right Handle - offset rightward */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        isConnectable={true}
+        style={{ ...baseHandleStyle, right: -12 }}
+      />
+
       <div
         style={{
           width: '100%',
@@ -261,19 +313,6 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Top Handle - Target (receives connections) */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          style={{
-            background: '#6366f1',
-            width: 16,
-            height: 16,
-            border: '3px solid white',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-            top: 8,
-          }}
-        />
 
       {/* Drag Handle - Grip icon in top right */}
       <motion.div
@@ -299,7 +338,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
           borderRadius: '6px',
           background: '#f9fafb',
           border: '1px solid #e5e7eb',
-          zIndex: 10,
+          zIndex: 1,
         }}
         whileHover={{ 
           background: '#f3f4f6',
@@ -353,22 +392,6 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
           />
         </div>
       </div>
-
-      {/* Bottom Handle - Source (sends connections) */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="a"
-        style={{
-          background: '#6366f1',
-          width: 16,
-          height: 16,
-          border: '3px solid white',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-          bottom: -8,
-        }}
-      />
-      
       </div>
       
       {/* NodeResizeControl - positioned outside and after the main div so it's on top of iframe */}
@@ -424,8 +447,8 @@ QuantaNode.displayName = 'QuantaNode'
 
 const generateGraphId = () => `graph-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-let nodeIdCounter = 0
-const generateNodeId = () => `quanta-node-${nodeIdCounter++}`
+// Generate unique node ID using timestamp + random string to avoid collisions
+const generateNodeId = () => `quanta-node-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
 
 // ============================================================================
 // QuantaFlowNodeView - TipTap NodeView wrapper
@@ -474,6 +497,60 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   const [nodes, setNodes] = useState<Node<QuantaNodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
+  // Undo/Redo history
+  type HistoryState = { nodes: Node<QuantaNodeData>[]; edges: Edge[] };
+  const historyRef = useRef<HistoryState[]>([{ nodes: initialNodes, edges: initialEdges }]);
+  const historyIndexRef = useRef(0);
+  const isUndoRedoRef = useRef(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Save current state to history
+  const saveToHistory = useCallback((newNodes: Node<QuantaNodeData>[], newEdges: Edge[]) => {
+    if (isUndoRedoRef.current) {
+      isUndoRedoRef.current = false;
+      return;
+    }
+    // Truncate any redo states
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+    // Add new state
+    historyRef.current.push({ nodes: newNodes, edges: newEdges });
+    // Limit history size to 50
+    if (historyRef.current.length > 50) {
+      historyRef.current.shift();
+    } else {
+      historyIndexRef.current++;
+    }
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(false);
+  }, []);
+
+  // Undo function
+  const undo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      isUndoRedoRef.current = true;
+      historyIndexRef.current--;
+      const prevState = historyRef.current[historyIndexRef.current];
+      setNodes(prevState.nodes);
+      setEdges(prevState.edges);
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(true);
+    }
+  }, []);
+
+  // Redo function
+  const redo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      isUndoRedoRef.current = true;
+      historyIndexRef.current++;
+      const nextState = historyRef.current[historyIndexRef.current];
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+      setCanUndo(true);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    }
+  }, []);
+
   // Save nodes to attributes when they change
   const saveNodes = useCallback((newNodes: Node<QuantaNodeData>[]) => {
     // Only save serializable node data (exclude functions, etc.)
@@ -495,6 +572,19 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
   // Debounce ref for saving
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Debounce ref for history
+  const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Save to history with debounce (to avoid saving every micro-change)
+  const scheduleSaveToHistory = useCallback((newNodes: Node<QuantaNodeData>[], newEdges: Edge[]) => {
+    if (historyTimeoutRef.current) {
+      clearTimeout(historyTimeoutRef.current);
+    }
+    historyTimeoutRef.current = setTimeout(() => {
+      saveToHistory(newNodes, newEdges);
+    }, 500);
+  }, [saveToHistory]);
   
   // Debounce ref for auto-fit
   const autoFitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -525,18 +615,27 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
           saveNodes(updatedNodes);
         }, 300);
         
-        // Auto-fit after drag/resize ends (check for position or dimensions changes)
-        const hasDragOrResize = changes.some(
-          (c) => c.type === 'position' || c.type === 'dimensions'
+        // Check if drag has ENDED (not during dragging)
+        // Position changes have a 'dragging' property - only auto-fit when dragging is false
+        const dragEnded = changes.some(
+          (c) => c.type === 'position' && 'dragging' in c && c.dragging === false
         );
-        if (hasDragOrResize) {
+        const hasResize = changes.some((c) => c.type === 'dimensions');
+        
+        // Only auto-fit and save to history when drag ends or resize happens
+        if (dragEnded || hasResize) {
           scheduleAutoFit();
+          // Save to history after drag/resize ends
+          setEdges((currentEdges) => {
+            scheduleSaveToHistory(updatedNodes, currentEdges);
+            return currentEdges;
+          });
         }
         
         return updatedNodes;
       });
     },
-    [saveNodes, scheduleAutoFit]
+    [saveNodes, scheduleAutoFit, scheduleSaveToHistory]
   );
 
   // Handle edge changes
@@ -545,10 +644,18 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
       setEdges((eds) => {
         const updatedEdges = applyEdgeChanges(changes, eds);
         setTimeout(() => saveEdges(updatedEdges), 100);
+        // Save to history on edge deletion
+        const hasRemove = changes.some((c) => c.type === 'remove');
+        if (hasRemove) {
+          setNodes((currentNodes) => {
+            scheduleSaveToHistory(currentNodes, updatedEdges);
+            return currentNodes;
+          });
+        }
         return updatedEdges;
       });
     },
-    [saveEdges]
+    [saveEdges, scheduleSaveToHistory]
   );
 
   // Handle new connections
@@ -558,10 +665,15 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         const updatedEdges = addEdge({ ...params, type: 'handDrawn' }, eds);
         saveEdges(updatedEdges);
         scheduleAutoFit();
+        // Save to history when connection is made
+        setNodes((currentNodes) => {
+          scheduleSaveToHistory(currentNodes, updatedEdges);
+          return currentNodes;
+        });
         return updatedEdges;
       });
     },
-    [saveEdges, scheduleAutoFit]
+    [saveEdges, scheduleAutoFit, scheduleSaveToHistory]
   );
 
   // Add a new node programmatically
@@ -585,10 +697,15 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         saveNodes(updatedNodes);
         // Auto-fit after adding a new node
         scheduleAutoFit();
+        // Save to history when node is added
+        setEdges((currentEdges) => {
+          scheduleSaveToHistory(updatedNodes, currentEdges);
+          return currentEdges;
+        });
         return updatedNodes;
       });
     },
-    [saveNodes, scheduleAutoFit]
+    [saveNodes, scheduleAutoFit, scheduleSaveToHistory]
   );
 
   // Zoom controls
@@ -654,6 +771,25 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
             >
               Add Quanta
             </Button>
+            {/* Undo/Redo Controls */}
+            <ButtonGroup size="small" variant="outlined">
+              <IconButton 
+                size="small" 
+                onClick={undo} 
+                disabled={!canUndo}
+                title="Undo (Ctrl+Z)"
+              >
+                <UndoIcon fontSize="small" />
+              </IconButton>
+              <IconButton 
+                size="small" 
+                onClick={redo} 
+                disabled={!canRedo}
+                title="Redo (Ctrl+Shift+Z)"
+              >
+                <RedoIcon fontSize="small" />
+              </IconButton>
+            </ButtonGroup>
             {/* Zoom Controls */}
             <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root, & .MuiIconButton-root': { minWidth: 36, width: 36, height: 36 } }}>
               <Button 
@@ -700,6 +836,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               maxZoom={4}
               defaultEdgeOptions={{
                 type: 'handDrawn',
+                zIndex: 1000,
               }}
               style={{ background: '#f8fafc' }}
             >
