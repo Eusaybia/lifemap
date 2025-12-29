@@ -34,6 +34,7 @@ import ReactFlow, {
   NodeResizer,
   NodeResizeControl,
   useStore,
+  useViewport,
 } from 'reactflow'
 import { motion } from 'framer-motion'
 import rough from 'roughjs'
@@ -109,6 +110,11 @@ class ReactFlowErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundary
 // HandDrawnEdge Component - Custom edge using rough.js
 // ============================================================================
 
+interface HandDrawnEdgeData {
+  onInsertNode?: (edgeId: string, midX: number, midY: number) => void
+  onDeleteEdge?: (edgeId: string) => void
+}
+
 const HandDrawnEdge = memo(({
   id,
   sourceX,
@@ -119,13 +125,24 @@ const HandDrawnEdge = memo(({
   targetPosition,
   style = {},
   markerEnd,
-}: EdgeProps) => {
+  data,
+}: EdgeProps<HandDrawnEdgeData>) => {
   const svgRef = useRef<SVGGElement>(null)
   const pathRef = useRef<SVGPathElement>(null)
+  const [isHovered, setIsHovered] = useState(false)
   
   // Get current zoom level for scale-invariant rendering
   const zoom = useStore(zoomSelector)
   const inverseScale = 1 / zoom
+
+  // Calculate midpoint for the "+" button
+  const midX = (sourceX + targetX) / 2
+  const midY = (sourceY + targetY) / 2
+  // Add slight offset for curve (same as used for the curve itself)
+  const offsetX = (targetY - sourceY) * 0.15
+  const offsetY = (sourceX - targetX) * 0.15
+  const buttonX = midX + offsetX
+  const buttonY = midY + offsetY
 
   // Get the bezier path for reference
   const [edgePath] = getBezierPath({
@@ -148,18 +165,10 @@ const HandDrawnEdge = memo(({
     const rc = rough.svg(svgRef.current.ownerSVGElement!)
 
     // Scale-invariant sizes (appear same regardless of zoom)
-    const baseStrokeWidth = 2
-    const baseArrowSize = 12
+    const baseStrokeWidth = 4
+    const baseArrowSize = 16
     const scaledStrokeWidth = baseStrokeWidth * inverseScale
     const scaledArrowSize = baseArrowSize * inverseScale
-
-    // Calculate control point for a natural curve
-    const midX = (sourceX + targetX) / 2
-    const midY = (sourceY + targetY) / 2
-    
-    // Add slight offset for curve
-    const offsetX = (targetY - sourceY) * 0.15
-    const offsetY = (sourceX - targetX) * 0.15
 
     const curvePoints: [number, number][] = [
       [sourceX, sourceY],
@@ -204,10 +213,47 @@ const HandDrawnEdge = memo(({
     arrowHead.classList.add('rough-path')
     svgRef.current.appendChild(arrowHead)
 
-  }, [sourceX, sourceY, targetX, targetY, inverseScale])
+  }, [sourceX, sourceY, targetX, targetY, midX, midY, offsetX, offsetY, inverseScale])
+
+  // Handle click on the "+" button
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (data?.onInsertNode) {
+      data.onInsertNode(id, buttonX, buttonY)
+    }
+  }, [data, id, buttonX, buttonY])
+
+  // Handle click on the delete button
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (data?.onDeleteEdge) {
+      data.onDeleteEdge(id)
+    }
+  }, [data, id])
+
+  // Scale-invariant button size
+  const baseButtonSize = 24
+  const scaledButtonSize = baseButtonSize * inverseScale
+  
+  // Calculate direction along the curve (from midpoint toward target)
+  // This keeps the delete button on the line so hover doesn't get lost
+  const dirX = targetX - buttonX
+  const dirY = targetY - buttonY
+  const dirLength = Math.sqrt(dirX * dirX + dirY * dirY)
+  const normalizedDirX = dirLength > 0 ? dirX / dirLength : 0
+  const normalizedDirY = dirLength > 0 ? dirY / dirLength : 1
+  
+  // Delete button position (along the curve, toward target)
+  const buttonOffset = scaledButtonSize * 1.4
+  const deleteButtonX = buttonX + normalizedDirX * buttonOffset
+  const deleteButtonY = buttonY + normalizedDirY * buttonOffset
 
   return (
-    <g ref={svgRef}>
+    <g 
+      ref={svgRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Invisible path for interactions (hover, click) */}
       <path
         ref={pathRef}
@@ -217,11 +263,137 @@ const HandDrawnEdge = memo(({
         strokeWidth={20}
         className="react-flow__edge-interaction"
       />
+      {/* "+" button at midpoint - only visible on hover */}
+      {isHovered && (
+        <>
+          <g
+            style={{ cursor: 'pointer' }}
+            onClick={handleClick}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <circle
+              cx={buttonX}
+              cy={buttonY}
+              r={scaledButtonSize / 2}
+              fill="white"
+              stroke="#6366f1"
+              strokeWidth={2 * inverseScale}
+            />
+            <line
+              x1={buttonX - scaledButtonSize * 0.25}
+              y1={buttonY}
+              x2={buttonX + scaledButtonSize * 0.25}
+              y2={buttonY}
+              stroke="#6366f1"
+              strokeWidth={2 * inverseScale}
+              strokeLinecap="round"
+            />
+            <line
+              x1={buttonX}
+              y1={buttonY - scaledButtonSize * 0.25}
+              x2={buttonX}
+              y2={buttonY + scaledButtonSize * 0.25}
+              stroke="#6366f1"
+              strokeWidth={2 * inverseScale}
+              strokeLinecap="round"
+            />
+          </g>
+          {/* Delete button along the curve toward target - red with X */}
+          <g
+            style={{ cursor: 'pointer' }}
+            onClick={handleDelete}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <circle
+              cx={deleteButtonX}
+              cy={deleteButtonY}
+              r={scaledButtonSize / 2}
+              fill="white"
+              stroke="#ef4444"
+              strokeWidth={2 * inverseScale}
+            />
+            <line
+              x1={deleteButtonX - scaledButtonSize * 0.25}
+              y1={deleteButtonY - scaledButtonSize * 0.25}
+              x2={deleteButtonX + scaledButtonSize * 0.25}
+              y2={deleteButtonY + scaledButtonSize * 0.25}
+              stroke="#ef4444"
+              strokeWidth={2 * inverseScale}
+              strokeLinecap="round"
+            />
+            <line
+              x1={deleteButtonX + scaledButtonSize * 0.25}
+              y1={deleteButtonY - scaledButtonSize * 0.25}
+              x2={deleteButtonX - scaledButtonSize * 0.25}
+              y2={deleteButtonY + scaledButtonSize * 0.25}
+              stroke="#ef4444"
+              strokeWidth={2 * inverseScale}
+              strokeLinecap="round"
+            />
+          </g>
+        </>
+      )}
     </g>
   )
 })
 
 HandDrawnEdge.displayName = 'HandDrawnEdge'
+
+// ============================================================================
+// GhostNodePreview Component - Shows preview when dragging from handles
+// ============================================================================
+
+const GhostNodePreview = memo(({ position }: { position: { x: number; y: number } }) => {
+  const { x: viewX, y: viewY, zoom } = useViewport();
+  
+  // Convert flow position to screen position
+  const screenX = position.x * zoom + viewX;
+  const screenY = position.y * zoom + viewY;
+  
+  // Node dimensions (scaled with zoom)
+  const width = 280 * zoom;
+  const height = 150 * zoom;
+  
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: screenX - width / 2,
+        top: screenY - height / 2,
+        width,
+        height,
+        background: 'rgba(99, 102, 241, 0.06)',
+        border: '2px dashed rgba(99, 102, 241, 0.3)',
+        borderRadius: 12 * zoom,
+        pointerEvents: 'none',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 28 * zoom,
+          height: 28 * zoom,
+          borderRadius: '50%',
+          background: 'rgba(99, 102, 241, 0.1)',
+          border: `2px solid rgba(99, 102, 241, 0.3)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(99, 102, 241, 0.5)',
+          fontSize: 18 * zoom,
+          fontWeight: 300,
+        }}
+      >
+        +
+      </div>
+    </div>
+  );
+});
+
+GhostNodePreview.displayName = 'GhostNodePreview';
 
 // ============================================================================
 // QuantaNode Component - Embeds quanta content via iframe
@@ -262,7 +434,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
   return (
     <>
       {/* Handles positioned ABOVE/OUTSIDE the node */}
-      {/* Top Handle - offset upward */}
+      {/* Top Handle - target (receives connections) */}
       <Handle
         type="target"
         position={Position.Top}
@@ -271,7 +443,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
         style={{ ...baseHandleStyle, top: -12 }}
       />
       
-      {/* Bottom Handle - offset downward */}
+      {/* Bottom Handle - source (starts connections) */}
       <Handle
         type="source"
         position={Position.Bottom}
@@ -280,7 +452,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
         style={{ ...baseHandleStyle, bottom: -12 }}
       />
       
-      {/* Left Handle - offset leftward */}
+      {/* Left Handle - target (receives connections) */}
       <Handle
         type="target"
         position={Position.Left}
@@ -289,7 +461,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
         style={{ ...baseHandleStyle, left: -12 }}
       />
       
-      {/* Right Handle - offset rightward */}
+      {/* Right Handle - source (starts connections) */}
       <Handle
         type="source"
         position={Position.Right}
@@ -304,7 +476,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          overflow: 'visible',
           background: '#fff',
           border: '1px solid #e5e7eb',
           borderRadius: '12px',
@@ -366,7 +538,7 @@ const QuantaNode = memo(({ data, id, selected }: { data: QuantaNodeData; id: str
       <div
         style={{
           flex: 1,
-          overflow: 'hidden',
+          overflow: 'visible',
           background: '#fff',
           position: 'relative',
         }}
@@ -661,6 +833,9 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   // Handle new connections
   const onConnect = useCallback(
     (params: Connection) => {
+      // Mark that a successful connection was made (prevents onConnectEnd from creating a new node)
+      connectionMadeRef.current = true;
+      
       setEdges((eds) => {
         const updatedEdges = addEdge({ ...params, type: 'handDrawn' }, eds);
         saveEdges(updatedEdges);
@@ -674,6 +849,146 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
       });
     },
     [saveEdges, scheduleAutoFit, scheduleSaveToHistory]
+  );
+
+  // Track connection start info for creating nodes on drop in empty space
+  const connectStartRef = useRef<{ nodeId: string; handleId: string | null; handleType: 'source' | 'target' | null } | null>(null);
+  
+  // Track whether a successful connection was made (to prevent creating node when connecting to another handle)
+  const connectionMadeRef = useRef(false);
+
+  // Track connection drag position for ghost node preview
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectDragPos, setConnectDragPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Handle connection start - store the starting node/handle info
+  const onConnectStart = useCallback(
+    (_: React.MouseEvent | React.TouchEvent, { nodeId, handleId, handleType }: { nodeId: string | null; handleId: string | null; handleType: 'source' | 'target' | null }) => {
+      if (nodeId) {
+        connectStartRef.current = { nodeId, handleId, handleType };
+        connectionMadeRef.current = false; // Reset - no connection made yet
+        setIsConnecting(true);
+      }
+    },
+    []
+  );
+
+  // Track mouse position during connection drag
+  useEffect(() => {
+    if (!isConnecting || !reactFlowInstance) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Check if hovering over a handle - if so, hide the ghost preview
+      const targetElement = e.target as Element;
+      const isOverHandle = targetElement?.classList?.contains('react-flow__handle') ||
+        targetElement?.closest?.('.react-flow__handle') !== null;
+      
+      if (isOverHandle) {
+        // Hide ghost when over a valid connection target
+        setConnectDragPos(null);
+      } else {
+        const flowPosition = reactFlowInstance.screenToFlowPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+        setConnectDragPos(flowPosition);
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isConnecting, reactFlowInstance]);
+
+  // Handle connection end - create new node if dropped in empty space
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      const startInfo = connectStartRef.current;
+      const wasConnectionMade = connectionMadeRef.current;
+      
+      // Reset refs and state
+      connectStartRef.current = null;
+      connectionMadeRef.current = false;
+      setIsConnecting(false);
+      setConnectDragPos(null);
+
+      // If a successful connection was made to another handle, don't create a new node
+      if (wasConnectionMade) {
+        return;
+      }
+
+      if (!startInfo || !reactFlowInstance) return;
+
+      // Also check if the connection ended on a valid target handle (fallback check)
+      const targetElement = event.target as Element;
+      const isTargetHandle = targetElement?.classList?.contains('react-flow__handle') ||
+        targetElement?.closest?.('.react-flow__handle') !== null;
+      
+      if (isTargetHandle) {
+        // Connection was made to another handle, onConnect handles this
+        return;
+      }
+
+      // Get the position where the drag ended
+      const { clientX, clientY } = 'changedTouches' in event ? event.changedTouches[0] : event;
+      
+      // Convert screen coordinates to flow coordinates
+      const flowPosition = reactFlowInstance.screenToFlowPosition({
+        x: clientX,
+        y: clientY,
+      });
+
+      // Generate unique IDs
+      const quantaId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      const newNodeId = generateNodeId();
+
+      // Create the new node at the drop position (centered)
+      const newNode: Node<QuantaNodeData> = {
+        id: newNodeId,
+        type: 'quantaNode',
+        position: {
+          x: flowPosition.x - 140, // Center the node (half of default width 280)
+          y: flowPosition.y - 75,  // Center the node (half of default height 150)
+        },
+        data: { quantaId, label: `Quanta: ${quantaId}` },
+        dragHandle: '.custom-drag-handle',
+        style: { width: 280, height: 150 },
+      };
+
+      // Create edge connecting the source to the new node
+      const newEdge: Edge = {
+        id: `edge-${Date.now()}`,
+        source: startInfo.handleType === 'source' ? startInfo.nodeId : newNodeId,
+        sourceHandle: startInfo.handleType === 'source' ? startInfo.handleId : 'bottom',
+        target: startInfo.handleType === 'source' ? newNodeId : startInfo.nodeId,
+        targetHandle: startInfo.handleType === 'source' ? 'top' : startInfo.handleId,
+        type: 'handDrawn',
+      };
+
+      // Update nodes
+      setNodes((nds) => {
+        const updatedNodes = [...nds, newNode];
+        saveNodes(updatedNodes);
+        return updatedNodes;
+      });
+
+      // Update edges
+      setEdges((eds) => {
+        const updatedEdges = [...eds, newEdge];
+        saveEdges(updatedEdges);
+        // Save to history
+        setNodes((currentNodes) => {
+          scheduleSaveToHistory(currentNodes, updatedEdges);
+          return currentNodes;
+        });
+        return updatedEdges;
+      });
+
+      // Auto-fit after creating
+      scheduleAutoFit();
+    },
+    [reactFlowInstance, saveNodes, saveEdges, scheduleAutoFit, scheduleSaveToHistory]
   );
 
   // Add a new node programmatically
@@ -707,6 +1022,104 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
     },
     [saveNodes, scheduleAutoFit, scheduleSaveToHistory]
   );
+
+  // Insert a new node in the middle of an edge
+  const insertNodeOnEdge = useCallback(
+    (edgeId: string, midX: number, midY: number) => {
+      // Find the edge being split
+      const edgeToSplit = edges.find((e) => e.id === edgeId);
+      if (!edgeToSplit) return;
+
+      // Generate unique IDs
+      const quantaId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      const newNodeId = generateNodeId();
+
+      // Create the new node at the midpoint (offset position to center the node)
+      const newNode: Node<QuantaNodeData> = {
+        id: newNodeId,
+        type: 'quantaNode',
+        position: {
+          x: midX - 140, // Center the node (half of default width 280)
+          y: midY - 75,  // Center the node (half of default height 150)
+        },
+        data: { quantaId, label: `Quanta: ${quantaId}` },
+        dragHandle: '.custom-drag-handle',
+        style: { width: 280, height: 150 },
+      };
+
+      // Create two new edges: source -> newNode and newNode -> target
+      const newEdge1: Edge = {
+        id: `edge-${Date.now()}-1`,
+        source: edgeToSplit.source,
+        sourceHandle: edgeToSplit.sourceHandle,
+        target: newNodeId,
+        targetHandle: 'top', // Connect to top of new node
+        type: 'handDrawn',
+      };
+
+      const newEdge2: Edge = {
+        id: `edge-${Date.now()}-2`,
+        source: newNodeId,
+        sourceHandle: 'bottom', // Connect from bottom of new node
+        target: edgeToSplit.target,
+        targetHandle: edgeToSplit.targetHandle,
+        type: 'handDrawn',
+      };
+
+      // Update nodes
+      setNodes((nds) => {
+        const updatedNodes = [...nds, newNode];
+        saveNodes(updatedNodes);
+        return updatedNodes;
+      });
+
+      // Update edges: remove old edge, add two new ones
+      setEdges((eds) => {
+        const updatedEdges = eds.filter((e) => e.id !== edgeId).concat([newEdge1, newEdge2]);
+        saveEdges(updatedEdges);
+        // Save to history
+        setNodes((currentNodes) => {
+          const nodesWithNew = [...currentNodes];
+          scheduleSaveToHistory(nodesWithNew, updatedEdges);
+          return currentNodes;
+        });
+        return updatedEdges;
+      });
+
+      // Auto-fit after inserting
+      scheduleAutoFit();
+    },
+    [edges, saveNodes, saveEdges, scheduleAutoFit, scheduleSaveToHistory]
+  );
+
+  // Delete an edge
+  const deleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) => {
+        const updatedEdges = eds.filter((e) => e.id !== edgeId);
+        saveEdges(updatedEdges);
+        // Save to history
+        setNodes((currentNodes) => {
+          scheduleSaveToHistory(currentNodes, updatedEdges);
+          return currentNodes;
+        });
+        return updatedEdges;
+      });
+    },
+    [saveEdges, scheduleSaveToHistory]
+  );
+
+  // Prepare edges with the insert and delete callbacks
+  const edgesWithCallbacks = useMemo(() => {
+    return edges.map((edge) => ({
+      ...edge,
+      data: {
+        ...edge.data,
+        onInsertNode: insertNodeOnEdge,
+        onDeleteEdge: deleteEdge,
+      },
+    }));
+  }, [edges, insertNodeOnEdge, deleteEdge]);
 
   // Zoom controls
   const zoomIn = useCallback(() => {
@@ -764,20 +1177,37 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               onClick={() => addNode()}
               sx={{ 
                 textTransform: 'none',
-                fontSize: '12px',
-                py: 0.5,
+                fontSize: '13px',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                height: 32,
+                px: 1.5,
+                borderColor: '#d1d5db',
+                color: '#374151',
                 fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+                '&:hover': {
+                  backgroundColor: '#f3f4f6',
+                  borderColor: '#9ca3af',
+                },
               }}
             >
               Add Quanta
             </Button>
+            
             {/* Undo/Redo Controls */}
-            <ButtonGroup size="small" variant="outlined">
+            <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
               <IconButton 
                 size="small" 
                 onClick={undo} 
                 disabled={!canUndo}
-                title="Undo (Ctrl+Z)"
+                title="Undo"
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  borderRadius: '4px 0 0 4px',
+                  border: '1px solid #d1d5db',
+                  '&:hover': { backgroundColor: '#f3f4f6' },
+                }}
               >
                 <UndoIcon fontSize="small" />
               </IconButton>
@@ -785,36 +1215,88 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
                 size="small" 
                 onClick={redo} 
                 disabled={!canRedo}
-                title="Redo (Ctrl+Shift+Z)"
+                title="Redo"
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  borderRadius: '0 4px 4px 0',
+                  border: '1px solid #d1d5db',
+                  borderLeft: 'none',
+                  '&:hover': { backgroundColor: '#f3f4f6' },
+                }}
               >
                 <RedoIcon fontSize="small" />
               </IconButton>
             </ButtonGroup>
+            
             {/* Zoom Controls */}
-            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root, & .MuiIconButton-root': { minWidth: 36, width: 36, height: 36 } }}>
+            <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
+              <IconButton 
+                size="small" 
+                onClick={zoomOut} 
+                title="Zoom Out"
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  borderRadius: '4px 0 0 4px',
+                  border: '1px solid #d1d5db',
+                  '&:hover': { backgroundColor: '#f3f4f6' },
+                }}
+              >
+                <ZoomOutIcon fontSize="small" />
+              </IconButton>
               <Button 
                 size="small" 
                 onClick={zoomTo100} 
                 title="Reset to 100%"
                 sx={{ 
-                  fontSize: '11px', 
-                  minWidth: '44px !important',
-                  width: '44px !important',
+                  minWidth: 48,
+                  height: 32,
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  border: '1px solid #d1d5db',
+                  borderLeft: 'none',
+                  borderRight: 'none',
+                  borderRadius: 0,
+                  color: '#374151',
+                  textTransform: 'none',
                   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+                  '&:hover': { backgroundColor: '#f3f4f6' },
                 }}
               >
                 100%
               </Button>
-              <IconButton size="small" onClick={zoomOut} title="Zoom Out">
-                <ZoomOutIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={fitView} title="Fit View">
-                <CenterFocusStrongIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={zoomIn} title="Zoom In">
+              <IconButton 
+                size="small" 
+                onClick={zoomIn} 
+                title="Zoom In"
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  borderRadius: '0 4px 4px 0',
+                  border: '1px solid #d1d5db',
+                  '&:hover': { backgroundColor: '#f3f4f6' },
+                }}
+              >
                 <ZoomInIcon fontSize="small" />
               </IconButton>
             </ButtonGroup>
+            
+            {/* Fit View */}
+            <IconButton 
+              size="small" 
+              onClick={fitView} 
+              title="Fit to View"
+              sx={{ 
+                width: 32, 
+                height: 32,
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                '&:hover': { backgroundColor: '#f3f4f6' },
+              }}
+            >
+              <CenterFocusStrongIcon fontSize="small" />
+            </IconButton>
           </Box>
         </Box>
 
@@ -825,10 +1307,12 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               nodes={nodes}
-              edges={edges}
+              edges={edgesWithCallbacks}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
               onInit={setReactFlowInstance}
               fitView
               fitViewOptions={{ padding: 0.2 }}
@@ -846,6 +1330,10 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
                 size={1}
                 color="#cbd5e1"
               />
+              {/* Ghost node preview when dragging from a handle */}
+              {isConnecting && connectDragPos && (
+                <GhostNodePreview position={connectDragPos} />
+              )}
             </ReactFlow>
           </ReactFlowErrorBoundary>
         </Box>
