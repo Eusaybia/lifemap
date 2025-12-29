@@ -324,6 +324,112 @@ const getSolarTimesForToday = (): SolarTimes => {
 }
 
 // ============================================================================
+// Lunar Phase Calculations
+// ============================================================================
+
+// Synodic month (average time between new moons) in days
+const SYNODIC_MONTH = 29.53058867
+
+// Known new moon reference date (January 6, 2000 at 18:14 UTC)
+const KNOWN_NEW_MOON = new Date(Date.UTC(2000, 0, 6, 18, 14, 0))
+
+/**
+ * Calculate the current lunar age (days since last new moon)
+ */
+const getLunarAge = (date: Date = new Date()): number => {
+  const daysSinceKnown = (date.getTime() - KNOWN_NEW_MOON.getTime()) / (1000 * 60 * 60 * 24)
+  const lunarAge = daysSinceKnown % SYNODIC_MONTH
+  return lunarAge < 0 ? lunarAge + SYNODIC_MONTH : lunarAge
+}
+
+/**
+ * Get the current lunar phase name and emoji
+ */
+const getCurrentLunarPhase = (date: Date = new Date()): { name: string; emoji: string } => {
+  const age = getLunarAge(date)
+  const phaseIndex = Math.floor((age / SYNODIC_MONTH) * 8) % 8
+  
+  const phases = [
+    { name: "New Moon", emoji: "🌑" },
+    { name: "Waxing Crescent", emoji: "🌒" },
+    { name: "First Quarter", emoji: "🌓" },
+    { name: "Waxing Gibbous", emoji: "🌔" },
+    { name: "Full Moon", emoji: "🌕" },
+    { name: "Waning Gibbous", emoji: "🌖" },
+    { name: "Last Quarter", emoji: "🌗" },
+    { name: "Waning Crescent", emoji: "🌘" },
+  ]
+  
+  return phases[phaseIndex]
+}
+
+/**
+ * Calculate the next occurrence of a specific lunar phase
+ * @param targetPhase - Phase index (0 = New Moon, 2 = First Quarter, 4 = Full Moon, 6 = Last Quarter)
+ * @param fromDate - Starting date
+ */
+const getNextLunarPhase = (targetPhase: number, fromDate: Date = new Date()): Date => {
+  const currentAge = getLunarAge(fromDate)
+  const targetAge = (targetPhase / 8) * SYNODIC_MONTH
+  
+  let daysUntilPhase = targetAge - currentAge
+  if (daysUntilPhase <= 0) {
+    daysUntilPhase += SYNODIC_MONTH
+  }
+  
+  return addDays(fromDate, Math.round(daysUntilPhase))
+}
+
+/**
+ * Get all upcoming lunar phases
+ */
+const getLunarPhasePoints = (): TimePoint[] => {
+  const now = new Date()
+  const currentPhase = getCurrentLunarPhase(now)
+  
+  const phases: TimePoint[] = [
+    // Current phase (today)
+    {
+      id: 'lunar:current',
+      label: `Current Phase: ${currentPhase.name}`,
+      date: now,
+      emoji: currentPhase.emoji,
+    },
+    // Next New Moon
+    {
+      id: 'lunar:new-moon',
+      label: 'New Moon',
+      date: getNextLunarPhase(0, now),
+      emoji: '🌑',
+    },
+    // Next First Quarter
+    {
+      id: 'lunar:first-quarter',
+      label: 'First Quarter',
+      date: getNextLunarPhase(2, now),
+      emoji: '🌓',
+    },
+    // Next Full Moon
+    {
+      id: 'lunar:full-moon',
+      label: 'Full Moon',
+      date: getNextLunarPhase(4, now),
+      emoji: '🌕',
+    },
+    // Next Last Quarter
+    {
+      id: 'lunar:last-quarter',
+      label: 'Last Quarter',
+      date: getNextLunarPhase(6, now),
+      emoji: '🌗',
+    },
+  ]
+  
+  // Sort by date (nearest first)
+  return phases.sort((a, b) => a.date.getTime() - b.date.getTime())
+}
+
+// ============================================================================
 // TimePoint Suggestions
 // ============================================================================
 
@@ -463,6 +569,8 @@ const getTimePoints = (): TimePoint[] => {
       date: nextSeason.date,
       emoji: nextSeason.emoji,
     },
+    // Lunar phase points (New Moon, Full Moon, First Quarter, etc.)
+    ...getLunarPhasePoints(),
     // Time of day periods (Dawn, Morning, Noon, Afternoon, Dusk, Evening, Night)
     ...getTimeOfDayPoints(),
     // Solar time points (Sunrise, Sunset, Golden Hour, etc.)
@@ -704,10 +812,19 @@ const fetchTimePoints = (query: string): TimePoint[] => {
   const timePoints = getTimePoints()
   if (!query) return timePoints
   
+  const lowerQuery = query.toLowerCase()
+  
   // Try parsing as arbitrary time (e.g., "8:00am", "3pm", "14:30")
   const timePoint = parseTimeString(query)
   if (timePoint) {
     return [timePoint]
+  }
+  
+  // Special handling for lunar-related queries
+  const lunarKeywords = ['moon', 'lunar', 'full', 'new', 'quarter', 'crescent', 'gibbous', 'waxing', 'waning', 'phase']
+  const isLunarQuery = lunarKeywords.some(keyword => lowerQuery.includes(keyword))
+  if (isLunarQuery) {
+    return timePoints.filter((tp) => tp.id.startsWith('lunar:') || tp.label.toLowerCase().includes(lowerQuery))
   }
   
   // Pure numeric query - could be year or time
@@ -736,8 +853,8 @@ const fetchTimePoints = (query: string): TimePoint[] => {
     if (monthYearSuggestions.length > 0) return monthYearSuggestions
   }
   
-  // Fall back to filtering built-in timepoints
-  return timePoints.filter((tp) => tp.label.toLowerCase().startsWith(query.toLowerCase()))
+  // Fall back to filtering built-in timepoints (includes lunar phases)
+  return timePoints.filter((tp) => tp.label.toLowerCase().includes(lowerQuery))
 }
 
 // ============================================================================
@@ -755,6 +872,7 @@ const isSolarTimePoint = (tp: TimePoint): boolean => {
   return solarIds.some(id => tp.id.includes(id))
 }
 const isTimeTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:time-')
+const isLunarPhasePoint = (tp: TimePoint): boolean => tp.id.startsWith('lunar:')
 
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -766,6 +884,7 @@ const formatTimePointLabel = (tp: TimePoint): string => {
   if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isLunarPhasePoint(tp)) return `${tp.emoji} ${tp.label}`
   return `${tp.emoji} ${formatDate(tp.date)}`
 }
 
@@ -785,6 +904,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
       formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
     } else if (isTimeTimePoint(timePoint)) {
       formattedDate = timePoint.label
+    } else if (isLunarPhasePoint(timePoint)) {
+      formattedDate = `${timePoint.label} (${formatDate(timePoint.date)})`
     } else {
       formattedDate = formatDate(timePoint.date)
     }
@@ -828,7 +949,7 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
             <span className="timepoint-emoji">{item.emoji}</span>
             <div className="timepoint-content">
               <span className="timepoint-label">{item.label}</span>
-              {isYearTimePoint(item) ? (
+                {isYearTimePoint(item) ? (
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
                 <span className="timepoint-date">1st {item.label}</span>
@@ -838,6 +959,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                 <span className="timepoint-date">~{formatTime(item.date)} today</span>
               ) : isTimeTimePoint(item) ? (
                 <span className="timepoint-date">Today at {item.label}</span>
+              ) : isLunarPhasePoint(item) ? (
+                <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
               ) : (
                 <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
               )}

@@ -130,7 +130,8 @@ const DayHeaderNodeView: React.FC<NodeViewProps> = (props) => {
 // Sub-components for Day Header
 // ============================================================================
 
-const GlassCardWrapper: React.FC<{ title: string; children: React.ReactNode; dataType: string; fullHeight?: boolean }> = ({ title, children, dataType, fullHeight }) => (
+// Glass card container without hardcoded title - content determines its own headings
+const GlassCardWrapper: React.FC<{ children: React.ReactNode; dataType: string; fullHeight?: boolean }> = ({ children, dataType, fullHeight }) => (
   <div 
     data-type={dataType}
     style={{
@@ -144,23 +145,12 @@ const GlassCardWrapper: React.FC<{ title: string; children: React.ReactNode; dat
       color: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
       ...(fullHeight && { height: '100%', minHeight: '100%' }),
     }}
   >
-    <h4 style={{
-      margin: 0,
-      fontSize: '13px',
-      fontWeight: 600,
-      color: '#ffffff',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      textShadow: '0 1px 4px rgba(0,0,0,0.2)',
-    }}>
-      {title}
-    </h4>
     <div style={{
-      fontSize: '12px',
-      color: 'rgba(255, 255, 255, 0.9)',
+      fontSize: '14px',
+      color: 'rgba(255, 255, 255, 0.95)',
       lineHeight: 1.5,
       fontFamily: 'system-ui, -apple-system, sans-serif',
       ...(fullHeight && { flex: 1 }),
@@ -179,7 +169,7 @@ export const DayHeaderTasks = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer(() => (
       <NodeViewWrapper style={{ display: 'contents' }}>
-        <GlassCardWrapper title="Tasks for Consideration" dataType="day-header-tasks">
+        <GlassCardWrapper dataType="day-header-tasks">
           <NodeViewContent />
         </GlassCardWrapper>
       </NodeViewWrapper>
@@ -196,7 +186,7 @@ export const DayHeaderInsights = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer(() => (
       <NodeViewWrapper style={{ display: 'contents' }}>
-        <GlassCardWrapper title="Feelings, Thoughts" dataType="day-header-insights">
+        <GlassCardWrapper dataType="day-header-insights">
           <NodeViewContent />
         </GlassCardWrapper>
       </NodeViewWrapper>
@@ -213,7 +203,7 @@ export const DayHeaderObservations = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer(() => (
       <NodeViewWrapper style={{ display: 'contents', height: '100%' }}>
-        <GlassCardWrapper title="Observations" dataType="day-header-observations" fullHeight>
+        <GlassCardWrapper dataType="day-header-observations" fullHeight>
           <NodeViewContent />
         </GlassCardWrapper>
       </NodeViewWrapper>
@@ -282,9 +272,27 @@ export const DayHeaderExtension = TipTapNode.create({
               backgroundImage: options.backgroundImage || "/images/daily-header-bg.jpg",
             },
             content: [
-              { type: 'dayHeaderTasks', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Design how to link tasks across temporal periods...' }] }] },
-              { type: 'dayHeaderInsights', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Eusaybia, the whole suite of tools...' }] }] },
-              { type: 'dayHeaderObservations', content: [{ type: 'paragraph' }] },
+              { 
+                type: 'dayHeaderTasks', 
+                content: [
+                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Tasks for Consideration' }] },
+                  { type: 'paragraph' },
+                ] 
+              },
+              { 
+                type: 'dayHeaderInsights', 
+                content: [
+                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Feelings, Thoughts' }] },
+                  { type: 'paragraph' },
+                ] 
+              },
+              { 
+                type: 'dayHeaderObservations', 
+                content: [
+                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Observations' }] },
+                  { type: 'paragraph' },
+                ] 
+              },
             ]
           })
           .run()
