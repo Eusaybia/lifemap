@@ -646,7 +646,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
       return parsed.map((n: any) => ({
         ...n,
         dragHandle: '.custom-drag-handle',
-        style: n.style || { width: 280, height: 150 }, // Default size for NodeResizer
+        style: n.style || { width: 400, height: 150 }, // Default size for NodeResizer
       }));
     } catch {
       return [];
@@ -948,12 +948,12 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         id: newNodeId,
         type: 'quantaNode',
         position: {
-          x: flowPosition.x - 140, // Center the node (half of default width 280)
+          x: flowPosition.x - 200, // Center the node (half of default width 400)
           y: flowPosition.y - 75,  // Center the node (half of default height 150)
         },
         data: { quantaId, label: `Quanta: ${quantaId}` },
         dragHandle: '.custom-drag-handle',
-        style: { width: 280, height: 150 },
+        style: { width: 400, height: 150 },
       };
 
       // Create edge connecting the source to the new node
@@ -1005,7 +1005,7 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         },
         data: { quantaId, label: `Quanta: ${quantaId}` },
         dragHandle: '.custom-drag-handle',
-        style: { width: 280, height: 150 }, // Initial size for NodeResizer
+        style: { width: 400, height: 150 }, // Initial size for NodeResizer
       };
       setNodes((nds) => {
         const updatedNodes = nds.concat(newNode);
@@ -1039,12 +1039,12 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         id: newNodeId,
         type: 'quantaNode',
         position: {
-          x: midX - 140, // Center the node (half of default width 280)
+          x: midX - 200, // Center the node (half of default width 400)
           y: midY - 75,  // Center the node (half of default height 150)
         },
         data: { quantaId, label: `Quanta: ${quantaId}` },
         dragHandle: '.custom-drag-handle',
-        style: { width: 280, height: 150 },
+        style: { width: 400, height: 150 },
       };
 
       // Create two new edges: source -> newNode and newNode -> target
