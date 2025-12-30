@@ -792,7 +792,9 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         const dragEnded = changes.some(
           (c) => c.type === 'position' && 'dragging' in c && c.dragging === false
         );
-        const hasResize = changes.some((c) => c.type === 'dimensions');
+        // Skip resize events when creating a node from connection
+        const hasResize = !isCreatingNodeFromConnectionRef.current && 
+          changes.some((c) => c.type === 'dimensions');
         
         // Only auto-fit and save to history when drag ends or resize happens
         if (dragEnded || hasResize) {
@@ -856,6 +858,9 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   
   // Track whether a successful connection was made (to prevent creating node when connecting to another handle)
   const connectionMadeRef = useRef(false);
+  
+  // Track when we're creating a node from a connection (to skip resize events)
+  const isCreatingNodeFromConnectionRef = useRef(false);
 
   // Track connection drag position for ghost node preview
   const [isConnecting, setIsConnecting] = useState(false);
@@ -939,6 +944,9 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
         y: clientY,
       });
 
+      // Mark that we're creating a node from connection (to skip resize events)
+      isCreatingNodeFromConnectionRef.current = true;
+      
       // Generate unique IDs
       const quantaId = `note-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
       const newNodeId = generateNodeId();
@@ -987,6 +995,11 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
       // Auto-fit after creating
       scheduleAutoFit();
+      
+      // Reset the flag after a delay to allow initial dimension measurement to pass
+      setTimeout(() => {
+        isCreatingNodeFromConnectionRef.current = false;
+      }, 500);
     },
     [reactFlowInstance, saveNodes, saveEdges, scheduleAutoFit, scheduleSaveToHistory]
   );
