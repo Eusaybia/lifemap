@@ -328,6 +328,20 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                 </motion.div>
             </Option>
             <Option
+                value={"Add Monthly Cycles Calendar"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertCalendar is added by the CalendarExtension
+                    props.editor.commands.insertCalendar()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📅 Add Monthly Cycles Calendar
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
                 value={"Add Mapbox Map"}
                 onClick={() => {
                     if (!props.editor) return;
