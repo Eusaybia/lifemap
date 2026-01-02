@@ -631,6 +631,97 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   // Use a fixed height of 700px for the graph
   const [graphHeight, setGraphHeight] = useState(700);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  
+  // Use local state for instantiation - resets on every page reload
+  const [isInstantiated, setIsInstantiated] = useState(false);
+
+  // If not instantiated, show a clickable placeholder
+  if (!isInstantiated) {
+    return (
+      <NodeViewWrapper>
+        <Box
+          onClick={() => setIsInstantiated(true)}
+          sx={{
+            border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            my: 2,
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              borderColor: '#6366f1',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
+              transform: 'translateY(-1px)',
+            },
+          }}
+        >
+          <Box
+            sx={{
+              p: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 200,
+              gap: 2,
+            }}
+          >
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+              }}
+            >
+              <Typography sx={{ fontSize: 32 }}>📊</Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: '#1f2937',
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              }}
+            >
+              2D Temporal Graph
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 14,
+                color: '#6b7280',
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              }}
+            >
+              Click to instantiate the graph
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              sx={{
+                mt: 1,
+                textTransform: 'none',
+                fontWeight: 500,
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                },
+              }}
+            >
+              Create Graph
+            </Button>
+          </Box>
+        </Box>
+      </NodeViewWrapper>
+    );
+  }
 
   // Register custom node types
   const nodeTypes = useMemo(() => ({ quantaNode: QuantaNode }), [])

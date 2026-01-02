@@ -63,6 +63,7 @@ import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExte
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
+import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
@@ -221,6 +222,7 @@ export const customExtensions: Extensions = [
   WarningExtension,
   LifemapCardExtension,
   QuantaFlowExtension,
+  CalendarExtension,
   HighlightImportantLinePlugin,
   DailyYesterday,
   DailyToday,
