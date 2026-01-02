@@ -1,17 +1,19 @@
+'use client'
+
 import { motion } from 'framer-motion';
 import * as React from 'react';
-import { Qi } from './core/Qi';
-import { Group } from './view/structure/Group';
+import { Quanta } from './core/Quanta';
 import '@fontsource/public-sans';
+import dynamic from 'next/dynamic'
 
-const App = () => {
-  return (
-    <React.StrictMode>
-      <motion.div style={{ margin: 10, padding: `30px 30px 30px 30px` }}>
-          <Qi qiId={'000000'} userId={'000000'} />
-      </motion.div>
-    </React.StrictMode>
-  );
-};
+const AppComponent = dynamic(() => Promise.resolve(() => (
+  <React.StrictMode>
+    <motion.div style={{ margin: 10, padding: `8px 8px 8px 8px` }}>
+      <Quanta quantaId={'000000'} use8rId={'000000'} />
+    </motion.div>
+  </React.StrictMode>
+)), {
+  ssr: false
+})
 
-export default App;
+export default AppComponent;

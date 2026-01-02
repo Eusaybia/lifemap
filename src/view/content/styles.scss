@@ -5,6 +5,7 @@
 }
 
 .ProseMirror {
+
   >*+* {
     margin-top: 0em;
   }
@@ -35,6 +36,7 @@
     margin: 0em 0;
     font-family: 'Inter';
   }
+
 
   ul[data-type="taskList"] {
     list-style: none;
@@ -69,6 +71,7 @@
       }
     }
   }
+
 
   pre {
     background: #0d0d0d;
@@ -170,6 +173,45 @@
   outline: 1px solid grey;
 }
 
+/* Slightly rounded images */
+.ProseMirror img {
+  border-radius: 2px;
+}
+
+/* Reset the appearance */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Orange border for unchecked items */
+.ProseMirror input[type="checkbox"]::before {
+  content: "";
+  margin-top: 1px;
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  border: 1.25px solid orange;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+/* Green checkbox for checked items */
+.ProseMirror input[type="checkbox"]:checked::before {
+  content: "✔";
+  color: green;
+  margin-top: 1px;
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  border: 1.25px solid green;
+  border-radius: 2px;
+  box-sizing: border-box;
+  font-size: 0.85em;
+  line-height: 1.3;
+  text-align: center;
+}
 
 .ProseMirror span {
   animation: fadeIn 0.7s;
@@ -191,7 +233,6 @@
 
   .details {
     display: flex;
-    padding: 0.5rem;
 
     >button {
       display: flex;
@@ -228,6 +269,88 @@
   box-shadow: 1 5 10px rgba(240, 230, 255, 0.8);
 }
 
+// Tables
+.tiptap {
+  table {
+    border-collapse: collapse;
+    border-radius: 5px;
+    margin: 0;
+    overflow: visible;
+    table-layout: fixed;
+    width: 100%;
+
+    td,
+    th {
+      border-top: none;
+      border-right: none;
+      border-bottom: none;
+      border-left: none;
+      box-sizing: border-box;
+      min-width: 1em;
+      padding: 0px 15px;
+      position: relative;
+      vertical-align: top;
+
+      >* {
+        margin-bottom: 0;
+      }
+    }
+
+    th {
+      background-color: #f1f3f5;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    // This makes sure there is no padding on the left and right sides of the table
+    td:first-child,
+    th:first-child {
+      padding-left: 0;
+    }
+
+    td:last-child,
+    th:last-child {
+      padding-right: 0;
+    }
+
+    .selectedCell:after {
+      background: rgba(200, 200, 255, 0.4);
+      content: "";
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .column-resize-handle {
+      background-color: #adf;
+      bottom: -2px;
+      position: absolute;
+      right: -2px;
+      pointer-events: none;
+      top: 0;
+      width: 4px;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+}
+
+.tableWrapper {
+  padding: 1rem 0;
+  overflow-x: visible;
+}
+
+.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
 
 // Mapbox
 .map-container {
@@ -248,4 +371,64 @@
   margin: 12px;
   width: max-content;
   border-radius: 4px;
+}
+
+/* Highlight for important lines */
+.highlight-important-line {
+  display: inline; /* Explicitly inline */
+  background-color: rgba(255, 215, 0, 0.15);
+  border-radius: 3px;
+  /* Minimal vertical padding */
+  padding-top: 1px;
+  padding-bottom: 1px;
+  /* Reset other potentially interfering styles */
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border: none;
+  box-shadow: none;
+  vertical-align: baseline;
+}
+
+/* REMOVED list override */
+/*
+.ProseMirror ul > li.highlight-important-line,
+.ProseMirror ol > li.highlight-important-line {
+  ...
+}
+*/
+
+/* Call Mode base document dimming */
+.ProseMirror.call-mode-dimmed {
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Alternative overlay approach if background doesn't work */
+.ProseMirror.call-mode-dimmed::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* Dim the page margins/background when in call mode */
+body.call-mode-dimmed::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: -2; /* Behind everything, including the ProseMirror overlay */
+  transition: opacity 0.2s ease-in-out;
 }

@@ -1,54 +1,70 @@
-// import './MentionList.scss'
+import './MentionList.scss'
 import { MentionOptions } from "@tiptap/extension-mention";
-import { ReactRenderer } from "@tiptap/react";
+import { JSONContent, ReactRenderer } from "@tiptap/react";
 import { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 import React from "react";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import tippy, { Instance as TippyInstance } from "tippy.js";
 import { motion } from "framer-motion";
 
+
 export type MentionSuggestion = {
     id: string;
     mentionLabel: string;
 };
 
+interface MentionProps extends SuggestionProps {
+    items: MentionSuggestion[];
+}
+
+const parseMentionsAndKeyValueTags = (jsonContentOfEntireEditor: JSONContent) => {
+    const mentions = (jsonContentOfEntireEditor.content || []).flatMap(parseMentionsAndKeyValueTags)
+    if (jsonContentOfEntireEditor.attrs && jsonContentOfEntireEditor.type === 'mention') {
+        const mentionSuggestion: MentionSuggestion = {
+            id: jsonContentOfEntireEditor.attrs.id,
+            mentionLabel: jsonContentOfEntireEditor.attrs.label
+        }
+        mentions.push(mentionSuggestion)
+        console.log("data", jsonContentOfEntireEditor)
+    }
+    const uniqueMentions: (MentionSuggestion)[] = mentions.filter((mention, index, self) =>
+        index === self.findIndex((m) => (
+            m.id === mention.id && m.mentionLabel === mention.mentionLabel
+        ))
+    );
+
+    console.log("unique mentions list", uniqueMentions)
+
+    return uniqueMentions
+}
+
 export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
-    char: "#",
+    char: "/",  // Changed from # to / to avoid conflict with LocationMention which uses # for locations
     allowSpaces: true,
-    items: ({ query }): MentionSuggestion[] =>
-        [
-            "Lea Thompson",
-            "Cyndi Lauper",
-            "Tom Cruise",
-            "Madonna",
-            "Jerry Hall",
-            "Joan Collins",
-            "Winona Ryder",
-            "Christina Applegate",
-            "Alyssa Milano",
-            "Molly Ringwald",
-            "Ally Sheedy",
-            "Debbie Harry",
-            "Olivia Newton-John",
-            "Elton John",
-            "Michael J. Fox",
-            "Axl Rose",
-            "Emilio Estevez",
-            "Ralph Macchio",
-            "Rob Lowe",
-            "Jennifer Grey",
-            "Mickey Rourke",
-            "John Cusack",
-            "Matthew Broderick",
-            "Justine Bateman",
-            "Lisa Bonet",
-        ]
-            .concat(query.length > 0 ? [query] : [])
-            .map((name, index) => ({ mentionLabel: name, id: index.toString() }))
-            .filter((item) =>
-                item.mentionLabel.toLowerCase().startsWith(query.toLowerCase())
-            )
-            .slice(0, 5),
+    items: ({ query, editor }): (MentionSuggestion)[] => {
+        let mentions = parseMentionsAndKeyValueTags(editor.getJSON());
+
+        const queryMentionSelection: MentionSuggestion = {
+            id: "000000",
+            mentionLabel: query
+        };
+
+        let mentionSuggestions: MentionSuggestion[] = mentions.concat(query.length > 0 ? [queryMentionSelection] : [])
+            // Filter for suggestions that start with the query
+            .filter((mentionSuggestion) => {
+                if (typeof mentionSuggestion === "string") {
+                    // This is referring to key value pairs, which have the node name "keyValuePair"
+                    return (mentionSuggestion as string).toLowerCase().startsWith(query.toLowerCase())
+                } else {
+                    // This is referring to tags, which have the node name "mention"
+                    return (mentionSuggestion as MentionSuggestion).mentionLabel.toLowerCase().startsWith(query.toLowerCase())
+                }
+            })
+            .slice(0, 5)
+
+            console.log("mentions", mentionSuggestions)
+        return mentionSuggestions
+    },
     render: () => {
         let component: ReactRenderer<MentionRef> | undefined;
         let popup: TippyInstance | undefined;
@@ -60,6 +76,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                     editor: props.editor,
                 });
 
+                // @ts-ignore - this works perfectly fine in JS
                 popup = tippy("body", {
                     getReferenceClientRect: props.clientRect,
                     appendTo: () => document.body,
@@ -75,6 +92,7 @@ export const mentionSuggestionOptions: MentionOptions["suggestion"] = {
                 component?.updateProps(props);
 
                 popup?.setProps({
+                    // @ts-ignore - this works perfectly fine in JS
                     getReferenceClientRect: props.clientRect,
                 });
             },
@@ -112,10 +130,9 @@ type MentionRef = {
     onKeyDown: (props: SuggestionKeyDownProps) => boolean;
 };
 
-interface MentionProps extends SuggestionProps {
-    items: MentionSuggestion[];
-}
 
+// Based off the following:
+// https://github.com/ueberdosis/tiptap/blob/fc67cb1b7166c1ab6b6e0174539c9e29c364eace/demos/src/Nodes/Mention/React/MentionList.jsx#L66
 const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -178,9 +195,9 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
         },
     }));
 
-    return props.items.length > 0 ? (
+    return (
         <div className="items">
-            {props.items.map((item, index) => (
+            {props.items.length > 0 ? props.items.map((item: MentionSuggestion, index) => (
                 <motion.div
                     className={`item ${index === selectedIndex ? "is-selected" : ""}`}
                     key={index}
@@ -188,9 +205,11 @@ const MentionList = forwardRef<MentionRef, MentionProps>((props, ref) => {
                 >
                     {item.mentionLabel}
                 </motion.div>
-            ))}
+            )) :
+                <div className="item">No result</div>
+            }
         </div>
-    ) : null;
-});
+    );
+})
 
-MentionList.displayName = "MentionList";
+MentionList.displayName = "MentionList"
