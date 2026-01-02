@@ -25,3 +25,9 @@ code {
     monospace;
 }
 
+/* Dimming effect for call-mode: dims everything outside the central content */
+body.call-mode-dimmed .center-content {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+  transition: box-shadow 0.2s ease-in-out;
+}
+

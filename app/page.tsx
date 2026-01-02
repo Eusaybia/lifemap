@@ -1,17 +1,20 @@
 'use client'
-
-import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Qi } from '../src/core/Qi';
+import dynamic from 'next/dynamic'
+import { offWhite } from '../src/view/Theme';
+import React from 'react';
 
-const App = () => {
-  return (
-    <React.StrictMode>
-      <motion.div style={{ margin: 10, padding: `30px 30px 30px 30px` }}>
-          <Qi qiId={'000000'} userId={'000000'} />
-      </motion.div>
-    </React.StrictMode>
-  );
-};
+const AppComponent = () => (
+  <React.StrictMode>
+    <motion.div style={{ padding: `45px`, backgroundColor: offWhite }}>
+      Welcome to Eusaybia Lifemap. You need to be on a specific quanta. e.g. /q/999997
+    </motion.div>
+  </React.StrictMode>
+);
 
-export default App;
+// Wrap with dynamic to disable SSR
+const DynamicAppComponent = dynamic(() => Promise.resolve(AppComponent), {
+  ssr: false
+});
+
+export default DynamicAppComponent;

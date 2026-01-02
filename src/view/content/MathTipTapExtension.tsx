@@ -1,16 +1,9 @@
 import React from "react";
-import { Node, mergeAttributes, InputRule, wrappingInputRule, markInputRule, Mark, JSONContent, nodeInputRule } from "@tiptap/core";
-import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { Node, mergeAttributes, wrappingInputRule } from "@tiptap/core";
+import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Math } from "../content/Math"
-import { MathsLoupeC } from "../../core/Model";
 import { NodeViewProps } from '@tiptap/core'
-import { getMathsLoupeFromAttributes } from "../../utils/utils";
-import { Tag } from "./Tag";
-import { FlowSwitch } from "../structure/FlowSwitch";
-import { motion } from "framer-motion";
-import { TextSelection } from "prosemirror-state";
 
-const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$\s+$/; //new RegExp("\$\$\s+$", "i");
 const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
 
 export const MathExtension = Node.create({
@@ -51,23 +44,24 @@ export const MathExtension = Node.create({
         find: REGEX_INLINE_MATH_DOLLARS,
         type: this.type,
       }),
-      wrappingInputRule({
-        find: REGEX_BLOCK_MATH_DOLLARS,
-        type: this.type,
-      }),
     ];
   },
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const updateContent = (changedEquation: string) => {
         props.updateAttributes({ equationValue: changedEquation });
+        console.log("updated attributes", props.node.attrs)
       }
-      
+
+      console.log("maths node attrs", props.node.attrs)
+
       return (
         <NodeViewWrapper>
           <Math
+            style={"flat"}
             equationString={props.node.attrs.equationValue}
-            nodeAttributes={props.node.attrs}
+            lensEvaluation={props.node.attrs.lensEvaluation}
+            lensDisplay={props.node.attrs.lensDisplay}
             updateContent={updateContent}
           />
         </NodeViewWrapper>
