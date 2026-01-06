@@ -558,7 +558,9 @@ const getTimePoints = (): TimePoint[] => {
   const nextSeason = getNextSeason()
   
   return [
-    { id: 'timepoint:today', label: 'Today', date: now, emoji: '🗓️' },
+    // Abstract "Today" - not tied to a specific date, useful for templates
+    { id: 'timepoint:today-abstract', label: "Today's abstract for templates", date: new Date(0), emoji: '📋' },
+    { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
     { id: 'timepoint:next-week', label: 'Next Week', date: addDays(now, 7), emoji: '📅' },
@@ -763,12 +765,12 @@ const getYearSuggestions = (query: string): TimePoint[] => {
   return results
 }
 
-// Parse arbitrary time strings like "8:00am", "3pm", "14:30", "8am", "8:00 am"
+// Parse arbitrary time strings like "8:00am", "3pm", "14:30", "8am", "8:00 am", "7.30pm"
 const parseTimeString = (query: string): TimePoint | null => {
   const lowerQuery = query.toLowerCase().trim()
   
-  // Match patterns: "8am", "8:00am", "8:00 am", "8 am", "14:30", "2:30pm"
-  const timeMatch = lowerQuery.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/)
+  // Match patterns: "8am", "8:00am", "8:00 am", "8 am", "14:30", "2:30pm", "7.30pm", "7.30"
+  const timeMatch = lowerQuery.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/)
   if (!timeMatch) return null
   
   let [, hourStr, minuteStr, period] = timeMatch
@@ -863,6 +865,7 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
+const isAbstractTimePoint = (tp: TimePoint): boolean => tp.id === 'timepoint:today-abstract'
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
   const timeOfDayIds = ['dawn', 'morning', 'noon', 'afternoon', 'dusk', 'evening', 'night']
   return timeOfDayIds.some(id => tp.id === `timepoint:${id}`)
@@ -879,6 +882,7 @@ const formatTime = (date: Date): string => {
 }
 
 const formatTimePointLabel = (tp: TimePoint): string => {
+  if (isAbstractTimePoint(tp)) return `${tp.emoji} Today`
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
@@ -896,7 +900,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
 
     const timePoint = props.items[index]
     let formattedDate: string
-    if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
+    if (isAbstractTimePoint(timePoint)) {
+      formattedDate = 'Today'
+    } else if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
       formattedDate = timePoint.label
     } else if (isTimeOfDayPoint(timePoint)) {
       formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
@@ -914,9 +920,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     props.command({
       id: timePoint.id,
       label: displayLabel,
-      'data-date': timePoint.date.toISOString(),
+      'data-date': isAbstractTimePoint(timePoint) ? '' : timePoint.date.toISOString(),
       'data-formatted': formattedDate,
-      'data-relative-label': timePoint.label,
+      'data-relative-label': isAbstractTimePoint(timePoint) ? 'Today' : timePoint.label,
     })
   }
 
@@ -949,7 +955,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
             <span className="timepoint-emoji">{item.emoji}</span>
             <div className="timepoint-content">
               <span className="timepoint-label">{item.label}</span>
-                {isYearTimePoint(item) ? (
+                {isAbstractTimePoint(item) ? (
+                <span className="timepoint-date">Not tied to a specific date</span>
+              ) : isYearTimePoint(item) ? (
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
                 <span className="timepoint-date">1st {item.label}</span>
