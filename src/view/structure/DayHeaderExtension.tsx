@@ -236,6 +236,8 @@ export const DayHeaderExtension = TipTapNode.create({
   inline: false,
   selectable: true,
   draggable: true,
+  allowGapCursor: true,
+  isolating: false,
   
   addAttributes() {
     return {
@@ -263,38 +265,42 @@ export const DayHeaderExtension = TipTapNode.create({
     return {
       insertDayHeader: (options = {}) => ({ chain }) => {
         return chain()
-          .insertContent({
-            type: 'dayHeader',
-            attrs: {
-              title: options.title || "Today",
-              showBadge: options.showBadge !== false,
-              badgeText: options.badgeText || "Repeats Daily",
-              backgroundImage: options.backgroundImage || "/images/daily-header-bg.jpg",
+          .insertContent([
+            {
+              type: 'dayHeader',
+              attrs: {
+                title: options.title || "Today",
+                showBadge: options.showBadge !== false,
+                badgeText: options.badgeText || "Repeats Daily",
+                backgroundImage: options.backgroundImage || "/images/daily-header-bg.jpg",
+              },
+              content: [
+                { 
+                  type: 'dayHeaderTasks', 
+                  content: [
+                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Tasks for Consideration' }] },
+                    { type: 'paragraph' },
+                  ] 
+                },
+                { 
+                  type: 'dayHeaderInsights', 
+                  content: [
+                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Feelings, Thoughts' }] },
+                    { type: 'paragraph' },
+                  ] 
+                },
+                { 
+                  type: 'dayHeaderObservations', 
+                  content: [
+                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Observations' }] },
+                    { type: 'paragraph' },
+                  ] 
+                },
+              ]
             },
-            content: [
-              { 
-                type: 'dayHeaderTasks', 
-                content: [
-                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Tasks for Consideration' }] },
-                  { type: 'paragraph' },
-                ] 
-              },
-              { 
-                type: 'dayHeaderInsights', 
-                content: [
-                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Feelings, Thoughts' }] },
-                  { type: 'paragraph' },
-                ] 
-              },
-              { 
-                type: 'dayHeaderObservations', 
-                content: [
-                  { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Observations' }] },
-                  { type: 'paragraph' },
-                ] 
-              },
-            ]
-          })
+            // Insert a paragraph after the DayHeader so users can click below it
+            { type: 'paragraph' },
+          ])
           .run()
       },
     }

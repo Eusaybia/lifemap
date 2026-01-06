@@ -2,8 +2,71 @@
 
 import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
-import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps, NodeViewContent } from "@tiptap/react"
+import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+
+// ============================================================================
+// Date Helpers
+// ============================================================================
+
+const formatDateSlug = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getYesterdayDate = (): Date => {
+  const date = new Date()
+  date.setDate(date.getDate() - 1)
+  return date
+}
+
+const getTomorrowDate = (): Date => {
+  const date = new Date()
+  date.setDate(date.getDate() + 1)
+  return date
+}
+
+const TEMPLATE_QUANTA_SLUG = 'daily-schedule-template'
+const NEW_DAILY_SCHEDULE_KEY = 'newDailySchedule'
+const INITIALIZED_DAYS_KEY = 'initializedDailySchedules'
+
+// Set flag for today's schedule - RichText.tsx will apply template if empty
+// Uses localStorage because sessionStorage is NOT shared between iframes and parent
+// This function is called synchronously to ensure flag is set before iframes load
+// IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
+const checkAndInitializeDaily = () => {
+  const today = formatDateSlug(new Date())
+  const todaySlug = `daily-${today}`
+  
+  // Check if we've already initialized this day
+  const initializedDaysStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
+  const initializedDays: string[] = initializedDaysStr ? JSON.parse(initializedDaysStr) : []
+  
+  // If today has already been initialized, don't set the flag again
+  if (initializedDays.includes(todaySlug)) {
+    console.log(`[DailyExtension] ${todaySlug} already initialized, skipping template flag`)
+    return
+  }
+  
+  // Mark today as needing initialization and track it
+  localStorage.setItem(NEW_DAILY_SCHEDULE_KEY, todaySlug)
+  
+  // Add to initialized list (keep last 30 days to avoid unbounded growth)
+  initializedDays.push(todaySlug)
+  if (initializedDays.length > 30) {
+    initializedDays.shift() // Remove oldest
+  }
+  localStorage.setItem(INITIALIZED_DAYS_KEY, JSON.stringify(initializedDays))
+  
+  console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization at ${new Date().toISOString()}`)
+}
+
+// Call immediately when module loads to ensure flag is set before iframes render
+if (typeof window !== 'undefined') {
+  checkAndInitializeDaily()
+}
 
 // Simple chevron icons
 const ChevronLeft = ({ size = 20, color = "#666" }: { size?: number; color?: string }) => (
@@ -29,6 +92,8 @@ interface DayCardProps {
 }
 
 const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
+  const isTemplate = label === 'Template'
+  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -37,7 +102,7 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
       style={{
         flex: '0 0 550px',
         width: '550px',
-        minHeight: '500px',
+        minHeight: '900px',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: isToday ? '#FFFEF5' : '#FFFFFF',
@@ -48,28 +113,64 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
         padding: '16px',
       }}
     >
+      {/* Day Label Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        marginBottom: '12px',
+        paddingBottom: '12px',
+        borderBottom: '1px solid #e5e7eb',
+      }}>
+        <h2 style={{
+          fontFamily: "'EB Garamond', Georgia, serif",
+          fontSize: '20px',
+          fontWeight: 500,
+          color: isToday ? '#92400e' : '#6b7280',
+          textAlign: 'center',
+          margin: 0,
+        }}>
+          {isTemplate ? 'Daily Schedule Template' : label}
+        </h2>
+      </div>
+      
       {/* Content Area */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </motion.div>
   )
 }
 
+
 // ============================================================================
 // Daily Carousel Node View - Horizontal carousel with 3 cards
 // ============================================================================
 
-const DailyNodeView: React.FC<NodeViewProps> = (props) => {
+const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
+const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
+
+const DailyNodeView: React.FC<NodeViewProps> = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(1) // Start at "Today" (middle of 3)
+  const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
+  
+  // Calculate date slugs for each pane
+  const todaySlug = `daily-${formatDateSlug(new Date())}`
+  const yesterdaySlug = `daily-${formatDateSlug(getYesterdayDate())}`
+  const tomorrowSlug = `daily-${formatDateSlug(getTomorrowDate())}`
+  
+  // Check and initialize daily on mount
+  useEffect(() => {
+    checkAndInitializeDaily()
+  }, [])
   
   // Scroll to today on mount
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const cardWidth = 550 + 12
-      const scrollPosition = (1 * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
+      const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
       setTimeout(() => {
         container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
       }, 100)
@@ -91,7 +192,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   }, [activeIndex, scrollToCard])
   
   const navigateNext = useCallback(() => {
-    scrollToCard(Math.min(2, activeIndex + 1))
+    scrollToCard(Math.min(TOTAL_CARDS - 1, activeIndex + 1))
   }, [activeIndex, scrollToCard])
   
   const handleScroll = useCallback(() => {
@@ -100,7 +201,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
       const cardWidth = 550 + 12
       const scrollCenter = container.scrollLeft + (container.clientWidth / 2)
       const newIndex = Math.round((scrollCenter - cardWidth / 2) / cardWidth)
-      const clampedIndex = Math.max(0, Math.min(2, newIndex))
+      const clampedIndex = Math.max(0, Math.min(TOTAL_CARDS - 1, newIndex))
       if (clampedIndex !== activeIndex) {
         setActiveIndex(clampedIndex)
       }
@@ -141,7 +242,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
         
         <button
           onClick={navigateNext}
-          disabled={activeIndex === 2}
+          disabled={activeIndex === TOTAL_CARDS - 1}
           style={{
             position: 'absolute',
             right: '0px',
@@ -154,8 +255,8 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
             backgroundColor: '#fff',
             border: '1px solid #e5e5e5',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: activeIndex === 2 ? 'not-allowed' : 'pointer',
-            opacity: activeIndex === 2 ? 0.4 : 1,
+            cursor: activeIndex === TOTAL_CARDS - 1 ? 'not-allowed' : 'pointer',
+            opacity: activeIndex === TOTAL_CARDS - 1 ? 0.4 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -187,22 +288,67 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
             }
           `}</style>
           
-          {/* Yesterday Card */}
-          <DayCard label="Yesterday" isToday={false}>
-            <div data-day-slot="yesterday" style={{ minHeight: '100px' }}>
-              {/* Content rendered via CSS targeting */}
+          {/* Template Card */}
+          <DayCard label="Template" isToday={false}>
+            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+              <iframe
+                src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
+                title="Daily Schedule Template"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                }}
+              />
             </div>
           </DayCard>
           
-          {/* Today Card - Contains the actual NodeViewContent */}
-          <DayCard label="Today" isToday={true}>
-            <NodeViewContent />
+          {/* Yesterday Card - loads yesterday's date-based quanta */}
+          <DayCard label="Yesterday" isToday={false}>
+            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+              <iframe
+                src={`/q/${yesterdaySlug}?mode=graph`}
+                title="Yesterday's Schedule"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                }}
+              />
+            </div>
           </DayCard>
           
-          {/* Tomorrow Card */}
+          {/* Today Card - loads today's date-based quanta */}
+          <DayCard label="Today" isToday={true}>
+            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+              <iframe
+                src={`/q/${todaySlug}?mode=graph`}
+                title="Today's Schedule"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                }}
+              />
+            </div>
+          </DayCard>
+          
+          {/* Tomorrow Card - loads tomorrow's date-based quanta */}
           <DayCard label="Tomorrow" isToday={false}>
-            <div data-day-slot="tomorrow" style={{ minHeight: '100px' }}>
-              {/* Content rendered via CSS targeting */}
+            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+              <iframe
+                src={`/q/${tomorrowSlug}?mode=graph`}
+                title="Tomorrow's Schedule"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block',
+                }}
+              />
             </div>
           </DayCard>
         </div>
@@ -226,7 +372,7 @@ declare module '@tiptap/core' {
 export const DailyExtension = TipTapNode.create({
   name: "daily",
   group: "block",
-  content: "block+",
+  atom: true, // No internal content - all content is in iframes
   inline: false,
   selectable: true,
   draggable: true,
@@ -236,7 +382,7 @@ export const DailyExtension = TipTapNode.create({
   },
   
   renderHTML({ HTMLAttributes }) {
-    return ['div', { ...HTMLAttributes, 'data-type': 'daily' }, 0]
+    return ['div', { ...HTMLAttributes, 'data-type': 'daily' }]
   },
   
   addNodeView() {
@@ -249,9 +395,6 @@ export const DailyExtension = TipTapNode.create({
         return chain()
           .insertContent({
             type: 'daily',
-            content: [
-              { type: 'paragraph', content: [{ type: 'text', text: 'Today\'s notes and tasks...' }] }
-            ]
           })
           .run()
       },
@@ -273,7 +416,7 @@ export const DailyExtension = TipTapNode.create({
   },
 })
 
-// Export placeholder child extensions for backwards compatibility
+// Export placeholder child extensions for backwards compatibility (kept for existing documents)
 export const DailyYesterday = TipTapNode.create({ name: "dailyYesterday", group: "block", content: "block+" })
 export const DailyToday = TipTapNode.create({ name: "dailyToday", group: "block", content: "block+" })
 export const DailyTomorrow = TipTapNode.create({ name: "dailyTomorrow", group: "block", content: "block+" })

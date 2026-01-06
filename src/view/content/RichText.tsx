@@ -76,7 +76,63 @@ import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
+import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
+import { IndexeddbPersistence } from 'y-indexeddb'
+import * as Y from 'yjs'
+import { TiptapTransformer } from '@hocuspocus/transformer'
+
+// Template quanta ID - this is the editable template in the Daily carousel
+const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
+
+/**
+ * Fetches the content of a quanta from IndexedDB
+ * Returns the JSONContent or null if not found/empty
+ */
+const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONContent | null> => {
+  return new Promise((resolve) => {
+    const yDoc = new Y.Doc()
+    const persistence = new IndexeddbPersistence(quantaId, yDoc)
+    
+    persistence.on('synced', () => {
+      try {
+        // Convert yDoc to TipTap JSON content
+        // The 'default' field is where TipTap Collaboration stores the document
+        const content = TiptapTransformer.fromYdoc(yDoc, 'default')
+        
+        // Check if content is empty
+        const hasContent = content && 
+          content.content && 
+          content.content.length > 0 &&
+          // Check it's not just an empty paragraph
+          !(content.content.length === 1 && 
+            content.content[0].type === 'paragraph' && 
+            !content.content[0].content)
+        
+        persistence.destroy()
+        
+        if (hasContent) {
+          console.log('[RichText] Fetched template content from IndexedDB:', quantaId, content)
+          resolve(content)
+        } else {
+          console.log('[RichText] Template quanta empty or not found, using fallback. Content:', content)
+          resolve(null)
+        }
+      } catch (error) {
+        console.error('[RichText] Error reading template from IndexedDB:', error)
+        persistence.destroy()
+        resolve(null)
+      }
+    })
+    
+    // Timeout after 3 seconds
+    setTimeout(() => {
+      persistence.destroy()
+      console.log('[RichText] Timeout fetching template, using fallback')
+      resolve(null)
+    }, 3000)
+  })
+}
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
@@ -498,6 +554,57 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         // Now safe to remove from sessionStorage
         sessionStorage.removeItem('newSalesGuide');
       }, 300);
+    }
+  }, [props.quanta?.id, editor]);
+
+  // Check for new daily schedule template flag
+  // Uses localStorage because sessionStorage is NOT shared between iframes and parent
+  // Now fetches the editable template from IndexedDB instead of using hardcoded template
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    
+    const newDailyScheduleId = localStorage.getItem('newDailySchedule');
+    const urlId = window.location.pathname.split('/').pop();
+    
+    console.log("[RichText] Daily schedule check:", JSON.stringify({ 
+      newDailyScheduleId, 
+      urlId, 
+      isEmpty: editor.isEmpty,
+      textContent: editor.state.doc.textContent.substring(0, 50),
+      match: newDailyScheduleId === urlId
+    }));
+    
+    // Only apply template if URL ID matches stored ID (e.g., "daily-2026-01-02")
+    if (newDailyScheduleId === urlId && editor) {
+      // Check if editor is empty before applying template
+      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      if (isEmpty) {
+        // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
+        const applyTemplate = async () => {
+          const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+          
+          // Use the editable template if found, otherwise fall back to hardcoded
+          const contentToApply = templateContent || getDailyScheduleTemplate();
+          
+          (editor as Editor)!.commands.setContent(contentToApply);
+          console.log("Applied daily schedule template to", urlId, 
+            templateContent ? "(from editable template)" : "(from hardcoded fallback)");
+          
+          // Mark template as applied
+          templateApplied.current = true;
+          
+          // Now safe to remove from localStorage
+          localStorage.removeItem('newDailySchedule');
+        };
+        
+        setTimeout(() => {
+          applyTemplate();
+        }, 300);
+      } else {
+        console.log("Daily schedule", urlId, "already has content, skipping template");
+        localStorage.removeItem('newDailySchedule');
+      }
     }
   }, [props.quanta?.id, editor]);
 

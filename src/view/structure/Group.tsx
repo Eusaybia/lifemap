@@ -96,8 +96,8 @@ export const Group = (props: {
                 overflow: "hidden",
                 borderRadius: `10px`,
                 boxShadow: `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`,
-                padding: props.isCollapsed ? '12px 35px' : '35px',
-                margin: `10px 0px 10px 0px`,
+                padding: props.isCollapsed ? '10px 20px' : '20px',
+                margin: `8px 0px 8px 0px`,
             }}
         >
             <Grip/>

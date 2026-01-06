@@ -306,8 +306,8 @@ export const TemporalSpaceExtension = TipTapNode.create({
               display: isHidden ? 'none' : 'block',
               border: '2px solid #c0c0c0',
               backgroundColor: 'transparent',
-              padding: isCollapsed ? '12px 35px' : '35px',
-              margin: '10px 0px',
+              padding: isCollapsed ? '10px 20px' : '20px',
+              margin: '8px 0px',
               minHeight: isCollapsed ? 48 : 20,
               overflow: 'hidden',
             }}
