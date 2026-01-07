@@ -625,31 +625,119 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
   }, [props.quanta?.id, editor]);
 
-  // Initialize 'present-day-tasks' quanta with a Daily node if empty
+  // Auto-insert Daily node for present-day-tasks after content has synced from IndexedDB
+  const dailyNodeCheckDone = React.useRef(false);
+  
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    if (!props.quanta?.id || !editor || dailyNodeCheckDone.current) return;
     
     const urlId = window.location.pathname.split('/').pop();
+    if (urlId !== 'present-day-tasks') return;
     
-    // Only apply to 'present-day-tasks' quanta
-    if (urlId === 'present-day-tasks' && editor) {
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+    // Access the Y.Doc from the quanta props
+    const yDoc = props.quanta?.information;
+    if (!yDoc) return;
+    
+    let stabilityTimeout: NodeJS.Timeout | null = null;
+    let hasChecked = false;
+    
+    const checkAndInsertDaily = () => {
+      if (hasChecked || dailyNodeCheckDone.current) return;
+      hasChecked = true;
+      dailyNodeCheckDone.current = true;
       
-      if (isEmpty) {
-        setTimeout(() => {
-          // Insert a Daily node as the default content
-          (editor as Editor)!.commands.setContent({
-            type: 'doc',
-            content: [
-              { type: 'daily' }
-            ]
-          });
-          console.log("Applied Daily node template to present-day-tasks");
-          templateApplied.current = true;
-        }, 300);
+      // Check if a daily node already exists
+      let hasDailyNode = false;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'daily') {
+          hasDailyNode = true;
+          return false;
+        }
+        return true;
+      });
+      
+      if (!hasDailyNode) {
+        console.log('[RichText] No Daily node found in present-day-tasks, inserting one');
+        editor.chain().focus('end').insertContent({ type: 'daily' }).run();
+      } else {
+        console.log('[RichText] Daily node already exists in present-day-tasks');
       }
-    }
-  }, [props.quanta?.id, editor]);
+    };
+    
+    // Wait for content to stabilize (no Y.Doc updates for 800ms)
+    const onYDocUpdate = () => {
+      if (stabilityTimeout) clearTimeout(stabilityTimeout);
+      stabilityTimeout = setTimeout(checkAndInsertDaily, 800);
+    };
+    
+    // Listen for Y.Doc updates
+    yDoc.on('update', onYDocUpdate);
+    
+    // Also set an initial timeout in case the doc is already synced and no updates come
+    stabilityTimeout = setTimeout(checkAndInsertDaily, 1000);
+    
+    return () => {
+      yDoc.off('update', onYDocUpdate);
+      if (stabilityTimeout) clearTimeout(stabilityTimeout);
+    };
+  }, [props.quanta?.id, editor, props.quanta?.information]);
+
+  // Auto-insert Calendar node for 'past' quanta (Monthly section) after content has synced
+  const calendarNodeCheckDone = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || calendarNodeCheckDone.current) return;
+    
+    const urlId = window.location.pathname.split('/').pop();
+    if (urlId !== 'past') return;
+    
+    // Access the Y.Doc from the quanta props
+    const yDoc = props.quanta?.information;
+    if (!yDoc) return;
+    
+    let stabilityTimeout: NodeJS.Timeout | null = null;
+    let hasChecked = false;
+    
+    const checkAndInsertCalendar = () => {
+      if (hasChecked || calendarNodeCheckDone.current) return;
+      hasChecked = true;
+      calendarNodeCheckDone.current = true;
+      
+      // Check if a calendar node already exists
+      let hasCalendarNode = false;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'calendar') {
+          hasCalendarNode = true;
+          return false;
+        }
+        return true;
+      });
+      
+      if (!hasCalendarNode) {
+        console.log('[RichText] No Calendar node found in past, inserting one');
+        editor.chain().focus('end').insertContent({ type: 'calendar' }).run();
+      } else {
+        console.log('[RichText] Calendar node already exists in past');
+      }
+    };
+    
+    // Wait for content to stabilize (no Y.Doc updates for 800ms)
+    const onYDocUpdate = () => {
+      if (stabilityTimeout) clearTimeout(stabilityTimeout);
+      stabilityTimeout = setTimeout(checkAndInsertCalendar, 800);
+    };
+    
+    // Listen for Y.Doc updates
+    yDoc.on('update', onYDocUpdate);
+    
+    // Also set an initial timeout in case the doc is already synced and no updates come
+    stabilityTimeout = setTimeout(checkAndInsertCalendar, 1000);
+    
+    return () => {
+      yDoc.off('update', onYDocUpdate);
+      if (stabilityTimeout) clearTimeout(stabilityTimeout);
+    };
+  }, [props.quanta?.id, editor, props.quanta?.information]);
 
   // TODO: Change this to proper responsiveness for each screen size
   const maxWidth = 1300
