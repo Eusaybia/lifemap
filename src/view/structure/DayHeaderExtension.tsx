@@ -127,11 +127,11 @@ const DayHeaderNodeView: React.FC<NodeViewProps> = (props) => {
             {/* Title */}
             <h2 style={{
               margin: 0,
-              fontSize: '22px',
-              fontWeight: 600,
+              fontSize: '26px',
+              fontWeight: 400,
               color: '#ffffff',
               textShadow: '0 1px 8px rgba(0,0,0,0.3)',
-              fontFamily: 'Georgia, serif',
+              fontFamily: "'EB Garamond', Georgia, serif",
             }}>
               {title}
             </h2>
