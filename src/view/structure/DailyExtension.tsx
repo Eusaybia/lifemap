@@ -88,10 +88,11 @@ const ChevronRight = ({ size = 20, color = "#666" }: { size?: number; color?: st
 interface DayCardProps {
   label: string
   isToday: boolean
+  slug: string
   children: React.ReactNode
 }
 
-const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
+const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children }) => {
   const isTemplate = label === 'Template'
   
   return (
@@ -115,6 +116,20 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
         zIndex: 100,
       }}
     >
+      {/* Route Strip */}
+      <div style={{
+        backgroundColor: '#f5f5f5',
+        borderBottom: '1px solid #e5e5e5',
+        borderRadius: '12px 12px 0 0',
+        padding: '4px 16px',
+        fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', monospace",
+        fontSize: '11px',
+        color: '#888',
+        letterSpacing: '0.3px',
+      }}>
+        /q/{slug}
+      </div>
+      
       {/* Day Label Header */}
       <div style={{
         display: 'flex',
@@ -291,7 +306,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           `}</style>
           
           {/* Template Card */}
-          <DayCard label="Template" isToday={false}>
+          <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
                 src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
@@ -307,7 +322,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           </DayCard>
           
           {/* Yesterday Card - loads yesterday's date-based quanta */}
-          <DayCard label="Yesterday" isToday={false}>
+          <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
                 src={`/q/${yesterdaySlug}?mode=graph`}
@@ -323,7 +338,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           </DayCard>
           
           {/* Today Card - loads today's date-based quanta */}
-          <DayCard label="Today" isToday={true}>
+          <DayCard label="Today" isToday={true} slug={todaySlug}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
                 src={`/q/${todaySlug}?mode=graph`}
@@ -339,7 +354,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           </DayCard>
           
           {/* Tomorrow Card - loads tomorrow's date-based quanta */}
-          <DayCard label="Tomorrow" isToday={false}>
+          <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
                 src={`/q/${tomorrowSlug}?mode=graph`}

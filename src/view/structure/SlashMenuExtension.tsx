@@ -120,13 +120,24 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     },
     {
       id: 'lifemap-card',
-      title: 'Lifemap Card',
-      description: 'Insert a lifemap card',
+      title: 'Card Strip',
+      description: 'Insert a horizontal card strip',
       emoji: '🗂️',
-      keywords: ['card', 'lifemap', 'container'],
+      keywords: ['card', 'lifemap', 'container', 'strip', 'row'],
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertLifemapCard({ title: 'New Card' })
+      },
+    },
+    {
+      id: 'single-card',
+      title: 'Single Card',
+      description: 'Insert an individual card',
+      emoji: '🪪',
+      keywords: ['card', 'single', 'person', 'profile', 'image'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertSingleLifemapCard({ title: 'New Card' })
       },
     },
     {

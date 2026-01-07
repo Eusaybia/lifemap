@@ -268,8 +268,9 @@ export const TemporalSpaceExtension = TipTapNode.create({
       }, [docAttributes.selectedFocusLens]);
 
       let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
-      const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
-      const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
+      // Right-side only glow - using large X offset and inset to keep glow on right edge
+      const orangeGlow = `80px 0 60px -20px hsla(30, 100%, 50%, 0.4)`;
+      const greenGlow = `80px 0 60px -20px hsl(104, 64%, 45%, 0.5)`;
       let containsUncheckedTodo = false;
       let containsCheckItem = false;
 

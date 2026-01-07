@@ -61,7 +61,7 @@ import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
-import { LifemapCardExtension } from '../structure/LifemapCardExtension'
+import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
@@ -277,6 +277,7 @@ export const customExtensions: Extensions = [
   QuoteExtension,
   WarningExtension,
   LifemapCardExtension,
+  SingleLifemapCardExtension,
   QuantaFlowExtension,
   CalendarExtension,
   HighlightImportantLinePlugin,
