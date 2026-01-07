@@ -240,14 +240,15 @@ export const customExtensions: Extensions = [
   CustomLink.configure({
     openOnClick: true,
   }),
-  CustomMention.configure(
-    {
-      HTMLAttributes: {
-        class: 'mention',
-      },
-      suggestion: mentionSuggestionOptions,
-    }
-  ),
+  // CustomMention disabled - using HashtagMention (#) instead for all tags
+  // CustomMention.configure(
+  //   {
+  //     HTMLAttributes: {
+  //       class: 'mention',
+  //     },
+  //     suggestion: mentionSuggestionOptions,
+  //   }
+  // ),
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
   TimePointMention,
@@ -561,22 +562,26 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // Check for new daily schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
   // Now fetches the editable template from IndexedDB instead of using hardcoded template
+  // Supports initializing both today and tomorrow's schedules
   React.useEffect(() => {
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
-    const newDailyScheduleId = localStorage.getItem('newDailySchedule');
+    const pendingSchedulesStr = localStorage.getItem('newDailySchedules');
+    const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
     const urlId = window.location.pathname.split('/').pop();
     
+    const isInPending = urlId && pendingSchedules.includes(urlId);
+    
     console.log("[RichText] Daily schedule check:", JSON.stringify({ 
-      newDailyScheduleId, 
+      pendingSchedules, 
       urlId, 
       isEmpty: editor.isEmpty,
       textContent: editor.state.doc.textContent.substring(0, 50),
-      match: newDailyScheduleId === urlId
+      isInPending
     }));
     
-    // Only apply template if URL ID matches stored ID (e.g., "daily-2026-01-02")
-    if (newDailyScheduleId === urlId && editor) {
+    // Only apply template if URL ID is in the pending schedules array
+    if (isInPending && editor) {
       // Check if editor is empty before applying template
       const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
       
@@ -595,8 +600,13 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           // Mark template as applied
           templateApplied.current = true;
           
-          // Now safe to remove from localStorage
-          localStorage.removeItem('newDailySchedule');
+          // Remove this URL from pending list (not all of them)
+          const updatedPending = pendingSchedules.filter(id => id !== urlId);
+          if (updatedPending.length > 0) {
+            localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
+          } else {
+            localStorage.removeItem('newDailySchedules');
+          }
         };
         
         setTimeout(() => {
@@ -604,7 +614,39 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         }, 300);
       } else {
         console.log("Daily schedule", urlId, "already has content, skipping template");
-        localStorage.removeItem('newDailySchedule');
+        // Remove this URL from pending list
+        const updatedPending = pendingSchedules.filter(id => id !== urlId);
+        if (updatedPending.length > 0) {
+          localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
+        } else {
+          localStorage.removeItem('newDailySchedules');
+        }
+      }
+    }
+  }, [props.quanta?.id, editor]);
+
+  // Initialize 'present-day-tasks' quanta with a Daily node if empty
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    
+    const urlId = window.location.pathname.split('/').pop();
+    
+    // Only apply to 'present-day-tasks' quanta
+    if (urlId === 'present-day-tasks' && editor) {
+      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      if (isEmpty) {
+        setTimeout(() => {
+          // Insert a Daily node as the default content
+          (editor as Editor)!.commands.setContent({
+            type: 'doc',
+            content: [
+              { type: 'daily' }
+            ]
+          });
+          console.log("Applied Daily node template to present-day-tasks");
+          templateApplied.current = true;
+        }, 300);
       }
     }
   }, [props.quanta?.id, editor]);
