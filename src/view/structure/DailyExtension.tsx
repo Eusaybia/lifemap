@@ -110,25 +110,24 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
         border: isToday ? '2px solid #E5E0C8' : '1px solid #E5E5E5',
         scrollSnapAlign: 'center',
         overflow: 'hidden',
-        padding: '16px',
+        padding: '0px',
       }}
     >
       {/* Day Label Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         gap: '8px',
-        marginBottom: '12px',
-        paddingBottom: '12px',
-        borderBottom: '1px solid #e5e7eb',
+        marginBottom: '0px',
+        padding: '16px 16px 12px 16px',
       }}>
         <h2 style={{
           fontFamily: "'EB Garamond', Georgia, serif",
-          fontSize: '20px',
+          fontSize: '26px',
           fontWeight: 500,
-          color: isToday ? '#92400e' : '#6b7280',
-          textAlign: 'center',
+          color: (isToday || isTemplate) ? '#000000' : '#6b7280',
+          textAlign: 'left',
           margin: 0,
         }}>
           {isTemplate ? 'Daily Schedule Template' : label}
