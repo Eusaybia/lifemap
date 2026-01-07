@@ -26,20 +26,76 @@ const formatDateLabel = (date: Date): string => {
 }
 
 // ============================================================================
+// Daily Background Image Rotation
+// ============================================================================
+
+const GRAHAM_GERCKEN_ARTWORKS = [
+  '/images/graham-gercken-daily-header-bg.jpg',
+  '/images/1-balmoral-beach-sydney-graham-gercken.jpg',
+  '/images/1-capertee-valley-landscape-graham-gercken.jpg',
+  '/images/australian-landscape-sofala-graham-gercken.jpg',
+  '/images/bondi-coastline-graham-gercken.jpg',
+  '/images/koala-in-the-tree-graham-gercken.jpg',
+  '/images/milk-beach-sydney-harbour-graham-gercken.jpg',
+  '/images/sydney-coastline-graham-gercken.jpg',
+]
+
+// Get the day of the year (0-365)
+const getDayOfYear = (date: Date = new Date()): number => {
+  const start = new Date(date.getFullYear(), 0, 0)
+  const diff = date.getTime() - start.getTime()
+  const oneDay = 1000 * 60 * 60 * 24
+  return Math.floor(diff / oneDay)
+}
+
+// Get the date from the current URL (for daily schedule pages like /q/daily-2026-01-07)
+const getDateFromUrl = (): Date | null => {
+  if (typeof window === 'undefined') return null
+  const path = window.location.pathname
+  const match = path.match(/daily-(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    const [, year, month, day] = match
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+  return null
+}
+
+// Get background image based on the date (each date gets a different image)
+const getBackgroundImageForDate = (date: Date): string => {
+  const dayOfYear = getDayOfYear(date)
+  const index = dayOfYear % GRAHAM_GERCKEN_ARTWORKS.length
+  return GRAHAM_GERCKEN_ARTWORKS[index]
+}
+
+// ============================================================================
 // Day Header Node View Component
 // ============================================================================
+
+// Old default path that no longer exists (file was renamed)
+const OLD_DEFAULT_IMAGE = '/images/daily-header-bg.jpg'
 
 const DayHeaderNodeView: React.FC<NodeViewProps> = (props) => {
   const { node } = props
   const title = node.attrs.title || "Today"
-  const backgroundImage = node.attrs.backgroundImage || "/images/daily-header-bg.jpg"
+  // Use the daily rotating image if no custom background is set
+  // Also handles old default path that no longer exists
+  // Each DayHeader gets a different image based on the date from the URL
+  const storedImage = node.attrs.backgroundImage
+  const hasValidCustomImage = storedImage && 
+    storedImage.trim() !== '' && 
+    storedImage !== OLD_DEFAULT_IMAGE
+  
+  // Get the date from URL (e.g., /q/daily-2026-01-07) or fall back to today
+  const dateFromUrl = getDateFromUrl()
+  const dateForImage = dateFromUrl || new Date()
+  const backgroundImage = hasValidCustomImage ? storedImage : getBackgroundImageForDate(dateForImage)
   
   return (
     <NodeViewWrapper data-day-header="true">
       <div style={{
         position: 'relative',
         width: '100%',
-        minHeight: '400px',
+        minHeight: '300px',
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -79,49 +135,12 @@ const DayHeaderNodeView: React.FC<NodeViewProps> = (props) => {
             }}>
               {title}
             </h2>
-            
           </div>
           
-          {/* Glass Cards Container - This is where children nodes are rendered */}
-          <NodeViewContent className="day-header-grid" />
+          {/* Content area - renders child nodes (e.g., a Group) */}
+          <NodeViewContent className="day-header-content" />
         </div>
       </div>
-      <style>{`
-        /* Grid layout for day header cards */
-        .day-header-grid {
-          display: grid !important;
-          grid-template-columns: 1fr 1fr;
-          grid-template-rows: auto auto;
-          gap: 16px;
-          margin-top: 8px;
-        }
-        
-        /* Tasks - top left */
-        .day-header-grid [data-type="day-header-tasks"] {
-          grid-column: 1;
-          grid-row: 1;
-        }
-        
-        /* Insights - bottom left */
-        .day-header-grid [data-type="day-header-insights"] {
-          grid-column: 1;
-          grid-row: 2;
-        }
-        
-        /* Observations - right side, spanning both rows */
-        .day-header-grid [data-type="day-header-observations"] {
-          grid-column: 2;
-          grid-row: 1 / span 2;
-          height: 100%;
-          align-self: stretch;
-        }
-        
-        /* Make the observations card stretch fully */
-        .day-header-grid [data-type="day-header-observations"] > div {
-          height: 100%;
-          min-height: 100%;
-        }
-      `}</style>
     </NodeViewWrapper>
   )
 }
@@ -232,7 +251,7 @@ declare module '@tiptap/core' {
 export const DayHeaderExtension = TipTapNode.create({
   name: "dayHeader",
   group: "block",
-  content: "dayHeaderTasks dayHeaderInsights dayHeaderObservations",
+  content: "block+",
   inline: false,
   selectable: true,
   draggable: true,
@@ -245,7 +264,7 @@ export const DayHeaderExtension = TipTapNode.create({
       subtitle: { default: "" },
       showBadge: { default: true },
       badgeText: { default: "Repeats Daily" },
-      backgroundImage: { default: "/images/daily-header-bg.jpg" },
+      backgroundImage: { default: null }, // null = use daily rotating image
     }
   },
   
@@ -272,29 +291,14 @@ export const DayHeaderExtension = TipTapNode.create({
                 title: options.title || "Today",
                 showBadge: options.showBadge !== false,
                 badgeText: options.badgeText || "Repeats Daily",
-                backgroundImage: options.backgroundImage || "/images/daily-header-bg.jpg",
+                backgroundImage: options.backgroundImage || null, // null = use daily rotating image
               },
               content: [
-                { 
-                  type: 'dayHeaderTasks', 
+                {
+                  type: 'group',
                   content: [
-                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Tasks for Consideration' }] },
                     { type: 'paragraph' },
-                  ] 
-                },
-                { 
-                  type: 'dayHeaderInsights', 
-                  content: [
-                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Feelings, Thoughts' }] },
-                    { type: 'paragraph' },
-                  ] 
-                },
-                { 
-                  type: 'dayHeaderObservations', 
-                  content: [
-                    { type: 'heading', attrs: { level: 3 }, content: [{ type: 'text', text: 'Observations' }] },
-                    { type: 'paragraph' },
-                  ] 
+                  ]
                 },
               ]
             },
