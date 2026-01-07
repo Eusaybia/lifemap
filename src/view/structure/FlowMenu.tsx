@@ -416,6 +416,54 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </motion.div>
                 </Option>
             )}
+            <Option
+                value={"Export document JSON"}
+                onClick={() => {
+                    const json = props.editor.getJSON();
+                    const jsonString = JSON.stringify(json, null, 2);
+                    navigator.clipboard.writeText(jsonString).then(() => {
+                        console.log('Document JSON copied to clipboard!');
+                        alert('Document JSON copied to clipboard!');
+                    }, (err) => {
+                        console.error('Could not copy JSON: ', err);
+                        // Fallback: download as file
+                        const blob = new Blob([jsonString], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `document-${Date.now()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📤 Export document JSON
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
+                value={"Download document JSON"}
+                onClick={() => {
+                    const json = props.editor.getJSON();
+                    const jsonString = JSON.stringify(json, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const urlId = window.location.pathname.split('/').pop() || 'document';
+                    a.download = `${urlId}-${Date.now()}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }}
+            >
+                <motion.div>
+                    <span>
+                        💾 Download document JSON
+                    </span>
+                </motion.div>
+            </Option>
         </FlowSwitch>
     )
 })
