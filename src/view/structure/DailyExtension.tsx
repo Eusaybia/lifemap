@@ -109,8 +109,10 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
         borderRadius: '12px',
         border: isToday ? '2px solid #E5E0C8' : '1px solid #E5E5E5',
         scrollSnapAlign: 'center',
-        overflow: 'hidden',
+        overflow: 'visible',
         padding: '0px',
+        position: 'relative',
+        zIndex: 100,
       }}
     >
       {/* Day Label Header */}
@@ -135,7 +137,7 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, children }) => {
       </div>
       
       {/* Content Area */}
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
     </motion.div>
@@ -210,9 +212,9 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
   return (
     <NodeViewWrapper 
       data-daily-node-view="true"
-      style={{ margin: '0' }}
+      style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
         {/* Navigation Arrows */}
         <button
           onClick={navigatePrevious}
@@ -273,6 +275,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
             flexDirection: 'row',
             gap: '12px',
             overflowX: 'auto',
+            overflowY: 'visible',
             scrollSnapType: 'x mandatory',
             scrollBehavior: 'smooth',
             padding: '8px 50px',
