@@ -29,38 +29,51 @@ const getTomorrowDate = (): Date => {
 }
 
 const TEMPLATE_QUANTA_SLUG = 'daily-schedule-template'
-const NEW_DAILY_SCHEDULE_KEY = 'newDailySchedule'
+const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules' // Now stores an array of slugs
 const INITIALIZED_DAYS_KEY = 'initializedDailySchedules'
 
-// Set flag for today's schedule - RichText.tsx will apply template if empty
+// Set flag for today's and tomorrow's schedules - RichText.tsx will apply template if empty
 // Uses localStorage because sessionStorage is NOT shared between iframes and parent
 // This function is called synchronously to ensure flag is set before iframes load
 // IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
 const checkAndInitializeDaily = () => {
   const today = formatDateSlug(new Date())
+  const tomorrow = formatDateSlug(getTomorrowDate())
   const todaySlug = `daily-${today}`
+  const tomorrowSlug = `daily-${tomorrow}`
   
-  // Check if we've already initialized this day
+  // Check if we've already initialized these days
   const initializedDaysStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
   const initializedDays: string[] = initializedDaysStr ? JSON.parse(initializedDaysStr) : []
   
-  // If today has already been initialized, don't set the flag again
-  if (initializedDays.includes(todaySlug)) {
-    console.log(`[DailyExtension] ${todaySlug} already initialized, skipping template flag`)
-    return
+  // Get current pending schedules
+  const pendingStr = localStorage.getItem(NEW_DAILY_SCHEDULES_KEY)
+  const pendingSchedules: string[] = pendingStr ? JSON.parse(pendingStr) : []
+  
+  // Check and add today if not already initialized
+  if (!initializedDays.includes(todaySlug) && !pendingSchedules.includes(todaySlug)) {
+    pendingSchedules.push(todaySlug)
+    initializedDays.push(todaySlug)
+    console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization`)
   }
   
-  // Mark today as needing initialization and track it
-  localStorage.setItem(NEW_DAILY_SCHEDULE_KEY, todaySlug)
+  // Check and add tomorrow if not already initialized
+  if (!initializedDays.includes(tomorrowSlug) && !pendingSchedules.includes(tomorrowSlug)) {
+    pendingSchedules.push(tomorrowSlug)
+    initializedDays.push(tomorrowSlug)
+    console.log(`[DailyExtension] Flagged ${tomorrowSlug} for template initialization`)
+  }
   
-  // Add to initialized list (keep last 30 days to avoid unbounded growth)
-  initializedDays.push(todaySlug)
-  if (initializedDays.length > 30) {
+  // Save pending schedules
+  if (pendingSchedules.length > 0) {
+    localStorage.setItem(NEW_DAILY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
+  }
+  
+  // Keep last 30 days to avoid unbounded growth
+  while (initializedDays.length > 30) {
     initializedDays.shift() // Remove oldest
   }
   localStorage.setItem(INITIALIZED_DAYS_KEY, JSON.stringify(initializedDays))
-  
-  console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization at ${new Date().toISOString()}`)
 }
 
 // Call immediately when module loads to ensure flag is set before iframes render
