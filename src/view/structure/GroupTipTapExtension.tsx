@@ -369,13 +369,14 @@ export const GroupExtension = TipTapNode.create({
         <NodeViewWrapper
           ref={nodeViewRef}
           data-group-node-view="true"
-          style={{ scrollSnapAlign: 'start' }}
+          style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
           <motion.div
             style={{
               borderRadius: 10,
               position: 'relative',
               display: isHidden ? 'none' : 'block',
+              overflow: 'visible',
             }}
             animate={{
               boxShadow: glowStyles.join(','),
