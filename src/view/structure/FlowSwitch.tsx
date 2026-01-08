@@ -8,8 +8,29 @@ interface OptionButtonProps {
     children: React.ReactNode;
 }
 
-export const FlowSwitch = (props: { children: React.ReactElement[], value: string, onChange?: (selectedIndex: number) => void, isLens?: boolean }) => {
-    const flowSwitchContainerRef = React.useRef<HTMLDivElement>(null)
+interface FlowSwitchProps {
+    children: React.ReactElement[]
+    value: string
+    onChange?: (selectedIndex: number) => void
+    isLens?: boolean
+    disableAutoScroll?: boolean
+}
+
+export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((props, ref) => {
+    const internalContainerRef = React.useRef<HTMLDivElement>(null)
+    const flowSwitchContainerRef = internalContainerRef
+    
+    // Merge refs - assign to both internal ref and forwarded ref
+    const setRefs = React.useCallback((node: HTMLDivElement | null) => {
+        // Set internal ref
+        (internalContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+        // Forward to external ref
+        if (typeof ref === 'function') {
+            ref(node)
+        } else if (ref) {
+            (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+        }
+    }, [ref])
 
     // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
     // But this doesn't seem possible to detect currently
@@ -59,6 +80,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
 
     // Scroll to the element with the key === props.value
     React.useEffect(() => {
+        // Skip auto-scroll if disabled (for keyboard-controlled navigation)
+        if (props.disableAutoScroll) return;
+
         // Find the element in valid children
         const index = validChildren.findIndex(child => {
             return child && child.props && child.props.value === props.value
@@ -67,11 +91,8 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
         if (index !== -1 && switchElementsRefs[index].current) {
             // Mark this as programmatic scroll so we don't play tick sounds
             isProgrammaticScroll.current = true;
-            
-            // The element was found, scroll to it
-            switchElementsRefs[index].current!.scrollIntoView({ behavior: 'smooth' });
 
-            // Scroll to the element
+            // Scroll to the element using only scrollTo (not both scrollIntoView and scrollTo)
             const container = flowSwitchContainerRef.current;
             const element = switchElementsRefs[index].current;
 
@@ -79,7 +100,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
                 const containerRect = container.getBoundingClientRect();
                 const elementRect = element.getBoundingClientRect();
 
-                const scrollTop = elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+                const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - (containerRect.height / 2) + (elementRect.height / 2);
 
                 container.scrollTo({
                     top: scrollTop,
@@ -97,7 +118,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
-    }, [props.value])
+    }, [props.value, props.disableAutoScroll])
 
     useScrollEnd(() => {
         if (props.onChange) {
@@ -141,7 +162,7 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
     return (
         <motion.div className="flow-menu"
             key={props.value}
-            ref={flowSwitchContainerRef}
+            ref={setRefs}
             onScroll={handleScroll}
             style={{
                 scrollSnapType: "y mandatory",
@@ -177,7 +198,9 @@ export const FlowSwitch = (props: { children: React.ReactElement[], value: strin
             {switchElements}
         </motion.div>
     )
-}
+})
+
+FlowSwitch.displayName = 'FlowSwitch'
 
 export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children }) => {
     const [clickSound, setClickSound] = React.useState<HTMLAudioElement | null>(null);
