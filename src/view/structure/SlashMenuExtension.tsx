@@ -8,6 +8,7 @@ import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/core'
+import { FlowSwitch, Option } from './FlowSwitch'
 
 // ============================================================================
 // Types
@@ -308,18 +309,66 @@ const filterItems = (items: SlashMenuItem[], query: string): SlashMenuItem[] => 
 
 const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
+  const [tickSound, setTickSound] = useState<HTMLAudioElement | null>(null)
+
+  // Initialize tick sound
+  useEffect(() => {
+    const audio = new Audio('/click.mp3')
+    audio.volume = 0.12
+    setTickSound(audio)
+  }, [])
+
+  // Scroll to selected item
+  const scrollToIndex = (index: number) => {
+    const element = itemRefs.current[index]
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }
 
   const selectItem = (index: number) => {
     if (index >= props.items.length) return
     const item = props.items[index]
+    // Play click sound
+    if (tickSound) {
+      const soundClone = tickSound.cloneNode() as HTMLAudioElement
+      soundClone.volume = 0.15
+      soundClone.play().catch(() => {})
+    }
     props.command(item)
   }
 
-  const upHandler = () => setSelectedIndex((selectedIndex + props.items.length - 1) % props.items.length)
-  const downHandler = () => setSelectedIndex((selectedIndex + 1) % props.items.length)
+  const upHandler = () => {
+    const newIndex = (selectedIndex + props.items.length - 1) % props.items.length
+    setSelectedIndex(newIndex)
+    // Play tick sound
+    if (tickSound) {
+      const soundClone = tickSound.cloneNode() as HTMLAudioElement
+      soundClone.volume = 0.1
+      soundClone.play().catch(() => {})
+    }
+    scrollToIndex(newIndex)
+  }
+
+  const downHandler = () => {
+    const newIndex = (selectedIndex + 1) % props.items.length
+    setSelectedIndex(newIndex)
+    // Play tick sound
+    if (tickSound) {
+      const soundClone = tickSound.cloneNode() as HTMLAudioElement
+      soundClone.volume = 0.1
+      soundClone.play().catch(() => {})
+    }
+    scrollToIndex(newIndex)
+  }
+
   const enterHandler = () => selectItem(selectedIndex)
 
-  useEffect(() => setSelectedIndex(0), [props.items])
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [props.items])
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
@@ -330,69 +379,87 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
     },
   }))
 
+  if (props.items.length === 0) {
+    return (
+      <div style={{ 
+        padding: '16px', 
+        color: '#888', 
+        fontSize: '13px', 
+        textAlign: 'center', 
+        fontFamily: 'Inter, system-ui, sans-serif',
+        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+        backdropFilter: 'blur(12px)',
+        borderRadius: '10px',
+        border: '1px solid rgba(200, 200, 200, 0.6)',
+      }}>
+        No matching commands
+      </div>
+    )
+  }
+
+  // Use FlowSwitch styling but with proper list behavior
   return (
-    <div className="slash-menu-items" style={{
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-      border: '1px solid rgba(0,0,0,0.1)',
-      maxHeight: '320px',
-      overflowY: 'auto',
-      padding: '8px',
-      minWidth: '280px',
-    }}>
-      {props.items.length > 0 ? (
-        props.items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            onClick={() => selectItem(index)}
-            whileHover={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '10px 12px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              backgroundColor: index === selectedIndex ? 'rgba(0,0,0,0.05)' : 'transparent',
-            }}
-          >
-            <span style={{
-              fontSize: '18px',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.05)',
-              borderRadius: '6px',
-            }}>
-              {item.emoji}
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontWeight: 500,
-                fontSize: '14px',
-                color: '#1a1a1a',
-              }}>
-                {item.title}
-              </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#666',
-              }}>
-                {item.description}
-              </div>
-            </div>
-          </motion.div>
-        ))
-      ) : (
-        <div style={{ padding: '12px', color: '#666', fontSize: '14px' }}>
-          No matching commands
-        </div>
-      )}
-    </div>
+    <motion.div
+      ref={containerRef}
+      className="flow-menu slash-menu-list"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.1 }}
+      style={{
+        scrollSnapType: 'y mandatory',
+        scrollBehavior: 'smooth',
+        cursor: 'pointer',
+        boxSizing: 'border-box',
+        width: 'fit-content',
+        minWidth: 220,
+        maxWidth: 320,
+        maxHeight: 280,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        alignItems: 'stretch',
+        padding: '6px',
+        overflow: 'auto',
+        boxShadow: '0px 0.6px 3px -0.9px rgba(0, 0, 0, 0.14), 0px 2.3px 11.4px -1.8px rgba(0, 0, 0, 0.13), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.11)',
+        backgroundColor: 'rgba(217, 217, 217, 0.22)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        transform: 'translate3d(0, 0, 0)',
+        borderRadius: 8,
+        border: '1px solid #BBBBBB',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        gap: 2,
+      }}
+    >
+      {props.items.map((item, index) => (
+        <motion.div
+          key={item.id}
+          ref={(el) => { itemRefs.current[index] = el }}
+          onClick={() => selectItem(index)}
+          initial={{ opacity: 0.4, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          whileTap={{ scale: 0.97 }}
+          viewport={{ root: containerRef, margin: '-10px 0px -10px 0px' }}
+          style={{
+            scrollSnapAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 10px',
+            borderRadius: 6,
+            cursor: 'pointer',
+            backgroundColor: index === selectedIndex ? 'rgba(100, 100, 100, 0.15)' : 'transparent',
+            transition: 'background-color 0.1s ease',
+          }}
+        >
+          <span style={{ fontSize: '16px', width: 24, textAlign: 'center' }}>{item.emoji}</span>
+          <span style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px', color: '#333' }}>
+            {item.title}
+          </span>
+        </motion.div>
+      ))}
+    </motion.div>
   )
 })
 
