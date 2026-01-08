@@ -298,19 +298,21 @@ export const TemporalSpaceExtension = TipTapNode.create({
         <NodeViewWrapper
           ref={nodeViewRef}
           data-temporal-space-node-view="true"
-          style={{ scrollSnapAlign: 'start' }}
+          style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
+          {/* Debug: Log node attrs on every render */}
+          {console.log('[TemporalSpaceNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
           <motion.div
             style={{
               borderRadius: 10,
               position: 'relative',
               display: isHidden ? 'none' : 'block',
               border: '2px solid #c0c0c0',
-              backgroundColor: 'transparent',
+              backgroundColor: props.node.attrs.backgroundColor || 'transparent',
               padding: isCollapsed ? '10px 20px' : '20px',
               margin: '8px 0px',
               minHeight: isCollapsed ? 48 : 20,
-              overflow: 'hidden',
+              overflow: 'visible',
             }}
             animate={{
               boxShadow: glowStyles.join(','),
@@ -353,6 +355,41 @@ export const TemporalSpaceExtension = TipTapNode.create({
                   strokeLinejoin="round"
                 />
               </motion.svg>
+            </motion.div>
+
+            {/* 6-dot grip handle on the top right - clicking selects the node to show FlowMenu */}
+            <motion.div
+              data-drag-handle
+              onClick={(e) => {
+                e.stopPropagation();
+                // Get the position of this node and set node selection to trigger FlowMenu
+                const pos = props.getPos();
+                if (typeof pos === 'number') {
+                  props.editor.commands.setNodeSelection(pos);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                top: 40,
+                right: 6,
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+                padding: '8px 4px',
+                borderRadius: 4,
+                backgroundColor: 'transparent',
+              }}
+              whileHover={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {/* 3 rows of 2 dots each */}
+              {[0, 1, 2].map((row) => (
+                <div key={row} style={{ display: 'flex', gap: 3 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
+                </div>
+              ))}
             </motion.div>
 
             {/* Content */}
