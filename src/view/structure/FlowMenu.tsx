@@ -674,9 +674,11 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
 
 // Memoize GroupLoupe
 const GroupLoupe = React.memo((props: { editor: Editor }) => {
+    console.log('[GroupLoupe] Rendering GroupLoupe component');
 
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
+    console.log('[GroupLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
 
     return (
         <div
@@ -706,6 +708,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"lightBlue"}
                     onClick={() => {
+                        console.log('[GroupLoupe] Clicked lightBlue option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
                     }}
                 >
@@ -718,6 +721,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"purple"}
                     onClick={() => {
+                        console.log('[GroupLoupe] Clicked purple option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: purple })
                     }}
                 >
@@ -1297,12 +1301,15 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
+                {/* Debug: Log what node type is detected */}
+                {console.log('[FlowMenu] getSelectedNodeType:', getSelectedNodeType(props.editor))}
                 <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
                 {
                     {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
+                        'temporalSpace': <GroupLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,

@@ -159,10 +159,20 @@ export const GroupExtension = TipTapNode.create({
 
         const nodeType = getSelectedNodeType(editor)
 
-        if (nodeType === "group" && dispatch) {
-          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "backgroundColor", attributes.backgroundColor));
-          return true; // Indicate that the command ran successfully
+        console.log('[setBackgroundColor] Called with:', attributes.backgroundColor);
+        console.log('[setBackgroundColor] nodeType:', nodeType);
+        console.log('[setBackgroundColor] selection.$from.pos:', selection.$from.pos);
+
+        // Support background color for group and temporalSpace nodes
+        if ((nodeType === "group" || nodeType === "temporalSpace") && dispatch) {
+          // Use original position: selection.$from.pos
+          const pos = selection.$from.pos;
+          console.log('[setBackgroundColor] Dispatching setNodeAttribute at pos', pos, 'with backgroundColor:', attributes.backgroundColor);
+          
+          dispatch(state.tr.setNodeAttribute(pos, "backgroundColor", attributes.backgroundColor));
+          return true;
         }
+        console.log('[setBackgroundColor] Condition not met, returning false');
         return false
       },
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
@@ -384,6 +394,8 @@ export const GroupExtension = TipTapNode.create({
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
+            {/* Debug: Log node attrs on every render */}
+            {console.log('[GroupNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
             <Group
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
@@ -404,6 +416,43 @@ export const GroupExtension = TipTapNode.create({
                 }
               })()}
             </Group>
+            
+            {/* 6-dot grip handle - clicking selects the node to show FlowMenu */}
+            <motion.div
+              data-drag-handle
+              onClick={(e) => {
+                e.stopPropagation();
+                // Get the position of this node and set node selection to trigger FlowMenu
+                const pos = props.getPos();
+                if (typeof pos === 'number') {
+                  props.editor.commands.setNodeSelection(pos);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                top: 40,
+                right: 6,
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+                padding: '8px 4px',
+                borderRadius: 4,
+                backgroundColor: 'transparent',
+                zIndex: 10,
+              }}
+              whileHover={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {/* 3 rows of 2 dots each */}
+              {[0, 1, 2].map((row) => (
+                <div key={row} style={{ display: 'flex', gap: 3 }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
+                </div>
+              ))}
+            </motion.div>
+
             <motion.div
               style={{
                 position: 'absolute',
