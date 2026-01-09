@@ -16,6 +16,7 @@ import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
 import Image from '@tiptap/extension-image'
 import { MapboxMapExtension } from './MapboxMapExtension'
+import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
@@ -44,7 +45,7 @@ import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
 import { TimePointMention, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
-import { DurationExtension } from './DurationMention'
+import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { CustomLink } from './Link'
@@ -112,10 +113,8 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
         persistence.destroy()
         
         if (hasContent) {
-          console.log('[RichText] Fetched template content from IndexedDB:', quantaId, content)
           resolve(content)
         } else {
-          console.log('[RichText] Template quanta empty or not found, using fallback. Content:', content)
           resolve(null)
         }
       } catch (error) {
@@ -128,7 +127,6 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
     // Timeout after 3 seconds
     setTimeout(() => {
       persistence.destroy()
-      console.log('[RichText] Timeout fetching template, using fallback')
       resolve(null)
     }, 3000)
   })
@@ -259,7 +257,10 @@ export const customExtensions: Extensions = [
   HashtagNode,
   HashtagMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
+  // PomodoroNode is for short durations (< 1 day) with timer functionality
+  // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality
   PomodoroNode,
+  DurationBadgeNode,
   DurationExtension,
   DocumentAttributeExtension,
   FadeIn,
@@ -271,6 +272,9 @@ export const customExtensions: Extensions = [
   // LocationExtension removed - conflicts with LocationNode from LocationMention.tsx (both use name: "location")
   // LocationNode supports inline mentions with pin emoji via # trigger
   MapboxMapExtension,
+  // Excalidraw - hand-drawn style whiteboard for moodboards, diagrams, and visual brainstorming
+  // https://github.com/excalidraw/excalidraw
+  ExcalidrawExtension,
   MathExtension,
   MessageExtension,
   PortalExtension,
@@ -429,7 +433,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       // Set initial editability and focus lens state
       // @ts-ignore
       const documentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
-      console.log("Initial Document Attributes", documentAttributes);
       setCurrentFocusLens(documentAttributes.selectedFocusLens); // Set initial state
       const shouldBeEditable = documentAttributes.selectedFocusLens === 'admin-editing' || documentAttributes.selectedFocusLens === 'call-mode' || documentAttributes.selectedFocusLens === 'dev-mode';
       editor.setEditable(shouldBeEditable);
@@ -450,10 +453,8 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         throttledBackup(editor.getJSON())
       }
       
-      console.log("JSON Output", editor.getJSON())
       // @ts-ignore
       const documentAttributes = editor.commands.getDocumentAttributes()
-      console.log("Document Attributes", documentAttributes)
     },
     onTransaction: ({ editor, transaction }) => {
     },
@@ -469,19 +470,16 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       scrollElement.style.scrollSnapType = 'y mandatory';
       // Optional: Add padding to influence snapping point if needed
       // scrollElement.style.scrollPaddingTop = '25vh'; // Example: snap closer to center
-      console.log("Scroll snap ENABLED (y mandatory)");
     } else {
       // Disable scroll snapping
       scrollElement.style.scrollSnapType = 'none';
       // scrollElement.style.scrollPaddingTop = ''; // Reset padding if set
-      console.log("Scroll snap DISABLED");
     }
 
     // Cleanup function to disable scroll snap when component unmounts or mode changes
     return () => {
       scrollElement.style.scrollSnapType = 'none';
       // scrollElement.style.scrollPaddingTop = ''; // Reset padding if set
-      console.log("Scroll snap DISABLED (cleanup)");
     };
   }, [currentFocusLens]); // Rerun only when the focus lens changes
 
@@ -548,7 +546,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (newSalesGuideId === urlId && editor) {
       setTimeout(() => {
         (editor as Editor)!.commands.setContent(SalesGuideTemplate);
-        console.log("Applied sales guide template to", urlId);
 
         // Mark template as applied
       templateApplied.current = true;
@@ -572,14 +569,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     
     const isInPending = urlId && pendingSchedules.includes(urlId);
     
-    console.log("[RichText] Daily schedule check:", JSON.stringify({ 
-      pendingSchedules, 
-      urlId, 
-      isEmpty: editor.isEmpty,
-      textContent: editor.state.doc.textContent.substring(0, 50),
-      isInPending
-    }));
-    
     // Only apply template if URL ID is in the pending schedules array
     if (isInPending && editor) {
       // Check if editor is empty before applying template
@@ -594,8 +583,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           const contentToApply = templateContent || getDailyScheduleTemplate();
           
           (editor as Editor)!.commands.setContent(contentToApply);
-          console.log("Applied daily schedule template to", urlId, 
-            templateContent ? "(from editable template)" : "(from hardcoded fallback)");
           
           // Mark template as applied
           templateApplied.current = true;
@@ -613,7 +600,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           applyTemplate();
         }, 300);
       } else {
-        console.log("Daily schedule", urlId, "already has content, skipping template");
         // Remove this URL from pending list
         const updatedPending = pendingSchedules.filter(id => id !== urlId);
         if (updatedPending.length > 0) {
@@ -626,10 +612,13 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }, [props.quanta?.id, editor]);
 
   // Auto-insert Daily node for present-day-tasks after content has synced from IndexedDB
+  // Also removes duplicate Daily nodes if multiple exist
   const dailyNodeCheckDone = React.useRef(false);
   
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || dailyNodeCheckDone.current) return;
+    // Early exit if already checked in this component instance
+    if (dailyNodeCheckDone.current) return;
+    if (!props.quanta?.id || !editor) return;
     
     const urlId = window.location.pathname.split('/').pop();
     if (urlId !== 'present-day-tasks') return;
@@ -639,54 +628,78 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!yDoc) return;
     
     let stabilityTimeout: NodeJS.Timeout | null = null;
-    let hasChecked = false;
+    let isCancelled = false;
     
     const checkAndInsertDaily = () => {
-      if (hasChecked || dailyNodeCheckDone.current) return;
-      hasChecked = true;
+      // Double-check the ref and cancellation flag before any action
+      if (isCancelled || dailyNodeCheckDone.current) return;
+      
+      // Mark as done FIRST to prevent any race conditions
       dailyNodeCheckDone.current = true;
       
-      // Check if a daily node already exists
-      let hasDailyNode = false;
-      editor.state.doc.descendants((node) => {
+      // Count daily nodes and collect their positions
+      const dailyNodePositions: number[] = [];
+      editor.state.doc.descendants((node, pos) => {
         if (node.type.name === 'daily') {
-          hasDailyNode = true;
-          return false;
+          dailyNodePositions.push(pos);
         }
         return true;
       });
       
-      if (!hasDailyNode) {
-        console.log('[RichText] No Daily node found in present-day-tasks, inserting one');
+      const dailyCount = dailyNodePositions.length;
+      
+      if (dailyCount === 0) {
+        // No daily node exists, insert one
         editor.chain().focus('end').insertContent({ type: 'daily' }).run();
-      } else {
-        console.log('[RichText] Daily node already exists in present-day-tasks');
+      } else if (dailyCount > 1) {
+        // Multiple daily nodes exist - remove extras (keep the first one)
+        // Delete in reverse order to avoid position shifts affecting earlier positions
+        const positionsToDelete = dailyNodePositions.slice(1).reverse();
+        
+        let chain = editor.chain();
+        for (const pos of positionsToDelete) {
+          const node = editor.state.doc.nodeAt(pos);
+          if (node && node.type.name === 'daily') {
+            chain = chain.deleteRange({ from: pos, to: pos + node.nodeSize });
+          }
+        }
+        chain.run();
+        
+        console.log(`[RichText] Removed ${dailyCount - 1} duplicate Daily node(s)`);
       }
     };
     
     // Wait for content to stabilize (no Y.Doc updates for 800ms)
     const onYDocUpdate = () => {
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
-      stabilityTimeout = setTimeout(checkAndInsertDaily, 800);
+      if (!isCancelled && !dailyNodeCheckDone.current) {
+        stabilityTimeout = setTimeout(checkAndInsertDaily, 800);
+      }
     };
     
     // Listen for Y.Doc updates
     yDoc.on('update', onYDocUpdate);
     
     // Also set an initial timeout in case the doc is already synced and no updates come
-    stabilityTimeout = setTimeout(checkAndInsertDaily, 1000);
+    if (!dailyNodeCheckDone.current) {
+      stabilityTimeout = setTimeout(checkAndInsertDaily, 1000);
+    }
     
     return () => {
+      isCancelled = true;
       yDoc.off('update', onYDocUpdate);
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
     };
   }, [props.quanta?.id, editor, props.quanta?.information]);
 
   // Auto-insert Calendar node for 'past' quanta (Monthly section) after content has synced
+  // Use a module-level flag to prevent duplicate insertions across component remounts
   const calendarNodeCheckDone = React.useRef(false);
   
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || calendarNodeCheckDone.current) return;
+    // Early exit if already checked in this component instance
+    if (calendarNodeCheckDone.current) return;
+    if (!props.quanta?.id || !editor) return;
     
     const urlId = window.location.pathname.split('/').pop();
     if (urlId !== 'past') return;
@@ -696,44 +709,64 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!yDoc) return;
     
     let stabilityTimeout: NodeJS.Timeout | null = null;
-    let hasChecked = false;
+    let isCancelled = false;
     
     const checkAndInsertCalendar = () => {
-      if (hasChecked || calendarNodeCheckDone.current) return;
-      hasChecked = true;
+      // Double-check the ref and cancellation flag before any action
+      if (isCancelled || calendarNodeCheckDone.current) return;
+      
+      // Mark as done FIRST to prevent any race conditions
       calendarNodeCheckDone.current = true;
       
-      // Check if a calendar node already exists
-      let hasCalendarNode = false;
-      editor.state.doc.descendants((node) => {
+      // Count calendar nodes and collect their positions
+      const calendarNodePositions: number[] = [];
+      editor.state.doc.descendants((node, pos) => {
         if (node.type.name === 'calendar') {
-          hasCalendarNode = true;
-          return false;
+          calendarNodePositions.push(pos);
         }
         return true;
       });
       
-      if (!hasCalendarNode) {
-        console.log('[RichText] No Calendar node found in past, inserting one');
+      const calendarCount = calendarNodePositions.length;
+      
+      if (calendarCount === 0) {
         editor.chain().focus('end').insertContent({ type: 'calendar' }).run();
-      } else {
-        console.log('[RichText] Calendar node already exists in past');
+      } else if (calendarCount > 1) {
+        // Multiple calendar nodes exist - remove extras (keep the first one)
+        // Delete in reverse order to avoid position shifts affecting earlier positions
+        const positionsToDelete = calendarNodePositions.slice(1).reverse();
+        
+        let chain = editor.chain();
+        for (const pos of positionsToDelete) {
+          const node = editor.state.doc.nodeAt(pos);
+          if (node && node.type.name === 'calendar') {
+            chain = chain.deleteRange({ from: pos, to: pos + node.nodeSize });
+          }
+        }
+        chain.run();
+        
+        console.log(`[RichText] Removed ${calendarCount - 1} duplicate Calendar node(s)`);
       }
     };
     
     // Wait for content to stabilize (no Y.Doc updates for 800ms)
     const onYDocUpdate = () => {
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
-      stabilityTimeout = setTimeout(checkAndInsertCalendar, 800);
+      if (!isCancelled && !calendarNodeCheckDone.current) {
+        stabilityTimeout = setTimeout(checkAndInsertCalendar, 800);
+      }
     };
     
     // Listen for Y.Doc updates
     yDoc.on('update', onYDocUpdate);
     
     // Also set an initial timeout in case the doc is already synced and no updates come
-    stabilityTimeout = setTimeout(checkAndInsertCalendar, 1000);
+    if (!calendarNodeCheckDone.current) {
+      stabilityTimeout = setTimeout(checkAndInsertCalendar, 1000);
+    }
     
     return () => {
+      isCancelled = true;
       yDoc.off('update', onYDocUpdate);
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
     };

@@ -173,8 +173,11 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
     )
   }
   
-  // Completed state: opaque, showing completed time range without buttons
+  // Completed state: opaque, showing completed time range as joined timepoint-style badge
   if (status === 'completed') {
+    const start = startTime ? new Date(startTime) : null
+    const end = getEndTime()
+    
     return (
       <NodeViewWrapper
         as="span"
@@ -184,9 +187,13 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
         <span className="pomodoro-icon">⏳</span>
         <span className="pomodoro-label">{label}</span>
         <span className="pomodoro-divider">||</span>
-        <span className="pomodoro-time-icon">🕐</span>
-        <span className="pomodoro-time-range">
-          {formatTimeRange()}
+        {/* Joined time range badge - both times in one connected container */}
+        <span className="pomodoro-time-range-badge">
+          <span className="nested-time-icon">🕐</span>
+          <span className="nested-time-value">{start ? formatTime(start) : ''}</span>
+          <span className="pomodoro-time-dash">-</span>
+          <span className="nested-time-icon">🕐</span>
+          <span className="nested-time-value">{end ? formatTime(end) : ''}</span>
         </span>
       </NodeViewWrapper>
     )
