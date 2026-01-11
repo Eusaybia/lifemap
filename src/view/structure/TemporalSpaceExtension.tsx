@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
-import { Editor, Node as TipTapNode, NodeViewProps, JSONContent } from "@tiptap/core";
+import { Editor, Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { GroupLenses } from "./Group";
@@ -89,8 +89,13 @@ export const shouldHideTemporalSpace = (
   return false;
 };
 
-// TemporalSpace can be inserted via slash menu (/temporal) or FlowMenu
-// No input rule to avoid conflicts with task list checkbox syntax [ ]
+// TemporalSpace can be inserted via:
+// - Input rule: type "<text>" (angle brackets with text inside)
+// - Slash menu: /temporal
+// - FlowMenu
+
+// Match for angle brackets with text in between: <some text>
+export const temporalSpaceInputRegex = /<([^<>]*)>/;
 
 export const TemporalSpaceExtension = TipTapNode.create({
   name: "temporalSpace",
@@ -159,7 +164,14 @@ export const TemporalSpaceExtension = TipTapNode.create({
   renderHTML({ node, HTMLAttributes }) {
     return ["div", { ...HTMLAttributes, "data-temporal-space": "true" }, 0];
   },
-  // No input rules - use slash menu (/temporal) or FlowMenu to insert
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: temporalSpaceInputRegex,
+        type: this.type,
+      })
+    ]
+  },
   onSelectionUpdate() {
     // Placeholder for future selection update logic
   },
@@ -200,9 +212,28 @@ export const TemporalSpaceExtension = TipTapNode.create({
         };
       }, [props.editor]);
 
-      // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
-      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
+      // Initialize with default values to avoid calling getDocumentAttributes during render
+      // (which triggers flushSync and causes React errors)
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes);
+      const [isCentered, setIsCentered] = useState(false);
+
+      // Fetch actual document attributes after mount
+      useEffect(() => {
+        // Use setTimeout to defer the command call outside of React's render cycle
+        const timer = setTimeout(() => {
+          try {
+            // @ts-ignore
+            const attrs = props.editor.commands.getDocumentAttributes();
+            if (attrs) {
+              setDocAttributes(attrs);
+              setIsCentered(attrs.selectedFocusLens === 'call-mode');
+            }
+          } catch (e) {
+            // Ignore errors if editor is not ready
+          }
+        }, 0);
+        return () => clearTimeout(timer);
+      }, [props.editor]);
 
       useEffect(() => {
         const handleUpdate = (event: Event) => {
