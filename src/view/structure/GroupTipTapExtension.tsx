@@ -10,6 +10,7 @@ import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
+import { DragGrip } from "../components/DragGrip";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -418,40 +419,17 @@ export const GroupExtension = TipTapNode.create({
             </Group>
             
             {/* 6-dot grip handle - clicking selects the node to show FlowMenu */}
-            <motion.div
-              data-drag-handle
-              onClick={(e) => {
-                e.stopPropagation();
-                // Get the position of this node and set node selection to trigger FlowMenu
+            <DragGrip
+              position="absolute-top-right"
+              dotColor="#999"
+              hoverBackground="rgba(0, 0, 0, 0.08)"
+              onClick={() => {
                 const pos = props.getPos();
                 if (typeof pos === 'number') {
                   props.editor.commands.setNodeSelection(pos);
                 }
               }}
-              style={{
-                position: 'absolute',
-                top: 40,
-                right: 6,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 3,
-                padding: '8px 4px',
-                borderRadius: 4,
-                backgroundColor: 'transparent',
-                zIndex: 10,
-              }}
-              whileHover={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {/* 3 rows of 2 dots each */}
-              {[0, 1, 2].map((row) => (
-                <div key={row} style={{ display: 'flex', gap: 3 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#999' }} />
-                </div>
-              ))}
-            </motion.div>
+            />
 
             <motion.div
               style={{

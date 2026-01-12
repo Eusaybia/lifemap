@@ -3,7 +3,7 @@ import { Quanta } from '../../core/Quanta';
 import { QuantaId } from '../../core/Model';
 import React from 'react'
 import { offWhite, purple } from '../Theme';
-import { Grip } from '../content/Grip';
+// Grip is now handled by the parent NodeView (GroupTipTapExtension)
 
 export type GroupLenses = "identity" | "hideUnimportantNodes";
 
@@ -100,7 +100,7 @@ export const Group = (props: {
                 margin: `8px 0px 8px 0px`,
             }}
         >
-            <Grip/>
+            {/* Grip is now handled by the parent NodeView (GroupTipTapExtension) */}
             {props.onToggleCollapse && (
                 <CollapseChevron 
                     isCollapsed={props.isCollapsed || false} 

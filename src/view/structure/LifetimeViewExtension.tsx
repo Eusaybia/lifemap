@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { DragGrip } from "../components/DragGrip"
 
 // ============================================================================
 // Constants
@@ -333,15 +334,22 @@ const LifetimeViewNodeView: React.FC<NodeViewProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         style={{
+          position: 'relative',
           background: COLORS.background,
           borderRadius: '16px',
-          overflow: 'hidden',
+          overflow: 'visible',
           border: selected ? '2px solid rgba(255, 255, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: selected 
             ? '0 8px 32px rgba(255, 255, 255, 0.15)' 
             : '0 4px 24px rgba(0, 0, 0, 0.3)',
         }}
       >
+        {/* 6-dot Grip Handle - positioned like Group/TemporalSpace */}
+        <DragGrip
+          position="absolute-top-right"
+          dotColor="rgba(255, 255, 255, 0.5)"
+          hoverBackground="rgba(255, 255, 255, 0.1)"
+        />
         {/* Header Controls */}
         <div
           style={{
