@@ -66,8 +66,10 @@ import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/L
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
+import { WeeklyExtension } from '../structure/WeeklyExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
+import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
@@ -78,6 +80,7 @@ import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttribut
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
+import { getWeeklyScheduleTemplate } from './WeeklyScheduleTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
@@ -85,6 +88,8 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 
 // Template quanta ID - this is the editable template in the Daily carousel
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
+// Template quanta ID - this is the editable template in the Weekly carousel
+const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 
 /**
  * Fetches the content of a quanta from IndexedDB
@@ -290,11 +295,13 @@ export const customExtensions: Extensions = [
   DailyToday,
   DailyTomorrow,
   DailyExtension,
+  WeeklyExtension,
   DayHeaderTasks,
   DayHeaderInsights,
   DayHeaderObservations,
   DayHeaderExtension,
   TemporalSpaceExtension,
+  LifetimeViewExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
 ]
@@ -606,6 +613,61 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
         } else {
           localStorage.removeItem('newDailySchedules');
+        }
+      }
+    }
+  }, [props.quanta?.id, editor]);
+
+  // Check for new weekly schedule template flag
+  // Uses localStorage because sessionStorage is NOT shared between iframes and parent
+  // Now fetches the editable template from IndexedDB instead of using hardcoded template
+  // Supports initializing both this week and next week's schedules
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    
+    const pendingSchedulesStr = localStorage.getItem('newWeeklySchedules');
+    const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
+    const urlId = window.location.pathname.split('/').pop();
+    
+    const isInPending = urlId && pendingSchedules.includes(urlId);
+    
+    // Only apply template if URL ID is in the pending schedules array
+    if (isInPending && editor) {
+      // Check if editor is empty before applying template
+      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      if (isEmpty) {
+        // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
+        const applyTemplate = async () => {
+          const templateContent = await fetchQuantaContentFromIndexedDB(WEEKLY_TEMPLATE_QUANTA_ID);
+          
+          // Use the editable template if found, otherwise fall back to hardcoded
+          const contentToApply = templateContent || getWeeklyScheduleTemplate();
+          
+          (editor as Editor)!.commands.setContent(contentToApply);
+          
+          // Mark template as applied
+          templateApplied.current = true;
+          
+          // Remove this URL from pending list (not all of them)
+          const updatedPending = pendingSchedules.filter(id => id !== urlId);
+          if (updatedPending.length > 0) {
+            localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
+          } else {
+            localStorage.removeItem('newWeeklySchedules');
+          }
+        };
+        
+        setTimeout(() => {
+          applyTemplate();
+        }, 300);
+      } else {
+        // Remove this URL from pending list
+        const updatedPending = pendingSchedules.filter(id => id !== urlId);
+        if (updatedPending.length > 0) {
+          localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
+        } else {
+          localStorage.removeItem('newWeeklySchedules');
         }
       }
     }

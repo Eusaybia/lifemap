@@ -164,6 +164,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'excalidraw',
+      title: 'Excalidraw Whiteboard',
+      description: 'Hand-drawn style whiteboard for moodboards & diagrams',
+      emoji: '🎨',
+      keywords: ['excalidraw', 'whiteboard', 'draw', 'sketch', 'diagram', 'moodboard', 'wireframe', 'canvas'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertExcalidraw()
+      },
+    },
+    {
       id: 'daily-schedule',
       title: 'Daily Schedule',
       description: 'Insert a daily schedule view',
@@ -172,6 +183,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertDaily()
+      },
+    },
+    {
+      id: 'weekly-schedule',
+      title: 'Weekly Schedule',
+      description: 'Insert a weekly schedule view',
+      emoji: '📆',
+      keywords: ['weekly', 'schedule', 'week', 'planner', 'calendar'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertWeekly()
       },
     },
     {
@@ -285,6 +307,18 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       keywords: ['divider', 'separator', 'line', 'hr'],
       action: (editor) => {
         editor.chain().focus().setHorizontalRule().run()
+      },
+    },
+    {
+      id: 'lifetime-view',
+      title: 'Lifetime View',
+      description: 'Visualize your life as circles - years lived vs ahead',
+      emoji: '⏳',
+      keywords: ['lifetime', 'life', 'years', 'age', 'death', 'mortality', 'circles'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertLifetimeView?.() ||
+          editor.chain().focus().insertContent({ type: 'lifetimeView' }).run()
       },
     },
   ]
