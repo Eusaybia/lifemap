@@ -374,12 +374,21 @@ export const TemporalSpaceExtension = TipTapNode.create({
               borderRadius: 12,
               position: 'relative',
               display: isHidden ? 'none' : 'block',
-              // Frosted glass effect
-              backgroundColor: 'rgba(255, 255, 255, 0.4)',
+              // Frosted glass effect - with subtle gradient for depth even on white
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)', // Safari support
-              border: '1px solid rgba(255, 255, 255, 0.5)',
-              boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
+              // Multi-layer border for glass edge effect
+              border: '1px solid rgba(200, 200, 210, 0.4)',
+              // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
+              boxShadow: `
+                0 4px 24px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+                inset 1px 0 0 rgba(255, 255, 255, 0.4),
+                inset -1px 0 0 rgba(0, 0, 0, 0.03)
+              `,
               padding: isCollapsed ? '10px 20px' : '20px',
               margin: '8px 0px',
               minHeight: isCollapsed ? 48 : 20,
@@ -387,8 +396,8 @@ export const TemporalSpaceExtension = TipTapNode.create({
             }}
             animate={{
               boxShadow: glowStyles.length > 1 
-                ? `0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6), ${glowStyles.join(',')}`
-                : '0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
+                ? `0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05), ${glowStyles.join(',')}`
+                : `0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05)`,
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
