@@ -10,6 +10,7 @@
     "@cortex-js/compute-engine": "0.12.2",
     "@emotion/react": "11.11.0",
     "@emotion/styled": "11.11.0",
+    "@excalidraw/excalidraw": "^0.18.0",
     "@fontsource/public-sans": "4.5.12",
     "@hocuspocus/cli": "2.8.1",
     "@hocuspocus/provider": "2.15.2",

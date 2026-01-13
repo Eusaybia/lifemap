@@ -57,8 +57,10 @@ interface PomodoroNodeViewProps {
     attrs: {
       duration: number
       label: string
+      emoji?: string
       status: 'unrealized' | 'active' | 'completed'
       startTime: string | null
+      endTime?: string | null  // For freeform time - stores when user stopped
       id: string
     }
   }
@@ -72,9 +74,14 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   updateAttributes,
   selected,
 }) => {
-  const { duration, label, status, startTime } = node.attrs
+  const { duration, label, emoji, status, startTime, endTime } = node.attrs
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasPlayedCompleteTone = useRef(false)
+  
+  // Check for freeform: duration is negative or label indicates freeform
+  const isFreeform = duration < 0 || label?.toLowerCase().includes('freeform')
+  // Use the stored emoji, or ☀️ for freeform, or default ⏳
+  const displayEmoji = emoji || (isFreeform ? '☀️' : '⏳')
   
   // Update current time every second when active
   useEffect(() => {
@@ -87,8 +94,8 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
       const now = new Date()
       setCurrentTime(now)
       
-      // Check if timer has completed
-      if (startTime) {
+      // Check if timer has completed (skip for freeform time - it never auto-completes)
+      if (startTime && !isFreeform) {
         const start = new Date(startTime)
         const end = new Date(start.getTime() + duration * 1000)
         
@@ -104,7 +111,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
     }, 1000)
     
     return () => clearInterval(interval)
-  }, [status, startTime, duration, updateAttributes])
+  }, [status, startTime, duration, isFreeform, updateAttributes])
   
   const handlePlay = useCallback(() => {
     playStartSound()
@@ -115,11 +122,20 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   }, [updateAttributes])
   
   const handlePause = useCallback(() => {
-    updateAttributes({
-      status: 'unrealized',
-      startTime: null,
-    })
-  }, [updateAttributes])
+    // For freeform time, pressing pause completes it and logs the end time
+    if (isFreeform) {
+      updateAttributes({
+        status: 'completed',
+        endTime: new Date().toISOString(),
+      })
+    } else {
+      // For regular pomodoros, pause resets to unrealized
+      updateAttributes({
+        status: 'unrealized',
+        startTime: null,
+      })
+    }
+  }, [isFreeform, updateAttributes])
   
   const getEndTime = (): Date | null => {
     if (!startTime) return null
@@ -130,6 +146,8 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   
   const isNow = (): boolean => {
     if (!startTime) return false
+    // Freeform time is always "now" while active
+    if (isFreeform) return true
     const end = getEndTime()
     if (!end) return false
     return currentTime < end
@@ -144,6 +162,12 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   const formatTimeRange = (): string => {
     if (!startTime) return ''
     const start = new Date(startTime)
+    
+    // For freeform time, show "?" as end time
+    if (isFreeform) {
+      return `${formatTime(start)} - ?`
+    }
+    
     const end = getEndTime()
     if (!end) return ''
     
@@ -158,7 +182,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
         className={`pomodoro-node pomodoro-unrealized ${selected ? 'selected' : ''}`}
         data-id={node.attrs.id}
       >
-        <span className="pomodoro-icon">⏳</span>
+        <span className="pomodoro-icon">{displayEmoji}</span>
         <span className="pomodoro-label">{label}</span>
         <button
           className="pomodoro-play-btn"
@@ -176,7 +200,10 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
   // Completed state: opaque, showing completed time range as joined timepoint-style badge
   if (status === 'completed') {
     const start = startTime ? new Date(startTime) : null
-    const end = getEndTime()
+    // For freeform, use the stored endTime; for regular pomodoros, calculate from duration
+    const end = isFreeform 
+      ? (endTime ? new Date(endTime) : null)
+      : getEndTime()
     
     return (
       <NodeViewWrapper
@@ -184,7 +211,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
         className={`pomodoro-node pomodoro-completed ${selected ? 'selected' : ''}`}
         data-id={node.attrs.id}
       >
-        <span className="pomodoro-icon">⏳</span>
+        <span className="pomodoro-icon">{displayEmoji}</span>
         <span className="pomodoro-label">{label}</span>
         <span className="pomodoro-divider">||</span>
         {/* Joined time range badge - both times in one connected container */}
@@ -193,7 +220,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
           <span className="nested-time-value">{start ? formatTime(start) : ''}</span>
           <span className="pomodoro-time-dash">-</span>
           <span className="nested-time-icon">🕐</span>
-          <span className="nested-time-value">{end ? formatTime(end) : ''}</span>
+          <span className="nested-time-value">{end ? formatTime(end) : '?'}</span>
         </span>
       </NodeViewWrapper>
     )
@@ -206,7 +233,7 @@ const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
       className={`pomodoro-node pomodoro-active ${selected ? 'selected' : ''}`}
       data-id={node.attrs.id}
     >
-      <span className="pomodoro-icon">⏳</span>
+      <span className="pomodoro-icon">{displayEmoji}</span>
       <span className="pomodoro-label">{label}</span>
       <button
         className="pomodoro-pause-btn"
@@ -243,6 +270,7 @@ declare module '@tiptap/core' {
       insertPomodoro: (attributes: {
         duration: number
         label: string
+        emoji?: string
       }) => ReturnType
     }
   }
@@ -285,6 +313,15 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
           }
         },
       },
+      emoji: {
+        default: '⏳',
+        parseHTML: element => element.getAttribute('data-emoji') || '⏳',
+        renderHTML: attributes => {
+          return {
+            'data-emoji': attributes.emoji,
+          }
+        },
+      },
       status: {
         default: 'unrealized',
         parseHTML: element => element.getAttribute('data-status') || 'unrealized',
@@ -301,6 +338,16 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
           if (!attributes.startTime) return {}
           return {
             'data-start-time': attributes.startTime,
+          }
+        },
+      },
+      endTime: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-end-time'),
+        renderHTML: attributes => {
+          if (!attributes.endTime) return {}
+          return {
+            'data-end-time': attributes.endTime,
           }
         },
       },
@@ -326,16 +373,20 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
 
   renderHTML({ HTMLAttributes, node }) {
     // Format the content for static HTML rendering (used in previews)
-    const { label, status, startTime, duration } = node.attrs
+    const { label, status, startTime, endTime, duration, emoji } = node.attrs
+    
+    // Check for freeform: duration is negative or label indicates freeform
+    const isFreeform = duration < 0 || label?.toLowerCase().includes('freeform')
+    // Use stored emoji, or ☀️ for freeform, or default ⏳
+    const displayEmoji = emoji || (isFreeform ? '☀️' : '⏳')
     
     // Build the display text
-    let displayText = `⏳ ${label || ''}`
+    let displayText = `${displayEmoji} ${label || ''}`
     
     // Add time range for completed/active states
     if ((status === 'completed' || status === 'active') && startTime) {
       try {
         const start = new Date(startTime)
-        const end = new Date(start.getTime() + (duration || 0) * 1000)
         
         // Format times as HH:mm
         const formatTime = (date: Date) => {
@@ -345,8 +396,21 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
         }
         
         const startStr = formatTime(start)
-        const endStr = formatTime(end)
-        displayText += ` || 🕐 ${startStr} - ${endStr}`
+        
+        if (isFreeform) {
+          // For freeform: use endTime if completed, otherwise show "?"
+          if (status === 'completed' && endTime) {
+            const end = new Date(endTime)
+            const endStr = formatTime(end)
+            displayText += ` || 🕐 ${startStr} - ${endStr}`
+          } else {
+            displayText += ` || 🕐 ${startStr} - ?`
+          }
+        } else {
+          const end = new Date(start.getTime() + (duration || 0) * 1000)
+          const endStr = formatTime(end)
+          displayText += ` || 🕐 ${startStr} - ${endStr}`
+        }
       } catch (e) {
         // If date parsing fails, just show the label
       }

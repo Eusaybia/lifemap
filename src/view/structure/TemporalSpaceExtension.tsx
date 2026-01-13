@@ -12,6 +12,37 @@ import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttribu
 import { throttle } from 'lodash';
 import { DragGrip } from "../components/DragGrip";
 
+// ============================================================================
+// Finesse Energy Glow Helper
+// ============================================================================
+// Detects finesse nodes and returns a glow style for the container
+// Higher Energy = light glow (yang), Lower Energy = dark glow (yin)
+
+export const getFinesseGlow = (node: ProseMirrorNode): string | null => {
+  let glowStyle: string | null = null;
+  
+  node.descendants((childNode) => {
+    if (childNode.type.name === 'finesse') {
+      const finesseId = childNode.attrs.id as string;
+      if (finesseId?.includes('higher-energy')) {
+        // Strong Yang - bright yellow sun glow surrounding all sides
+        glowStyle = '0 0 35px 10px rgba(255, 240, 50, 0.55), 0 0 70px 20px rgba(255, 250, 100, 0.3), 0 0 100px 30px rgba(255, 255, 150, 0.18)';
+      } else if (finesseId?.includes('semi-higher-energy') && !glowStyle?.includes('255, 240')) {
+        // Lesser Yang - soft white-grey glow
+        glowStyle = '0 0 20px 5px rgba(240, 240, 245, 0.5), 0 0 40px 10px rgba(230, 230, 235, 0.3)';
+      } else if (finesseId?.includes('semi-lower-energy') && !glowStyle) {
+        // Lesser Yin - soft dark shadow
+        glowStyle = '0 0 20px 5px rgba(0, 0, 0, 0.15), 0 0 40px 10px rgba(0, 0, 0, 0.1)';
+      } else if (finesseId?.includes('lower-energy')) {
+        // Strong Yin - deeper dark shadow surrounding all sides
+        glowStyle = '0 0 30px 8px rgba(0, 0, 0, 0.25), 0 0 60px 15px rgba(0, 0, 0, 0.15)';
+      }
+    }
+  });
+  
+  return glowStyle;
+};
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     temporalSpace: {
@@ -106,6 +137,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
   selectable: true,
   draggable: true,
   atom: true,
+  priority: 1001, // Higher priority than Group to ensure correct parsing when copy/pasting
   onUpdate() {
     if (this.editor.state.selection) {
       return true
@@ -147,9 +179,12 @@ export const TemporalSpaceExtension = TipTapNode.create({
   parseHTML() {
     return [
       {
-        tag: "div",
-        attrs: {
-          "data-temporal-space": "true",
+        tag: 'div[data-temporal-space="true"]',
+        getAttrs: (element) => {
+          // Only parse if this element has the temporal-space attribute
+          if (typeof element === 'string') return false;
+          const hasAttr = element.getAttribute('data-temporal-space') === 'true';
+          return hasAttr ? {} : false;
         },
       },
     ];
