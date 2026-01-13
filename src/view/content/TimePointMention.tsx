@@ -343,21 +343,71 @@ const getLunarAge = (date: Date = new Date()): number => {
 }
 
 /**
+ * Check if user is in Southern Hemisphere based on stored location
+ * In the Southern Hemisphere, the moon appears "flipped" horizontally
+ */
+const isInSouthernHemisphere = (): boolean => {
+  const location = cachedLocation || getStoredLocation()
+  return location.latitude < 0
+}
+
+/**
+ * Get hemisphere-aware quarter moon emojis
+ * In Southern Hemisphere, First Quarter appears with left side lit (like 🌗 in Northern)
+ * and Last Quarter appears with right side lit (like 🌓 in Northern)
+ */
+const getQuarterMoonEmoji = (phase: 'first' | 'last'): string => {
+  const isSouthern = isInSouthernHemisphere()
+  if (phase === 'first') {
+    return isSouthern ? '🌗' : '🌓' // Swap for Southern Hemisphere
+  } else {
+    return isSouthern ? '🌓' : '🌗' // Swap for Southern Hemisphere
+  }
+}
+
+/**
+ * Get hemisphere-aware crescent moon emojis
+ * Crescents also appear flipped in the Southern Hemisphere
+ */
+const getCrescentMoonEmoji = (phase: 'waxing' | 'waning'): string => {
+  const isSouthern = isInSouthernHemisphere()
+  if (phase === 'waxing') {
+    return isSouthern ? '🌘' : '🌒' // Swap for Southern Hemisphere
+  } else {
+    return isSouthern ? '🌒' : '🌘' // Swap for Southern Hemisphere
+  }
+}
+
+/**
+ * Get hemisphere-aware gibbous moon emojis
+ * Gibbous phases also appear flipped in the Southern Hemisphere
+ */
+const getGibbousMoonEmoji = (phase: 'waxing' | 'waning'): string => {
+  const isSouthern = isInSouthernHemisphere()
+  if (phase === 'waxing') {
+    return isSouthern ? '🌖' : '🌔' // Swap for Southern Hemisphere
+  } else {
+    return isSouthern ? '🌔' : '🌖' // Swap for Southern Hemisphere
+  }
+}
+
+/**
  * Get the current lunar phase name and emoji
  */
 const getCurrentLunarPhase = (date: Date = new Date()): { name: string; emoji: string } => {
   const age = getLunarAge(date)
   const phaseIndex = Math.floor((age / SYNODIC_MONTH) * 8) % 8
   
+  // Use hemisphere-aware emojis for phases that appear different in each hemisphere
   const phases = [
     { name: "New Moon", emoji: "🌑" },
-    { name: "Waxing Crescent", emoji: "🌒" },
-    { name: "First Quarter", emoji: "🌓" },
-    { name: "Waxing Gibbous", emoji: "🌔" },
+    { name: "Waxing Crescent", emoji: getCrescentMoonEmoji('waxing') },
+    { name: "First Quarter", emoji: getQuarterMoonEmoji('first') },
+    { name: "Waxing Gibbous", emoji: getGibbousMoonEmoji('waxing') },
     { name: "Full Moon", emoji: "🌕" },
-    { name: "Waning Gibbous", emoji: "🌖" },
-    { name: "Last Quarter", emoji: "🌗" },
-    { name: "Waning Crescent", emoji: "🌘" },
+    { name: "Waning Gibbous", emoji: getGibbousMoonEmoji('waning') },
+    { name: "Last Quarter", emoji: getQuarterMoonEmoji('last') },
+    { name: "Waning Crescent", emoji: getCrescentMoonEmoji('waning') },
   ]
   
   return phases[phaseIndex]
@@ -381,11 +431,16 @@ const getNextLunarPhase = (targetPhase: number, fromDate: Date = new Date()): Da
 }
 
 /**
- * Get all upcoming lunar phases
+ * Get all upcoming lunar phases and abstract lunar concepts
+ * Uses hemisphere-aware emojis for quarter phases
  */
 const getLunarPhasePoints = (): TimePoint[] => {
   const now = new Date()
   const currentPhase = getCurrentLunarPhase(now)
+  
+  // Get hemisphere-aware emojis
+  const firstQuarterEmoji = getQuarterMoonEmoji('first')
+  const lastQuarterEmoji = getQuarterMoonEmoji('last')
   
   const phases: TimePoint[] = [
     // Current phase (today)
@@ -395,38 +450,73 @@ const getLunarPhasePoints = (): TimePoint[] => {
       date: now,
       emoji: currentPhase.emoji,
     },
+    
+    // === ABSTRACT CONCEPTS (not tied to specific dates) ===
+    // These represent the general class/concept of each lunar phase
+    {
+      id: 'lunar:abstract:new-moons',
+      label: 'New Moons',
+      date: new Date(0), // Epoch date to indicate abstract
+      emoji: '🌑',
+    },
+    {
+      id: 'lunar:abstract:first-quarters',
+      label: 'First Quarters',
+      date: new Date(0),
+      emoji: firstQuarterEmoji, // Hemisphere-aware
+    },
+    {
+      id: 'lunar:abstract:full-moons',
+      label: 'Full Moons',
+      date: new Date(0),
+      emoji: '🌕',
+    },
+    {
+      id: 'lunar:abstract:last-quarters',
+      label: 'Last Quarters',
+      date: new Date(0),
+      emoji: lastQuarterEmoji, // Hemisphere-aware
+    },
+    
+    // === SPECIFIC UPCOMING PHASES (with dates) ===
     // Next New Moon
     {
       id: 'lunar:new-moon',
-      label: 'New Moon',
+      label: 'Upcoming New Moon',
       date: getNextLunarPhase(0, now),
       emoji: '🌑',
     },
     // Next First Quarter
     {
       id: 'lunar:first-quarter',
-      label: 'First Quarter',
+      label: 'Upcoming First Quarter',
       date: getNextLunarPhase(2, now),
-      emoji: '🌓',
+      emoji: firstQuarterEmoji, // Hemisphere-aware
     },
     // Next Full Moon
     {
       id: 'lunar:full-moon',
-      label: 'Full Moon',
+      label: 'Upcoming Full Moon',
       date: getNextLunarPhase(4, now),
       emoji: '🌕',
     },
     // Next Last Quarter
     {
       id: 'lunar:last-quarter',
-      label: 'Last Quarter',
+      label: 'Upcoming Last Quarter',
       date: getNextLunarPhase(6, now),
-      emoji: '🌗',
+      emoji: lastQuarterEmoji, // Hemisphere-aware
     },
   ]
   
-  // Sort by date (nearest first)
-  return phases.sort((a, b) => a.date.getTime() - b.date.getTime())
+  // Sort: abstract concepts first, then by date for specific phases
+  return phases.sort((a, b) => {
+    const aIsAbstract = a.id.includes(':abstract:')
+    const bIsAbstract = b.id.includes(':abstract:')
+    if (aIsAbstract && !bIsAbstract) return -1
+    if (!aIsAbstract && bIsAbstract) return 1
+    return a.date.getTime() - b.date.getTime()
+  })
 }
 
 // ============================================================================
@@ -866,6 +956,7 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
 const isAbstractTimePoint = (tp: TimePoint): boolean => tp.id === 'timepoint:today-abstract'
+const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
   const timeOfDayIds = ['dawn', 'morning', 'noon', 'afternoon', 'dusk', 'evening', 'night']
   return timeOfDayIds.some(id => tp.id === `timepoint:${id}`)
@@ -883,12 +974,13 @@ const formatTime = (date: Date): string => {
 
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isAbstractTimePoint(tp)) return `${tp.emoji} Today`
+  if (isAbstractLunarPhase(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
-  if (isLunarPhasePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isLunarPhasePoint(tp)) return `${tp.emoji} ${tp.label} (${formatDate(tp.date)})`
   return `${tp.emoji} ${formatDate(tp.date)}`
 }
 
@@ -900,8 +992,12 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
 
     const timePoint = props.items[index]
     let formattedDate: string
+    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint)
+    
     if (isAbstractTimePoint(timePoint)) {
       formattedDate = 'Today'
+    } else if (isAbstractLunarPhase(timePoint)) {
+      formattedDate = timePoint.label // Just the concept name, no date
     } else if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
       formattedDate = timePoint.label
     } else if (isTimeOfDayPoint(timePoint)) {
@@ -920,9 +1016,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     props.command({
       id: timePoint.id,
       label: displayLabel,
-      'data-date': isAbstractTimePoint(timePoint) ? '' : timePoint.date.toISOString(),
+      'data-date': isAbstract ? '' : timePoint.date.toISOString(),
       'data-formatted': formattedDate,
-      'data-relative-label': isAbstractTimePoint(timePoint) ? 'Today' : timePoint.label,
+      'data-relative-label': isAbstract ? timePoint.label : timePoint.label,
     })
   }
 
@@ -957,6 +1053,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
               <span className="timepoint-label">{item.label}</span>
                 {isAbstractTimePoint(item) ? (
                 <span className="timepoint-date">Not tied to a specific date</span>
+              ) : isAbstractLunarPhase(item) ? (
+                <span className="timepoint-date">General concept, not a specific date</span>
               ) : isYearTimePoint(item) ? (
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
