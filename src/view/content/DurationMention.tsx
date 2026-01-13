@@ -2,11 +2,157 @@
 
 import './MentionList.scss'
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react'
-import { Extension } from '@tiptap/core'
-import { ReactRenderer } from '@tiptap/react'
+import { Extension, Node, mergeAttributes } from '@tiptap/core'
+import { ReactRenderer, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { PluginKey } from 'prosemirror-state'
+
+// ============================================================================
+// Duration Badge Node (for durations >= 1 day - no pomodoro functionality)
+// These are celestial durations that represent longer time periods
+// and don't need timer/pomodoro features
+// ============================================================================
+
+interface DurationBadgeNodeViewProps {
+  node: {
+    attrs: {
+      duration: number
+      label: string
+      emoji: string
+      id: string
+    }
+  }
+  selected: boolean
+}
+
+const DurationBadgeNodeView: React.FC<DurationBadgeNodeViewProps> = ({
+  node,
+  selected,
+}) => {
+  const { label, emoji } = node.attrs
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      className={`duration-badge ${selected ? 'selected' : ''}`}
+      data-id={node.attrs.id}
+    >
+      <span className="duration-badge-emoji">{emoji}</span>
+      <span className="duration-badge-label">{label}</span>
+    </NodeViewWrapper>
+  )
+}
+
+export interface DurationBadgeOptions {
+  HTMLAttributes: Record<string, any>
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    durationBadge: {
+      /**
+       * Insert a duration badge (for durations >= 1 day)
+       */
+      insertDurationBadge: (attributes: {
+        duration: number
+        label: string
+        emoji: string
+      }) => ReturnType
+    }
+  }
+}
+
+export const DurationBadgeNode = Node.create<DurationBadgeOptions>({
+  name: 'durationBadge',
+
+  group: 'inline',
+
+  inline: true,
+
+  selectable: true,
+
+  atom: true,
+
+  addOptions() {
+    return {
+      HTMLAttributes: {},
+    }
+  },
+
+  addAttributes() {
+    return {
+      duration: {
+        default: 0,
+        parseHTML: element => parseInt(element.getAttribute('data-duration') || '0'),
+        renderHTML: attributes => ({
+          'data-duration': attributes.duration,
+        }),
+      },
+      label: {
+        default: '',
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => ({
+          'data-label': attributes.label,
+        }),
+      },
+      emoji: {
+        default: '📅',
+        parseHTML: element => element.getAttribute('data-emoji'),
+        renderHTML: attributes => ({
+          'data-emoji': attributes.emoji,
+        }),
+      },
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => ({
+          'data-id': attributes.id || `duration-badge:${Date.now()}`,
+        }),
+      },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-type="duration-badge"]',
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes, node }) {
+    const { label, emoji } = node.attrs
+    return ['span', mergeAttributes(
+      this.options.HTMLAttributes,
+      HTMLAttributes,
+      { 'data-type': 'duration-badge' }
+    ), `${emoji} ${label}`]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(DurationBadgeNodeView)
+  },
+
+  addCommands() {
+    return {
+      insertDurationBadge:
+        attributes =>
+        ({ commands }) => {
+          return commands.insertContent({
+            type: this.name,
+            attrs: {
+              ...attributes,
+              id: `duration-badge:${Date.now()}`,
+            },
+          })
+        },
+    }
+  },
+})
+
+// Threshold for using duration badge vs pomodoro (1 day in seconds)
+const DURATION_BADGE_THRESHOLD = 86400
 
 // ============================================================================
 // Duration Types
@@ -25,6 +171,14 @@ interface Duration {
 
 const getDurations = (): Duration[] => {
   return [
+    // Freeform time (unknown/flexible duration)
+    {
+      id: 'duration:freeform',
+      label: 'Freeform time',
+      seconds: -1, // Special value to indicate freeform/unknown duration
+      emoji: '☀️',
+    },
+    // Short durations (hourglass)
     {
       id: 'duration:30s',
       label: '30 seconds',
@@ -115,6 +269,31 @@ const getDurations = (): Duration[] => {
       seconds: 14400,
       emoji: '⏳',
     },
+    // Celestial durations
+    {
+      id: 'duration:1d',
+      label: '1 day',
+      seconds: 86400,
+      emoji: '☀️',
+    },
+    {
+      id: 'duration:1w',
+      label: '1 week',
+      seconds: 604800,
+      emoji: '🌘',
+    },
+    {
+      id: 'duration:1mo',
+      label: '1 month',
+      seconds: 2592000,
+      emoji: '🌕',
+    },
+    {
+      id: 'duration:1season',
+      label: '1 season',
+      seconds: 7776000,
+      emoji: '🌻',
+    },
   ]
 }
 
@@ -129,7 +308,7 @@ const fetchDurations = (query: string): Duration[] => {
   let lowerQuery = query.toLowerCase().replace(/^~/, '').trim()
   
   // Extract numeric part and unit for smarter matching
-  const match = lowerQuery.match(/^(\d+\.?\d*)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)?$/i)
+  const match = lowerQuery.match(/^(\d+\.?\d*)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds|d|day|days|w|wk|wks|week|weeks|mo|month|months|season|seasons)?$/i)
   
   if (match) {
     const [, numStr, unit] = match
@@ -138,6 +317,38 @@ const fetchDurations = (query: string): Duration[] => {
     // Match based on the number and unit type
     return durations.filter((d) => {
       const labelLower = d.label.toLowerCase()
+      
+      // Check if this is a season-based query
+      if (unit && unit.startsWith('season')) {
+        if (labelLower.includes('season')) {
+          const seasonMatch = labelLower.match(/^(\d+)\s*season/)
+          if (seasonMatch && parseInt(seasonMatch[1]) === num) return true
+        }
+      }
+      
+      // Check if this is a month-based query
+      if (unit && (unit === 'mo' || unit.startsWith('month'))) {
+        if (labelLower.includes('month')) {
+          const monthMatch = labelLower.match(/^(\d+)\s*month/)
+          if (monthMatch && parseInt(monthMatch[1]) === num) return true
+        }
+      }
+      
+      // Check if this is a week-based query
+      if (unit && (unit === 'w' || unit.startsWith('wk') || unit.startsWith('week'))) {
+        if (labelLower.includes('week')) {
+          const weekMatch = labelLower.match(/^(\d+)\s*week/)
+          if (weekMatch && parseInt(weekMatch[1]) === num) return true
+        }
+      }
+      
+      // Check if this is a day-based query
+      if (unit && (unit === 'd' || unit.startsWith('day'))) {
+        if (labelLower.includes('day')) {
+          const dayMatch = labelLower.match(/^(\d+)\s*day/)
+          if (dayMatch && parseInt(dayMatch[1]) === num) return true
+        }
+      }
       
       // Check if this is an hour-based query
       if (!unit || unit.startsWith('h')) {
@@ -154,7 +365,7 @@ const fetchDurations = (query: string): Duration[] => {
       }
       
       // Check if this is a minute-based query
-      if (unit && (unit.startsWith('m') && !unit.startsWith('mi') || unit.startsWith('min'))) {
+      if (unit && (unit.startsWith('m') && !unit.startsWith('mi') && !unit.startsWith('mo') || unit.startsWith('min'))) {
         if (labelLower.includes('minute')) {
           const minMatch = labelLower.match(/^(\d+)\s*minute/)
           if (minMatch && parseInt(minMatch[1]) === num) return true
@@ -162,7 +373,7 @@ const fetchDurations = (query: string): Duration[] => {
       }
       
       // Check if this is a second-based query
-      if (unit && unit.startsWith('s')) {
+      if (unit && unit.startsWith('s') && !unit.startsWith('season')) {
         if (labelLower.includes('second')) {
           const secMatch = labelLower.match(/^(\d+)\s*second/)
           if (secMatch && parseInt(secMatch[1]) === num) return true
@@ -282,16 +493,32 @@ export const durationSuggestionOptions = {
   },
   
   command: ({ editor, range, props }: { editor: any; range: any; props: Duration }) => {
-    // Delete the trigger character and query, then insert pomodoro
-    editor
-      .chain()
-      .focus()
-      .deleteRange(range)
-      .insertPomodoro({
-        duration: props.seconds,
-        label: props.label,
-      })
-      .run()
+    // Delete the trigger character and query
+    // Use duration badge for celestial durations (>= 1 day) - no pomodoro/timer functionality
+    // Use pomodoro for shorter durations that benefit from timer features
+    if (props.seconds >= DURATION_BADGE_THRESHOLD) {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertDurationBadge({
+          duration: props.seconds,
+          label: props.label,
+          emoji: props.emoji,
+        })
+        .run()
+    } else {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertPomodoro({
+          duration: props.seconds,
+          label: props.label,
+          emoji: props.emoji,
+        })
+        .run()
+    }
   },
   
   render: () => {

@@ -38,6 +38,63 @@
   }
 
 
+  // Regular bullet lists - use dashes as markers
+  ul:not([data-type="taskList"]) {
+    list-style: none;
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+
+    > li {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      margin: 0.25em 0;
+
+      &::before {
+        content: "–"; // En-dash as bullet marker
+        flex-shrink: 0;
+        margin-right: 0.5em;
+        color: #333;
+      }
+
+      > p {
+        margin: 0;
+        flex: 1;
+      }
+    }
+
+    // Nested bullet lists - also use dashes
+    ul {
+      margin: 0.25em 0;
+      padding-left: 1.5em;
+    }
+  }
+
+  // Ordered lists
+  ol {
+    list-style: decimal;
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+
+    li {
+      display: list-item;
+      margin: 0.25em 0;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    // Nested ordered lists
+    ol {
+      list-style: lower-alpha;
+
+      ol {
+        list-style: lower-roman;
+      }
+    }
+  }
+
   ul[data-type="taskList"] {
     list-style: none;
     padding: 0;

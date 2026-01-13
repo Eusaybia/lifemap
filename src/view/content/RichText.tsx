@@ -48,6 +48,7 @@ import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
+import { FinesseMention, FinesseNode } from './FinesseMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -261,6 +262,9 @@ export const customExtensions: Extensions = [
   // Hashtag mentions - triggered by # for tagging content
   HashtagNode,
   HashtagMention,
+  // Finesse mentions - triggered by ^ for energy levels
+  FinesseNode,
+  FinesseMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   // PomodoroNode is for short durations (< 1 day) with timer functionality
   // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality

@@ -193,9 +193,15 @@ export const GroupExtension = TipTapNode.create({
   parseHTML() {
     return [
       {
-        tag: "div",
-        attrs: {
-          "data-group": "true",
+        tag: 'div[data-group="true"]',
+        getAttrs: (element) => {
+          // Only parse if this element has the group attribute AND NOT the temporal-space attribute
+          if (typeof element === 'string') return false;
+          const hasGroupAttr = element.getAttribute('data-group') === 'true';
+          const hasTemporalSpaceAttr = element.getAttribute('data-temporal-space') === 'true';
+          // Reject if it's a temporal space
+          if (hasTemporalSpaceAttr) return false;
+          return hasGroupAttr ? {} : false;
         },
       },
     ];

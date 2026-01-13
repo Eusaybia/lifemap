@@ -6,124 +6,159 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/r
 import { motion } from "framer-motion"
 
 // ============================================================================
-// Date Helpers
+// Week Helpers (ISO Week Format)
 // ============================================================================
 
-const formatDateSlug = (date: Date): string => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+// Get ISO week number for a date
+const getISOWeekNumber = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
-const getYesterdayDate = (): Date => {
-  const date = new Date()
-  date.setDate(date.getDate() - 1)
-  return date
+// Get the ISO week year (which may differ from calendar year at year boundaries)
+const getISOWeekYear = (date: Date): number => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  return d.getUTCFullYear()
 }
 
-const getTomorrowDate = (): Date => {
-  const date = new Date()
-  date.setDate(date.getDate() + 1)
-  return date
+// Format week slug: weekly-YYYY-WNN
+const formatWeekSlug = (date: Date): string => {
+  const year = getISOWeekYear(date)
+  const week = String(getISOWeekNumber(date)).padStart(2, '0')
+  return `${year}-W${week}`
 }
 
-const TEMPLATE_QUANTA_SLUG = 'daily-schedule-template'
-const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules' // Now stores an array of slugs
-const INITIALIZED_DAYS_KEY = 'initializedDailySchedules'
+// Get Monday of the given week
+const getMondayOfWeek = (date: Date): Date => {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// Get date for last week's Monday
+const getLastWeekDate = (): Date => {
+  const today = new Date()
+  const monday = getMondayOfWeek(today)
+  monday.setDate(monday.getDate() - 7)
+  return monday
+}
+
+// Get date for next week's Monday
+const getNextWeekDate = (): Date => {
+  const today = new Date()
+  const monday = getMondayOfWeek(today)
+  monday.setDate(monday.getDate() + 7)
+  return monday
+}
+
+// Format date range for display: "Jan 6 - Jan 12"
+const formatWeekDateRange = (date: Date): string => {
+  const monday = getMondayOfWeek(date)
+  const sunday = new Date(monday)
+  sunday.setDate(sunday.getDate() + 6)
+  
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  
+  const startMonth = monthNames[monday.getMonth()]
+  const endMonth = monthNames[sunday.getMonth()]
+  
+  if (startMonth === endMonth) {
+    return `${startMonth} ${monday.getDate()} - ${sunday.getDate()}`
+  }
+  return `${startMonth} ${monday.getDate()} - ${endMonth} ${sunday.getDate()}`
+}
+
+const TEMPLATE_QUANTA_SLUG = 'weekly-schedule-template'
+const NEW_WEEKLY_SCHEDULES_KEY = 'newWeeklySchedules'
+const INITIALIZED_WEEKS_KEY = 'initializedWeeklySchedules'
 
 // Reset a quanta by deleting its IndexedDB and marking it for template re-application
 const resetQuantaToTemplate = async (quantaSlug: string): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
-      // Delete the IndexedDB for this quanta
       const deleteRequest = indexedDB.deleteDatabase(quantaSlug)
       
       deleteRequest.onsuccess = () => {
-        console.log(`[DailyExtension] Deleted IndexedDB for ${quantaSlug}`)
+        console.log(`[WeeklyExtension] Deleted IndexedDB for ${quantaSlug}`)
         
-        // Mark this quanta for template initialization
-        const pendingStr = localStorage.getItem(NEW_DAILY_SCHEDULES_KEY)
+        const pendingStr = localStorage.getItem(NEW_WEEKLY_SCHEDULES_KEY)
         const pendingSchedules: string[] = pendingStr ? JSON.parse(pendingStr) : []
         
         if (!pendingSchedules.includes(quantaSlug)) {
           pendingSchedules.push(quantaSlug)
-          localStorage.setItem(NEW_DAILY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
+          localStorage.setItem(NEW_WEEKLY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
         }
         
-        // Also remove from initialized list so it gets re-initialized
-        const initializedStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
-        const initializedDays: string[] = initializedStr ? JSON.parse(initializedStr) : []
-        const updatedInitialized = initializedDays.filter(d => d !== quantaSlug)
-        localStorage.setItem(INITIALIZED_DAYS_KEY, JSON.stringify(updatedInitialized))
+        const initializedStr = localStorage.getItem(INITIALIZED_WEEKS_KEY)
+        const initializedWeeks: string[] = initializedStr ? JSON.parse(initializedStr) : []
+        const updatedInitialized = initializedWeeks.filter(w => w !== quantaSlug)
+        localStorage.setItem(INITIALIZED_WEEKS_KEY, JSON.stringify(updatedInitialized))
         
-        console.log(`[DailyExtension] Marked ${quantaSlug} for template re-application`)
+        console.log(`[WeeklyExtension] Marked ${quantaSlug} for template re-application`)
         resolve(true)
       }
       
       deleteRequest.onerror = () => {
-        console.error(`[DailyExtension] Failed to delete IndexedDB for ${quantaSlug}`)
+        console.error(`[WeeklyExtension] Failed to delete IndexedDB for ${quantaSlug}`)
         resolve(false)
       }
       
       deleteRequest.onblocked = () => {
-        console.warn(`[DailyExtension] IndexedDB delete blocked for ${quantaSlug}`)
+        console.warn(`[WeeklyExtension] IndexedDB delete blocked for ${quantaSlug}`)
         resolve(false)
       }
     } catch (error) {
-      console.error(`[DailyExtension] Error resetting quanta:`, error)
+      console.error(`[WeeklyExtension] Error resetting quanta:`, error)
       resolve(false)
     }
   })
 }
 
-// Set flag for today's and tomorrow's schedules - RichText.tsx will apply template if empty
-// Uses localStorage because sessionStorage is NOT shared between iframes and parent
-// This function is called synchronously to ensure flag is set before iframes load
-// IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
-const checkAndInitializeDaily = () => {
-  const today = formatDateSlug(new Date())
-  const tomorrow = formatDateSlug(getTomorrowDate())
-  const todaySlug = `daily-${today}`
-  const tomorrowSlug = `daily-${tomorrow}`
+// Initialize weekly schedules for this week and next week
+const checkAndInitializeWeekly = () => {
+  const thisWeekSlug = `weekly-${formatWeekSlug(new Date())}`
+  const nextWeekSlug = `weekly-${formatWeekSlug(getNextWeekDate())}`
   
-  // Check if we've already initialized these days
-  const initializedDaysStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
-  const initializedDays: string[] = initializedDaysStr ? JSON.parse(initializedDaysStr) : []
+  const initializedWeeksStr = localStorage.getItem(INITIALIZED_WEEKS_KEY)
+  const initializedWeeks: string[] = initializedWeeksStr ? JSON.parse(initializedWeeksStr) : []
   
-  // Get current pending schedules
-  const pendingStr = localStorage.getItem(NEW_DAILY_SCHEDULES_KEY)
+  const pendingStr = localStorage.getItem(NEW_WEEKLY_SCHEDULES_KEY)
   const pendingSchedules: string[] = pendingStr ? JSON.parse(pendingStr) : []
   
-  // Check and add today if not already initialized
-  if (!initializedDays.includes(todaySlug) && !pendingSchedules.includes(todaySlug)) {
-    pendingSchedules.push(todaySlug)
-    initializedDays.push(todaySlug)
-    console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization`)
+  if (!initializedWeeks.includes(thisWeekSlug) && !pendingSchedules.includes(thisWeekSlug)) {
+    pendingSchedules.push(thisWeekSlug)
+    initializedWeeks.push(thisWeekSlug)
+    console.log(`[WeeklyExtension] Flagged ${thisWeekSlug} for template initialization`)
   }
   
-  // Check and add tomorrow if not already initialized
-  if (!initializedDays.includes(tomorrowSlug) && !pendingSchedules.includes(tomorrowSlug)) {
-    pendingSchedules.push(tomorrowSlug)
-    initializedDays.push(tomorrowSlug)
-    console.log(`[DailyExtension] Flagged ${tomorrowSlug} for template initialization`)
+  if (!initializedWeeks.includes(nextWeekSlug) && !pendingSchedules.includes(nextWeekSlug)) {
+    pendingSchedules.push(nextWeekSlug)
+    initializedWeeks.push(nextWeekSlug)
+    console.log(`[WeeklyExtension] Flagged ${nextWeekSlug} for template initialization`)
   }
   
-  // Save pending schedules
   if (pendingSchedules.length > 0) {
-    localStorage.setItem(NEW_DAILY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
+    localStorage.setItem(NEW_WEEKLY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
   }
   
-  // Keep last 30 days to avoid unbounded growth
-  while (initializedDays.length > 30) {
-    initializedDays.shift() // Remove oldest
+  // Keep last 12 weeks to avoid unbounded growth
+  while (initializedWeeks.length > 12) {
+    initializedWeeks.shift()
   }
-  localStorage.setItem(INITIALIZED_DAYS_KEY, JSON.stringify(initializedDays))
+  localStorage.setItem(INITIALIZED_WEEKS_KEY, JSON.stringify(initializedWeeks))
 }
 
-// Call immediately when module loads to ensure flag is set before iframes render
+// Call immediately when module loads
 if (typeof window !== 'undefined') {
-  checkAndInitializeDaily()
+  checkAndInitializeWeekly()
 }
 
 // Simple chevron icons
@@ -140,18 +175,19 @@ const ChevronRight = ({ size = 20, color = "#666" }: { size?: number; color?: st
 )
 
 // ============================================================================
-// Day Card Component - Individual card in the carousel
+// Week Card Component - Individual card in the carousel
 // ============================================================================
 
-interface DayCardProps {
+interface WeekCardProps {
   label: string
-  isToday: boolean
+  dateRange?: string
+  isThisWeek: boolean
   slug: string
   children: React.ReactNode
   iframeRef?: React.RefObject<HTMLIFrameElement | null>
 }
 
-const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, iframeRef }) => {
+const WeekCard: React.FC<WeekCardProps> = ({ label, dateRange, isThisWeek, slug, children, iframeRef }) => {
   const isTemplate = label === 'Template'
   const [isRefreshing, setIsRefreshing] = useState(false)
   
@@ -162,15 +198,13 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
     try {
       const success = await resetQuantaToTemplate(slug)
       if (success) {
-        // Small delay to ensure IndexedDB is fully cleared
         await new Promise(resolve => setTimeout(resolve, 300))
-        // Reload the iframe to show the new content (will apply template)
         if (iframeRef?.current) {
           iframeRef.current.src = iframeRef.current.src
         }
       }
     } catch (error) {
-      console.error('[DayCard] Error refreshing:', error)
+      console.error('[WeekCard] Error refreshing:', error)
     } finally {
       setIsRefreshing(false)
     }
@@ -179,7 +213,7 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: isToday ? 1 : 0.7, scale: 1 }}
+      animate={{ opacity: isThisWeek ? 1 : 0.7, scale: 1 }}
       transition={{ duration: 0.3 }}
       style={{
         flex: '0 0 550px',
@@ -187,9 +221,9 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
         minHeight: '900px',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: isToday ? '#FFFEF5' : '#FFFFFF',
+        backgroundColor: isThisWeek ? '#F5FAFF' : '#FFFFFF',
         borderRadius: '12px',
-        border: isToday ? '2px solid #E5E0C8' : '1px solid #E5E5E5',
+        border: isThisWeek ? '2px solid #C8DEF0' : '1px solid #E5E5E5',
         scrollSnapAlign: 'center',
         overflow: 'visible',
         padding: '0px',
@@ -244,7 +278,7 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
         )}
       </div>
       
-      {/* Day Label Header */}
+      {/* Week Label Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -257,12 +291,21 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
           fontFamily: "'EB Garamond', Georgia, serif",
           fontSize: '26px',
           fontWeight: 500,
-          color: (isToday || isTemplate) ? '#000000' : '#6b7280',
+          color: (isThisWeek || isTemplate) ? '#000000' : '#6b7280',
           textAlign: 'left',
           margin: 0,
         }}>
-          {isTemplate ? 'Daily Schedule Template' : label}
+          {isTemplate ? 'Weekly Schedule Template' : label}
         </h2>
+        {dateRange && !isTemplate && (
+          <span style={{
+            fontSize: '14px',
+            color: '#888',
+            fontFamily: "'Inter', sans-serif",
+          }}>
+            ({dateRange})
+          </span>
+        )}
       </div>
       
       {/* Content Area */}
@@ -275,37 +318,42 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 
 
 // ============================================================================
-// Daily Carousel Node View - Horizontal carousel with 3 cards
+// Weekly Carousel Node View - Horizontal carousel with 4 cards
 // ============================================================================
 
-const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
-const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
+const TOTAL_CARDS = 4 // Template, Last Week, This Week, Next Week
+const THIS_WEEK_INDEX = 2 // This Week is at index 2
 
-const DailyNodeView: React.FC<NodeViewProps> = () => {
+const WeeklyNodeView: React.FC<NodeViewProps> = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
+  const [activeIndex, setActiveIndex] = useState(THIS_WEEK_INDEX)
   
   // Iframe refs for refreshing
-  const yesterdayIframeRef = useRef<HTMLIFrameElement>(null)
-  const todayIframeRef = useRef<HTMLIFrameElement>(null)
-  const tomorrowIframeRef = useRef<HTMLIFrameElement>(null)
+  const lastWeekIframeRef = useRef<HTMLIFrameElement>(null)
+  const thisWeekIframeRef = useRef<HTMLIFrameElement>(null)
+  const nextWeekIframeRef = useRef<HTMLIFrameElement>(null)
   
-  // Calculate date slugs for each pane
-  const todaySlug = `daily-${formatDateSlug(new Date())}`
-  const yesterdaySlug = `daily-${formatDateSlug(getYesterdayDate())}`
-  const tomorrowSlug = `daily-${formatDateSlug(getTomorrowDate())}`
+  // Calculate week slugs for each pane
+  const thisWeekSlug = `weekly-${formatWeekSlug(new Date())}`
+  const lastWeekSlug = `weekly-${formatWeekSlug(getLastWeekDate())}`
+  const nextWeekSlug = `weekly-${formatWeekSlug(getNextWeekDate())}`
   
-  // Check and initialize daily on mount
+  // Date ranges for display
+  const thisWeekRange = formatWeekDateRange(new Date())
+  const lastWeekRange = formatWeekDateRange(getLastWeekDate())
+  const nextWeekRange = formatWeekDateRange(getNextWeekDate())
+  
+  // Check and initialize weekly on mount
   useEffect(() => {
-    checkAndInitializeDaily()
+    checkAndInitializeWeekly()
   }, [])
   
-  // Scroll to today on mount
+  // Scroll to this week on mount
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const cardWidth = 550 + 12
-      const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
+      const scrollPosition = (THIS_WEEK_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
       setTimeout(() => {
         container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
       }, 100)
@@ -345,7 +393,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
 
   return (
     <NodeViewWrapper 
-      data-daily-node-view="true"
+      data-weekly-node-view="true"
       style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
       <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
@@ -416,20 +464,20 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
-          className="daily-carousel-scroll"
+          className="weekly-carousel-scroll"
         >
           <style>{`
-            .daily-carousel-scroll::-webkit-scrollbar {
+            .weekly-carousel-scroll::-webkit-scrollbar {
               display: none;
             }
           `}</style>
           
           {/* Template Card */}
-          <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
+          <WeekCard label="Template" isThisWeek={false} slug={TEMPLATE_QUANTA_SLUG}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
                 src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
-                title="Daily Schedule Template"
+                title="Weekly Schedule Template"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -438,15 +486,15 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
                 }}
               />
             </div>
-          </DayCard>
+          </WeekCard>
           
-          {/* Yesterday Card - loads yesterday's date-based quanta */}
-          <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
+          {/* Last Week Card */}
+          <WeekCard label="Last Week" dateRange={lastWeekRange} isThisWeek={false} slug={lastWeekSlug} iframeRef={lastWeekIframeRef}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
-                ref={yesterdayIframeRef}
-                src={`/q/${yesterdaySlug}?mode=graph`}
-                title="Yesterday's Schedule"
+                ref={lastWeekIframeRef}
+                src={`/q/${lastWeekSlug}?mode=graph`}
+                title="Last Week's Schedule"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -455,15 +503,15 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
                 }}
               />
             </div>
-          </DayCard>
+          </WeekCard>
           
-          {/* Today Card - loads today's date-based quanta */}
-          <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
+          {/* This Week Card */}
+          <WeekCard label="This Week" dateRange={thisWeekRange} isThisWeek={true} slug={thisWeekSlug} iframeRef={thisWeekIframeRef}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
-                ref={todayIframeRef}
-                src={`/q/${todaySlug}?mode=graph`}
-                title="Today's Schedule"
+                ref={thisWeekIframeRef}
+                src={`/q/${thisWeekSlug}?mode=graph`}
+                title="This Week's Schedule"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -472,15 +520,15 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
                 }}
               />
             </div>
-          </DayCard>
+          </WeekCard>
           
-          {/* Tomorrow Card - loads tomorrow's date-based quanta */}
-          <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
+          {/* Next Week Card */}
+          <WeekCard label="Next Week" dateRange={nextWeekRange} isThisWeek={false} slug={nextWeekSlug} iframeRef={nextWeekIframeRef}>
             <div style={{ flex: 1, position: 'relative', height: '100%' }}>
               <iframe
-                ref={tomorrowIframeRef}
-                src={`/q/${tomorrowSlug}?mode=graph`}
-                title="Tomorrow's Schedule"
+                ref={nextWeekIframeRef}
+                src={`/q/${nextWeekSlug}?mode=graph`}
+                title="Next Week's Schedule"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -489,7 +537,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
                 }}
               />
             </div>
-          </DayCard>
+          </WeekCard>
         </div>
       </div>
     </NodeViewWrapper>
@@ -497,43 +545,43 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
 }
 
 // ============================================================================
-// Daily TipTap Extension - Simple block container
+// Weekly TipTap Extension - Simple block container
 // ============================================================================
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    daily: {
-      insertDaily: () => ReturnType
+    weekly: {
+      insertWeekly: () => ReturnType
     }
   }
 }
 
-export const DailyExtension = TipTapNode.create({
-  name: "daily",
+export const WeeklyExtension = TipTapNode.create({
+  name: "weekly",
   group: "block",
-  atom: true, // No internal content - all content is in iframes
+  atom: true,
   inline: false,
   selectable: true,
   draggable: true,
   
   parseHTML() {
-    return [{ tag: 'div[data-type="daily"]' }]
+    return [{ tag: 'div[data-type="weekly"]' }]
   },
   
   renderHTML({ HTMLAttributes }) {
-    return ['div', { ...HTMLAttributes, 'data-type': 'daily' }]
+    return ['div', { ...HTMLAttributes, 'data-type': 'weekly' }]
   },
   
   addNodeView() {
-    return ReactNodeViewRenderer(DailyNodeView)
+    return ReactNodeViewRenderer(WeeklyNodeView)
   },
   
   addCommands() {
     return {
-      insertDaily: () => ({ chain }) => {
+      insertWeekly: () => ({ chain }) => {
         return chain()
           .insertContent({
-            type: 'daily',
+            type: 'weekly',
           })
           .run()
       },
@@ -543,21 +591,17 @@ export const DailyExtension = TipTapNode.create({
   addInputRules() {
     return [
       {
-        find: /^\/daily\s$/,
+        find: /^\/weekly\s$/,
         handler: ({ state, range, chain }) => {
           const { tr } = state
           tr.delete(range.from, range.to)
           // @ts-ignore
-          chain().insertDaily().run()
+          chain().insertWeekly().run()
         },
       },
     ]
   },
 })
 
-// Export placeholder child extensions for backwards compatibility (kept for existing documents)
-export const DailyYesterday = TipTapNode.create({ name: "dailyYesterday", group: "block", content: "block+" })
-export const DailyToday = TipTapNode.create({ name: "dailyToday", group: "block", content: "block+" })
-export const DailyTomorrow = TipTapNode.create({ name: "dailyTomorrow", group: "block", content: "block+" })
+export default WeeklyExtension
 
-export default DailyExtension
