@@ -417,7 +417,7 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                 </Option>
             )}
             <Option
-                value={"Export document JSON"}
+                value={"Copy document JSON to clipboard"}
                 onClick={() => {
                     const json = props.editor.getJSON();
                     const jsonString = JSON.stringify(json, null, 2);
@@ -439,7 +439,7 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
             >
                 <motion.div>
                     <span>
-                        📤 Export document JSON
+                        📋 Copy document JSON to clipboard
                     </span>
                 </motion.div>
             </Option>
