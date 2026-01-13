@@ -211,7 +211,20 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <span>/q/{slug}</span>
+        <a 
+          href={`/q/${slug}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ 
+            color: '#888', 
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#555'; e.currentTarget.style.textDecoration = 'underline'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#888'; e.currentTarget.style.textDecoration = 'none'; }}
+        >
+          /q/{slug}
+        </a>
         {!isTemplate && (
           <motion.button
             onClick={handleRefresh}

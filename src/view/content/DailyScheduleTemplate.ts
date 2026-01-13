@@ -24,7 +24,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
     {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "43761642-9727-4550-8ee0-2a3ba9ad0712",
+        "quantaId": "049f5a92-038f-43f3-bd32-9fc1c2d0aae7",
         "textAlign": "left",
         "indent": 0
       }
@@ -32,7 +32,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
     {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "4040aa69-2e03-46df-b66b-caece120701c",
+        "quantaId": "1dc6260a-4f79-4aba-a957-61dcae12a9e3",
         "textAlign": "left",
         "indent": 0
       }
@@ -50,7 +50,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "group",
           "attrs": {
-            "quantaId": "c4468f18-8927-40f3-bb3a-d3a7d00e9aef",
+            "quantaId": "3833ff60-68d2-4fab-b669-ce48417474c9",
             "pathos": 0,
             "backgroundColor": "#EFEFEF",
             "lens": "identity",
@@ -60,7 +60,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "aca1d22f-635f-462c-bb88-1593cbd6b65b",
+                "quantaId": "e74acdff-df5f-46ae-a412-aeee83c9a5b1",
                 "textAlign": "left",
                 "indent": 0
               },
@@ -73,48 +73,19 @@ const TEMPLATE_SCHEMA: JSONContent = {
                     }
                   ],
                   "text": "Things for Consideration"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "attrs": {
-                "quantaId": "d4f30bff-cec6-4bb5-ab4e-dd2150a07a69",
-                "textAlign": "left",
-                "indent": 0
-              }
-            },
-            {
-              "type": "taskList",
-              "content": [
+                },
                 {
-                  "type": "taskItem",
-                  "attrs": {
-                    "checked": false
-                  },
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "attrs": {
-                        "quantaId": "6a603398-3fba-40d7-b87e-ebdf8818db84",
-                        "textAlign": "left",
-                        "indent": 0
-                      },
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "Make sure to work on Kairos Lifemap for at least 5 deep hours"
-                        }
-                      ]
-                    }
-                  ]
+                  "type": "hardBreak"
+                },
+                {
+                  "type": "hardBreak"
                 }
               ]
             },
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "3aca25a6-389c-46af-ab54-3928aff29859",
+                "quantaId": "8f898594-c52a-465b-9fca-f110953ddebe",
                 "textAlign": "left",
                 "indent": 0
               }
@@ -122,7 +93,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "a78ed0db-154f-48d1-9abe-369b62dc98c6",
+                "quantaId": "611bf5fb-1a07-4b23-b4a1-0876423603a8",
+                "textAlign": "left",
+                "indent": 0
+              }
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "cea953ec-f263-47b7-bc46-1444b18f2750",
+                "textAlign": "left",
+                "indent": 0
+              }
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "2e22e1f2-2177-44ec-84d3-7edbfd923d0a",
                 "textAlign": "left",
                 "indent": 0
               },
@@ -141,56 +128,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "d465de51-47e1-4d59-8ce0-fe766365a7d8",
-                "textAlign": "left",
-                "indent": 0
-              }
-            },
-            {
-              "type": "taskList",
-              "content": [
-                {
-                  "type": "taskItem",
-                  "attrs": {
-                    "checked": false
-                  },
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "attrs": {
-                        "quantaId": "bc59511c-1073-4a73-b0ae-d1c7a844af05",
-                        "textAlign": "left",
-                        "indent": 0
-                      },
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "Post a a build update on Arrayah WhatsApp chat at around "
-                        },
-                        {
-                          "type": "timepoint",
-                          "attrs": {
-                            "id": "timepoint:time-16-0",
-                            "label": "🕐 4 PM",
-                            "data-date": "2026-01-14T05:00:00.000Z",
-                            "data-formatted": "4 PM",
-                            "data-relative-label": "4 PM"
-                          }
-                        },
-                        {
-                          "type": "text",
-                          "text": " "
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "attrs": {
-                "quantaId": "7219eabd-8bd9-4e01-b338-ea27d05bad81",
+                "quantaId": "445a478a-e7be-42af-85db-6aa0d7e6b179",
                 "textAlign": "left",
                 "indent": 0
               }
@@ -198,7 +136,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "3b92400e-d0cd-4c84-824b-e0c98bb63596",
+                "quantaId": "0d1b3f88-2d83-4a28-8cc4-1ad7395e86ae",
                 "textAlign": "left",
                 "indent": 0
               }
@@ -206,7 +144,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "94fc622d-d724-45ae-a00a-71606da033c0",
+                "quantaId": "e32dba8a-2c7a-4147-bc47-a8bb70045b7e",
+                "textAlign": "left",
+                "indent": 0
+              }
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "78655c88-0f40-474e-bd33-6dd99708d3e3",
+                "textAlign": "left",
+                "indent": 0
+              }
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "f0d3749c-9e50-4499-9aa4-7b23329fa02c",
                 "textAlign": "left",
                 "indent": 0
               },
@@ -252,7 +206,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "243341ae-4c20-4715-80f9-c8d597a4712f",
+                "quantaId": "5a021028-9382-4d39-845b-8831c91fc2de",
                 "textAlign": "left",
                 "indent": 0
               }
@@ -260,7 +214,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "3a27d72c-c93a-4f2f-b6b0-1a9a123ffdca",
+                "quantaId": "7f023300-be9e-4a6c-87d4-d7bdcbe413a2",
                 "textAlign": "left",
                 "indent": 0
               },
@@ -286,7 +240,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "dece9fb4-9f18-4fcb-95f1-b90324c04fb0",
+            "quantaId": "ea492a5a-0d4e-4638-a8e6-459fc2da4ab4",
             "textAlign": "left",
             "indent": 0
           },
@@ -343,6 +297,64 @@ const TEMPLATE_SCHEMA: JSONContent = {
               "type": "hardBreak"
             }
           ]
+        },
+        {
+          "type": "group",
+          "attrs": {
+            "quantaId": "828708bc-300c-451e-8e26-dca9bc760ba7",
+            "pathos": 0,
+            "backgroundColor": "#EFEFEF",
+            "lens": "identity",
+            "collapsed": false
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "1edee9be-3f3e-4ebd-8b9f-382bd4ff1db1",
+                "textAlign": "left",
+                "indent": 0
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Try and recall any dreams and their significance "
+                },
+                {
+                  "type": "hashtag",
+                  "attrs": {
+                    "id": "tag:user-dream-journalling",
+                    "label": "#dream-journalling",
+                    "data-tag": "dream-journalling",
+                    "data-color": "#ef4444"
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": " "
+                },
+                {
+                  "type": "hardBreak"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "quantaId": "af127bb4-beb2-4275-8cda-3001327b3adb",
+            "textAlign": "left",
+            "indent": 0
+          },
+          "content": [
+            {
+              "type": "hardBreak"
+            },
+            {
+              "type": "hardBreak"
+            }
+          ]
         }
       ]
     },
@@ -358,7 +370,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "ff7cafe8-6ec1-4554-9c7e-4c82f1565938",
+            "quantaId": "93690cbc-15af-4871-9054-df1fee1432ea",
             "textAlign": "left",
             "indent": 0
           },
@@ -395,42 +407,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "df58c640-ba23-412a-bb1e-fb9cc3bab454",
+            "quantaId": "37e3f381-4381-46d5-bc7b-44d848f5a2a5",
             "textAlign": "left",
             "indent": 0
           }
         },
         {
-          "type": "taskList",
-          "content": [
-            {
-              "type": "taskItem",
-              "attrs": {
-                "checked": false
-              },
-              "content": [
-                {
-                  "type": "paragraph",
-                  "attrs": {
-                    "quantaId": "01299e28-06a0-47ff-bb22-f06c7db0e6cd",
-                    "textAlign": "left",
-                    "indent": 0
-                  },
-                  "content": [
-                    {
-                      "type": "text",
-                      "text": "Eat lunch before 7.30am "
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+          "type": "paragraph",
+          "attrs": {
+            "quantaId": "350804fa-247b-4bc4-8feb-2e540c0c667c",
+            "textAlign": "left",
+            "indent": 0
+          }
         },
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "f1da7753-e5a5-4e95-970c-82cdd605b857",
+            "quantaId": "89021a71-0044-43c5-9d29-3e55f044f2ac",
             "textAlign": "left",
             "indent": 0
           },
@@ -458,7 +451,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "847fdc52-fa25-4d8c-b585-954c120fd046",
+            "quantaId": "76ab17cc-18c4-4240-b6c4-aa49d217b2df",
             "textAlign": "left",
             "indent": 0
           },
@@ -502,7 +495,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "cd6733d0-21c5-4474-840a-bb63fdd15469",
+            "quantaId": "a4c0b469-2a16-4078-805d-5403a2e3f985",
             "textAlign": "left",
             "indent": 0
           },
@@ -526,7 +519,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "1232226b-18d8-448d-aff1-d862ffdc4310",
+            "quantaId": "43395ada-29bc-4c4b-a296-f9e3c0e6deac",
             "textAlign": "left",
             "indent": 0
           },
@@ -564,7 +557,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "9a56b9e8-a06b-40c6-827a-e8a0abf989db",
+            "quantaId": "906c29e3-b25e-45f6-a610-79164767d212",
             "textAlign": "left",
             "indent": 0
           },
@@ -588,48 +581,15 @@ const TEMPLATE_SCHEMA: JSONContent = {
           ]
         },
         {
-          "type": "taskList",
+          "type": "paragraph",
+          "attrs": {
+            "quantaId": "a81226ba-d23d-4037-bf7b-03e04705f03f",
+            "textAlign": "left",
+            "indent": 0
+          },
           "content": [
             {
-              "type": "taskItem",
-              "attrs": {
-                "checked": false
-              },
-              "content": [
-                {
-                  "type": "paragraph",
-                  "attrs": {
-                    "quantaId": "930930b6-f0e7-4fb8-8ff3-6af97f00da2f",
-                    "textAlign": "left",
-                    "indent": 0
-                  },
-                  "content": [
-                    {
-                      "type": "text",
-                      "text": "Eat lunch before 11am"
-                    },
-                    {
-                      "type": "hardBreak"
-                    },
-                    {
-                      "type": "hardBreak"
-                    },
-                    {
-                      "type": "text",
-                      "text": " "
-                    },
-                    {
-                      "type": "hardBreak"
-                    },
-                    {
-                      "type": "hardBreak"
-                    },
-                    {
-                      "type": "hardBreak"
-                    }
-                  ]
-                }
-              ]
+              "type": "hardBreak"
             }
           ]
         }
@@ -647,7 +607,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "42bdb88e-df86-435b-924a-81f61de45e7a",
+            "quantaId": "e83afa8a-0df3-49f0-88b8-4470baa3d259",
             "textAlign": "left",
             "indent": 0
           },
@@ -711,7 +671,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "91393b9e-c4f3-40b0-8e68-2e796243a8e4",
+            "quantaId": "2ad81da7-be3d-4aaf-85a9-60185d67a8d6",
             "textAlign": "left",
             "indent": 0
           },
@@ -749,7 +709,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "bb917a0e-e525-4370-a495-389097b81cd4",
+            "quantaId": "34d82948-24b5-4d78-a739-db36276b74f0",
             "textAlign": "left",
             "indent": 0
           },
@@ -765,78 +725,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "70652ddb-0d4d-4b66-9198-4b3eb9536d06",
-            "textAlign": "left",
-            "indent": 0
-          },
-          "content": [
-            {
-              "type": "text",
-              "text": "Learn Mandarin for "
-            },
-            {
-              "type": "pomodoro",
-              "attrs": {
-                "duration": 3600,
-                "label": "1 hour",
-                "emoji": "⏳",
-                "status": "unrealized",
-                "startTime": null,
-                "endTime": null,
-                "id": "pomodoro:1767926123244"
-              }
-            },
-            {
-              "type": "text",
-              "text": " at "
-            },
-            {
-              "type": "timepoint",
-              "attrs": {
-                "id": "timepoint:time-16-0",
-                "label": "🕐 4 PM",
-                "data-date": "2026-01-14T05:00:00.000Z",
-                "data-formatted": "4 PM",
-                "data-relative-label": "4 PM"
-              }
-            },
-            {
-              "type": "text",
-              "text": " "
-            }
-          ]
-        },
-        {
-          "type": "taskList",
-          "content": [
-            {
-              "type": "taskItem",
-              "attrs": {
-                "checked": false
-              },
-              "content": [
-                {
-                  "type": "paragraph",
-                  "attrs": {
-                    "quantaId": "79d74a27-9e51-49e6-9336-d0af77b6dc9a",
-                    "textAlign": "left",
-                    "indent": 0
-                  },
-                  "content": [
-                    {
-                      "type": "text",
-                      "text": "Eat supper before 5pm"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "attrs": {
-            "quantaId": "c4d872e5-8360-43fc-b5cc-a689f231927d",
+            "quantaId": "5fd2ec17-24b4-47e9-802e-2b676236d311",
             "textAlign": "left",
             "indent": 0
           }
@@ -855,7 +744,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "58da83d4-f075-419b-bc4b-ebeec7d3268f",
+            "quantaId": "414c7b2b-020f-4152-ad8b-afc60ea6e017",
             "textAlign": "left",
             "indent": 0
           },
@@ -889,7 +778,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "1e4b7d8e-c54a-45b4-8604-00c25087d1d2",
+            "quantaId": "9153c0a5-3d8d-4424-bac4-da16bc388f06",
             "textAlign": "left",
             "indent": 0
           },
@@ -902,7 +791,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "e489423f-127e-49f3-bfd4-60fa2bd2ce70",
+            "quantaId": "612a6a7d-83a1-4d67-86c0-08c6aa3b2447",
             "textAlign": "left",
             "indent": 0
           }
@@ -910,7 +799,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "bad358d3-fa8c-4ae7-916b-38c2c54cd507",
+            "quantaId": "d627f840-54aa-414c-a104-1f9ceb8ae6fa",
             "textAlign": "left",
             "indent": 0
           }
@@ -918,7 +807,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "54ed27ee-a4ea-4bf4-bcb1-e41779d6ca8d",
+            "quantaId": "cc0b29b0-084e-4d45-be02-394e064e4b13",
             "textAlign": "left",
             "indent": 0
           }
@@ -926,7 +815,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "a914560c-b73f-4048-ade2-c537baca6dcd",
+            "quantaId": "982cff36-875e-456c-899d-33de4422a352",
             "textAlign": "left",
             "indent": 0
           }
@@ -945,7 +834,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "342303a1-6bd4-4dcc-8ef9-e71e17642c7a",
+            "quantaId": "4ab97f84-e064-41ba-8908-8f66cc4be06b",
             "textAlign": "left",
             "indent": 0
           },
@@ -981,58 +870,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
               "type": "hardBreak"
             },
             {
-              "type": "text",
-              "text": "Call Mum around "
-            },
-            {
-              "type": "timepoint",
-              "attrs": {
-                "id": "timepoint:time-19-0",
-                "label": "🕐 7 PM",
-                "data-date": "2026-01-09T08:00:00.000Z",
-                "data-formatted": "7 PM",
-                "data-relative-label": "7 PM"
-              }
-            },
-            {
               "type": "hardBreak"
-            },
-            {
-              "type": "hardBreak"
-            },
-            {
-              "type": "text",
-              "text": "Practice 太极和冥想 for about "
-            },
-            {
-              "type": "pomodoro",
-              "attrs": {
-                "duration": 3600,
-                "label": "1 hour",
-                "emoji": "⏳",
-                "status": "unrealized",
-                "startTime": null,
-                "endTime": null,
-                "id": "pomodoro:1767851677558"
-              }
-            },
-            {
-              "type": "text",
-              "text": " before "
-            },
-            {
-              "type": "timepoint",
-              "attrs": {
-                "id": "timepoint:time-19-30",
-                "label": "🕐 7:30 PM",
-                "data-date": "2026-01-08T08:30:00.000Z",
-                "data-formatted": "7:30 PM",
-                "data-relative-label": "7:30 PM"
-              }
-            },
-            {
-              "type": "text",
-              "text": " , give myself ample time."
             },
             {
               "type": "hardBreak"
@@ -1042,7 +880,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "paragraph",
           "attrs": {
-            "quantaId": "f0949221-98cb-4987-b189-5f4c6611bf30",
+            "quantaId": "7bc38d18-aac1-4f9a-99f1-62d7ed204691",
             "textAlign": "left",
             "indent": 0
           },
@@ -1066,7 +904,7 @@ const TEMPLATE_SCHEMA: JSONContent = {
         {
           "type": "group",
           "attrs": {
-            "quantaId": "8dcdc427-9bfd-4fb2-b528-268346d72d32",
+            "quantaId": "faa92d17-4e31-4aa1-8399-bc9b8376807d",
             "pathos": 0,
             "backgroundColor": "#EFEFEF",
             "lens": "identity",
@@ -1076,30 +914,27 @@ const TEMPLATE_SCHEMA: JSONContent = {
             {
               "type": "paragraph",
               "attrs": {
-                "quantaId": "df68be02-d92d-432c-bf67-eac8ca4968fc",
+                "quantaId": "af4c68af-74c2-4dc6-a6f3-65b1cc85e1d4",
                 "textAlign": "left",
                 "indent": 0
               },
               "content": [
                 {
                   "type": "text",
-                  "text": "Spend "
+                  "text": "In a calm and collected state review the happenings of the day "
                 },
                 {
-                  "type": "pomodoro",
+                  "type": "hashtag",
                   "attrs": {
-                    "duration": 900,
-                    "label": "15 minutes",
-                    "emoji": "⏳",
-                    "status": "unrealized",
-                    "startTime": null,
-                    "endTime": null,
-                    "id": "pomodoro:1768203178106"
+                    "id": "tag:user-daily-dying",
+                    "label": "#daily-dying",
+                    "data-tag": "daily-dying",
+                    "data-color": "#10b981"
                   }
                 },
                 {
                   "type": "text",
-                  "text": "on Deep Mind meditation. Write down insights afterwards.  "
+                  "text": " "
                 },
                 {
                   "type": "hardBreak"
@@ -1108,35 +943,29 @@ const TEMPLATE_SCHEMA: JSONContent = {
                   "type": "hardBreak"
                 }
               ]
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "attrs": {
-            "quantaId": "733533c2-5429-4e9e-b2ba-d15ab091779a",
-            "textAlign": "left",
-            "indent": 0
-          },
-          "content": [
+            },
             {
-              "type": "text",
-              "text": " "
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "420228dc-3737-4221-abdb-3ae937633071",
+                "textAlign": "left",
+                "indent": 0
+              }
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "quantaId": "d0b6d9f7-b12b-4430-bba4-72bd9d565ff3",
+                "textAlign": "left",
+                "indent": 0
+              }
             }
           ]
-        },
-        {
-          "type": "paragraph",
-          "attrs": {
-            "quantaId": "4666fda5-dc62-4794-8a4e-dd1ebfa4d2b6",
-            "textAlign": "left",
-            "indent": 0
-          }
         }
       ]
     }
   ]
-};
+}
 
 // ============================================================================
 // TEMPLATE PROCESSING
