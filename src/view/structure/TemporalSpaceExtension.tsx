@@ -371,18 +371,24 @@ export const TemporalSpaceExtension = TipTapNode.create({
           {console.log('[TemporalSpaceNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
           <motion.div
             style={{
-              borderRadius: 10,
+              borderRadius: 12,
               position: 'relative',
               display: isHidden ? 'none' : 'block',
-              border: '2px solid #c0c0c0',
-              backgroundColor: props.node.attrs.backgroundColor || 'transparent',
+              // Frosted glass effect
+              backgroundColor: 'rgba(255, 255, 255, 0.4)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)', // Safari support
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
               padding: isCollapsed ? '10px 20px' : '20px',
               margin: '8px 0px',
               minHeight: isCollapsed ? 48 : 20,
               overflow: 'visible',
             }}
             animate={{
-              boxShadow: glowStyles.join(','),
+              boxShadow: glowStyles.length > 1 
+                ? `0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6), ${glowStyles.join(',')}`
+                : '0 4px 30px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
