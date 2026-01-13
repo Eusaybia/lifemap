@@ -21,6 +21,7 @@ import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
+import { getKongweisBasicTemplate } from "../content/KongweisBasicTemplate";
 import { backup } from "../../backend/backup";
 import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
@@ -208,6 +209,18 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </motion.div>
                 </Option>
             )}
+            <Option
+                value={"Apply Kongwei's Basic Template"}
+                onClick={() => {
+                    props.editor.commands.setContent(getKongweisBasicTemplate());
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📋 Apply Kongwei's Basic Template
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Copy quanta id"}
