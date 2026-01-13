@@ -137,7 +137,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
   selectable: true,
   draggable: true,
   atom: true,
-  priority: 1001, // Higher priority than Group to ensure correct parsing when copy/pasting
+  priority: 999, // Lower than Paragraph (1000) so empty documents default to paragraph, not temporalSpace. Still higher than Group for correct parsing when copy/pasting.
   onUpdate() {
     if (this.editor.state.selection) {
       return true
