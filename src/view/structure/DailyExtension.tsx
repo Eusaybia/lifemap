@@ -300,17 +300,24 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
     checkAndInitializeDaily()
   }, [])
   
-  // Scroll to today on mount
-  useEffect(() => {
+  // Scroll to today on mount - with multiple attempts to ensure it works
+  const scrollToToday = useCallback(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
       const cardWidth = 550 + 12
       const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
-      setTimeout(() => {
-        container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
-      }, 100)
+      container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
+      setActiveIndex(TODAY_INDEX)
     }
   }, [])
+  
+  useEffect(() => {
+    // Multiple attempts to ensure scrolling works after layout is complete
+    const attempts = [0, 100, 300, 500]
+    attempts.forEach(delay => {
+      setTimeout(scrollToToday, delay)
+    })
+  }, [scrollToToday])
   
   const scrollToCard = useCallback((index: number) => {
     if (scrollContainerRef.current) {

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFunctions } from 'firebase/functions';
-import { getAnalytics } from "firebase/analytics";
+// Analytics disabled for local-only beta release
+// import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCqscewFIJolFOGTP3oVvTCuiEhbCGfDaA",
@@ -14,5 +15,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
-export const analytics = app.name && typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Analytics disabled for local-only beta release
+export const analytics = null;
 export const functions = getFunctions(app);

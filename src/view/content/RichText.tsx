@@ -88,6 +88,7 @@ import * as Y from 'yjs'
 import { TiptapTransformer } from '@hocuspocus/transformer'
 
 // Template quanta ID - this is the editable template in the Daily carousel
+// When empty, it will be initialized from the hardcoded TEMPLATE_SCHEMA in DailyScheduleTemplate.ts
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 // Template quanta ID - this is the editable template in the Weekly carousel
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
@@ -569,7 +570,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   // Check for new daily schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
-  // Now fetches the editable template from IndexedDB instead of using hardcoded template
+  // Fetches from the editable template at /q/daily-schedule-template, falls back to hardcoded
   // Supports initializing both today and tomorrow's schedules
   React.useEffect(() => {
     if (!props.quanta?.id || !editor || templateApplied.current) return;
@@ -618,6 +619,28 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         } else {
           localStorage.removeItem('newDailySchedules');
         }
+      }
+    }
+  }, [props.quanta?.id, editor]);
+
+  // Initialize the editable daily-schedule-template with the hardcoded template if it's empty
+  // This allows users to edit the template at /q/daily-schedule-template
+  React.useEffect(() => {
+    if (!props.quanta?.id || !editor || templateApplied.current) return;
+    
+    const urlId = window.location.pathname.split('/').pop();
+    
+    // Only apply to the template quanta itself
+    if (urlId === DAILY_TEMPLATE_QUANTA_ID && editor) {
+      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      if (isEmpty) {
+        setTimeout(() => {
+          // Initialize with the hardcoded template
+          (editor as Editor)!.commands.setContent(getDailyScheduleTemplate());
+          templateApplied.current = true;
+          console.log('[RichText] Initialized daily-schedule-template with hardcoded template');
+        }, 300);
       }
     }
   }, [props.quanta?.id, editor]);
