@@ -2,10 +2,12 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../test-next-app"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"search.exclude": {
+			"**/node_modules": false
+		},
+		"workbench.colorTheme": "Solarized Light"
+	}
 }
