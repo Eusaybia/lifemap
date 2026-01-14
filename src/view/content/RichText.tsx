@@ -62,7 +62,6 @@ import { ScrollViewExtension } from '../structure/ScrollViewExtension'
 import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
-import { ExternalPortalExtension } from '../structure/ExternalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
@@ -83,8 +82,6 @@ import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
 import { getWeeklyScheduleTemplate } from './WeeklyScheduleTemplate'
-import { getLifeMappingMarginTemplate } from './LifeMappingMarginTemplate'
-import { getLifeMappingMainTemplate } from './LifeMappingMainTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
@@ -95,10 +92,6 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 // Template quanta ID - this is the editable template in the Weekly carousel
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
-// Template quanta ID - this is the margin sidebar on the life-mapping-old page
-const LIFE_MAPPING_MARGIN_QUANTA_ID = 'life-mapping-margin'
-// Template quanta ID - this is the main content area on the life-mapping-old page
-const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
 
 /**
  * Fetches the content of a quanta from IndexedDB
@@ -296,7 +289,6 @@ export const customExtensions: Extensions = [
   MessageExtension,
   PortalExtension,
   ExperimentalPortalExtension,
-  ExternalPortalExtension,
   QuoteExtension,
   WarningExtension,
   LifemapCardExtension,
@@ -538,6 +530,25 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
   }, [editor, setEditor])
   
+  // Listen for postMessage requests for editor JSON (from parent pages like life-mapping-old)
+  React.useEffect(() => {
+    if (!editor) return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'get-editor-json') {
+        // Respond with the editor's JSON content
+        const json = (editor as Editor).getJSON();
+        window.parent.postMessage({
+          type: 'editor-json-response',
+          json: json,
+        }, '*');
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [editor])
+  
   // These functions are memoised for performance reasons
   const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
@@ -648,42 +659,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           (editor as Editor)!.commands.setContent(getDailyScheduleTemplate());
           templateApplied.current = true;
           console.log('[RichText] Initialized daily-schedule-template with hardcoded template');
-        }, 300);
-      }
-    }
-  }, [props.quanta?.id, editor]);
-
-  // Initialize the life-mapping-margin quanta with the LifeMappingMarginTemplate if it's empty
-  // This quanta contains portals to all the quantas on the life-mapping-old page
-  React.useEffect(() => {
-    if (!props.quanta?.id || !editor || templateApplied.current) return;
-    
-    const urlId = window.location.pathname.split('/').pop();
-    
-    // Only apply to the life-mapping-margin quanta
-    if (urlId === LIFE_MAPPING_MARGIN_QUANTA_ID && editor) {
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
-      
-      if (isEmpty) {
-        setTimeout(() => {
-          // Initialize with the LifeMappingMarginTemplate
-          (editor as Editor)!.commands.setContent(getLifeMappingMarginTemplate());
-          templateApplied.current = true;
-          console.log('[RichText] Initialized life-mapping-margin with LifeMappingMarginTemplate');
-        }, 300);
-      }
-    }
-    
-    // Only apply to the life-mapping-main quanta
-    if (urlId === LIFE_MAPPING_MAIN_QUANTA_ID && editor) {
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
-      
-      if (isEmpty) {
-        setTimeout(() => {
-          // Initialize with the LifeMappingMainTemplate (contains External Portals)
-          (editor as Editor)!.commands.setContent(getLifeMappingMainTemplate());
-          templateApplied.current = true;
-          console.log('[RichText] Initialized life-mapping-main with LifeMappingMainTemplate');
         }, 300);
       }
     }
