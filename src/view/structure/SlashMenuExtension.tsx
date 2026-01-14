@@ -321,6 +321,19 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
           editor.chain().focus().insertContent({ type: 'lifetimeView' }).run()
       },
     },
+    {
+      id: 'external-portal',
+      title: 'External Portal',
+      description: 'Embed content from another Quanta',
+      emoji: '📡',
+      keywords: ['portal', 'external', 'embed', 'transclude', 'link', 'quanta', 'reference'],
+      action: (editor) => {
+        editor.chain().focus().insertContent({
+          type: 'externalPortal',
+          attrs: { externalQuantaId: '' },
+        }).run()
+      },
+    },
   ]
 }
 
