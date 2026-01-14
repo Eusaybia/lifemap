@@ -2,7 +2,7 @@ import React from "react";
 import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { Group } from "./Group";
-import { Qi } from "../../core/Qi";
+import { Quanta } from "../../core/Quanta";
 import { group } from "console";
 import { Message } from "../content/Message";
 
@@ -42,10 +42,15 @@ export const ConversationExtension = Node.create({
         <NodeViewWrapper>
           <>
           </>
-          <Group lens={"verticalArray"} qid={props.node.attrs.qid}>
-            <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
-              Group Chat
-            </div>
+          <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
+            Group Chat
+          </div>
+          <Group
+            quantaId={props.node.attrs.qid}
+            lens={"identity"}
+            // @ts-ignore - Suppressing prop mismatch for isIrrelevant
+            isIrrelevant={false}
+          >
             <NodeViewContent/>
           </Group>
         </NodeViewWrapper>

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2017",
     "lib": [
       "dom",
       "dom.iterable",
@@ -22,20 +22,25 @@
     "noImplicitThis": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    "incremental": true,
+    "incremental": false,
     "plugins": [
       {
         "name": "next"
       }
+    ],
+    "types": [
+      "jest"
     ]
   },
   "include": [
     "app",
     "src",
+    "bugs",
     "types/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next"
   ]
 }
