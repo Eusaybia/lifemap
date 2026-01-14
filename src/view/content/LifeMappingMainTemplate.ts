@@ -23,7 +23,6 @@ import { v4 as uuidv4 } from 'uuid';
 const TEMPLATE_SCHEMA: JSONContent = {
   "type": "doc",
   "content": [
-    // Lifetime Section
     {
       "type": "heading",
       "attrs": {
@@ -34,28 +33,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Lifetime"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "lifetime",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-1",
+        "quantaId": "8ab425f9-fc58-4bdb-b82c-1e2ff344b3f7",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Every 7 Years Section
     {
       "type": "heading",
       "attrs": {
@@ -66,28 +60,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Every 7 Years"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "every-7-years",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-2",
+        "quantaId": "750d4bbf-7a6b-440d-b5dd-3c294001cd40",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Yearly Section
     {
       "type": "heading",
       "attrs": {
@@ -98,28 +87,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Yearly"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "yearly",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-3",
+        "quantaId": "bde9dd50-e4cb-4995-9bed-d0d0c03d7ab5",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Seasonally Section
     {
       "type": "heading",
       "attrs": {
@@ -130,28 +114,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Seasonally"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "seasonally",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-4",
+        "quantaId": "e7440807-a40c-44d9-b038-9db25d650f34",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Monthly Section
     {
       "type": "heading",
       "attrs": {
@@ -162,28 +141,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Monthly"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "past",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-5",
+        "quantaId": "5b0732cf-fc0d-4ae5-afb1-6976918dffe8",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Weekly Section
     {
       "type": "heading",
       "attrs": {
@@ -194,28 +168,23 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Weekly"
         }
       ]
     },
     {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "relationships",
-        "height": 400
-      }
-    },
-    {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-6",
+        "quantaId": "ba3f100f-adee-49eb-a8cf-b685f64ae1e4",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Daily Section
     {
       "type": "heading",
       "attrs": {
@@ -226,28 +195,37 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Daily"
         }
       ]
     },
     {
-      "type": "externalPortal",
+      "type": "paragraph",
       "attrs": {
-        "externalQuantaId": "present-day-tasks",
-        "height": 600
+        "quantaId": "402f94de-ba8f-4439-97d9-1d00c0fc4121",
+        "textAlign": "left",
+        "indent": 0
+      }
+    },
+    {
+      "type": "daily",
+      "attrs": {
+        "quantaId": "737ba931-bc0a-4c66-a750-1e20f1333eae"
       }
     },
     {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "main-spacer-7",
+        "quantaId": "657cfa33-798c-4671-84ec-1e80f317e4e7",
         "textAlign": "left",
         "indent": 0
       }
     },
-
-    // Past Section
     {
       "type": "heading",
       "attrs": {
@@ -258,17 +236,26 @@ const TEMPLATE_SCHEMA: JSONContent = {
       "content": [
         {
           "type": "text",
-          "marks": [{ "type": "bold" }],
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
           "text": "Past"
+        },
+        {
+          "type": "hardBreak"
+        },
+        {
+          "type": "hardBreak"
+        },
+        {
+          "type": "hardBreak"
+        },
+        {
+          "type": "hardBreak"
         }
       ]
-    },
-    {
-      "type": "externalPortal",
-      "attrs": {
-        "externalQuantaId": "past-history",
-        "height": 400
-      }
     }
   ]
 };
