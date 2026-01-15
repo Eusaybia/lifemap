@@ -68,6 +68,7 @@ import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
 import { WeeklyExtension } from '../structure/WeeklyExtension'
+import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
@@ -304,6 +305,7 @@ export const customExtensions: Extensions = [
   DailyTomorrow,
   DailyExtension,
   WeeklyExtension,
+  LunarMonthExtension,
   DayHeaderTasks,
   DayHeaderInsights,
   DayHeaderObservations,

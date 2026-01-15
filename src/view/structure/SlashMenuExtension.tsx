@@ -197,6 +197,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'lunar-month',
+      title: 'Lunar Month',
+      description: 'Monthly calendar based on lunar phases (New Moon = Day 1)',
+      emoji: '🌑',
+      keywords: ['lunar', 'moon', 'month', 'calendar', 'phase', 'natural', 'cycle'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertLunarMonth()
+      },
+    },
+    {
       id: 'day-header',
       title: 'Day Header',
       description: 'Insert a day header with tasks',
