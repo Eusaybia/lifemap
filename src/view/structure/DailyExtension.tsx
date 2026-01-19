@@ -77,15 +77,14 @@ const resetQuantaToTemplate = async (quantaSlug: string): Promise<boolean> => {
   })
 }
 
-// Set flag for today's and tomorrow's schedules - RichText.tsx will apply template if empty
+// Set flag for today's schedule - RichText.tsx will apply template if empty
 // Uses localStorage because sessionStorage is NOT shared between iframes and parent
 // This function is called synchronously to ensure flag is set before iframes load
 // IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
+// NOTE: Tomorrow initialization disabled due to y-indexeddb performance issues
 const checkAndInitializeDaily = () => {
   const today = formatDateSlug(new Date())
-  const tomorrow = formatDateSlug(getTomorrowDate())
   const todaySlug = `daily-${today}`
-  const tomorrowSlug = `daily-${tomorrow}`
   
   // Check if we've already initialized these days
   const initializedDaysStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
@@ -102,12 +101,8 @@ const checkAndInitializeDaily = () => {
     console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization`)
   }
   
-  // Check and add tomorrow if not already initialized
-  if (!initializedDays.includes(tomorrowSlug) && !pendingSchedules.includes(tomorrowSlug)) {
-    pendingSchedules.push(tomorrowSlug)
-    initializedDays.push(tomorrowSlug)
-    console.log(`[DailyExtension] Flagged ${tomorrowSlug} for template initialization`)
-  }
+  // Tomorrow initialization disabled - causes y-indexeddb contention and 50+ second blocks
+  // when multiple iframes compete for IndexedDB access simultaneously
   
   // Save pending schedules
   if (pendingSchedules.length > 0) {
@@ -374,8 +369,8 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 // Daily Carousel Node View - Horizontal carousel with 3 cards
 // ============================================================================
 
-const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
-const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
+const TOTAL_CARDS = 3 // Template, Yesterday, Today (Tomorrow disabled for performance)
+const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today)
 
 const DailyNodeView: React.FC<NodeViewProps> = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -384,12 +379,10 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
   // Iframe refs for refreshing
   const yesterdayIframeRef = useRef<HTMLIFrameElement>(null)
   const todayIframeRef = useRef<HTMLIFrameElement>(null)
-  const tomorrowIframeRef = useRef<HTMLIFrameElement>(null)
   
-  // Calculate date slugs for each pane
+  // Calculate date slugs for each pane (Tomorrow disabled for performance - y-indexeddb contention)
   const todaySlug = `daily-${formatDateSlug(new Date())}`
   const yesterdaySlug = `daily-${formatDateSlug(getYesterdayDate())}`
-  const tomorrowSlug = `daily-${formatDateSlug(getTomorrowDate())}`
   
   // Check and initialize daily on mount
   useEffect(() => {
@@ -554,14 +547,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
             />
           </DayCard>
           
-          {/* Tomorrow Card - lazy loaded (user must scroll right to see) */}
-          <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
-            <LazyIframe
-              src={`/q/${tomorrowSlug}?mode=graph`}
-              title="Tomorrow's Schedule"
-              iframeRef={tomorrowIframeRef}
-            />
-          </DayCard>
+          {/* Tomorrow Card disabled for performance - y-indexeddb contention causes 50+ second blocks */}
         </div>
       </div>
     </NodeViewWrapper>
