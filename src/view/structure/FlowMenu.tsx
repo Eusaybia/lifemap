@@ -21,7 +21,7 @@ import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
-import { backup } from "../../backend/backup";
+import { backup, quantaBackup, QuantaBackupEntry } from "../../backend/backup";
 import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
 
@@ -174,11 +174,25 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
         return null;
     }
     
+    // State for quanta backups
+    const [quantaBackups, setQuantaBackups] = React.useState<QuantaBackupEntry[]>([]);
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null);
+    
+    // Load backups on mount and when quantaId changes
+    React.useEffect(() => {
+        const quantaId = quantaBackup.getCurrentQuantaId();
+        setCurrentQuantaId(quantaId);
+        if (quantaId) {
+            setQuantaBackups(quantaBackup.getBackupsForDisplay(quantaId));
+        }
+    }, []);
+    
     // @ts-ignore - getDocumentAttributes exists via the extension
     const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
 
     return (
+        <>
         <FlowSwitch value={props.selectedAction} isLens>
             {isDevMode && (
                 <Option
@@ -464,7 +478,85 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            {/* Create Backup Option - saves current state for this quanta */}
+            {currentQuantaId && (
+                <Option
+                    value={"Create backup"}
+                    onClick={() => {
+                        if (!currentQuantaId) {
+                            console.warn('[FlowMenu] Cannot create backup: no quanta ID found');
+                            return;
+                        }
+                        try {
+                            const content = props.editor.getJSON();
+                            const newBackup = quantaBackup.createBackup(currentQuantaId, content);
+                            // Refresh the backups list
+                            setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
+                            alert(`Backup created: ${newBackup.label} at ${quantaBackup.formatTimestamp(newBackup.timestamp)}`);
+                        } catch (e) {
+                            console.error('[FlowMenu] Failed to create backup:', e);
+                            alert('Failed to create backup');
+                        }
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            📸 Create backup
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
         </FlowSwitch>
+        
+        {/* Version History FlowSwitch - shows backups for current quanta (oldest to newest, bottom to top) */}
+        {currentQuantaId && (
+            <FlowSwitch value={"restore"} isLens>
+                {quantaBackups.length > 0 ? (
+                    quantaBackups.map((backup, index) => {
+                        const date = new Date(backup.timestamp);
+                        const timeStr = date.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        const dateStr = date.toLocaleDateString('en-GB', { 
+                            day: 'numeric',
+                            month: 'long', 
+                            year: 'numeric'
+                        });
+                        const isLatest = index === 0; // First in display order = most recent
+                        
+                        return (
+                            <Option
+                                key={backup.timestamp}
+                                value={backup.label}
+                                onClick={() => {
+                                    if (window.confirm(`Restore to backup from ${timeStr} ${dateStr}?`)) {
+                                        props.editor.commands.setContent(backup.content);
+                                        console.log(`[FlowMenu] Restored to backup ${backup.label}`);
+                                    }
+                                }}
+                            >
+                                <motion.div>
+                                    <span style={{ fontFamily: 'Inter', fontSize: '13px' }}>
+                                        {timeStr} {dateStr}{isLatest ? ' (Latest)' : ''}
+                                    </span>
+                                </motion.div>
+                            </Option>
+                        );
+                    })
+                ) : (
+                    [<Option key="no-backups" value={"no-backups"} onClick={() => {}}>
+                        <motion.div>
+                            <span style={{ fontFamily: 'Inter', fontSize: '13px', color: '#999' }}>
+                                No Backups
+                            </span>
+                        </motion.div>
+                    </Option>]
+                )}
+            </FlowSwitch>
+        )}
+        </>
     )
 })
 
