@@ -81,7 +81,7 @@ const resetQuantaToTemplate = async (quantaSlug: string): Promise<boolean> => {
 // Uses localStorage because sessionStorage is NOT shared between iframes and parent
 // This function is called synchronously to ensure flag is set before iframes load
 // IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
-// NOTE: Tomorrow initialization disabled due to y-indexeddb performance issues
+// NOTE: Tomorrow uses click-to-load pattern to avoid y-indexeddb contention on initial load
 const checkAndInitializeDaily = () => {
   const today = formatDateSlug(new Date())
   const todaySlug = `daily-${today}`
@@ -369,8 +369,8 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 // Daily Carousel Node View - Horizontal carousel with 3 cards
 // ============================================================================
 
-const TOTAL_CARDS = 3 // Template, Yesterday, Today (Tomorrow disabled for performance)
-const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today)
+const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
+const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
 
 const DailyNodeView: React.FC<NodeViewProps> = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -379,10 +379,15 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
   // Iframe refs for refreshing
   const yesterdayIframeRef = useRef<HTMLIFrameElement>(null)
   const todayIframeRef = useRef<HTMLIFrameElement>(null)
+  const tomorrowIframeRef = useRef<HTMLIFrameElement>(null)
   
-  // Calculate date slugs for each pane (Tomorrow disabled for performance - y-indexeddb contention)
+  // Track if Tomorrow has been instantiated (click-to-load to avoid y-indexeddb contention)
+  const [tomorrowInstantiated, setTomorrowInstantiated] = useState(false)
+  
+  // Calculate date slugs for each pane
   const todaySlug = `daily-${formatDateSlug(new Date())}`
   const yesterdaySlug = `daily-${formatDateSlug(getYesterdayDate())}`
+  const tomorrowSlug = `daily-${formatDateSlug(getTomorrowDate())}`
   
   // Check and initialize daily on mount
   useEffect(() => {
@@ -547,7 +552,76 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
             />
           </DayCard>
           
-          {/* Tomorrow Card disabled for performance - y-indexeddb contention causes 50+ second blocks */}
+          {/* Tomorrow Card - Click to instantiate (prevents y-indexeddb contention on page load) */}
+          <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
+            {tomorrowInstantiated ? (
+              <LazyIframe
+                src={`/q/${tomorrowSlug}?mode=graph`}
+                title="Tomorrow's Schedule"
+                iframeRef={tomorrowIframeRef}
+                eager={true}
+              />
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: '400px',
+                backgroundColor: '#fafafa',
+                borderRadius: '8px',
+                margin: '16px',
+                gap: '16px',
+              }}>
+                <motion.button
+                  onClick={() => {
+                    // Flag tomorrow for template initialization before loading
+                    const pendingStr = localStorage.getItem(NEW_DAILY_SCHEDULES_KEY)
+                    const pendingSchedules: string[] = pendingStr ? JSON.parse(pendingStr) : []
+                    if (!pendingSchedules.includes(tomorrowSlug)) {
+                      pendingSchedules.push(tomorrowSlug)
+                      localStorage.setItem(NEW_DAILY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
+                    }
+                    setTomorrowInstantiated(true)
+                  }}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    border: '2px dashed #ccc',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '36px',
+                    color: '#999',
+                  }}
+                  whileHover={{ 
+                    scale: 1.1, 
+                    borderColor: '#888',
+                    backgroundColor: 'rgba(0,0,0,0.02)',
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  +
+                </motion.button>
+                <div style={{
+                  textAlign: 'center',
+                  color: '#888',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                }}>
+                  <div style={{ fontWeight: 500 }}>Click + to load tomorrow</div>
+                  <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                    Loads schedule from template
+                  </div>
+                </div>
+              </div>
+            )}
+          </DayCard>
         </div>
       </div>
     </NodeViewWrapper>
