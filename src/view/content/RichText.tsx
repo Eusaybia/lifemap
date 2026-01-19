@@ -596,9 +596,12 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
   // Fetches from the editable template at /q/daily-schedule-template, falls back to hardcoded
   // Supports initializing both today and tomorrow's schedules
+  //
+  // IMPORTANT: Uses Y.Doc event-based approach to wait for IndexedDB to sync before checking
+  // if the editor is empty. This prevents race conditions where content could be applied
+  // before IndexedDB finishes syncing.
+  const dailyPageInitChecked = React.useRef(false);
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || templateApplied.current) return;
-    
     const pendingSchedulesStr = localStorage.getItem('newDailySchedules');
     const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
     const urlId = window.location.pathname.split('/').pop();
@@ -606,68 +609,143 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const isInPending = urlId && pendingSchedules.includes(urlId);
     
     // Only apply template if URL ID is in the pending schedules array
-    if (isInPending && editor) {
-      // Check if editor is empty before applying template
+    if (!isInPending) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || dailyPageInitChecked.current) return;
+    
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
+    
+    const removeFromPendingList = () => {
+      const currentPendingStr = localStorage.getItem('newDailySchedules');
+      const currentPending: string[] = currentPendingStr ? JSON.parse(currentPendingStr) : [];
+      const updatedPending = currentPending.filter(id => id !== urlId);
+      if (updatedPending.length > 0) {
+        localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
+      } else {
+        localStorage.removeItem('newDailySchedules');
+      }
+    };
+    
+    const checkAndApplyTemplate = async () => {
+      // Guard: only run once
+      if (dailyPageInitChecked.current || templateApplied.current) return;
+      dailyPageInitChecked.current = true;
+      
       const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
       
       if (isEmpty) {
         // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
-        const applyTemplate = async () => {
-          const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
-          
-          // Use the editable template if found, otherwise fall back to hardcoded
-          const contentToApply = templateContent || getDailyScheduleTemplate();
-          
-          (editor as Editor)!.commands.setContent(contentToApply);
-          
-          // Mark template as applied
-          templateApplied.current = true;
-          
-          // Remove this URL from pending list (not all of them)
-          const updatedPending = pendingSchedules.filter(id => id !== urlId);
-          if (updatedPending.length > 0) {
-            localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
-          } else {
-            localStorage.removeItem('newDailySchedules');
-          }
-        };
+        const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+        const contentToApply = templateContent || getDailyScheduleTemplate();
         
-        setTimeout(() => {
-          applyTemplate();
-        }, 300);
+        (editor as Editor)!.commands.setContent(contentToApply);
+        templateApplied.current = true;
+        console.log(`[RichText] Applied daily template to ${urlId} (after Y.Doc stabilization)`);
       } else {
-        // Remove this URL from pending list
-        const updatedPending = pendingSchedules.filter(id => id !== urlId);
-        if (updatedPending.length > 0) {
-          localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
-        } else {
-          localStorage.removeItem('newDailySchedules');
-        }
+        console.log(`[RichText] ${urlId} already has content, skipping template application`);
       }
-    }
-  }, [props.quanta?.id, editor]);
+      
+      // Remove from pending list regardless
+      removeFromPendingList();
+    };
+    
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        checkAndApplyTemplate();
+      }, STABILIZATION_DELAY);
+    };
+    
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+    
+    yDoc.on('update', handleUpdate);
+    resetStabilizationTimer();
+    
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      checkAndApplyTemplate();
+    }, FALLBACK_TIMEOUT);
+    
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
 
   // Initialize the editable daily-schedule-template with the hardcoded template if it's empty
   // This allows users to edit the template at /q/daily-schedule-template
+  // 
+  // IMPORTANT: Uses Y.Doc event-based approach to wait for IndexedDB to sync before checking
+  // if the editor is empty. This prevents the race condition where content is applied before
+  // IndexedDB finishes syncing, which would cause Y.js to MERGE both (duplication bug).
+  const dailyTemplateInitChecked = React.useRef(false);
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || templateApplied.current) return;
-    
     const urlId = window.location.pathname.split('/').pop();
     
     // Only apply to the template quanta itself
-    if (urlId === DAILY_TEMPLATE_QUANTA_ID && editor) {
+    if (urlId !== DAILY_TEMPLATE_QUANTA_ID) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || dailyTemplateInitChecked.current) return;
+    
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800; // Wait 800ms of no updates before considering stable
+    const FALLBACK_TIMEOUT = 2000; // Max wait time in case no updates come
+    
+    const checkAndInitializeIfEmpty = () => {
+      // Guard: only run once
+      if (dailyTemplateInitChecked.current || templateApplied.current) return;
+      dailyTemplateInitChecked.current = true;
+      
       const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
       
       if (isEmpty) {
-        setTimeout(() => {
-          // Initialize with the hardcoded template
-          (editor as Editor)!.commands.setContent(getDailyScheduleTemplate());
-          templateApplied.current = true;
-          console.log('[RichText] Initialized daily-schedule-template with hardcoded template');
-        }, 300);
+        (editor as Editor)!.commands.setContent(getDailyScheduleTemplate());
+        templateApplied.current = true;
+        console.log('[RichText] Initialized daily-schedule-template with hardcoded template (after Y.Doc stabilization)');
+      } else {
+        console.log('[RichText] daily-schedule-template already has content, skipping initialization');
       }
-    }
-  }, [props.quanta?.id, editor]);
+    };
+    
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        // Clear fallback since we're done
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        checkAndInitializeIfEmpty();
+      }, STABILIZATION_DELAY);
+    };
+    
+    // Listen for Y.Doc updates (triggered when IndexedDB syncs content)
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+    
+    yDoc.on('update', handleUpdate);
+    
+    // Start stabilization timer immediately (handles case where Y.Doc already has content)
+    resetStabilizationTimer();
+    
+    // Fallback: if no updates come within FALLBACK_TIMEOUT, check anyway
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      checkAndInitializeIfEmpty();
+    }, FALLBACK_TIMEOUT);
+    
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
 
   // Check for new weekly schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
