@@ -38,8 +38,9 @@ export const shouldHideGroup = (
   let isLearningGroup = false;
   let hasRelevantEventType = false; // Track if we find a relevant event type
 
-  console.log("Selected event type from perspective of group: ", selectedEventType)
-  console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
+  // Debug logs removed for performance - these were firing on every NodeView re-render
+  // console.log("Selected event type from perspective of group: ", selectedEventType)
+  // console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
@@ -401,8 +402,7 @@ export const GroupExtension = TipTapNode.create({
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
-            {/* Debug: Log node attrs on every render */}
-            {console.log('[GroupNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
+            {/* Debug logs removed for performance */}
             <Group
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
