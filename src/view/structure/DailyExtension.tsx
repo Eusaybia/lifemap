@@ -126,6 +126,89 @@ if (typeof window !== 'undefined') {
   checkAndInitializeDaily()
 }
 
+// ============================================================================
+// Lazy Iframe Component - Only loads when visible in viewport
+// ============================================================================
+
+interface LazyIframeProps {
+  src: string
+  title: string
+  iframeRef?: React.RefObject<HTMLIFrameElement | null>
+  eager?: boolean // If true, load immediately without waiting for visibility
+}
+
+const LazyIframe: React.FC<LazyIframeProps> = ({ src, title, iframeRef, eager = false }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isVisible, setIsVisible] = useState(eager)
+  const [hasLoaded, setHasLoaded] = useState(eager)
+
+  useEffect(() => {
+    // If eager, skip intersection observer
+    if (eager) {
+      setIsVisible(true)
+      setHasLoaded(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasLoaded) {
+            console.log(`[LazyIframe] Loading: ${title}`)
+            setIsVisible(true)
+            setHasLoaded(true)
+            // Once loaded, we don't need to observe anymore
+            observer.disconnect()
+          }
+        })
+      },
+      {
+        // Load when iframe is within 200px of viewport (preload slightly before visible)
+        rootMargin: '200px',
+        threshold: 0,
+      }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [eager, hasLoaded, title])
+
+  return (
+    <div ref={containerRef} style={{ flex: 1, position: 'relative', height: '100%' }}>
+      {isVisible ? (
+        <iframe
+          ref={iframeRef}
+          src={src}
+          title={title}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            display: 'block',
+          }}
+        />
+      ) : (
+        // Placeholder while not yet visible
+        <div style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9f9f9',
+          color: '#999',
+          fontSize: '14px',
+        }}>
+          Scroll to load...
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Simple chevron icons
 const ChevronLeft = ({ size = 20, color = "#666" }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -444,71 +527,40 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
             }
           `}</style>
           
-          {/* Template Card */}
+          {/* Template Card - lazy loaded (user must scroll left to see) */}
           <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
-                title="Daily Schedule Template"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
-              />
-            </div>
+            <LazyIframe
+              src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
+              title="Daily Schedule Template"
+            />
           </DayCard>
           
-          {/* Yesterday Card - loads yesterday's date-based quanta */}
+          {/* Yesterday Card - lazy loaded (user must scroll left to see) */}
           <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={yesterdayIframeRef}
-                src={`/q/${yesterdaySlug}?mode=graph`}
-                title="Yesterday's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
-              />
-            </div>
+            <LazyIframe
+              src={`/q/${yesterdaySlug}?mode=graph`}
+              title="Yesterday's Schedule"
+              iframeRef={yesterdayIframeRef}
+            />
           </DayCard>
           
-          {/* Today Card - loads today's date-based quanta */}
+          {/* Today Card - EAGER loaded (this is the default view) */}
           <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={todayIframeRef}
-                src={`/q/${todaySlug}?mode=graph`}
-                title="Today's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
-              />
-            </div>
+            <LazyIframe
+              src={`/q/${todaySlug}?mode=graph`}
+              title="Today's Schedule"
+              iframeRef={todayIframeRef}
+              eager={true}
+            />
           </DayCard>
           
-          {/* Tomorrow Card - loads tomorrow's date-based quanta */}
+          {/* Tomorrow Card - lazy loaded (user must scroll right to see) */}
           <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={tomorrowIframeRef}
-                src={`/q/${tomorrowSlug}?mode=graph`}
-                title="Tomorrow's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
-              />
-            </div>
+            <LazyIframe
+              src={`/q/${tomorrowSlug}?mode=graph`}
+              title="Tomorrow's Schedule"
+              iframeRef={tomorrowIframeRef}
+            />
           </DayCard>
         </div>
       </div>

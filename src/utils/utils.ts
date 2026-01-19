@@ -99,7 +99,8 @@ export const isActualUrl = (url: string) => {
 export const determineIrrelevance = (groupNode: ProseMirrorNode, selectedEventType: string) => {
   let isIrrelevant = false;
 
-  console.log("Selected event type from perspective of group: ", selectedEventType)
+  // Debug log removed for performance
+  // console.log("Selected event type from perspective of group: ", selectedEventType)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
