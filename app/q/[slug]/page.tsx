@@ -18,9 +18,12 @@ const Minimap = dynamic(() => import('../../../src/view/structure/Minimap').then
 export default function Page({ params }: { params: { slug: string } }) {
     const searchParams = useSearchParams();
     const isGraphMode = searchParams.get('mode') === 'graph';
-    const padding = 20;
+    const isCompactMode = searchParams.get('mode') === 'minimal' || searchParams.get('mode') === 'compact';
+    // Adjustable padding via query param: ?padding=0 or ?padding=10
+    const customPadding = searchParams.get('padding');
+    const padding = customPadding !== null ? parseInt(customPadding, 10) : (isCompactMode ? 4 : 20);
     const editor = MainEditor("", true);
-    const minimapWidth = 60; // Update to match new default minimap width
+    const minimapWidth = isCompactMode ? 0 : 60; // Hide minimap in compact mode
     const maxContentWidth = 1200; // Maximum width for optimal reading experience
 
     useAudibleRenders(false);
@@ -59,13 +62,13 @@ export default function Page({ params }: { params: { slug: string } }) {
 
     const mainContent = (
         <>
-            {/* Hide DocumentFlowMenu in graph mode - only show selection-based FlowMenu */}
-            {!isGraphMode && (
+            {/* Hide DocumentFlowMenu in graph mode and compact mode */}
+            {!isGraphMode && !isCompactMode && (
                 <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
                     {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
                 </motion.div>
             )}
-            <motion.div style={{ padding: isGraphMode ? '10px 0px' : '0px 0px 40px 0px' }}>
+            <motion.div style={{ padding: isGraphMode ? '10px 0px' : isCompactMode ? '0px' : '0px 0px 40px 0px' }}>
                 <Quanta quantaId={params.slug} userId={'000000'} />
             </motion.div>
         </>
@@ -73,9 +76,9 @@ export default function Page({ params }: { params: { slug: string } }) {
 
     return (
         <div style={{
-            backgroundColor: offWhite,
-            backgroundImage: 'url("/paper-textures/paper.png")',
-            minHeight: '100vh',
+            backgroundColor: isCompactMode ? 'transparent' : offWhite,
+            backgroundImage: isCompactMode ? 'none' : 'url("/paper-textures/paper.png")',
+            minHeight: isCompactMode ? 'auto' : '100vh',
             display: 'flex',
             justifyContent: 'center',
             paddingLeft: isGraphMode ? 10 : padding,
@@ -83,11 +86,11 @@ export default function Page({ params }: { params: { slug: string } }) {
         }}>
             <div className="center-content" style={{
                 width: '100%',
-                maxWidth: maxContentWidth,
+                maxWidth: isCompactMode ? '100%' : maxContentWidth,
                 position: 'relative',
             }}>
-                {/* Hide Minimap in graph mode */}
-                {!isGraphMode && <Minimap mainContentNode={mainContent} />}
+                {/* Hide Minimap in graph mode and compact mode */}
+                {!isGraphMode && !isCompactMode && <Minimap mainContentNode={mainContent} />}
                 {mainContent}
             </div>
         </div>

@@ -102,15 +102,28 @@ const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
  * Returns the JSONContent or null if not found/empty
  */
 const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONContent | null> => {
+  const perfStart = performance.now()
+  console.log(`[fetchQuanta PERF] Starting for ${quantaId}`)
+  
   return new Promise((resolve) => {
+    console.log(`[fetchQuanta PERF] ${quantaId} Creating Y.Doc...`)
+    const yDocStart = performance.now()
     const yDoc = new Y.Doc()
+    console.log(`[fetchQuanta PERF] ${quantaId} Y.Doc created in ${(performance.now() - yDocStart).toFixed(0)}ms`)
+    
+    console.log(`[fetchQuanta PERF] ${quantaId} Creating IndexeddbPersistence...`)
+    const persistStart = performance.now()
     const persistence = new IndexeddbPersistence(quantaId, yDoc)
+    console.log(`[fetchQuanta PERF] ${quantaId} IndexeddbPersistence created in ${(performance.now() - persistStart).toFixed(0)}ms`)
     
     persistence.on('synced', () => {
+      console.log(`[fetchQuanta PERF] ${quantaId} synced event fired after ${(performance.now() - perfStart).toFixed(0)}ms from start`)
       try {
         // Convert yDoc to TipTap JSON content
         // The 'default' field is where TipTap Collaboration stores the document
+        const transformStart = performance.now()
         const content = TiptapTransformer.fromYdoc(yDoc, 'default')
+        console.log(`[fetchQuanta PERF] ${quantaId} TiptapTransformer.fromYdoc took ${(performance.now() - transformStart).toFixed(0)}ms`)
         
         // Check if content is empty
         const hasContent = content && 
@@ -124,8 +137,10 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
         persistence.destroy()
         
         if (hasContent) {
+          console.log(`[fetchQuanta PERF] ${quantaId} total time: ${(performance.now() - perfStart).toFixed(0)}ms (has content)`)
           resolve(content)
         } else {
+          console.log(`[fetchQuanta PERF] ${quantaId} total time: ${(performance.now() - perfStart).toFixed(0)}ms (empty)`)
           resolve(null)
         }
       } catch (error) {
@@ -137,6 +152,7 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
     
     // Timeout after 3 seconds
     setTimeout(() => {
+      console.warn(`[fetchQuanta PERF] ${quantaId} TIMEOUT after 3s (total: ${(performance.now() - perfStart).toFixed(0)}ms)`)
       persistence.destroy()
       resolve(null)
     }, 3000)
@@ -635,15 +651,25 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       dailyPageInitChecked.current = true;
       
       const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      console.log(`[RichText PERF] ${urlId} checkAndApplyTemplate started, isEmpty=${isEmpty}`)
+      const perfStart = performance.now()
       
       if (isEmpty) {
         // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
+        console.log(`[RichText PERF] ${urlId} Calling fetchQuantaContentFromIndexedDB...`)
+        const fetchStart = performance.now()
         const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+        console.log(`[RichText PERF] ${urlId} fetchQuantaContentFromIndexedDB took ${(performance.now() - fetchStart).toFixed(0)}ms, got content: ${!!templateContent}`)
+        
         const contentToApply = templateContent || getDailyScheduleTemplate();
         
-        (editor as Editor)!.commands.setContent(contentToApply);
+        console.log(`[RichText PERF] ${urlId} Calling setContent...`)
+        const setContentStart = performance.now()
+        ;(editor as Editor)!.commands.setContent(contentToApply);
+        console.log(`[RichText PERF] ${urlId} setContent took ${(performance.now() - setContentStart).toFixed(0)}ms`)
+        
         templateApplied.current = true;
-        console.log(`[RichText] Applied daily template to ${urlId} (after Y.Doc stabilization)`);
+        console.log(`[RichText] Applied daily template to ${urlId} (after Y.Doc stabilization) - total: ${(performance.now() - perfStart).toFixed(0)}ms`);
       } else {
         console.log(`[RichText] ${urlId} already has content, skipping template application`);
       }
@@ -803,7 +829,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }, [props.quanta?.id, editor]);
 
   // Initialize life-mapping-main with LifeMappingMainTemplate if empty
+  // DISABLED: Template auto-loading disabled to preserve user content
+  // Set ENABLE_LIFE_MAPPING_MAIN_TEMPLATE to true to re-enable
+  const ENABLE_LIFE_MAPPING_MAIN_TEMPLATE = false;
   React.useEffect(() => {
+    if (!ENABLE_LIFE_MAPPING_MAIN_TEMPLATE) return; // Template loading disabled
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
     const urlId = window.location.pathname.split('/').pop();
