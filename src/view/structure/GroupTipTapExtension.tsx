@@ -21,6 +21,9 @@ declare module '@tiptap/core' {
       setLens: (options: {
         lens: string;
       }) => ReturnType;
+      setGroupLens: (options: {
+        lens: string;
+      }) => ReturnType;
     }
   }
 }
@@ -178,14 +181,23 @@ export const GroupExtension = TipTapNode.create({
         return false
       },
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
-
         const { selection } = state;
-
         const nodeType = getSelectedNodeType(editor)
 
         if (nodeType === "group" && dispatch) {
           dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
-          return true; // Indicate that the command ran successfully
+          return true;
+        }
+        return false
+      },
+      // Unique command name for Group to avoid conflicts with Portal's setLens
+      setGroupLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
+        const { selection } = state;
+        const nodeType = getSelectedNodeType(editor)
+
+        if (nodeType === "group" && dispatch) {
+          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
+          return true;
         }
         return false
       },
@@ -402,7 +414,6 @@ export const GroupExtension = TipTapNode.create({
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
-            {/* Debug logs removed for performance */}
             <Group
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
@@ -418,6 +429,9 @@ export const GroupExtension = TipTapNode.create({
                     return <NodeViewContent />;
                   case "hideUnimportantNodes":
                     return <div>Important Nodes Only (Pending)</div>;
+                  case "private":
+                    // Content still renders but overlay covers it in Group component
+                    return <NodeViewContent />;
                   default:
                     return <NodeViewContent />;
                 }
@@ -429,7 +443,8 @@ export const GroupExtension = TipTapNode.create({
               position="absolute-top-right"
               dotColor="#999"
               hoverBackground="rgba(0, 0, 0, 0.08)"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 const pos = props.getPos();
                 if (typeof pos === 'number') {
                   props.editor.commands.setNodeSelection(pos);

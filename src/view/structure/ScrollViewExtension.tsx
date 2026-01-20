@@ -124,14 +124,12 @@ export const ScrollViewExtension = TipTapNode.create({
         return false
       },
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
-
         const { selection } = state;
-
         const nodeType = getSelectedNodeType(editor)
 
         if (nodeType === "scrollview" && dispatch) {
           dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
-          return true; // Indicate that the command ran successfully
+          return true;
         }
         return false
       },

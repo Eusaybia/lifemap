@@ -766,41 +766,45 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
 
 // Memoize GroupLoupe
 const GroupLoupe = React.memo((props: { editor: Editor }) => {
-    console.log('[GroupLoupe] Rendering GroupLoupe component');
-
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
-    console.log('[GroupLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
+    let lens = selectedNode.attrs.lens
 
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-            <Tag>
-                Group
-            </Tag>
-            {/* Lenses */}
-            <FlowSwitch value={backgroundColor} isLens>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens>
                 <Option value={"identity"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "identity" })
+                    props.editor.commands.setGroupLens({ lens: "identity" })
                 }}>
                     <motion.div>
                         Identity
                     </motion.div>
                 </Option>
                 <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
+                    props.editor.commands.setGroupLens({ lens: "hideUnimportantNodes" })
                 }}>
                     <motion.div>
                         Only show important nodes
                     </motion.div>
                 </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
             </FlowSwitch>
-            {/* Actions */}
+            <Tag>
+                Group
+            </Tag>
+            {/* Background color options */}
             <FlowSwitch value={backgroundColor} isLens>
                 <Option
                     value={"lightBlue"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked lightBlue option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
                     }}
                 >
@@ -813,7 +817,6 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"purple"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked purple option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: purple })
                     }}
                 >
@@ -860,6 +863,41 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
             </FlowSwitch>
+        </div>
+    )
+})
+
+// Memoize TemporalSpaceLoupe - similar to GroupLoupe but with "Temporal Space" tag
+const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
+    console.log('[TemporalSpaceLoupe] Rendering TemporalSpaceLoupe component');
+
+    const selectedNode = getSelectedNode(props.editor)
+    let backgroundColor = selectedNode.attrs.backgroundColor
+    console.log('[TemporalSpaceLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={backgroundColor} isLens>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"hideUnimportantNodes"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
+                }}>
+                    <motion.div>
+                        Only show important nodes
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Temporal Space
+            </Tag>
         </div>
     )
 })
@@ -1321,10 +1359,7 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-            <Tag>
-                Portal
-            </Tag>
-            {/* Lenses */}
+            {/* Lenses - leftmost */}
             <FlowSwitch value={lens} isLens>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setLens({ lens: "identity" })
@@ -1341,7 +1376,49 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
                         Only show important nodes
                     </motion.div>
                 </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
             </FlowSwitch>
+            <Tag>
+                Portal
+            </Tag>
+        </div>
+    )
+})
+
+// ExternalPortalLoupe - for iframe-embedded external quanta
+const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens>
+                <Option value={"translucent"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "translucent" })
+                }}>
+                    <motion.div>
+                        👁️ Visible
+                    </motion.div>
+                </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                External Portal
+            </Tag>
         </div>
     )
 })
@@ -1355,8 +1432,26 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
+    
+    // Track selection type changes to force re-render when switching between text and node selections
+    const [currentNodeType, setCurrentNodeType] = React.useState<string>(() => getSelectedNodeType(props.editor))
 
     const selection = props.editor!.view.state.selection
+
+    // Listen for selection updates and re-render when node type changes
+    React.useEffect(() => {
+        const handleSelectionUpdate = () => {
+            const newNodeType = getSelectedNodeType(props.editor);
+            if (newNodeType !== currentNodeType) {
+                setCurrentNodeType(newNodeType);
+            }
+        };
+        
+        props.editor.on('selectionUpdate', handleSelectionUpdate);
+        return () => {
+            props.editor.off('selectionUpdate', handleSelectionUpdate);
+        };
+    }, [props.editor, currentNodeType]);
 
     React.useEffect(() => {
         // Check if it's a NodeSelection before accessing .node
@@ -1387,27 +1482,37 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 // Keep the bubble menu open when interacting with FlowSwitch
                 // hideOnClick: false, // May need adjustment based on FlowSwitch behavior
                 // appendTo: () => document.body, // Helps with positioning issues sometimes
+            }}
+            // Show for both text selections AND node selections (portal, externalPortal, group, etc.)
+            shouldShow={({ editor, state }) => {
+                const { selection } = state;
+                // Show for text selections (default behavior)
+                if (!selection.empty) return true;
+                // Also show for node selections
+                if (isNodeSelection(selection)) return true;
+                return false;
             }}>
             <motion.div
                 // ref={elementRef} // ref might not be needed if positioning is handled by Tippy
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
-                {/* Debug: Log what node type is detected */}
-                {console.log('[FlowMenu] getSelectedNodeType:', getSelectedNodeType(props.editor))}
-                <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
+                {/* Loupe component first (leftmost) - contains Lens, Tag, and node-specific options */}
                 {
                     {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
-                        'temporalSpace': <GroupLoupe editor={props.editor} />,
+                        'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
+                        'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
-                    }[getSelectedNodeType(props.editor)] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
+                    }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
+                {/* ActionSwitch (Copy, timestamp) comes after the Loupe */}
+                <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
             </motion.div>
         </BubbleMenu>
     )

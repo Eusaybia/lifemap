@@ -17,7 +17,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
-import { Grip } from "../content/Grip";
+import { DragGrip } from "../components/DragGrip";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { GroupLenses, Group } from "./Group";
 import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
@@ -76,6 +76,8 @@ const PortalExtension = Node.create({
   group: "block",
   content: "block*",
   atom: true,
+  selectable: true,
+  draggable: true,
   addAttributes() {
     return {
       id: {
@@ -323,6 +325,10 @@ const PortalExtension = Node.create({
           return hasImportantMention;
         };
 
+        // Get the current lens from node attributes
+        const currentLens = props.node.attrs.lens as PortalLenses;
+        const isPrivate = currentLens === 'private';
+
         return (
           <NodeViewWrapper>
             <div contentEditable={false}>
@@ -357,10 +363,39 @@ const PortalExtension = Node.create({
                 minHeight: 20,
                 padding: `11px 15px 11px 15px`,
                 marginBottom: 10,
+                // Apply private lens styling - dims the content
+                opacity: isPrivate ? 0.3 : 1,
+                filter: isPrivate ? 'grayscale(100%)' : 'none',
+                transition: 'opacity 0.2s ease, filter 0.2s ease',
               }}
               contentEditable={false}
             >
-              <Grip />
+              <DragGrip
+                position="absolute-right"
+                dotColor="#999"
+                hoverBackground="rgba(0, 0, 0, 0.08)"
+                onClick={() => {
+                  const pos = props.getPos();
+                  if (typeof pos === 'number') {
+                    props.editor.commands.setNodeSelection(pos);
+                  }
+                }}
+              />
+              {/* Show lock icon when private */}
+              {isPrivate && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: '32px',
+                  zIndex: 3,
+                  opacity: 1,
+                  filter: 'none',
+                }}>
+                  🔒
+                </div>
+              )}
               <select
                 value={showMode}
                 onChange={(e) => setShowMode(e.target.value as 'all' | 'important')}
