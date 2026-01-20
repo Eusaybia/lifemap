@@ -20,7 +20,7 @@ export const Group = (props: {
             return color.substring(0, 7); // Remove alpha channel
         }
         
-        return color || offWhite;
+        return color || '#FFFFFF';
     };
 
     // TODO: Exit animation doesn't work
@@ -40,7 +40,7 @@ export const Group = (props: {
             }}
             animate={{
                 // opacity: 1,
-                backgroundColor: getOpaqueBackground(props.backgroundColor || offWhite),
+                backgroundColor: getOpaqueBackground(props.backgroundColor || '#FFFFFF'),
             }}
             exit={{
                 // opacity: 0,
@@ -83,7 +83,7 @@ export const Group = (props: {
                         left: 0,
                         right: 0,
                         height: 40,
-                        background: `linear-gradient(to bottom, transparent, ${getOpaqueBackground(props.backgroundColor || offWhite)})`,
+                        background: `linear-gradient(to bottom, transparent, ${getOpaqueBackground(props.backgroundColor || '#FFFFFF')})`,
                         borderRadius: '0 0 10px 10px',
                         pointerEvents: 'none',
                     }}

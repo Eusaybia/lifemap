@@ -356,7 +356,7 @@ const PortalExtension = Node.create({
             <div
               style={{
                 borderRadius: sharedBorderRadius,
-                background: `#e0e0e0`,
+                background: `#FFFFFF`,
                 position: "relative",
                 boxShadow: `inset 10px 10px 10px #bebebe,
                     inset -10px -10px 10px #FFFFFF99`,
