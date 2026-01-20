@@ -207,6 +207,8 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "scrollview"
       case "portal":
         return "portal"
+      case "externalPortal":
+        return "externalPortal"
       default:
         console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
         return "invalid"
