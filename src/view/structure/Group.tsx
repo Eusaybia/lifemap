@@ -5,7 +5,7 @@ import React from 'react'
 import { offWhite, purple } from '../Theme';
 // Grip is now handled by the parent NodeView (GroupTipTapExtension)
 
-export type GroupLenses = "identity" | "hideUnimportantNodes" | "private";
+export type GroupLenses = "identity" | "hideUnimportantNodes" | "private" | "chip";
 
 // Collapse toggle chevron component
 const CollapseChevron = ({ isCollapsed, onToggle }: { isCollapsed: boolean; onToggle: () => void }) => (

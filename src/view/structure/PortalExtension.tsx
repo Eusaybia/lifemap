@@ -363,10 +363,6 @@ const PortalExtension = Node.create({
                 minHeight: 20,
                 padding: `11px 15px 11px 15px`,
                 marginBottom: 10,
-                // Apply private lens styling - dims the content
-                opacity: isPrivate ? 0.3 : 1,
-                filter: isPrivate ? 'grayscale(100%)' : 'none',
-                transition: 'opacity 0.2s ease, filter 0.2s ease',
               }}
               contentEditable={false}
             >
@@ -381,20 +377,29 @@ const PortalExtension = Node.create({
                   }
                 }}
               />
-              {/* Show lock icon when private */}
+              {/* Private lens overlay - completely black with grey text */}
               {isPrivate && (
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  fontSize: '32px',
-                  zIndex: 3,
-                  opacity: 1,
-                  filter: 'none',
-                }}>
-                  🔒
-                </div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: '#000000',
+                    borderRadius: sharedBorderRadius,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 20,
+                    userSelect: 'none',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <span style={{ color: '#666', fontSize: 14 }}>Private</span>
+                </motion.div>
               )}
               <select
                 value={showMode}

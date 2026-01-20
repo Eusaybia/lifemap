@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import "@/styles/timepoint-mention.css"
 
 // ============================================================================
 // Lunar Phase Calculations
@@ -192,6 +193,14 @@ const formatDateWithYear = (date: Date): string => {
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
 }
 
+// Format date as quanta slug (YYYY-MM-DD)
+const formatDateSlug = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Check if two dates are the same day
 const isSameDay = (date1: Date, date2: Date): boolean => {
   return date1.getFullYear() === date2.getFullYear() &&
@@ -217,97 +226,129 @@ interface DayCellProps {
   majorPhase: { isMajor: boolean; phase?: { emoji: string; name: string } }
   isToday: boolean
   slug: string
-  onClick: () => void
-  isSelected: boolean
 }
 
-const DayCell: React.FC<DayCellProps> = ({ date, lunarDay, phase, majorPhase, isToday, slug, onClick, isSelected }) => {
+const DayCell: React.FC<DayCellProps> = ({ date, lunarDay, phase, majorPhase, isToday, slug }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
   const isMajor = majorPhase.isMajor
+  const dateSlug = formatDateSlug(date)
   
   return (
     <motion.div
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '8px 4px',
         borderRadius: '8px',
-        cursor: 'pointer',
-        backgroundColor: isSelected 
-          ? 'rgba(59, 130, 246, 0.15)' 
-          : isMajor
-            ? 'rgba(180, 120, 40, 0.15)'
-            : 'rgba(255, 255, 255, 0.6)',
+        overflow: 'hidden',
+        backgroundColor: isMajor
+          ? 'rgba(180, 120, 40, 0.15)'
+          : 'rgba(255, 255, 255, 0.6)',
         border: isToday 
           ? '2px solid #f59e0b' 
-          : isSelected 
-            ? '2px solid #3b82f6' 
-            : isMajor
-              ? '2px solid rgba(180, 120, 40, 0.6)'
-              : '1px solid rgba(0, 0, 0, 0.08)',
-        minHeight: '80px',
+          : isMajor
+            ? '2px solid rgba(180, 120, 40, 0.6)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        height: '230px',
         transition: 'all 0.15s ease',
         position: 'relative',
       }}
     >
-      {/* Today indicator */}
-      {isToday && (
-        <div style={{
-          position: 'absolute',
-          top: '4px',
-          right: '4px',
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          backgroundColor: '#f59e0b',
-        }} />
-      )}
-      
-      {/* Lunar Day Number (ordinal format) */}
-      <div style={{
-        fontFamily: "'EB Garamond', Georgia, serif",
-        fontSize: '18px',
-        fontWeight: 600,
-        color: isMajor ? '#b45309' : '#1f2937',
-        lineHeight: 1,
-      }}>
-        {toOrdinal(lunarDay)}
+      {/* Header: Ordinal (left) and Gregorian date (right) - clickable to expand */}
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          width: '100%',
+          padding: '6px 8px',
+          cursor: 'pointer',
+          backgroundColor: isMajor ? 'rgba(180, 120, 40, 0.1)' : 'rgba(0,0,0,0.02)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+        }}
+      >
+        {/* Lunar Day Number (ordinal format) - not bolded */}
+        <span style={{
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: '12px',
+          fontWeight: 500,
+          color: isMajor ? '#b45309' : '#374151',
+        }}>
+          {toOrdinal(lunarDay)}
+        </span>
+        
+        {/* Gregorian Date */}
+        <span style={{
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: '10px',
+          fontWeight: 400,
+          color: '#9ca3af',
+        }}>
+          {formatDateShort(date)}
+        </span>
+        
+        {/* Today indicator */}
+        {isToday && (
+          <span style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            backgroundColor: '#f59e0b',
+            marginLeft: '4px',
+          }} />
+        )}
       </div>
       
-      {/* Moon Phase Emoji - use major phase emoji if it's a major phase day */}
-      <div style={{
-        fontSize: isMajor ? '20px' : '16px',
-        margin: '4px 0',
-      }}>
-        {isMajor && majorPhase.phase ? majorPhase.phase.emoji : phase.emoji}
-      </div>
-      
-      {/* Gregorian Date */}
-      <div style={{
-        fontFamily: "'Inter', system-ui, sans-serif",
-        fontSize: '10px',
-        color: '#6b7280',
-        lineHeight: 1,
-      }}>
-        {formatDateShort(date)}
-      </div>
-      
-      {/* Major Phase Label */}
+      {/* Moon Phase Emoji and Label - only show on weekend (major phase) days */}
       {isMajor && majorPhase.phase && (
         <div style={{
-          fontFamily: "'Inter', system-ui, sans-serif",
-          fontSize: '8px',
-          color: '#b45309',
-          fontWeight: 600,
-          marginTop: '3px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.3px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '6px 4px',
         }}>
-          {majorPhase.phase.name}
+          <span
+            className="tiptap-mention"
+            data-type="timepoint"
+            data-id={`lunar:abstract:${majorPhase.phase.name.toLowerCase().replace(' ', '-')}s`}
+          >
+            {majorPhase.phase.emoji} {majorPhase.phase.name}
+          </span>
+        </div>
+      )}
+      
+      {/* Collapsed state - click prompt */}
+      {!isExpanded && (
+        <div 
+          onClick={() => setIsExpanded(true)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#9ca3af',
+            fontSize: '10px',
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}
+        >
+          Click to edit
+        </div>
+      )}
+      
+      {/* Embedded Quanta iframe - only load when expanded */}
+      {isExpanded && (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <iframe
+            src={`/q/${dateSlug}?mode=minimal&padding=0`}
+            title={`Notes for ${dateSlug}`}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              display: 'block',
+            }}
+          />
         </div>
       )}
     </motion.div>
@@ -320,7 +361,6 @@ const DayCell: React.FC<DayCellProps> = ({ date, lunarDay, phase, majorPhase, is
 
 const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
   const today = new Date()
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [viewingMonthStart, setViewingMonthStart] = useState<Date>(() => getLunarMonthStart(today))
   
   // Get all days in the lunar month
@@ -404,7 +444,7 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
           {/* Title */}
           <div style={{ textAlign: 'center' }}>
             <h2 style={{
-              fontFamily: "'EB Garamond', Georgia, serif",
+              fontFamily: "'Inter', system-ui, sans-serif",
               fontSize: '24px',
               fontWeight: 500,
               color: '#1f2937',
@@ -553,7 +593,6 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
                       const majorPhase = isMajorPhaseDay(dayNum)
                       const isToday = isSameDay(date, today)
                       const daySlug = `${lunarMonthSlug}-day-${dayNum}`
-                      const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
                       
                       return (
                         <DayCell
@@ -564,8 +603,6 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
                           majorPhase={{ isMajor: false }} // Work days are not major phases
                           isToday={isToday}
                           slug={daySlug}
-                          onClick={() => setSelectedDate(isSelected ? null : date)}
-                          isSelected={isSelected}
                         />
                       )
                     })}
@@ -585,7 +622,6 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
                     const majorPhase = isMajorPhaseDay(dayNum)
                     const isToday = isSameDay(date, today)
                     const daySlug = `${lunarMonthSlug}-day-${dayNum}`
-                    const isSelected = selectedDate ? isSameDay(date, selectedDate) : false
                     
                     return (
                       <DayCell
@@ -596,8 +632,6 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
                         majorPhase={majorPhase}
                         isToday={isToday}
                         slug={daySlug}
-                        onClick={() => setSelectedDate(isSelected ? null : date)}
-                        isSelected={isSelected}
                       />
                     )
                   })()
@@ -609,88 +643,6 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
           })
         })()}
         
-        {/* Selected Day Panel */}
-        {selectedDate && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            style={{
-              marginTop: '20px',
-              padding: '16px',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-            }}
-          >
-            {(() => {
-              const selectedLunarDay = lunarMonthDays.findIndex(d => isSameDay(d, selectedDate)) + 1
-              const selectedPhase = getLunarPhase(selectedDate)
-              return (
-                <div>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginBottom: '12px',
-                  }}>
-                    <span style={{ fontSize: '32px' }}>{selectedPhase.emoji}</span>
-                    <div>
-                      <h3 style={{
-                        fontFamily: "'EB Garamond', Georgia, serif",
-                        fontSize: '20px',
-                        fontWeight: 500,
-                        margin: 0,
-                        color: '#1f2937',
-                      }}>
-                        Day {selectedLunarDay} – {selectedPhase.name}
-                      </h3>
-                      <p style={{
-                        fontFamily: "'Inter', system-ui, sans-serif",
-                        fontSize: '13px',
-                        color: '#6b7280',
-                        margin: '4px 0 0 0',
-                      }}>
-                        {selectedDate.toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
-                        {selectedPhase.isWeekend && (
-                          <span style={{
-                            marginLeft: '8px',
-                            padding: '2px 8px',
-                            backgroundColor: 'rgba(180, 120, 40, 0.15)',
-                            color: '#b45309',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 500,
-                          }}>
-                            LUNAR WEEKEND
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Placeholder for day content - could link to quanta */}
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                    borderRadius: '8px',
-                    border: '1px dashed rgba(0, 0, 0, 0.1)',
-                    textAlign: 'center',
-                    color: '#9ca3af',
-                    fontSize: '13px',
-                  }}>
-                    Click to add notes for this day...
-                  </div>
-                </div>
-              )
-            })()}
-          </motion.div>
-        )}
       </motion.div>
     </NodeViewWrapper>
   )

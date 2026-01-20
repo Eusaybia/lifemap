@@ -655,10 +655,11 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
     { id: 'timepoint:next-week', label: 'Next Week', date: addDays(now, 7), emoji: '📅' },
     { id: 'timepoint:next-month', label: 'Next Month', date: addDays(now, 30), emoji: '📅' },
+    // Abstract season concept (e.g., "Springs", "Summers") - not tied to a specific date
     {
-      id: `timepoint:next-season-${nextSeason.name.toLowerCase()}`,
-      label: `Next Season (${nextSeason.name})`,
-      date: nextSeason.date,
+      id: `timepoint:season-abstract-${nextSeason.name.toLowerCase()}`,
+      label: `${nextSeason.name}s`,
+      date: new Date(0), // Epoch date to indicate abstract
       emoji: nextSeason.emoji,
     },
     // Lunar phase points (New Moon, Full Moon, First Quarter, etc.)
@@ -795,6 +796,150 @@ const getMonthYearSuggestions = (query: string): TimePoint[] => {
   return results
 }
 
+// ============================================================================
+// Full Date Parsing (e.g., "6 August 2026", "August 6, 2026", "6 Aug 2026")
+// ============================================================================
+
+const createFullDateTimePoint = (day: number, month: number, year: number): TimePoint => {
+  const date = new Date(year, month, day)
+  const monthName = MONTH_NAMES[month]
+  return {
+    id: `timepoint:date-${year}-${month + 1}-${day}`,
+    label: `${day} ${monthName} ${year}`,
+    date,
+    emoji: '📅',
+  }
+}
+
+// Recurring date (e.g., "6 August" every year - not tied to a specific year)
+const createRecurringDateTimePoint = (day: number, month: number): TimePoint => {
+  const monthName = MONTH_NAMES[month]
+  // Use epoch date (1970-01-01) as placeholder since it's not tied to a specific year
+  const date = new Date(0)
+  return {
+    id: `timepoint:recurring-${month + 1}-${day}`,
+    label: `${day} ${monthName}`,
+    date,
+    emoji: '🔄',
+  }
+}
+
+const parseFullDate = (query: string): TimePoint | null => {
+  const lowerQuery = query.toLowerCase().trim()
+  
+  // Pattern 1: "6 August 2026", "6 Aug 2026", "6 August", "6 Aug"
+  // Day Month [Year]
+  const dayMonthYearMatch = lowerQuery.match(/^(\d{1,2})\s+([a-z]+)\s*(\d{2,4})?$/)
+  if (dayMonthYearMatch) {
+    const [, dayStr, monthStr, yearStr] = dayMonthYearMatch
+    const day = parseInt(dayStr, 10)
+    const month = parseMonthName(monthStr)
+    
+    if (month !== null && day >= 1 && day <= 31) {
+      let year: number
+      if (yearStr) {
+        year = parseInt(yearStr, 10)
+        // Handle 2-digit years
+        if (year < 100) {
+          year = year < 50 ? 2000 + year : 1900 + year
+        }
+      } else {
+        // No year provided - use current or next year
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const testDate = new Date(currentYear, month, day)
+        year = testDate < now ? currentYear + 1 : currentYear
+      }
+      
+      if (year >= 1900 && year <= 2200) {
+        // Validate the day is valid for this month
+        const testDate = new Date(year, month, day)
+        if (testDate.getMonth() === month && testDate.getDate() === day) {
+          return createFullDateTimePoint(day, month, year)
+        }
+      }
+    }
+  }
+  
+  // Pattern 2: "August 6, 2026", "Aug 6, 2026", "August 6 2026", "August 6"
+  // Month Day[,] [Year]
+  const monthDayYearMatch = lowerQuery.match(/^([a-z]+)\s+(\d{1,2}),?\s*(\d{2,4})?$/)
+  if (monthDayYearMatch) {
+    const [, monthStr, dayStr, yearStr] = monthDayYearMatch
+    const day = parseInt(dayStr, 10)
+    const month = parseMonthName(monthStr)
+    
+    if (month !== null && day >= 1 && day <= 31) {
+      let year: number
+      if (yearStr) {
+        year = parseInt(yearStr, 10)
+        // Handle 2-digit years
+        if (year < 100) {
+          year = year < 50 ? 2000 + year : 1900 + year
+        }
+      } else {
+        // No year provided - use current or next year
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const testDate = new Date(currentYear, month, day)
+        year = testDate < now ? currentYear + 1 : currentYear
+      }
+      
+      if (year >= 1900 && year <= 2200) {
+        // Validate the day is valid for this month
+        const testDate = new Date(year, month, day)
+        if (testDate.getMonth() === month && testDate.getDate() === day) {
+          return createFullDateTimePoint(day, month, year)
+        }
+      }
+    }
+  }
+  
+  return null
+}
+
+const getFullDateSuggestions = (query: string): TimePoint[] => {
+  const results: TimePoint[] = []
+  const lowerQuery = query.toLowerCase().trim()
+  
+  // Check if query has a year (for determining if we should offer recurring option)
+  const hasYear = /\d{4}/.test(query) || /\d{2}$/.test(query.replace(/\d{1,2}\s+[a-z]+\s*/i, ''))
+  
+  const parsed = parseFullDate(query)
+  
+  if (parsed) {
+    const date = parsed.date
+    const day = date.getDate()
+    const month = date.getMonth()
+    const year = date.getFullYear()
+    
+    // If no year was provided in the query, offer recurring date as first option
+    if (!hasYear) {
+      results.push(createRecurringDateTimePoint(day, month))
+    }
+    
+    // Add the specific year date
+    results.push(parsed)
+    
+    // Also suggest same date in surrounding years
+    // Suggest next year and previous year (if valid)
+    if (year > 1900) {
+      const prevYearDate = new Date(year - 1, month, day)
+      if (prevYearDate.getMonth() === month && prevYearDate.getDate() === day) {
+        results.push(createFullDateTimePoint(day, month, year - 1))
+      }
+    }
+    if (year < 2200) {
+      const nextYearDate = new Date(year + 1, month, day)
+      if (nextYearDate.getMonth() === month && nextYearDate.getDate() === day) {
+        results.push(createFullDateTimePoint(day, month, year + 1))
+      }
+    }
+  }
+  
+  return results.slice(0, 6)
+}
+
 const getYearSuggestions = (query: string): TimePoint[] => {
   const results: TimePoint[] = []
   const currentYear = new Date().getFullYear()
@@ -902,6 +1047,7 @@ const isCustomTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoin
 
 const fetchTimePoints = (query: string): TimePoint[] => {
   const timePoints = getTimePoints()
+  console.log('[TimePoint] fetchTimePoints called with query:', JSON.stringify(query))
   if (!query) return timePoints
   
   const lowerQuery = query.toLowerCase()
@@ -909,6 +1055,7 @@ const fetchTimePoints = (query: string): TimePoint[] => {
   // Try parsing as arbitrary time (e.g., "8:00am", "3pm", "14:30")
   const timePoint = parseTimeString(query)
   if (timePoint) {
+    console.log('[TimePoint] Matched time string:', timePoint)
     return [timePoint]
   }
   
@@ -939,6 +1086,12 @@ const fetchTimePoints = (query: string): TimePoint[] => {
     if (yearSuggestions.length > 0) return yearSuggestions
   }
   
+  // Try full date parsing (e.g., "6 August 2026", "August 6, 2026", "6 Aug")
+  console.log('[TimePoint] Trying full date parsing for:', query)
+  const fullDateSuggestions = getFullDateSuggestions(query)
+  console.log('[TimePoint] Full date suggestions:', fullDateSuggestions)
+  if (fullDateSuggestions.length > 0) return fullDateSuggestions
+  
   // Try month/month+year parsing (e.g., "April", "April 2026", "Apr 26")
   if (/^[a-zA-Z]/.test(query)) {
     const monthYearSuggestions = getMonthYearSuggestions(query)
@@ -955,8 +1108,11 @@ const fetchTimePoints = (query: string): TimePoint[] => {
 
 const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:year-')
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
+const isFullDateTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:date-')
+const isRecurringDatePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:recurring-')
 const isAbstractTimePoint = (tp: TimePoint): boolean => tp.id === 'timepoint:today-abstract'
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
+const isAbstractSeasonPoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:season-abstract-')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
   const timeOfDayIds = ['dawn', 'morning', 'noon', 'afternoon', 'dusk', 'evening', 'night']
   return timeOfDayIds.some(id => tp.id === `timepoint:${id}`)
@@ -975,8 +1131,11 @@ const formatTime = (date: Date): string => {
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isAbstractTimePoint(tp)) return `${tp.emoji} Today`
   if (isAbstractLunarPhase(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
+  if (isAbstractSeasonPoint(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
+  if (isRecurringDatePoint(tp)) return `${tp.emoji} ${tp.label} (every year)` // Recurring date
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isFullDateTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
@@ -992,13 +1151,15 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
 
     const timePoint = props.items[index]
     let formattedDate: string
-    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint)
+    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint)
     
     if (isAbstractTimePoint(timePoint)) {
       formattedDate = 'Today'
-    } else if (isAbstractLunarPhase(timePoint)) {
+    } else if (isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint)) {
       formattedDate = timePoint.label // Just the concept name, no date
-    } else if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint)) {
+    } else if (isRecurringDatePoint(timePoint)) {
+      formattedDate = `${timePoint.label} (every year)` // Recurring date, no specific year
+    } else if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint) || isFullDateTimePoint(timePoint)) {
       formattedDate = timePoint.label
     } else if (isTimeOfDayPoint(timePoint)) {
       formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
@@ -1053,12 +1214,16 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
               <span className="timepoint-label">{item.label}</span>
                 {isAbstractTimePoint(item) ? (
                 <span className="timepoint-date">Not tied to a specific date</span>
-              ) : isAbstractLunarPhase(item) ? (
+              ) : isAbstractLunarPhase(item) || isAbstractSeasonPoint(item) ? (
                 <span className="timepoint-date">General concept, not a specific date</span>
+              ) : isRecurringDatePoint(item) ? (
+                <span className="timepoint-date">Recurring every year</span>
               ) : isYearTimePoint(item) ? (
                 <span className="timepoint-date">January 1st, {item.label}</span>
               ) : isMonthTimePoint(item) ? (
                 <span className="timepoint-date">1st {item.label}</span>
+              ) : isFullDateTimePoint(item) ? (
+                <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
               ) : isTimeOfDayPoint(item) ? (
                 <span className="timepoint-date">~{formatTime(item.date)} today</span>
               ) : isSolarTimePoint(item) ? (
@@ -1137,7 +1302,7 @@ export const TimePointMention = Extension.create<TimePointOptions>({
       HTMLAttributes: { class: 'timepoint-mention' },
       suggestion: {
         char: '@',
-        allowSpaces: false,
+        allowSpaces: true, // Allow spaces for dates like "6 August 2026"
         pluginKey: TimePointPluginKey,
         items: ({ query }) => fetchTimePoints(query),
         command: ({ editor, range, props }) => {
