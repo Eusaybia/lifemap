@@ -832,6 +832,13 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                         🏷️ Chip
                     </motion.div>
                 </Option>
+                <Option value={"preview"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "preview" })
+                }}>
+                    <motion.div>
+                        👁️ Preview
+                    </motion.div>
+                </Option>
                 <Option value={"collapsed"} onClick={() => {
                     props.editor.commands.setGroupLens({ lens: "collapsed" })
                 }}>
@@ -919,29 +926,26 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
 
 // Memoize TemporalSpaceLoupe - similar to GroupLoupe but with "Temporal Space" tag
 const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
-    console.log('[TemporalSpaceLoupe] Rendering TemporalSpaceLoupe component');
-
     const selectedNode = getSelectedNode(props.editor)
-    let backgroundColor = selectedNode.attrs.backgroundColor
-    console.log('[TemporalSpaceLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
+    let lens = selectedNode.attrs.lens
 
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
-            <FlowSwitch value={backgroundColor} isLens scrollToSelect>
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "identity" })
+                    props.editor.commands.setTemporalSpaceLens({ lens: "identity" })
                 }}>
                     <motion.div>
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
+                <Option value={"collapsed"} onClick={() => {
+                    props.editor.commands.setTemporalSpaceLens({ lens: "collapsed" })
                 }}>
                     <motion.div>
-                        Only show important nodes
+                        📦 Collapsed
                     </motion.div>
                 </Option>
             </FlowSwitch>
@@ -1418,14 +1422,6 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
-                    logCurrentLens(props.editor)
-                }}>
-                    <motion.div>
-                        Only show important nodes
-                    </motion.div>
-                </Option>
                 <Option value={"private"} onClick={() => {
                     props.editor.commands.setLens({ lens: "private" })
                 }}>
@@ -1456,6 +1452,13 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Identity
+                    </motion.div>
+                </Option>
+                <Option value={"preview"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "preview" })
+                }}>
+                    <motion.div>
+                        👁️ Preview
                     </motion.div>
                 </Option>
                 <Option value={"private"} onClick={() => {

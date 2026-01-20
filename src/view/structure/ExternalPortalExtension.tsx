@@ -11,7 +11,7 @@ import { DragGrip } from "../components/DragGrip";
 import { motion } from "framer-motion";
 
 // Lens types for ExternalPortal - controls visibility/display
-type ExternalPortalLenses = "identity" | "private";
+type ExternalPortalLenses = "identity" | "preview" | "private";
 
 /**
  * ExternalPortalExtension - A portal that embeds an external Quanta as an iframe.
@@ -119,6 +119,7 @@ const ExternalPortalExtension = Node.create({
         // Get the current lens from node attributes
         const currentLens = props.node.attrs.lens as ExternalPortalLenses;
         const isPrivate = currentLens === 'private';
+        const isPreview = currentLens === 'preview';
 
         // Handle input change for quanta ID
         const handleQuantaIdChange = (newQuantaId: string) => {
@@ -178,6 +179,8 @@ const ExternalPortalExtension = Node.create({
                 boxShadow: `inset 10px 10px 10px #bebebe,
                     inset -10px -10px 10px #FFFFFF99`,
                 minHeight: 60,
+                maxHeight: isPreview ? 100 : undefined,
+                overflow: isPreview ? 'hidden' : undefined,
                 padding: `11px 15px 11px 15px`,
                 marginBottom: 10,
               }}
@@ -257,6 +260,22 @@ const ExternalPortalExtension = Node.create({
                 }}>
                   Enter a quanta ID above to embed content
                 </div>
+              )}
+              
+              {/* Preview fade gradient at bottom */}
+              {isPreview && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 40,
+                    background: 'linear-gradient(to bottom, transparent, #e0e0e0)',
+                    borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
+                    pointerEvents: 'none',
+                  }}
+                />
               )}
             </div>
           </NodeViewWrapper>

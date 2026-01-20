@@ -359,7 +359,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
       const isHidden = shouldHideTemporalSpace(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
-      const isCollapsed = props.node.attrs.collapsed;
+      const isCollapsed = props.node.attrs.lens === 'collapsed';
 
       return (
         <NodeViewWrapper
@@ -400,47 +400,10 @@ export const TemporalSpaceExtension = TipTapNode.create({
             }}
             transition={{ duration: 0.5, ease: "circOut" }}
           >
-            {/* Collapse toggle */}
-            <motion.div
-              onClick={(e) => {
-                e.stopPropagation();
-                props.updateAttributes({ collapsed: !isCollapsed });
-              }}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10,
-                padding: 4,
-              }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <motion.svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                animate={{ rotate: isCollapsed ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <path
-                  d="M3 6L8 11L13 6"
-                  stroke="#888"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </motion.svg>
-            </motion.div>
-
             {/* 6-dot grip handle on the top right - clicking selects the node to show FlowMenu */}
             <DragGrip
               position="absolute-top-right"
+              top={10}
               dotColor="#999"
               hoverBackground="rgba(0, 0, 0, 0.08)"
               onClick={(e) => {
