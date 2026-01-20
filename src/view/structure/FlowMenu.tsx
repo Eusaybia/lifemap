@@ -647,12 +647,6 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
 
-    const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("admin-editing")
-    const [selectedEventType, setSelectedEventType] = React.useState<DocumentAttributes['selectedEventLens']>("wedding")
-
-    const [irrelevantEventNodesDisplayLens, setIrrelevantEventNodesDisplayLens] = React.useState<DocumentAttributes['irrelevantEventNodesDisplayLens']>("dim")
-    const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
-
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
     documentMenuStyle.width = "fit-content"
     documentMenuStyle.position = 'fixed';
@@ -660,35 +654,6 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     documentMenuStyle.right = '80px'; // Account for minimap width (60px) + some padding
     documentMenuStyle.left = 'auto';
     documentMenuStyle.zIndex = 10001; // Higher than minimap's z-index of 10000
-
-    React.useEffect(() => {
-        if (!editor) return;
-
-        const loadAttributes = () => {
-            // @ts-ignore - getDocumentAttributes exists via the extension
-            const currentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
-            setSelectedFocusLens(currentAttributes.selectedFocusLens);
-            setSelectedEventType(currentAttributes.selectedEventLens);
-            setIrrelevantEventNodesDisplayLens(currentAttributes.irrelevantEventNodesDisplayLens);
-            setUnimportantNodesDisplayLens(currentAttributes.unimportantNodesDisplayLens);
-        };
-
-        loadAttributes();
-
-        const handleAttributeUpdate = (event: CustomEvent<DocumentAttributes>) => {
-            setSelectedFocusLens(event.detail.selectedFocusLens);
-            setSelectedEventType(event.detail.selectedEventLens);
-            setIrrelevantEventNodesDisplayLens(event.detail.irrelevantEventNodesDisplayLens);
-            setUnimportantNodesDisplayLens(event.detail.unimportantNodesDisplayLens);
-        };
-
-        window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
-
-        return () => {
-            window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
-        };
-
-    }, [editor]);
 
     // Don't render if no editor is available
     if (!editor) {
@@ -698,111 +663,6 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     return (
         <motion.div style={documentMenuStyle}>
             <ActionSwitch editor={editor} selectedAction={selectedAction} />
-            <FlowSwitch value={selectedFocusLens} isLens>
-                <Option
-                    value={"admin-editing" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🛠️ Admin Editing
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"call-mode" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            📞 Call Mode
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"learning-mode" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🎓 Learning Mode
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"dev-mode" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'dev-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🔧 Dev Mode
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
-            <FlowSwitch value={selectedEventType} isLens>
-                <Option
-                    value={"wedding"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            💍 Wedding
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"corporate"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            💼 Corporate
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"birthday"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🎂 Birthday
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
-
-
-
         </motion.div>
     )
 }

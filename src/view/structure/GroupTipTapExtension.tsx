@@ -224,7 +224,7 @@ export const GroupExtension = TipTapNode.create({
       pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
-      backgroundColor: { default: offWhite },
+      backgroundColor: { default: '#FFFFFF' },
       lens: { default: "identity" as GroupLenses },
       collapsed: { default: false },
     }
