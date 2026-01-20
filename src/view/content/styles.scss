@@ -483,3 +483,28 @@ body.call-mode-dimmed::before {
   z-index: -2; /* Behind everything, including the ProseMirror overlay */
   transition: opacity 0.2s ease-in-out;
 }
+
+/* =====================
+   HORIZONTAL RULE
+   ===================== */
+.ProseMirror hr {
+  border: none !important;
+  border-top: none !important;
+  border-color: transparent !important;
+  height: 2px !important;
+  background-color: #333333 !important;
+  margin: 1.5em 0 !important;
+}
+
+[data-type="horizontalRule"] {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  
+  hr {
+    border: none !important;
+    border-top: none !important;
+    border-color: transparent !important;
+    height: 2px !important;
+    background-color: #333333 !important;
+  }
+}
