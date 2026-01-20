@@ -782,13 +782,6 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setGroupLens({ lens: "hideUnimportantNodes" })
-                }}>
-                    <motion.div>
-                        Only show important nodes
-                    </motion.div>
-                </Option>
                 <Option value={"private"} onClick={() => {
                     props.editor.commands.setGroupLens({ lens: "private" })
                 }}>
