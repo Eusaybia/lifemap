@@ -1,7 +1,7 @@
 import { Editor, isNodeSelection, getAttributes } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import IconButton from '@mui/joy/IconButton';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -167,8 +167,41 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
 
  };
 
+// Simple toast notification component
+const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
+    React.useEffect(() => {
+        const timer = setTimeout(onClose, 3000); // Auto-dismiss after 3 seconds
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            style={{
+                position: 'fixed',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: '#333',
+                color: '#fff',
+                padding: '10px 20px',
+                borderRadius: 8,
+                fontSize: 14,
+                fontFamily: 'Inter, sans-serif',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 10000,
+                pointerEvents: 'auto',
+            }}
+        >
+            {message}
+        </motion.div>
+    );
+};
+
 // Memoize ActionSwitch to prevent re-renders if props haven't changed
-const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor | null }) => {
+const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor | null, nodeType?: string }) => {
     // Return null if editor is not available yet
     if (!props.editor) {
         return null;
@@ -177,6 +210,9 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
     // State for quanta backups
     const [quantaBackups, setQuantaBackups] = React.useState<QuantaBackupEntry[]>([]);
     const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null);
+    
+    // Toast notification state
+    const [toastMessage, setToastMessage] = React.useState<string | null>(null);
     
     // Load backups on mount and when quantaId changes
     React.useEffect(() => {
@@ -492,10 +528,10 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                             const newBackup = quantaBackup.createBackup(currentQuantaId, content);
                             // Refresh the backups list
                             setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
-                            alert(`Backup created: ${newBackup.label} at ${quantaBackup.formatTimestamp(newBackup.timestamp)}`);
+                            setToastMessage(`Backup created: ${newBackup.label} at ${quantaBackup.formatTimestamp(newBackup.timestamp)}`);
                         } catch (e) {
                             console.error('[FlowMenu] Failed to create backup:', e);
-                            alert('Failed to create backup');
+                            setToastMessage('Failed to create backup');
                         }
                     }}
                 >
@@ -509,7 +545,8 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
         </FlowSwitch>
         
         {/* Version History FlowSwitch - shows backups for current quanta (oldest to newest, bottom to top) */}
-        {currentQuantaId && (
+        {/* Hidden for group nodes */}
+        {currentQuantaId && props.nodeType !== 'group' && (
             <FlowSwitch value={"restore"} isLens>
                 {quantaBackups.length > 0 ? (
                     quantaBackups.map((backup, index) => {
@@ -556,6 +593,12 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                 )}
             </FlowSwitch>
         )}
+        {/* Toast notification for backup feedback */}
+        <AnimatePresence>
+            {toastMessage && (
+                <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+            )}
+        </AnimatePresence>
         </>
     )
 })
@@ -780,6 +823,13 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Identity
+                    </motion.div>
+                </Option>
+                <Option value={"chip"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "chip" })
+                }}>
+                    <motion.div>
+                        🏷️ Chip
                     </motion.div>
                 </Option>
                 <Option value={"private"} onClick={() => {
@@ -1394,11 +1444,11 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
             <FlowSwitch value={lens} isLens>
-                <Option value={"translucent"} onClick={() => {
-                    props.editor.commands.setExternalPortalLens({ lens: "translucent" })
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "identity" })
                 }}>
                     <motion.div>
-                        👁️ Visible
+                        Identity
                     </motion.div>
                 </Option>
                 <Option value={"private"} onClick={() => {
@@ -1505,7 +1555,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
                 {/* ActionSwitch (Copy, timestamp) comes after the Loupe */}
-                <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
+                <ActionSwitch editor={props.editor} selectedAction={selectedAction} nodeType={currentNodeType} />
             </motion.div>
         </BubbleMenu>
     )

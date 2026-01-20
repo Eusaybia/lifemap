@@ -5,7 +5,7 @@ import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
-import { motion, useMotionTemplate, useTransform } from "framer-motion";
+import { motion, useMotionTemplate, useTransform, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
@@ -395,6 +395,216 @@ export const GroupExtension = TipTapNode.create({
 
       // Determine overlay opacity for dimming
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
+
+      // Extract title from first heading or first text content for chip lens
+      const getGroupTitle = () => {
+        let title = '';
+        props.node.content.forEach((child: any) => {
+          if (title) return; // Already found a title
+          if (child.type.name === 'heading') {
+            child.content?.forEach((textNode: any) => {
+              if (textNode.text) title += textNode.text;
+            });
+          } else if (child.type.name === 'paragraph' && !title) {
+            child.content?.forEach((textNode: any) => {
+              if (textNode.text && !title) title = textNode.text;
+            });
+          }
+        });
+        return title || 'Untitled';
+      };
+
+      const currentLens = props.node.attrs.lens;
+      
+      // State for chip preview - must be declared at top level (not conditionally)
+      const [showChipPreview, setShowChipPreview] = useState(false);
+
+      // Chip lens - render as compact inline element matching .hashtag-mention style
+      if (currentLens === 'chip') {
+        const title = getGroupTitle();
+        const chipRef = useRef<HTMLSpanElement>(null);
+        const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
+        
+        // Calculate position when showing preview - diagonal offset (down-right)
+        const handleShowPreview = () => {
+          if (chipRef.current) {
+            const rect = chipRef.current.getBoundingClientRect();
+            setPreviewPosition({
+              top: rect.bottom + 12,
+              left: rect.left + 24, // Offset to the right for diagonal effect
+            });
+          }
+          setShowChipPreview(true);
+        };
+        
+        const chipLayoutId = `chip-${props.node.attrs.quantaId}`;
+        
+        return (
+          <NodeViewWrapper
+            ref={nodeViewRef}
+            data-group-node-view="true"
+            style={{ 
+              display: 'inline',
+            }}
+          >
+            <AnimatePresence mode="wait">
+              {!showChipPreview ? (
+                <motion.span
+                  ref={chipRef}
+                  layoutId={chipLayoutId}
+                  className="hashtag-mention"
+                  style={{ paddingRight: 4 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                >
+                  <span
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleShowPreview();
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {title}
+                  </span>
+                  {/* Mini grip for FlowMenu - click to toggle */}
+                  <span
+                    data-drag-handle
+                    contentEditable={false}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const pos = props.getPos();
+                      if (typeof pos === 'number') {
+                        const { selection } = props.editor.state;
+                        const isSelected = selection.$from.pos === pos;
+                        if (isSelected) {
+                          props.editor.commands.blur();
+                        } else {
+                          props.editor.commands.setNodeSelection(pos);
+                        }
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      flexDirection: 'column',
+                      gap: 1.5,
+                      marginLeft: 4,
+                      padding: '2px 3px',
+                      cursor: 'pointer',
+                      borderRadius: 3,
+                      verticalAlign: 'middle',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                    title="Toggle menu"
+                  >
+                    {[0, 1, 2].map((row) => (
+                      <span key={row} style={{ display: 'flex', gap: 1.5 }}>
+                        {[0, 1].map((col) => (
+                          <span
+                            key={col}
+                            style={{
+                              width: 2.5,
+                              height: 2.5,
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                            }}
+                          />
+                        ))}
+                      </span>
+                    ))}
+                  </span>
+                </motion.span>
+              ) : (
+                // Placeholder to maintain inline flow
+                <span style={{ display: 'inline-block', width: 0, height: 0 }} />
+              )}
+            </AnimatePresence>
+            
+            {/* Fixed position preview overlay with shared element transition */}
+            <AnimatePresence>
+              {showChipPreview && (
+                <>
+                  {/* Click-away area (transparent) */}
+                  <div
+                    onClick={() => setShowChipPreview(false)}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 999,
+                    }}
+                  />
+                  {/* Preview panel */}
+                  <motion.div
+                    layoutId={chipLayoutId}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    style={{
+                      position: 'fixed',
+                      top: previewPosition.top,
+                      left: previewPosition.left,
+                      zIndex: 1000,
+                      minWidth: 320,
+                      maxWidth: 500,
+                      maxHeight: '70vh',
+                      overflow: 'visible',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Render group with proper styling */}
+                    <Group
+                      lens="identity"
+                      quantaId={props.node.attrs.quantaId}
+                      backgroundColor={props.node.attrs.backgroundColor}
+                    >
+                      {/* Close button inside the group */}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowChipPreview(false);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          width: 24,
+                          height: 24,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          color: '#666',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          transition: 'background 0.15s',
+                          zIndex: 10,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(0,0,0,0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        ✕
+                      </div>
+                      <NodeViewContent />
+                    </Group>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </NodeViewWrapper>
+        );
+      }
 
       return (
         <NodeViewWrapper

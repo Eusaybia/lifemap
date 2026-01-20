@@ -443,10 +443,14 @@ export const TemporalSpaceExtension = TipTapNode.create({
               position="absolute-top-right"
               dotColor="#999"
               hoverBackground="rgba(0, 0, 0, 0.08)"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 const pos = props.getPos();
                 if (typeof pos === 'number') {
-                  props.editor.commands.setNodeSelection(pos);
+                  // Use requestAnimationFrame to ensure selection persists after other event handlers
+                  requestAnimationFrame(() => {
+                    props.editor.commands.setNodeSelection(pos);
+                  });
                 }
               }}
             />

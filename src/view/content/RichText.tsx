@@ -62,6 +62,7 @@ import { ScrollViewExtension } from '../structure/ScrollViewExtension'
 import { generateUniqueID, renderDate } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
+import { ExternalPortalExtension } from '../structure/ExternalPortalExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
@@ -309,6 +310,7 @@ export const customExtensions: Extensions = [
   MessageExtension,
   PortalExtension,
   ExperimentalPortalExtension,
+  ExternalPortalExtension,
   QuoteExtension,
   WarningExtension,
   LifemapCardExtension,
