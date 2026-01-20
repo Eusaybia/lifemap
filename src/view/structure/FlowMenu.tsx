@@ -817,7 +817,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
-            <FlowSwitch value={lens} isLens>
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setGroupLens({ lens: "identity" })
                 }}>
@@ -830,6 +830,13 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         🏷️ Chip
+                    </motion.div>
+                </Option>
+                <Option value={"collapsed"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "collapsed" })
+                }}>
+                    <motion.div>
+                        📦 Collapsed
                     </motion.div>
                 </Option>
                 <Option value={"private"} onClick={() => {
@@ -922,7 +929,7 @@ const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
-            <FlowSwitch value={backgroundColor} isLens>
+            <FlowSwitch value={backgroundColor} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setLens({ lens: "identity" })
                 }}>
@@ -1403,7 +1410,7 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
-            <FlowSwitch value={lens} isLens>
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setLens({ lens: "identity" })
                 }}>
@@ -1443,7 +1450,7 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             {/* Lenses - leftmost */}
-            <FlowSwitch value={lens} isLens>
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setExternalPortalLens({ lens: "identity" })
                 }}>

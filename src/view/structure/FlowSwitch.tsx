@@ -14,6 +14,8 @@ interface FlowSwitchProps {
     onChange?: (selectedIndex: number) => void
     isLens?: boolean
     disableAutoScroll?: boolean
+    /** When true, scrolling to an option will automatically trigger its onClick */
+    scrollToSelect?: boolean
 }
 
 export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((props, ref) => {
@@ -69,8 +71,13 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                     soundClone.play().catch((error) => {
                         console.log("Chrome cannot play sound without user interaction first")
                     });
-                }   
+                }
                 setSelectedIndex(index)
+                
+                // If scrollToSelect is enabled and user is scrolling, trigger the option's onClick
+                if (props.scrollToSelect && isUserScrolling && child?.props?.onClick) {
+                    child.props.onClick();
+                }
             }}
             key={index}
         >

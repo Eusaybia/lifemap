@@ -416,14 +416,14 @@ export const GroupExtension = TipTapNode.create({
 
       const currentLens = props.node.attrs.lens;
       
-      // State for chip preview - must be declared at top level (not conditionally)
+      // State and refs for chip preview - must be declared at top level (not conditionally)
       const [showChipPreview, setShowChipPreview] = useState(false);
+      const chipRef = useRef<HTMLSpanElement>(null);
+      const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
 
       // Chip lens - render as compact inline element matching .hashtag-mention style
       if (currentLens === 'chip') {
         const title = getGroupTitle();
-        const chipRef = useRef<HTMLSpanElement>(null);
-        const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
         
         // Calculate position when showing preview - diagonal offset (down-right)
         const handleShowPreview = () => {
@@ -628,10 +628,6 @@ export const GroupExtension = TipTapNode.create({
               lens={props.node.attrs.lens}
               quantaId={props.node.attrs.quantaId}
               backgroundColor={props.node.attrs.backgroundColor}
-              isCollapsed={props.node.attrs.collapsed}
-              onToggleCollapse={() => {
-                props.updateAttributes({ collapsed: !props.node.attrs.collapsed });
-              }}
             >
               {(() => {
                 switch (props.node.attrs.lens) {
@@ -642,6 +638,9 @@ export const GroupExtension = TipTapNode.create({
                   case "private":
                     // Content still renders but overlay covers it in Group component
                     return <NodeViewContent />;
+                  case "collapsed":
+                    // Content is hidden by Group component when collapsed
+                    return <NodeViewContent />;
                   default:
                     return <NodeViewContent />;
                 }
@@ -651,6 +650,7 @@ export const GroupExtension = TipTapNode.create({
             {/* 6-dot grip handle - clicking selects the node to show FlowMenu */}
             <DragGrip
               position="absolute-top-right"
+              top={10}
               dotColor="#999"
               hoverBackground="rgba(0, 0, 0, 0.08)"
               onClick={(e) => {
