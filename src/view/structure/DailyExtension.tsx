@@ -231,6 +231,7 @@ interface DayCardProps {
 
 const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, iframeRef }) => {
   const isTemplate = label === 'Template'
+  const isYesterday = label === 'Yesterday'
   const [isRefreshing, setIsRefreshing] = useState(false)
   
   const handleRefresh = async () => {
@@ -254,10 +255,13 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
     }
   }
   
+  // Yesterday is dimmer (0.45), other non-today cards are 0.7, today is fully opaque
+  const cardOpacity = isToday ? 1 : isYesterday ? 0.45 : 0.7
+  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: isToday ? 1 : 0.7, scale: 1 }}
+      animate={{ opacity: cardOpacity, scale: 1 }}
       transition={{ duration: 0.3 }}
       style={{
         flex: '0 0 550px',
