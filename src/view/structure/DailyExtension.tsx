@@ -532,7 +532,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           {/* Template Card - lazy loaded (user must scroll left to see) */}
           <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
             <LazyIframe
-              src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
+              src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph&showFlowMenu=true`}
               title="Daily Schedule Template"
             />
           </DayCard>
@@ -540,7 +540,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           {/* Yesterday Card - lazy loaded (user must scroll left to see) */}
           <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
             <LazyIframe
-              src={`/q/${yesterdaySlug}?mode=graph`}
+              src={`/q/${yesterdaySlug}?mode=graph&showFlowMenu=true`}
               title="Yesterday's Schedule"
               iframeRef={yesterdayIframeRef}
             />
@@ -549,7 +549,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           {/* Today Card - EAGER loaded (this is the default view) */}
           <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
             <LazyIframe
-              src={`/q/${todaySlug}?mode=graph`}
+              src={`/q/${todaySlug}?mode=graph&showFlowMenu=true`}
               title="Today's Schedule"
               iframeRef={todayIframeRef}
               eager={true}
@@ -560,7 +560,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
             {tomorrowInstantiated ? (
               <LazyIframe
-                src={`/q/${tomorrowSlug}?mode=graph`}
+                src={`/q/${tomorrowSlug}?mode=graph&showFlowMenu=true`}
                 title="Tomorrow's Schedule"
                 iframeRef={tomorrowIframeRef}
                 eager={true}

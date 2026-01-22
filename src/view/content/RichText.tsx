@@ -75,6 +75,8 @@ import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObserva
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
+import { SpanGroupMark } from './SpanGroupMark'
+import { SpanGroupConnectionManager } from './SpanGroupConnectionManager'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -316,6 +318,7 @@ export const customExtensions: Extensions = [
   ExperimentalPortalExtension,
   ExternalPortalExtension,
   QuoteExtension,
+  SpanGroupMark,
   WarningExtension,
   LifemapCardExtension,
   SingleLifemapCardExtension,
@@ -1040,6 +1043,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           <div>
             <EditorContent editor={editor as Editor} />
           </div>
+          {/* SpanGroup connection manager - handles arrow connections between span groups */}
+          <SpanGroupConnectionManager />
         </div>
       </div>
     )

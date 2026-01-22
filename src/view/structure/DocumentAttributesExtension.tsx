@@ -36,6 +36,8 @@ export interface DocumentAttributes {
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
+  // Editor mode: 'editing' for normal text editing, 'connection' for drawing arrows between span groups
+  editorMode: 'editing' | 'connection';
 }
 
 // Define default attributes
@@ -44,6 +46,7 @@ export const defaultDocumentAttributes: DocumentAttributes = {
   selectedEventLens: 'wedding' as const,
   irrelevantEventNodesDisplayLens: 'dim' as const,
   unimportantNodesDisplayLens: 'hide' as const,
+  editorMode: 'editing' as const,
 };
 
 // Key for localStorage
@@ -120,6 +123,7 @@ export const DocumentAttributeExtension = Extension.create({
 
           try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedAttributes));
+            console.log('[DocumentAttributes] Updated:', updatedAttributes);
             // Dispatch a custom event on the window object to notify listeners
             window.dispatchEvent(new CustomEvent('doc-attributes-updated', { detail: updatedAttributes }));
           } catch (error) {
