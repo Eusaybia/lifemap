@@ -13,7 +13,7 @@
     "@excalidraw/excalidraw": "^0.18.0",
     "@fontsource/public-sans": "4.5.12",
     "@hocuspocus/cli": "2.8.1",
-    "@hocuspocus/provider": "2.15.2",
+    "@hocuspocus/provider": "^3.4.3",
     "@hocuspocus/server": "2.8.1",
     "@hocuspocus/transformer": "2.15.2",
     "@mapbox/search-js-react": "1.0.0-beta.17",
@@ -35,6 +35,7 @@
     "@tiptap-pro/extension-details-summary": "2.9.1",
     "@tiptap-pro/extension-mathematics": "2.9.1",
     "@tiptap-pro/extension-unique-id": "2.9.1",
+    "@tiptap-pro/provider": "^3.3.0",
     "@tiptap/core": "2.11.7",
     "@tiptap/extension-bold": "2.9.1",
     "@tiptap/extension-bubble-menu": "2.9.1",
@@ -105,7 +106,7 @@
     "y-prosemirror": "1.2.10",
     "y-webrtc": "10.2.3",
     "yarn": "1.22.19",
-    "yjs": "13.5.44"
+    "yjs": "^13.6.29"
   },
   "scripts": {
     "deploy": "firebase deploy",
