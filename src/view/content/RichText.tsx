@@ -48,6 +48,7 @@ import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
+import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { FinesseMention, FinesseNode } from './FinesseMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
@@ -284,6 +285,9 @@ export const customExtensions: Extensions = [
   // Hashtag mentions - triggered by # for tagging content
   HashtagNode,
   HashtagMention,
+  // Merit/Demerit mentions - triggered by * for pros/cons, advantages/disadvantages
+  MeritDemeritNode,
+  MeritDemeritMention,
   // Finesse mentions - triggered by ^ for energy levels
   FinesseNode,
   FinesseMention,
