@@ -40,7 +40,6 @@ export const backup = {
       const updatedBackups = [newBackup, ...backupsArray].slice(0, MAX_REVISIONS)
 
       localStorage.setItem(BACKUP_KEY, JSON.stringify(updatedBackups))
-      console.log('Content backed up successfully at', new Date(newBackup.timestamp).toLocaleTimeString())
     } catch (e) {
       console.error('Failed to store backup content:', e)
     }
@@ -104,7 +103,6 @@ export const quantaBackup = {
       const updatedBackups = [newBackup, ...existingBackups].slice(0, MAX_QUANTA_REVISIONS)
 
       localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(updatedBackups))
-      console.log(`[QuantaBackup] Created backup ${newBackup.label} for ${quantaId} at ${new Date(newBackup.timestamp).toLocaleTimeString()}`)
       
       return newBackup
     } catch (e) {
@@ -165,7 +163,6 @@ export const quantaBackup = {
       }
       
       localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(filtered))
-      console.log(`[QuantaBackup] Deleted backup from ${quantaId}`)
       return true
     } catch (e) {
       console.error(`[QuantaBackup] Failed to delete backup for ${quantaId}:`, e)
@@ -179,7 +176,6 @@ export const quantaBackup = {
   clearAllBackups(quantaId: string): void {
     try {
       localStorage.removeItem(this.getStorageKey(quantaId))
-      console.log(`[QuantaBackup] Cleared all backups for ${quantaId}`)
     } catch (e) {
       console.error(`[QuantaBackup] Failed to clear backups for ${quantaId}:`, e)
     }
