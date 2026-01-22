@@ -10143,7 +10143,7 @@ react-merge-refs@^1.1.0:
 
 "react-minimap@git+https://github.com/keploy/react-minimap.git":
   version "0.8.1-alpha-3"
-  resolved "git+ssh://git@github.com/keploy/react-minimap.git#7d782d89fb7bd05682a6dc660d3861ab084dae0c"
+  resolved "git+https://github.com/keploy/react-minimap.git#7d782d89fb7bd05682a6dc660d3861ab084dae0c"
   dependencies:
     "@testing-library/jest-dom" "^6.4.6"
     "@testing-library/react" "^16.0.0"
