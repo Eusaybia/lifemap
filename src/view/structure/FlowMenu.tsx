@@ -646,6 +646,11 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     const editor = contextEditor || props.editor
     
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
+    
+    // Get current editor mode from document attributes
+    // @ts-ignore - getDocumentAttributes exists via the extension
+    const documentAttributes: DocumentAttributes = editor?.commands.getDocumentAttributes() || { editorMode: 'editing' };
+    const editorMode = documentAttributes.editorMode || 'editing';
 
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
     documentMenuStyle.width = "fit-content"
@@ -662,6 +667,31 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
 
     return (
         <motion.div style={documentMenuStyle}>
+            {/* Editor Mode Toggle - Editing vs Connection mode */}
+            <FlowSwitch value={editorMode} isLens>
+                <Option 
+                    value="editing" 
+                    onClick={() => {
+                        console.log('[DocumentFlowMenu] Switching to Editing mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'editing' });
+                    }}
+                >
+                    <motion.div>
+                        <span>✏️ Editing</span>
+                    </motion.div>
+                </Option>
+                <Option 
+                    value="connection" 
+                    onClick={() => {
+                        console.log('[DocumentFlowMenu] Switching to Connection mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'connection' });
+                    }}
+                >
+                    <motion.div>
+                        <span>🔗 Connection</span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
             <ActionSwitch editor={editor} selectedAction={selectedAction} />
         </motion.div>
     )
@@ -1258,6 +1288,33 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                         variant="plain">
                         <FormatColorFill />
                     </IconButton>
+                </Option>
+            </FlowSwitch>
+            {/* Span Group - wrap selected text with a unique ID for future connections */}
+            <FlowSwitch value={"Span Group"} isLens>
+                <Option
+                    value={"Create Span Group"}
+                    onClick={() => {
+                        props.editor.commands.setSpanGroup()
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            🔗 Create Span Group
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"Remove Span Group"}
+                    onClick={() => {
+                        props.editor.commands.unsetSpanGroup()
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            ✕ Remove Span Group
+                        </span>
+                    </motion.div>
                 </Option>
             </FlowSwitch>
         </div>

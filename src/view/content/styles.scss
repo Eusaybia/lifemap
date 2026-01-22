@@ -508,3 +508,35 @@ body.call-mode-dimmed::before {
     background-color: #333333 !important;
   }
 }
+
+/* =====================
+   SPAN GROUP MARK
+   ===================== */
+/* Contiguous inline highlight that flows with text.
+   Note: Each span group has a unique ID stored in the data-span-group-id attribute
+   which can be used for creating connections/arrows between span groups. */
+.span-group {
+  background-color: #ffffff;
+  border: 1px solid #BBBBBB;
+  border-radius: 3px;
+  padding: 1px 3px;
+  box-shadow: 0px 0.36px 1.8px -1.67px rgba(0, 0, 0, 0.23), 0px 1.37px 6.87px -3.33px rgba(0, 0, 0, 0.19);
+  /* Makes the styling consistent across line breaks */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+}
+
+/* 6-dot grip (3x2) shown after the span for visual indicator */
+.span-group::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.span-group:hover {
+  background-color: #f8f8f8;
+}
