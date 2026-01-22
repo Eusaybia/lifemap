@@ -328,6 +328,7 @@ const PortalExtension = Node.create({
         // Get the current lens from node attributes
         const currentLens = props.node.attrs.lens as PortalLenses;
         const isPrivate = currentLens === 'private';
+        const isPreview = currentLens === 'preview';
 
         return (
           <NodeViewWrapper>
@@ -361,6 +362,8 @@ const PortalExtension = Node.create({
                 boxShadow: `inset 10px 10px 10px #bebebe,
                     inset -10px -10px 10px #FFFFFF99`,
                 minHeight: 20,
+                maxHeight: (isPreview || isPrivate) ? 100 : undefined,
+                overflow: (isPreview || isPrivate) ? 'hidden' : undefined,
                 padding: `11px 15px 11px 15px`,
                 marginBottom: 10,
               }}
@@ -377,29 +380,60 @@ const PortalExtension = Node.create({
                   }
                 }}
               />
-              {/* Private lens overlay - completely black with grey text */}
+              {/* Private lens overlay - truncated like preview with black background */}
               {isPrivate && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: '#000000',
+                      borderRadius: sharedBorderRadius,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 20,
+                      userSelect: 'none',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <span style={{ color: '#666', fontSize: 14 }}>Private</span>
+                  </motion.div>
+                  {/* Private lens fade gradient at bottom */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 40,
+                      background: 'linear-gradient(to bottom, transparent, #000000)',
+                      borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
+                      pointerEvents: 'none',
+                      zIndex: 21,
+                    }}
+                  />
+                </>
+              )}
+              {/* Preview lens fade gradient at bottom */}
+              {isPreview && !isPrivate && (
+                <div
                   style={{
                     position: 'absolute',
-                    top: 0,
+                    bottom: 0,
                     left: 0,
                     right: 0,
-                    bottom: 0,
-                    backgroundColor: '#000000',
-                    borderRadius: sharedBorderRadius,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 20,
-                    userSelect: 'none',
+                    height: 40,
+                    background: 'linear-gradient(to bottom, transparent, #FFFFFF)',
+                    borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
                     pointerEvents: 'none',
                   }}
-                >
-                  <span style={{ color: '#666', fontSize: 14 }}>Private</span>
-                </motion.div>
+                />
               )}
               <select
                 value={showMode}
