@@ -1000,17 +1000,35 @@ const getYearSuggestions = (query: string): TimePoint[] => {
   return results
 }
 
-// Parse arbitrary time strings like "8:00am", "3pm", "14:30", "8am", "8:00 am", "7.30pm"
+// Parse arbitrary time strings like "8:00am", "3pm", "14:30", "8am", "8:00 am", "7.30pm", "730pm"
 const parseTimeString = (query: string): TimePoint | null => {
   const lowerQuery = query.toLowerCase().trim()
   
-  // Match patterns: "8am", "8:00am", "8:00 am", "8 am", "14:30", "2:30pm", "7.30pm", "7.30"
-  const timeMatch = lowerQuery.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/)
-  if (!timeMatch) return null
+  let hour: number
+  let minute: number
+  let period: string | undefined
   
-  let [, hourStr, minuteStr, period] = timeMatch
-  let hour = parseInt(hourStr, 10)
-  const minute = minuteStr ? parseInt(minuteStr, 10) : 0
+  // Pattern 1: With separator - "8am", "8:00am", "8:00 am", "8 am", "14:30", "2:30pm", "7.30pm", "7.30"
+  const separatorMatch = lowerQuery.match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?$/)
+  
+  // Pattern 2: Without separator - "730pm", "1130am", "700pm", "730", "1430"
+  // This pattern handles 3-4 digit times where the last 2 digits are minutes
+  const noSeparatorMatch = lowerQuery.match(/^(\d{1,2})(\d{2})\s*(am|pm)?$/)
+  
+  if (separatorMatch) {
+    const [, hourStr, minuteStr, periodStr] = separatorMatch
+    hour = parseInt(hourStr, 10)
+    minute = minuteStr ? parseInt(minuteStr, 10) : 0
+    period = periodStr
+  } else if (noSeparatorMatch) {
+    // Parse formats like "730pm" where "7" is hour and "30" is minutes
+    const [, hourStr, minuteStr, periodStr] = noSeparatorMatch
+    hour = parseInt(hourStr, 10)
+    minute = parseInt(minuteStr, 10)
+    period = periodStr
+  } else {
+    return null
+  }
   
   // Validate hour and minute
   if (minute < 0 || minute > 59) return null
