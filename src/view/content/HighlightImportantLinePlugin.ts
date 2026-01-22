@@ -12,7 +12,6 @@ const IMPORTANT_LABEL_SUBSTRING = '⭐️ important';
 const HIGHLIGHT_CLASS = 'highlight-important-line';
 
 function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
-  console.log("[HighlightPlugin] findImportantMentions called");
   const decorations: Decoration[] = [];
 
   doc.descendants((node, pos) => {
@@ -59,7 +58,6 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
           if (currentLineHasImportantMention) {
             // Check if start/end positions are valid
             if (currentLineStartPos < decorationEndPos) {
-                console.log(`[HighlightPlugin] Applying inline decoration from ${currentLineStartPos} to ${decorationEndPos} in paragraph`);
                 decorations.push(
                     Decoration.inline(currentLineStartPos, decorationEndPos, {
                         class: HIGHLIGHT_CLASS,
@@ -84,7 +82,6 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
     return true;
   });
 
-  console.log("[HighlightPlugin] Returning decorations:", decorations.length > 0 ? decorations : "None");
   return decorations;
 }
 
@@ -103,7 +100,6 @@ export const HighlightImportantLinePlugin = Extension.create({
             if (!tr.docChanged) {
               return oldSet.map(tr.mapping, tr.doc);
             }
-            console.log("[HighlightPlugin] Document changed, recalculating decorations.");
             return DecorationSet.create(tr.doc, findImportantMentions(tr.doc));
           },
         },

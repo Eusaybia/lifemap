@@ -33,7 +33,6 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // Create the quanta only once (or when quantaId changes)
   if (quantaRef.current === null) {
     quantaRef.current = new QuantaClass();
-    console.log(`[QuantaStore] Created new QuantaClass for ${props.quantaId}`);
   }
   
   const quanta = quantaRef.current;
@@ -47,18 +46,10 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
 
   // Sync the document locally (offline support)
   React.useEffect(() => {
-    console.log(`[QuantaStore PERF] Creating IndexeddbPersistence for ${roomName}...`)
-    const perfStart = performance.now()
     const persistence = new IndexeddbPersistence(roomName, quanta.information);
-    console.log(`[QuantaStore PERF] IndexeddbPersistence created for ${roomName} in ${(performance.now() - perfStart).toFixed(0)}ms`)
-    
-    persistence.on('synced', () => {
-      console.log(`[QuantaStore PERF] ${roomName} synced locally in ${(performance.now() - perfStart).toFixed(0)}ms from creation`)
-    })
     
     // Clean up persistence on unmount
     return () => {
-      console.log(`[QuantaStore PERF] Destroying IndexeddbPersistence for ${roomName}`)
       persistence.destroy();
     };
   }, [roomName, quanta.information]);
@@ -69,40 +60,21 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
 
   // Immediately generate a jwt token via Firebase Cloud Function
   React.useEffect(() => {
-    console.log(`[QuantaStore] Attempting to fetch JWT token from Firebase...`);
     const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
     generateAuthenticationToken()
       .then((result) => {
         const data: any = result.data;
         const token = data.token;
-        console.log(`[QuantaStore] ✅ JWT token received for cloud sync (token length: ${token?.length})`);
-        // Try to decode JWT to see its contents (won't verify signature, just parse)
-        try {
-          const parts = token?.split('.');
-          if (parts?.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            console.log(`[QuantaStore] JWT payload:`, payload);
-            if (payload.exp) {
-              console.log(`[QuantaStore] JWT expires: ${new Date(payload.exp * 1000).toISOString()}`);
-            }
-          }
-        } catch (e) {
-          console.log(`[QuantaStore] Could not parse JWT payload`);
-        }
         setJwt(token);
       })
       .catch((error) => {
-        console.error('[QuantaStore] ❌ Failed to generate JWT token:', error);
-        console.error('[QuantaStore] This means cloud sync will NOT work. Check if Firebase function is deployed.');
+        console.error('[QuantaStore] Failed to generate JWT token:', error);
       });
   }, []);
 
   // Once the jwt token is generated, create the TiptapCollabProvider for cloud sync
   React.useEffect(() => {
     if (jwt !== "notoken") {
-      console.log(`[QuantaStore] Creating TiptapCollabProvider for ${roomName} with cloud sync...`);
-      console.log(`[QuantaStore] AppId: ${appId}, Room: ${roomName}`);
-      
       const newProvider = new TiptapCollabProvider({
         appId: appId,
         name: roomName,
@@ -110,43 +82,15 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
         document: quanta.information,
       });
       
-      // Add comprehensive connection status listeners
-      newProvider.on('connect', () => {
-        console.log(`[QuantaStore] ✅ Connected to TipTap Cloud for ${roomName}`);
-      });
-      
-      newProvider.on('disconnect', () => {
-        console.log(`[QuantaStore] ⚠️ Disconnected from TipTap Cloud for ${roomName}`);
-      });
-      
-      // The synced event fires when initial sync completes
-      newProvider.on('synced', (data: any) => {
-        console.log(`[QuantaStore] 🔄 SYNCED event for ${roomName}:`, data);
-        console.log(`[QuantaStore] Y.Doc state after sync: ${quanta.information.toJSON ? JSON.stringify(quanta.information.toJSON()).substring(0, 200) : 'no toJSON'}`);
-      });
-      
-      newProvider.on('status', ({ status }: { status: string }) => {
-        console.log(`[QuantaStore] 📡 Provider status for ${roomName}: ${status}`);
-      });
-      
-      // Add error listener
+      // Add error listener for authentication failures
       newProvider.on('authenticationFailed', (data: any) => {
-        console.error(`[QuantaStore] ❌ Authentication FAILED for ${roomName}:`, data);
+        console.error(`[QuantaStore] Authentication failed for ${roomName}:`, data);
       });
-      
-      // Add message listener for debugging
-      newProvider.on('message', (data: any) => {
-        console.log(`[QuantaStore] 📨 Message received for ${roomName}:`, data?.type || 'unknown type');
-      });
-      
-      // Log initial provider state
-      console.log(`[QuantaStore] Provider created. isSynced: ${newProvider.isSynced}, isConnected: ${newProvider.isConnected}`);
       
       setProvider(newProvider);
 
       // Clean up the provider when the component unmounts
       return () => {
-        console.log(`[QuantaStore] Destroying TiptapCollabProvider for ${roomName}`);
         newProvider.destroy();
       };
     } 
