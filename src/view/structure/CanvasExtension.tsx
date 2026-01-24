@@ -27,6 +27,7 @@ import { QuantaFlowExtension } from './QuantaFlowExtension'
 import { WarningExtension } from './WarningTipTapExtension'
 import { ExternalPortalExtension } from './ExternalPortalExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from './LifemapCardExtension'
+import { GroupExtension } from './GroupTipTapExtension'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import DetailsContent from '@tiptap-pro/extension-details-content'
@@ -34,6 +35,7 @@ import Image from '@tiptap/extension-image'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
 import { NodeOverlay } from '../components/NodeOverlay'
+import { NodeConnectionManager } from '../content/NodeConnectionManager'
 
 // ============================================================================
 // Slash Menu Items for Canvas
@@ -49,11 +51,12 @@ interface CanvasSlashMenuItem {
 
 const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
   { 
-    id: 'text', 
-    title: 'Text Note', 
-    emoji: '📝', 
-    keywords: ['text', 'note', 'sticky'],
-    nodeContent: { type: 'paragraph', content: [{ type: 'text', text: 'New note - double-click to edit' }] }
+    id: 'group', 
+    title: 'Group', 
+    emoji: '📦', 
+    keywords: ['group', 'container', 'block'],
+    // Group nodes wrap block content - initialize with an empty paragraph inside
+    nodeContent: { type: 'group', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'New group - double-click to edit' }] }] }
   },
   { 
     id: 'heading-1', 
@@ -226,7 +229,8 @@ const generateId = () => Math.random().toString(36).substring(2, 10)
 // Get default dimensions for node types
 const getNodeDefaults = (nodeType: string): { width: number; height: number } => {
   switch (nodeType) {
-    case 'text':
+    case 'group':
+      return { width: 250, height: 120 }
     case 'heading-1':
     case 'heading-2':
     case 'heading-3':
@@ -452,6 +456,7 @@ const MiniEditor: React.FC<{
       ExternalPortalExtension,
       LifemapCardExtension,
       SingleLifemapCardExtension,
+      GroupExtension,
     ],
     content: validContent,
     editable: isSelected,
@@ -683,8 +688,14 @@ const CanvasItemComponent: React.FC<CanvasItemProps> = ({
   }, [onUpdate])
 
   return (
+    // Outer positioning wrapper for canvas - handles absolute position, rotation, size
+    // Selection controls (border, rotation, delete, resize) wrap the content
+    // The content's own NodeOverlay/Group grip is used for dragging via onGripMouseDown
     <div
       ref={itemRef}
+      data-canvas-item="true"
+      data-node-overlay="true"
+      data-quanta-id={item.id}
       style={{
         position: 'absolute',
         left: item.x,
@@ -692,77 +703,59 @@ const CanvasItemComponent: React.FC<CanvasItemProps> = ({
         width: item.width,
         height: item.height,
         transform: `rotate(${item.rotation}deg)`,
-        cursor: isDragging ? 'grabbing' : 'grab',
         userSelect: 'none',
         zIndex: isSelected ? 10 : 1,
+        // Selection border applied to outer wrapper
+        border: isSelected ? '2px solid #007AFF' : '2px solid transparent',
+        borderRadius: 12,
+        boxSizing: 'border-box',
       }}
       onClick={(e) => {
         e.stopPropagation()
         onSelect()
       }}
     >
-      {/* Drag handle bar at top */}
-      <div
-        onMouseDown={handleDragStart}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 24,
-          backgroundColor: isSelected ? '#007AFF' : '#e5e5e5',
-          borderRadius: '8px 8px 0 0',
-          cursor: isDragging ? 'grabbing' : 'grab',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2,
+      {/* Content container - the MiniEditor will render nodes with their own styling
+          The inner node's grip (from NodeOverlay) triggers dragging via CSS pointer interception
+          overflow: visible allows node shadows to display properly */}
+      <div 
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          overflow: 'visible',
+          borderRadius: 10,
+          position: 'relative',
         }}
       >
-        {/* Grip dots */}
-        <div style={{ display: 'flex', gap: 2 }}>
-          {[0, 1, 2, 3, 4, 5].map(i => (
-            <div
-              key={i}
-              style={{
-                width: 4,
-                height: 4,
-                backgroundColor: isSelected ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.3)',
-                borderRadius: '50%',
-              }}
-            />
-          ))}
+        {/* Invisible drag handle at top - intercepts mouse events for dragging
+            This captures the grip area so dragging works from the content's grip */}
+        <div
+          onMouseDown={handleDragStart}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 40,
+            cursor: isDragging ? 'grabbing' : 'grab',
+            zIndex: 100,
+            // Semi-transparent to show we can drag from here (remove in production)
+            // backgroundColor: 'rgba(0, 122, 255, 0.1)',
+          }}
+        />
+        
+        {/* Mini editor content - renders nodes with their natural NodeOverlay styling */}
+        <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+          <MiniEditor
+            content={item.content}
+            onUpdate={handleContentUpdate}
+            isSelected={isSelected}
+            nodeType={item.nodeType}
+          />
         </div>
       </div>
 
-      {/* Item content */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 24,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: '#ffffff',
-          border: isSelected ? '2px solid #007AFF' : '1px solid #ddd',
-          borderTop: 'none',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: isSelected
-            ? '0 4px 12px rgba(0, 122, 255, 0.3)'
-            : '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'hidden',
-          padding: 8,
-        }}
-      >
-        <MiniEditor
-          content={item.content}
-          onUpdate={handleContentUpdate}
-          isSelected={isSelected}
-          nodeType={item.nodeType}
-        />
-      </div>
-
-      {/* Selection controls */}
+      {/* Selection controls - only shown when selected */}
       {isSelected && (
         <>
           {/* Rotation handle */}
@@ -824,6 +817,7 @@ const CanvasItemComponent: React.FC<CanvasItemProps> = ({
               color: 'white',
               fontSize: 14,
               fontWeight: 'bold',
+              zIndex: 20,
             }}
           >
             ×
@@ -842,6 +836,7 @@ const CanvasItemComponent: React.FC<CanvasItemProps> = ({
               borderRadius: 3,
               cursor: 'se-resize',
               boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              zIndex: 20,
             }}
           />
         </>
@@ -1065,6 +1060,10 @@ const CanvasNodeView: React.FC<NodeViewProps> = (props) => {
               canvasRef={canvasRef}
             />
           ))}
+
+          {/* NodeConnectionManager enables drawing connections/arrows between canvas items
+              Uses the data-node-overlay and data-quanta-id attributes on CanvasItemComponent */}
+          <NodeConnectionManager containerRef={canvasRef} />
 
           <AnimatePresence>
             {showSlashMenu && (
