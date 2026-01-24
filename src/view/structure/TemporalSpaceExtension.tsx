@@ -10,7 +10,7 @@ import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
-import { DragGrip } from "../components/DragGrip";
+import { NodeOverlay } from "../components/NodeOverlay";
 
 // ============================================================================
 // Finesse Energy Glow Helper
@@ -334,27 +334,8 @@ export const TemporalSpaceExtension = TipTapNode.create({
         };
       }, [docAttributes.selectedFocusLens]);
 
-      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
-      // Right-side only glow - using large X offset and inset to keep glow on right edge
-      const orangeGlow = `80px 0 60px -20px hsla(30, 100%, 50%, 0.4)`;
-      const greenGlow = `80px 0 60px -20px hsl(104, 64%, 45%, 0.5)`;
-      let containsUncheckedTodo = false;
-      let containsCheckItem = false;
-
-      props.node.descendants((childNode) => {
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
-          glowStyles.push(greenGlow);
-        }
-        if (childNode.type.name === 'taskItem') {
-          containsCheckItem = true;
-          if (!childNode.attrs.checked) {
-            containsUncheckedTodo = true;
-          }
-        }
-      });
-      if (glowStyles.length > 1) glowStyles.splice(0, 1);
-      if (containsUncheckedTodo) glowStyles.push(orangeGlow);
-      else if (containsCheckItem) glowStyles.push(greenGlow);
+      // Note: Glow effects (orange for unchecked todos, green for completed tasks)
+      // are now handled by the Aura component which wraps all NodeOverlay children.
 
       const isHidden = shouldHideTemporalSpace(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
@@ -367,97 +348,76 @@ export const TemporalSpaceExtension = TipTapNode.create({
           data-temporal-space-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          {/* Debug logs removed for performance */}
-          <motion.div
-            style={{
-              borderRadius: 12,
-              position: 'relative',
-              display: isHidden ? 'none' : 'block',
-              // Frosted glass effect - with subtle gradient for depth even on white
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)', // Safari support
-              // Multi-layer border for glass edge effect
-              border: '1px solid rgba(200, 200, 210, 0.4)',
-              // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
-              boxShadow: `
-                0 4px 24px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
-                inset 1px 0 0 rgba(255, 255, 255, 0.4),
-                inset -1px 0 0 rgba(0, 0, 0, 0.03)
-              `,
-              padding: isCollapsed ? '10px 20px' : '20px',
-              margin: '8px 0px',
-              minHeight: isCollapsed ? 48 : 20,
-              overflow: 'visible',
-            }}
-            animate={{
-              boxShadow: glowStyles.length > 1 
-                ? `0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05), ${glowStyles.join(',')}`
-                : `0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05)`,
-            }}
-            transition={{ duration: 0.5, ease: "circOut" }}
-          >
-            {/* 6-dot grip handle on the top right - clicking selects the node to show FlowMenu */}
-            <DragGrip
-              position="absolute-top-right"
-              top={10}
-              dotColor="#999"
-              hoverBackground="rgba(0, 0, 0, 0.08)"
-              onClick={(e) => {
-                e.preventDefault();
-                const pos = props.getPos();
-                if (typeof pos === 'number') {
-                  // Use requestAnimationFrame to ensure selection persists after other event handlers
-                  requestAnimationFrame(() => {
-                    props.editor.commands.setNodeSelection(pos);
-                  });
-                }
-              }}
-            />
-
-            {/* Content */}
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {(() => {
-                    switch (props.node.attrs.lens) {
-                      case "identity":
-                        return <NodeViewContent />;
-                      case "hideUnimportantNodes":
-                        return <div>Important Nodes Only (Pending)</div>;
-                      default:
-                        return <NodeViewContent />;
-                    }
-                  })()}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Dimming overlay */}
-            <motion.div
+          <NodeOverlay nodeProps={props} nodeType="temporalSpace">
+            {/* Debug logs removed for performance */}
+            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
+            <div
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
-                borderRadius: 10,
-                pointerEvents: 'none',
+                borderRadius: 12,
+                position: 'relative',
+                display: isHidden ? 'none' : 'block',
+                // Frosted glass effect - with subtle gradient for depth even on white
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)', // Safari support
+                // Multi-layer border for glass edge effect
+                border: '1px solid rgba(200, 200, 210, 0.4)',
+                // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
+                boxShadow: `
+                  0 4px 24px rgba(0, 0, 0, 0.08),
+                  0 1px 3px rgba(0, 0, 0, 0.06),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+                  inset 1px 0 0 rgba(255, 255, 255, 0.4),
+                  inset -1px 0 0 rgba(0, 0, 0, 0.03)
+                `,
+                padding: isCollapsed ? '10px 20px' : '20px',
+                margin: '8px 0px',
+                minHeight: isCollapsed ? 48 : 20,
+                overflow: 'visible',
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </motion.div>
+            >
+              {/* Content */}
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {(() => {
+                      switch (props.node.attrs.lens) {
+                        case "identity":
+                          return <NodeViewContent />;
+                        case "hideUnimportantNodes":
+                          return <div>Important Nodes Only (Pending)</div>;
+                        default:
+                          return <NodeViewContent />;
+                      }
+                    })()}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 10,
+                  pointerEvents: 'none',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

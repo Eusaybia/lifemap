@@ -17,7 +17,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
-import { DragGrip } from "../components/DragGrip";
+import { NodeOverlay } from "../components/NodeOverlay";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { GroupLenses, Group } from "./Group";
 import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
@@ -332,7 +332,8 @@ const PortalExtension = Node.create({
 
         return (
           <NodeViewWrapper>
-            <div contentEditable={false}>
+            <NodeOverlay nodeProps={props} nodeType="portal" isPrivate={isPrivate}>
+              <div contentEditable={false}>
               <input
                 type="text"
                 value={referencedQuantaId}
@@ -359,67 +360,15 @@ const PortalExtension = Node.create({
                 borderRadius: sharedBorderRadius,
                 background: `#FFFFFF`,
                 position: "relative",
-                boxShadow: `inset 10px 10px 10px #bebebe,
-                    inset -10px -10px 10px #FFFFFF99`,
                 minHeight: 20,
                 maxHeight: (isPreview || isPrivate) ? 100 : undefined,
-                overflow: (isPreview || isPrivate) ? 'hidden' : undefined,
-                padding: `11px 15px 11px 15px`,
+                overflow: isPrivate ? 'hidden' : (isPreview ? 'auto' : undefined),
+                padding: 20,
                 marginBottom: 10,
               }}
               contentEditable={false}
             >
-              <DragGrip
-                position="absolute-right"
-                dotColor="#999"
-                hoverBackground="rgba(0, 0, 0, 0.08)"
-                onClick={() => {
-                  const pos = props.getPos();
-                  if (typeof pos === 'number') {
-                    props.editor.commands.setNodeSelection(pos);
-                  }
-                }}
-              />
-              {/* Private lens overlay - truncated like preview with black background */}
-              {isPrivate && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: '#000000',
-                      borderRadius: sharedBorderRadius,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 20,
-                      userSelect: 'none',
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <span style={{ color: '#666', fontSize: 14 }}>Private</span>
-                  </motion.div>
-                  {/* Private lens fade gradient at bottom */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 40,
-                      background: 'linear-gradient(to bottom, transparent, #000000)',
-                      borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
-                      pointerEvents: 'none',
-                      zIndex: 21,
-                    }}
-                  />
-                </>
-              )}
+              {/* Private lens overlay is now handled by NodeOverlay for full coverage */}
               {/* Preview lens fade gradient at bottom */}
               {isPreview && !isPrivate && (
                 <div
@@ -472,6 +421,7 @@ const PortalExtension = Node.create({
                 </Group>
               )}
             </div>
+            </NodeOverlay>
           </NodeViewWrapper>
         );
       },

@@ -3,6 +3,7 @@
 import React from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps, NodeViewContent } from "@tiptap/react"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // Date Helpers
@@ -92,55 +93,57 @@ const DayHeaderNodeView: React.FC<NodeViewProps> = (props) => {
   
   return (
     <NodeViewWrapper data-day-header="true">
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        minHeight: '300px',
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        marginBottom: '0',
-      }}>
-        {/* Subtle gradient overlay for text readability */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.15) 100%)',
-        }} />
-        
-        {/* Header Content */}
+      <NodeOverlay nodeProps={props} nodeType="dayHeader">
         <div style={{
           position: 'relative',
-          zIndex: 1,
-          padding: '24px',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
+          width: '100%',
+          minHeight: '300px',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          marginBottom: '0',
         }}>
-          <div>
-            {/* Title */}
-            <h2 style={{
-              margin: 0,
-              fontSize: '26px',
-              fontWeight: 400,
-              color: '#ffffff',
-              textShadow: '0 1px 8px rgba(0,0,0,0.3)',
-              fontFamily: "'EB Garamond', Georgia, serif",
-            }}>
-              {title}
-            </h2>
-          </div>
+          {/* Subtle gradient overlay for text readability */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.15) 100%)',
+          }} />
           
-          {/* Content area - renders child nodes (e.g., a Group) */}
-          <NodeViewContent className="day-header-content" />
+          {/* Header Content */}
+          <div style={{
+            position: 'relative',
+            zIndex: 1,
+            padding: '24px',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            <div>
+              {/* Title */}
+              <h2 style={{
+                margin: 0,
+                fontSize: '26px',
+                fontWeight: 400,
+                color: '#ffffff',
+                textShadow: '0 1px 8px rgba(0,0,0,0.3)',
+                fontFamily: "'EB Garamond', Georgia, serif",
+              }}>
+                {title}
+              </h2>
+            </div>
+            
+            {/* Content area - renders child nodes (e.g., a Group) */}
+            <NodeViewContent className="day-header-content" />
+          </div>
         </div>
-      </div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }

@@ -7,6 +7,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { motion } from 'framer-motion';
+import { NodeOverlay } from "../components/NodeOverlay";
 
 // ============================================================================
 // Constants
@@ -117,86 +118,88 @@ const CalendarNodeView = (props: NodeViewProps) => {
   if (!isInstantiated) {
     return (
       <NodeViewWrapper>
-        <Box
-          onClick={() => setIsInstantiated(true)}
-          sx={{
-            border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            my: 2,
-            background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              borderColor: '#eab308',
-              boxShadow: '0 4px 12px rgba(234, 179, 8, 0.2)',
-              transform: 'translateY(-1px)',
-            },
-          }}
-        >
+        <NodeOverlay nodeProps={props} nodeType="calendar">
           <Box
+            onClick={() => setIsInstantiated(true)}
             sx={{
-              p: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 200,
-              gap: 2,
+              border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              my: 2,
+              background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                borderColor: '#eab308',
+                boxShadow: '0 4px 12px rgba(234, 179, 8, 0.2)',
+                transform: 'translateY(-1px)',
+              },
             }}
           >
             <Box
               sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 100%)',
+                p: 4,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(234, 179, 8, 0.3)',
+                minHeight: 200,
+                gap: 2,
               }}
             >
-              <Typography sx={{ fontSize: 32 }}>📅</Typography>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(234, 179, 8, 0.3)',
+                }}
+              >
+                <Typography sx={{ fontSize: 32 }}>📅</Typography>
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: '#1f2937',
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                }}
+              >
+                Monthly Cycles Calendar
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: '#6b7280',
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                }}
+              >
+                Click to instantiate the calendar
+              </Typography>
+              <Button
+                variant="contained"
+                size="small"
+                sx={{
+                  mt: 1,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                  background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 100%)',
+                  boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #ca8a04 0%, #d97706 100%)',
+                  },
+                }}
+              >
+                Create Calendar
+              </Button>
             </Box>
-            <Typography
-              sx={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#1f2937',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-              }}
-            >
-              Monthly Cycles Calendar
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: '#6b7280',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-              }}
-            >
-              Click to instantiate the calendar
-            </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              sx={{
-                mt: 1,
-                textTransform: 'none',
-                fontWeight: 500,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 100%)',
-                boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #ca8a04 0%, #d97706 100%)',
-                },
-              }}
-            >
-              Create Calendar
-            </Button>
           </Box>
-        </Box>
+        </NodeOverlay>
       </NodeViewWrapper>
     );
   }
@@ -206,33 +209,35 @@ const CalendarNodeView = (props: NodeViewProps) => {
 
   return (
     <NodeViewWrapper>
-      <Box
-        sx={{
-          border: '1px solid #e5e7eb',
-          borderRadius: 2,
-          overflow: 'hidden',
-          backgroundColor: '#fafafa',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        {/* Days Grid */}
+      <NodeOverlay nodeProps={props} nodeType="calendar">
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '6px',
-            padding: '12px',
+            border: '1px solid #e5e7eb',
+            borderRadius: 2,
+            overflow: 'hidden',
+            backgroundColor: '#fafafa',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
           }}
         >
-          {days.map((dayNum) => (
-            <DayCell
-              key={`day-${dayNum}`}
-              dayNumber={dayNum}
-              quantaId={`${calendarId}-day-${dayNum}`}
-            />
-          ))}
+          {/* Days Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '6px',
+              padding: '12px',
+            }}
+          >
+            {days.map((dayNum) => (
+              <DayCell
+                key={`day-${dayNum}`}
+                dayNumber={dayNum}
+                quantaId={`${calendarId}-day-${dayNum}`}
+              />
+            ))}
+          </Box>
         </Box>
-      </Box>
+      </NodeOverlay>
     </NodeViewWrapper>
   );
 };

@@ -3,6 +3,7 @@ import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { motion } from "framer-motion";
 import { grey, purple, red } from "../Theme";
+import { NodeOverlay } from "../components/NodeOverlay";
 
 export const doubleDoubleQuoteInputRegex = /!\s([^!]*)\s!/
 
@@ -38,14 +39,16 @@ export const WarningExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <motion.div style={{
-            backgroundColor: grey, borderRadius: 5, padding: `20px 20px 20px 20px`, color: red 
-          }}>
-            <div style={{fontFamily: "Times New Roman", fontSize: 50}}>
-              {"⚠️"}
-            </div>
-            <NodeViewContent />
-          </motion.div>
+          <NodeOverlay nodeProps={props} nodeType="warning">
+            <motion.div style={{
+              backgroundColor: grey, borderRadius: 5, padding: `20px 20px 20px 20px`, color: red 
+            }}>
+              <div style={{fontFamily: "Times New Roman", fontSize: 50}}>
+                {"⚠️"}
+              </div>
+              <NodeViewContent />
+            </motion.div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

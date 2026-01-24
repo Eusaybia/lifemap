@@ -11,6 +11,30 @@ import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
 import { DragGrip } from "../components/DragGrip";
+import { NodeOverlay } from "../components/NodeOverlay";
+
+// ============================================================================
+// GROUP ARCHITECTURE
+// ============================================================================
+// Groups are a fundamental unit for organizing content in the editor.
+// There are two variants:
+//
+// 1. BLOCK GROUP (this file - GroupTipTapExtension)
+//    - A TipTap Node that wraps block-level content
+//    - Rendered as a card with a DragGrip component
+//    - Identified by: data-group-node-view="true" and data-group-id="<uuid>"
+//
+// 2. INLINE SPAN GROUP (SpanGroupMark.ts)
+//    - A TipTap Mark that wraps inline text
+//    - Rendered as a highlighted span with a CSS pseudo-element grip
+//    - Identified by: class="span-group" and data-span-group-id="<uuid>"
+//
+// Both types can participate in the connection system (GroupConnectionManager)
+// which allows drawing arrows/relationships between any Group elements.
+// ============================================================================
+
+// Helper to generate unique group IDs (shared format with SpanGroupMark)
+const generateGroupId = () => Math.random().toString(36).substring(2, 8);
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -221,6 +245,16 @@ export const GroupExtension = TipTapNode.create({
   },
   addAttributes() {
     return {
+      // Unique identifier for this group, used for connections between groups
+      // Format matches SpanGroupMark.groupId for consistency across Group types
+      groupId: { 
+        default: null,
+        parseHTML: element => element.getAttribute('data-group-id'),
+        renderHTML: attributes => {
+          if (!attributes.groupId) return {};
+          return { 'data-group-id': attributes.groupId };
+        },
+      },
       pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
@@ -368,27 +402,9 @@ export const GroupExtension = TipTapNode.create({
         };
       }, [docAttributes.selectedFocusLens]);
 
-      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
-      // Right-side only glow - using large X offset and inset to keep glow on right edge
-      const orangeGlow = `80px 0 60px -20px hsla(30, 100%, 50%, 0.4)`;
-      const greenGlow = `80px 0 60px -20px hsl(104, 64%, 45%, 0.5)`;
-      let containsUncheckedTodo = false;
-      let containsCheckItem = false;
-
-      props.node.descendants((childNode) => {
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
-          glowStyles.push(greenGlow);
-        }
-        if (childNode.type.name === 'taskItem') {
-          containsCheckItem = true;
-          if (!childNode.attrs.checked) {
-            containsUncheckedTodo = true;
-          }
-        }
-      });
-      if (glowStyles.length > 1) glowStyles.splice(0, 1);
-      if (containsUncheckedTodo) glowStyles.push(orangeGlow);
-      else if (containsCheckItem) glowStyles.push(greenGlow);
+      // Note: Glow effects (orange for unchecked todos, green for completed tasks)
+      // are now handled by the Aura component which wraps all NodeOverlay children.
+      // The Aura component scans node content for tags and applies appropriate glows.
 
       // Determine if the group should be hidden (display: none)
       const isHidden = shouldHideGroup(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
@@ -612,72 +628,63 @@ export const GroupExtension = TipTapNode.create({
           data-group-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          <motion.div
-            style={{
-              borderRadius: 10,
-              position: 'relative',
-              display: isHidden ? 'none' : 'block',
-              overflow: 'visible',
-            }}
-            animate={{
-              boxShadow: glowStyles.join(','),
-            }}
-            transition={{ duration: 0.5, ease: "circOut" }}
+          {/* NodeOverlay provides the grip, shadow, and connection support */}
+          <NodeOverlay
+            nodeProps={props}
+            nodeType="group"
+            style={{ display: isHidden ? 'none' : 'block' }}
+            isPrivate={props.node.attrs.lens === 'private'}
           >
-            <Group
-              lens={props.node.attrs.lens}
-              quantaId={props.node.attrs.quantaId}
-              backgroundColor={props.node.attrs.backgroundColor}
-            >
-              {(() => {
-                switch (props.node.attrs.lens) {
-                  case "identity":
-                    return <NodeViewContent />;
-                  case "hideUnimportantNodes":
-                    return <div>Important Nodes Only (Pending)</div>;
-                  case "private":
-                    // Content still renders but overlay covers it in Group component
-                    return <NodeViewContent />;
-                  case "collapsed":
-                    // Content is hidden by Group component when collapsed
-                    return <NodeViewContent />;
-                  default:
-                    return <NodeViewContent />;
-                }
-              })()}
-            </Group>
-            
-            {/* 6-dot grip handle - clicking selects the node to show FlowMenu */}
-            <DragGrip
-              position="absolute-top-right"
-              top={10}
-              dotColor="#999"
-              hoverBackground="rgba(0, 0, 0, 0.08)"
-              onClick={(e) => {
-                e.preventDefault();
-                const pos = props.getPos();
-                if (typeof pos === 'number') {
-                  props.editor.commands.setNodeSelection(pos);
-                }
-              }}
-            />
-
-            <motion.div
+            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
+            <div
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
                 borderRadius: 10,
-                pointerEvents: 'none',
+                position: 'relative',
+                overflow: 'visible',
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </motion.div>
+            >
+              <Group
+                lens={props.node.attrs.lens}
+                quantaId={props.node.attrs.quantaId}
+                backgroundColor={props.node.attrs.backgroundColor}
+              >
+                {(() => {
+                  switch (props.node.attrs.lens) {
+                    case "identity":
+                      return <NodeViewContent />;
+                    case "hideUnimportantNodes":
+                      return <div>Important Nodes Only (Pending)</div>;
+                    case "private":
+                      // Content still renders but overlay covers it in Group component
+                      return <NodeViewContent />;
+                    case "collapsed":
+                      // Content is hidden by Group component when collapsed
+                      return <NodeViewContent />;
+                    default:
+                      return <NodeViewContent />;
+                  }
+                })()}
+              </Group>
+
+              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+              {/* This is separate from the Aura focus system which uses focus tags */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 10,
+                  pointerEvents: 'none',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

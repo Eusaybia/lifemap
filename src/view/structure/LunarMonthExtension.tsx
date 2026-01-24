@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { NodeOverlay } from "../components/NodeOverlay"
 import "@/styles/timepoint-mention.css"
 
 // ============================================================================
@@ -359,7 +360,7 @@ const DayCell: React.FC<DayCellProps> = ({ date, lunarDay, phase, majorPhase, is
 // Lunar Month Grid Node View
 // ============================================================================
 
-const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
+const LunarMonthNodeView: React.FC<NodeViewProps> = (props) => {
   const today = new Date()
   const [viewingMonthStart, setViewingMonthStart] = useState<Date>(() => getLunarMonthStart(today))
   
@@ -399,18 +400,19 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
         position: 'relative',
       }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{
-          backgroundColor: 'rgba(250, 250, 252, 0.95)',
-          borderRadius: '16px',
-          border: '1px solid rgba(0, 0, 0, 0.1)',
-          padding: '20px',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)',
-        }}
-      >
+      <NodeOverlay nodeProps={props} nodeType="lunarMonth">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            backgroundColor: 'rgba(250, 250, 252, 0.95)',
+            borderRadius: '16px',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            padding: '20px',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)',
+          }}
+        >
         {/* Header */}
         <div style={{
           display: 'flex',
@@ -643,7 +645,8 @@ const LunarMonthNodeView: React.FC<NodeViewProps> = () => {
           })
         })()}
         
-      </motion.div>
+        </motion.div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }

@@ -3,7 +3,9 @@
 import './MentionList.scss'
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
-import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
+// Note: NodeOverlay intentionally not used for Pomodoro - it's an inline element that
+// shouldn't have the card styling and grip. Pomodoro nodes flow inline with text.
 
 // ============================================================================
 // Audio utility functions - using actual MP3 files
@@ -52,28 +54,8 @@ const playTickSound = () => {
 // PomodoroNodeView Component
 // ============================================================================
 
-interface PomodoroNodeViewProps {
-  node: {
-    attrs: {
-      duration: number
-      label: string
-      emoji?: string
-      status: 'unrealized' | 'active' | 'completed'
-      startTime: string | null
-      endTime?: string | null  // For freeform time - stores when user stopped
-      id: string
-    }
-  }
-  updateAttributes: (attributes: Record<string, any>) => void
-  deleteNode: () => void
-  selected: boolean
-}
-
-const PomodoroNodeView: React.FC<PomodoroNodeViewProps> = ({
-  node,
-  updateAttributes,
-  selected,
-}) => {
+const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
+  const { node, updateAttributes, selected } = props
   const { duration, label, emoji, status, startTime, endTime } = node.attrs
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasPlayedCompleteTone = useRef(false)

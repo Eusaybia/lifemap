@@ -32,6 +32,13 @@
   box-shadow: 0 0 5px #33cc00, 0 0 10px #33cc00, 0 0 15px #33cc00, 0 0 20px #33cc00;
 }
 
+// Focus tag glow - warm yellow/orange for focused content
+// When a node has this tag, Aura component highlights it and dims other nodes
+.focus-glow {
+  box-shadow: 0 0 5px #ffb700, 0 0 10px #ffc933, 0 0 15px #ffd966, 0 0 20px #ffe699;
+  background-color: rgba(255, 183, 0, 0.15);
+}
+
 // ============================================================================
 // TimePoint Mention Styles (@ date insertion)
 // ============================================================================
