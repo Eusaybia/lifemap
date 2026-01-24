@@ -175,6 +175,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'canvas',
+      title: 'Canvas',
+      description: 'Drag & rotate nodes on a freeform canvas',
+      emoji: '📌',
+      keywords: ['canvas', 'board', 'drag', 'rotate', 'freeform', 'nodes', 'sticky', 'notes'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertCanvas()
+      },
+    },
+    {
       id: 'daily-schedule',
       title: 'Daily Schedule',
       description: 'Insert a daily schedule view',
@@ -339,10 +350,12 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       emoji: '📡',
       keywords: ['portal', 'external', 'embed', 'transclude', 'link', 'quanta', 'reference'],
       action: (editor) => {
-        editor.chain().focus().insertContent({
-          type: 'externalPortal',
-          attrs: { externalQuantaId: '' },
-        }).run()
+        // Use the insertExternalPortal command which auto-generates a UUID
+        // @ts-ignore
+        editor.commands.insertExternalPortal?.() ||
+          editor.chain().focus().insertContent({
+            type: 'externalPortal',
+          }).run()
       },
     },
   ]
@@ -365,13 +378,18 @@ const filterItems = (items: SlashMenuItem[], query: string): SlashMenuItem[] => 
 // Slash Menu List Component
 // ============================================================================
 
+/**
+ * SlashMenuList uses actual FlowSwitch components for each menu item,
+ * ensuring visual consistency with the DocumentFlowMenu. Each item is
+ * wrapped in a FlowSwitch with a single Option inside.
+ */
 const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
   const [tickSound, setTickSound] = useState<HTMLAudioElement | null>(null)
 
-  // Initialize tick sound
+  // Initialize tick sound - matches FlowSwitch's click.mp3 for consistent UX
   useEffect(() => {
     const audio = new Audio('/click.mp3')
     audio.volume = 0.12
@@ -389,7 +407,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
   const selectItem = (index: number) => {
     if (index >= props.items.length) return
     const item = props.items[index]
-    // Play click sound
+    // Play click sound - matches FlowSwitch's OptionButton behavior
     if (tickSound) {
       const soundClone = tickSound.cloneNode() as HTMLAudioElement
       soundClone.volume = 0.15
@@ -401,7 +419,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
   const upHandler = () => {
     const newIndex = (selectedIndex + props.items.length - 1) % props.items.length
     setSelectedIndex(newIndex)
-    // Play tick sound
+    // Play tick sound for navigation feedback
     if (tickSound) {
       const soundClone = tickSound.cloneNode() as HTMLAudioElement
       soundClone.volume = 0.1
@@ -413,7 +431,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
   const downHandler = () => {
     const newIndex = (selectedIndex + 1) % props.items.length
     setSelectedIndex(newIndex)
-    // Play tick sound
+    // Play tick sound for navigation feedback
     if (tickSound) {
       const soundClone = tickSound.cloneNode() as HTMLAudioElement
       soundClone.volume = 0.1
@@ -439,83 +457,61 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
 
   if (props.items.length === 0) {
     return (
-      <div style={{ 
-        padding: '16px', 
-        color: '#888', 
-        fontSize: '13px', 
-        textAlign: 'center', 
-        fontFamily: 'Inter, system-ui, sans-serif',
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(12px)',
-        borderRadius: '10px',
-        border: '1px solid rgba(200, 200, 200, 0.6)',
-      }}>
-        No matching commands
-      </div>
+      <FlowSwitch value="empty" isLens disableAutoScroll>
+        <Option value="empty" onClick={() => {}}>
+          <motion.div>
+            <span style={{ color: '#888' }}>No matching commands</span>
+          </motion.div>
+        </Option>
+        {/* FlowSwitch requires multiple children - hidden placeholder */}
+        <Option value="_hidden" onClick={() => {}}>
+          <motion.div style={{ display: 'none' }}></motion.div>
+        </Option>
+      </FlowSwitch>
     )
   }
 
-  // Use FlowSwitch styling but with proper list behavior
+  // Container holds FlowSwitch components for each menu item
   return (
     <motion.div
       ref={containerRef}
-      className="flow-menu slash-menu-list"
+      className="slash-menu-list"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.1 }}
       style={{
-        scrollSnapType: 'y mandatory',
-        scrollBehavior: 'smooth',
-        cursor: 'pointer',
-        boxSizing: 'border-box',
-        width: 'fit-content',
-        minWidth: 220,
-        maxWidth: 320,
-        maxHeight: 280,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
-        alignItems: 'stretch',
-        padding: '6px',
+        gap: 4,
+        maxHeight: 360,
         overflow: 'auto',
-        boxShadow: '0px 0.6px 3px -0.9px rgba(0, 0, 0, 0.14), 0px 2.3px 11.4px -1.8px rgba(0, 0, 0, 0.13), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.11)',
-        backgroundColor: 'rgba(217, 217, 217, 0.22)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        transform: 'translate3d(0, 0, 0)',
-        borderRadius: 8,
-        border: '1px solid #BBBBBB',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        gap: 2,
+        padding: 4,
       }}
     >
       {props.items.map((item, index) => (
-        <motion.div
-          key={item.id}
+        // Each item is a FlowSwitch with a single Option - gives the lens appearance
+        <div 
+          key={item.id} 
           ref={(el) => { itemRefs.current[index] = el }}
-          onClick={() => selectItem(index)}
-          initial={{ opacity: 0.4, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          whileTap={{ scale: 0.97 }}
-          viewport={{ root: containerRef, margin: '-10px 0px -10px 0px' }}
           style={{
-            scrollSnapAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 10px',
-            borderRadius: 6,
-            cursor: 'pointer',
-            backgroundColor: index === selectedIndex ? 'rgba(100, 100, 100, 0.15)' : 'transparent',
-            transition: 'background-color 0.1s ease',
+            // Highlight selected item with outline
+            outline: index === selectedIndex ? '2px solid rgba(100, 100, 100, 0.4)' : 'none',
+            borderRadius: 5,
           }}
         >
-          <span style={{ fontSize: '16px', width: 24, textAlign: 'center' }}>{item.emoji}</span>
-          <span style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '14px', color: '#333' }}>
-            {item.title}
-          </span>
-        </motion.div>
+          <FlowSwitch value={item.id} isLens disableAutoScroll>
+            <Option value={item.id} onClick={() => selectItem(index)}>
+              <motion.div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '14px' }}>{item.emoji}</span>
+                <span>{item.title}</span>
+              </motion.div>
+            </Option>
+            {/* FlowSwitch requires multiple children - hidden placeholder */}
+            <Option value="_hidden" onClick={() => {}}>
+              <motion.div style={{ display: 'none' }}></motion.div>
+            </Option>
+          </FlowSwitch>
+        </div>
       ))}
     </motion.div>
   )

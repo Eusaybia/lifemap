@@ -3,6 +3,7 @@ import { Node, NodeViewProps, wrappingInputRule } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, nodeInputRule } from "@tiptap/react";
 import { motion } from "framer-motion";
 import { parchment, purple } from "../Theme";
+import { NodeOverlay } from "../components/NodeOverlay"
 
 const REGEX_BLOCK_SLASH = /\/\/[^/]+\/\//
 
@@ -37,13 +38,15 @@ export const CommentExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <motion.div style={{
-            backgroundColor: parchment, borderRadius: 5, padding: `20px 20px 20px 20px`, color: "#343434"
-          }}>
-            <div style={{fontFamily: "EB Garamond", fontSize: 18}}>
-              <NodeViewContent />
-            </div>
-          </motion.div>
+          <NodeOverlay nodeProps={props} nodeType="comment">
+            <motion.div style={{
+              backgroundColor: parchment, borderRadius: 5, padding: `20px 20px 20px 20px`, color: "#343434"
+            }}>
+              <div style={{fontFamily: "EB Garamond", fontSize: 18}}>
+                <NodeViewContent />
+              </div>
+            </motion.div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

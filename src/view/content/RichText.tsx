@@ -76,13 +76,16 @@ import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
-import { SpanGroupConnectionManager } from './SpanGroupConnectionManager'
+// GroupConnectionManager handles connections between all Group types (block Groups and inline SpanGroups)
+import { GroupConnectionManager } from './SpanGroupConnectionManager'
+import { CanvasExtension } from '../structure/CanvasExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import TableRow from '@tiptap/extension-table-row'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
+import { SpotlightOverlay } from '../components/SpotlightOverlay'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
@@ -254,8 +257,17 @@ export const officialExtensions = (quantaId: string) => {return [
   TextStyle,
   Underline,
   UniqueID.configure({
-    // TODO: Add more nodes
-    types: ['paragraph', 'mention', 'group', 'scrollview', 'daily'],
+    // All block nodes that can participate in connections
+    types: [
+      'paragraph', 'mention', 'group', 'scrollview', 'daily',
+      // Structure nodes
+      'weekly', 'canvas', 'calendar', 'dayHeader', 'lunarMonth',
+      'temporalSpace', 'externalPortal', 'portal', 'lifetimeView',
+      'quantaFlow', 'lifemapCard', 'singleLifemapCard',
+      // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
+      'excalidraw', 'mapboxMap', 'warning', 'quote',
+      'conversation', 'math', 'calculation', 'keyValuePair', 'comment',
+    ],
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -319,6 +331,7 @@ export const customExtensions: Extensions = [
   ExternalPortalExtension,
   QuoteExtension,
   SpanGroupMark,
+  CanvasExtension,
   WarningExtension,
   LifemapCardExtension,
   SingleLifemapCardExtension,
@@ -1043,8 +1056,13 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           <div>
             <EditorContent editor={editor as Editor} />
           </div>
-          {/* SpanGroup connection manager - handles arrow connections between span groups */}
-          <SpanGroupConnectionManager />
+          {/* SpotlightOverlay - creates a dark overlay when focus mode is active
+              (nodes with ☀️ focus tag). Focused nodes are elevated above the overlay
+              via the Aura component's z-index, creating a spotlight effect. */}
+          <SpotlightOverlay />
+          {/* GroupConnectionManager - handles arrow connections between all Group types
+              (block-level Groups and inline SpanGroups). SpanGroups are an inline variant of Groups. */}
+          <GroupConnectionManager />
         </div>
       </div>
     )

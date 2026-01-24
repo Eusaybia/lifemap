@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // Date Helpers
@@ -376,7 +377,7 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
 const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
 
-const DailyNodeView: React.FC<NodeViewProps> = () => {
+const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
   
@@ -453,19 +454,26 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
       data-daily-node-view="true"
       style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
-      <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
-        {/* Navigation Arrows */}
-        <button
-          onClick={navigatePrevious}
-          disabled={activeIndex === 0}
-          style={{
-            position: 'absolute',
-            left: '0px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 10,
-            width: '36px',
-            height: '36px',
+      {/* NodeOverlay provides the grip, connection ID, and standard card styling */}
+      <NodeOverlay 
+        nodeProps={props} 
+        nodeType="daily"
+        gripTop={8}
+        gripRight={8}
+      >
+        <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
+          {/* Navigation Arrows */}
+          <button
+            onClick={navigatePrevious}
+            disabled={activeIndex === 0}
+            style={{
+              position: 'absolute',
+              left: '0px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: '36px',
+              height: '36px',
             borderRadius: '50%',
             backgroundColor: '#fff',
             border: '1px solid #e5e5e5',
@@ -628,6 +636,7 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
           </DayCard>
         </div>
       </div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }
@@ -651,6 +660,10 @@ export const DailyExtension = TipTapNode.create({
   inline: false,
   selectable: true,
   draggable: true,
+
+  // Note: No need to add quantaId attribute here - it's automatically added by
+  // TipTap's UniqueID extension. Make sure 'daily' is in the types array:
+  // RichText.tsx → UniqueID.configure({ types: [..., 'daily'] })
   
   parseHTML() {
     return [{ tag: 'div[data-type="daily"]' }]

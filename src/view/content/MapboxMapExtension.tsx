@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import mapboxgl from 'mapbox-gl'
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // Mapbox access token
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoidGhlYXVzc2llc3RldyIsImEiOiJjbGd1ZW1qaHowZmZsM3NudWdvYTY0c255In0.T7PzJ-D4ifBUDtbnRNbXFA'
@@ -14,18 +15,16 @@ interface MapMarker {
   label?: string
 }
 
-interface MapboxMapNodeViewProps extends NodeViewProps {
-  node: {
-    attrs: {
-      center: [number, number]
-      zoom: number
-      markers: MapMarker[]
-      style: string
-    }
-  }
+// Custom attrs for this node - accessed via node.attrs with type assertion
+interface MapboxMapAttrs {
+  center: [number, number]
+  zoom: number
+  markers: MapMarker[]
+  style: string
 }
 
-const MapboxMapNodeView = ({ node, updateAttributes, selected }: MapboxMapNodeViewProps) => {
+const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
+  const { node, updateAttributes, selected } = props
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -35,7 +34,9 @@ const MapboxMapNodeView = ({ node, updateAttributes, selected }: MapboxMapNodeVi
   const [showResults, setShowResults] = useState(false)
   const [mapLoaded, setMapLoaded] = useState(false)
 
-  const { center, zoom, markers, style } = node.attrs
+  // Cast attrs to our custom type for type-safe access
+  const attrs = node.attrs as unknown as MapboxMapAttrs
+  const { center, zoom, markers, style } = attrs
 
   // Load Mapbox CSS
   useEffect(() => {
@@ -223,15 +224,15 @@ const MapboxMapNodeView = ({ node, updateAttributes, selected }: MapboxMapNodeVi
 
   return (
     <NodeViewWrapper style={{ margin: '16px 0' }}>
-      <div
-        style={{
-          borderRadius: 8,
-          overflow: 'hidden',
-          boxShadow: `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`,
-          outline: selected ? '3px solid #6366f1' : 'none',
-          outlineOffset: 2,
-        }}
-      >
+      <NodeOverlay nodeProps={props} nodeType="mapboxMap">
+        <div
+          style={{
+            borderRadius: 8,
+            overflow: 'hidden',
+            outline: selected ? '3px solid #6366f1' : 'none',
+            outlineOffset: 2,
+          }}
+        >
         {/* Search Bar */}
         <div
           style={{
@@ -460,6 +461,7 @@ const MapboxMapNodeView = ({ node, updateAttributes, selected }: MapboxMapNodeVi
           to { transform: rotate(360deg); }
         }
       `}</style>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }

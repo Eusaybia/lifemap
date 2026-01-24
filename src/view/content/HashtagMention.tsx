@@ -1,7 +1,7 @@
 'use client'
 
 import './MentionList.scss'
-import { Extension, mergeAttributes } from '@tiptap/core'
+import { Extension, mergeAttributes, nodeInputRule } from '@tiptap/core'
 import { Node } from '@tiptap/core'
 import { ReactRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
@@ -60,6 +60,12 @@ const getColorForHashtag = (tag: string): string => {
 // ============================================================================
 
 const POPULAR_HASHTAGS: Hashtag[] = [
+  // Special Aura tags (trigger visual effects - see Aura.tsx)
+  // Shortcuts: !!! for important, \/ for complete, fff for focus
+  { id: 'tag:focus', label: '☀️ focus', color: '#ffb700' },
+  { id: 'tag:important', label: '⭐️ important', color: '#f59e0b' },
+  { id: 'tag:complete', label: '✅ complete', color: '#10b981' },
+  
   // Productivity
   { id: 'tag:todo', label: 'todo', color: '#ef4444' },
   { id: 'tag:done', label: 'done', color: '#10b981' },
@@ -69,7 +75,6 @@ const POPULAR_HASHTAGS: Hashtag[] = [
   
   // Priority
   { id: 'tag:urgent', label: 'urgent', color: '#ef4444' },
-  { id: 'tag:important', label: 'important', color: '#f59e0b' },
   { id: 'tag:later', label: 'later', color: '#6b7280' },
   
   // Categories
@@ -301,14 +306,67 @@ export const HashtagNode = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
+    // Add special glow classes for important, complete, and focus tags
+    // These work with the Aura component for visual effects
+    const label = (node.attrs.label as string) || ''
+    let extraClass = ''
+    if (label.includes('⭐️ important') || label === 'important') {
+      extraClass = ' glow'
+    } else if (label.includes('✅ complete') || label === 'complete') {
+      extraClass = ' green-glow'
+    } else if (label.includes('☀️ focus') || label === 'focus') {
+      extraClass = ' focus-glow'
+    }
+
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        class: 'hashtag-mention',
+        class: 'hashtag-mention' + extraClass,
         'data-type': 'hashtag',
         'data-id': node.attrs.id,
       }),
-      node.attrs.label || '',
+      label,
+    ]
+  },
+
+  // Quick input rules for common tags
+  // Type these shortcuts followed by a space or enter to insert the tag
+  addInputRules() {
+    return [
+      // !!! -> ⭐️ important (important tag with star emoji)
+      nodeInputRule({
+        find: /!!!$/,
+        type: this.type,
+        getAttributes: () => ({
+          id: 'tag:important',
+          label: '⭐️ important',
+          'data-tag': 'important',
+          'data-color': '#f59e0b',
+        }),
+      }),
+      // \\/ -> ✅ complete (complete tag with checkmark emoji)
+      // Note: User types backslash-slash: \/
+      nodeInputRule({
+        find: /\\\/$/,
+        type: this.type,
+        getAttributes: () => ({
+          id: 'tag:complete',
+          label: '✅ complete',
+          'data-tag': 'complete',
+          'data-color': '#10b981',
+        }),
+      }),
+      // fff -> ☀️ focus (focus tag with sun emoji - triggers Aura focus mode)
+      nodeInputRule({
+        find: /fff$/,
+        type: this.type,
+        getAttributes: () => ({
+          id: 'tag:focus',
+          label: '☀️ focus',
+          'data-tag': 'focus',
+          'data-color': '#ffb700',
+        }),
+      }),
     ]
   },
 })

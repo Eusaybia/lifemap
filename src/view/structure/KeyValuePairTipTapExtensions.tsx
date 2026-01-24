@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Node, mergeAttributes, NodeViewProps, wrappingInputRule } from '@tiptap/core';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { Tag } from "../content/Tag";
+import { NodeOverlay } from "../components/NodeOverlay"
 
 interface KeyValuePairAttributes {
   key: string;
@@ -72,12 +73,14 @@ export const KeyValuePairExtension = Node.create<KeyValuePairAttributes>({
 
       return (
         <NodeViewWrapper>
-          <Tag>
-            <input type="text" value={key} onChange={handleKeyChange} style={{ border: 'none', outline: 'none', backgroundColor: 'transparent', width: `${key.length + 1}ch` }} />
+          <NodeOverlay nodeProps={props} nodeType="keyValuePair">
             <Tag>
-              <input type="text" value={value} onChange={handleValueChange} style={{ border: 'none', outline: 'none', backgroundColor: 'transparent', width: `${value.length + 1}ch` }} />
+              <input type="text" value={key} onChange={handleKeyChange} style={{ border: 'none', outline: 'none', backgroundColor: 'transparent', width: `${key.length + 1}ch` }} />
+              <Tag>
+                <input type="text" value={value} onChange={handleValueChange} style={{ border: 'none', outline: 'none', backgroundColor: 'transparent', width: `${value.length + 1}ch` }} />
+              </Tag>
             </Tag>
-          </Tag>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

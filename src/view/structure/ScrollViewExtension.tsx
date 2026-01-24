@@ -9,6 +9,7 @@ import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
+import { NodeOverlay } from "../components/NodeOverlay";
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -271,26 +272,8 @@ export const ScrollViewExtension = TipTapNode.create({
         };
       }, [docAttributes.selectedFocusLens]);
 
-      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
-      const orangeGlow = `0 0 100px 40px hsla(30, 100%, 50%, 0.3)`;
-      const greenGlow = `0 0 100px 40px hsl(104, 64%, 45%, 0.4)`;
-      let containsUncheckedTodo = false;
-      let containsCheckItem = false;
-
-      props.node.descendants((childNode) => {
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
-          glowStyles.push(greenGlow);
-        }
-        if (childNode.type.name === 'taskItem') {
-          containsCheckItem = true;
-          if (!childNode.attrs.checked) {
-            containsUncheckedTodo = true;
-          }
-        }
-      });
-      if (glowStyles.length > 1) glowStyles.splice(0, 1);
-      if (containsUncheckedTodo) glowStyles.push(orangeGlow);
-      else if (containsCheckItem) glowStyles.push(greenGlow);
+      // Note: Glow effects (orange for unchecked todos, green for completed tasks)
+      // are now handled by the Aura component which wraps all NodeOverlay children.
 
       // Determine if the scrollview should be hidden (display: none)
       const isHidden = shouldHideScrollView(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
@@ -304,49 +287,49 @@ export const ScrollViewExtension = TipTapNode.create({
           data-scrollview-node-view="true"
           style={{ scrollSnapAlign: 'start' }}
         >
-          <motion.div
-            style={{
-              borderRadius: 10,
-              position: 'relative',
-              display: isHidden ? 'none' : 'block',
-            }}
-            animate={{
-              boxShadow: glowStyles.join(','),
-            }}
-            transition={{ duration: 0.5, ease: "circOut" }}
-          >
-            <ScrollView
-              lens={props.node.attrs.lens}
-              quantaId={props.node.attrs.quantaId}
-              backgroundColor={props.node.attrs.backgroundColor}
-            >
-              {(() => {
-                switch (props.node.attrs.lens) {
-                  case "identity":
-                    return <NodeViewContent />;
-                  case "hideUnimportantNodes":
-                    return <div>Important Nodes Only (Pending)</div>;
-                  default:
-                    return <NodeViewContent />;
-                }
-              })()}
-            </ScrollView>
-            <motion.div
+          <NodeOverlay nodeProps={props} nodeType="scrollview">
+            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
+            <div
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
                 borderRadius: 10,
-                pointerEvents: 'none',
+                position: 'relative',
+                display: isHidden ? 'none' : 'block',
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </motion.div>
+            >
+              <ScrollView
+                lens={props.node.attrs.lens}
+                quantaId={props.node.attrs.quantaId}
+                backgroundColor={props.node.attrs.backgroundColor}
+              >
+                {(() => {
+                  switch (props.node.attrs.lens) {
+                    case "identity":
+                      return <NodeViewContent />;
+                    case "hideUnimportantNodes":
+                      return <div>Important Nodes Only (Pending)</div>;
+                    default:
+                      return <NodeViewContent />;
+                  }
+                })()}
+              </ScrollView>
+              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 10,
+                  pointerEvents: 'none',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

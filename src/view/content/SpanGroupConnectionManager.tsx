@@ -3,48 +3,145 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
 
-// Connection between two span groups
-interface SpanGroupConnection {
+// ============================================================================
+// GROUP CONNECTION MANAGER
+// ============================================================================
+// This manager handles connections/arrows between Group elements in the editor.
+// 
+// GROUP ARCHITECTURE:
+// Groups are a fundamental organizational unit with two variants:
+//
+// 1. BLOCK GROUP (GroupTipTapExtension.tsx)
+//    - A TipTap Node wrapping block content (cards, sections)
+//    - Identified by: [data-group-node-view="true"][data-group-id="<uuid>"]
+//    - Has a DragGrip component positioned on the right side
+//
+// 2. INLINE SPAN GROUP (SpanGroupMark.ts)  
+//    - A TipTap Mark wrapping inline text
+//    - Identified by: .span-group[data-span-group-id="<uuid>"]
+//    - Has a CSS pseudo-element grip (::after) on the right side
+//
+// Both types share:
+// - A 6-dot grip pattern for visual identification
+// - Unique IDs for connection targeting
+// - Participation in the connection system (this file)
+//
+// Connections are stored in localStorage and persist across sessions.
+// ============================================================================
+
+// Connection between two connectable elements
+// sourceType and targetType track which variant the endpoint is:
+// - 'block': Block-level Group (GroupTipTapExtension)
+// - 'span': Inline SpanGroup (SpanGroupMark)
+// - 'node': Generic node with NodeOverlay wrapper
+type ConnectableType = 'block' | 'span' | 'node'
+
+interface GroupConnection {
   id: string
   sourceId: string
   targetId: string
+  sourceType: ConnectableType
+  targetType: ConnectableType
 }
 
 // Local storage key for persisting connections
+// Note: Key name kept for backwards compatibility with existing data
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 
 // Helper to generate a short unique ID for connections
 const generateConnectionId = () => Math.random().toString(36).substring(2, 10)
 
 // Load connections from localStorage
-const loadConnections = (): SpanGroupConnection[] => {
+const loadConnections = (): GroupConnection[] => {
   if (typeof window === 'undefined') return []
   try {
     const stored = localStorage.getItem(CONNECTIONS_STORAGE_KEY)
-    return stored ? JSON.parse(stored) : []
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    // Migration: add type fields to legacy connections that don't have them
+    return parsed.map((conn: any) => ({
+      ...conn,
+      sourceType: conn.sourceType || 'span',
+      targetType: conn.targetType || 'span',
+    }))
   } catch {
     return []
   }
 }
 
 // Save connections to localStorage
-const saveConnections = (connections: SpanGroupConnection[]) => {
+const saveConnections = (connections: GroupConnection[]) => {
   if (typeof window === 'undefined') return
   localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connections))
 }
 
+// Helper to find a connectable element and determine its type
+// Searches for three types of connectable elements:
+// 1. Inline SpanGroup (most specific - a Mark within text)
+// 2. Block Group (GroupTipTapExtension - a card-like container)
+// 3. Generic Node with NodeOverlay wrapper (any node that uses NodeOverlay)
+// Returns { element, id, type } or null if not found
+const findGroupElement = (target: HTMLElement): { element: HTMLElement, id: string, type: ConnectableType } | null => {
+  // Check for inline span group first (most specific)
+  const spanGroup = target.closest('.span-group') as HTMLElement
+  if (spanGroup) {
+    const id = spanGroup.getAttribute('data-span-group-id')
+    if (id) {
+      return { element: spanGroup, id, type: 'span' }
+    }
+  }
+  
+  // Check for block group (GroupTipTapExtension)
+  const blockGroup = target.closest('[data-group-node-view="true"]') as HTMLElement
+  if (blockGroup) {
+    const id = blockGroup.getAttribute('data-group-id')
+    if (id) {
+      return { element: blockGroup, id, type: 'block' }
+    }
+  }
+  
+  // Check for generic node with NodeOverlay wrapper
+  // Uses quantaId from TipTap's UniqueID extension
+  const nodeOverlay = target.closest('[data-node-overlay="true"]') as HTMLElement
+  if (nodeOverlay) {
+    const id = nodeOverlay.getAttribute('data-quanta-id')
+    if (id) {
+      return { element: nodeOverlay, id, type: 'node' }
+    }
+  }
+  
+  return null
+}
+
+// Helper to get a connectable element by ID and type
+const getGroupElement = (id: string, type: ConnectableType): HTMLElement | null => {
+  if (type === 'span') {
+    return document.querySelector(`[data-span-group-id="${id}"]`) as HTMLElement
+  } else if (type === 'block') {
+    return document.querySelector(`[data-group-id="${id}"]`) as HTMLElement
+  } else {
+    // Generic node with NodeOverlay - uses quantaId from TipTap's UniqueID extension
+    return document.querySelector(`[data-quanta-id="${id}"]`) as HTMLElement
+  }
+}
+
 /**
- * SpanGroupConnectionManager
+ * GroupConnectionManager (formerly SpanGroupConnectionManager)
  * 
- * Manages connections between span groups when in Connection mode.
- * - Listens for clicks on span groups
- * - Draws SVG arrows between connected span groups
+ * Manages connections between Group elements when in Connection mode.
+ * Supports both block-level Groups and inline SpanGroups.
+ * - Listens for clicks on any Group element (block or span)
+ * - Draws SVG arrows between connected groups
  * - Stores connections in localStorage
  */
-export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObject<HTMLElement> }> = ({ containerRef }) => {
+export const GroupConnectionManager: React.FC<{ containerRef?: React.RefObject<HTMLElement> }> = ({ containerRef }) => {
   const [editorMode, setEditorMode] = useState<'editing' | 'connection'>('editing')
-  const [connections, setConnections] = useState<SpanGroupConnection[]>([])
-  const [pendingSource, setPendingSource] = useState<string | null>(null)
+  const [connections, setConnections] = useState<GroupConnection[]>([])
+  // Pending source now tracks both id and type
+  // pendingSource tracks the source element for a new connection (supports all connectable types)
+  const [pendingSource, setPendingSource] = useState<{ id: string, type: ConnectableType } | null>(null)
+  // Track mouse position for cursor-following arrow
+  const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
   const [, forceUpdate] = useState({})
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -86,55 +183,56 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
     }
   }, [])
 
-  // Handle span group clicks in Connection mode
-  const handleSpanGroupClick = useCallback((event: MouseEvent) => {
+  // Handle group clicks in Connection mode (both block and span groups)
+  const handleGroupClick = useCallback((event: MouseEvent) => {
     if (editorMode !== 'connection') return
     
     const target = event.target as HTMLElement
-    const spanGroup = target.closest('.span-group') as HTMLElement
+    const groupInfo = findGroupElement(target)
     
-    if (!spanGroup) return
+    if (!groupInfo) return
     
-    const groupId = spanGroup.getAttribute('data-span-group-id')
-    if (!groupId) return
+    const { element, id: groupId, type: groupType } = groupInfo
     
     event.preventDefault()
     event.stopPropagation()
     
-    console.log('[SpanGroupConnectionManager] Clicked span group:', groupId)
+    console.log(`[GroupConnectionManager] Clicked ${groupType} group:`, groupId)
     
     if (!pendingSource) {
       // First click - set as source
-      setPendingSource(groupId)
-      spanGroup.style.outline = '2px solid #007AFF'
-      spanGroup.style.outlineOffset = '2px'
-      console.log('[SpanGroupConnectionManager] Source selected:', groupId)
+      setPendingSource({ id: groupId, type: groupType })
+      element.style.outline = '2px solid #007AFF'
+      element.style.outlineOffset = '2px'
+      console.log(`[GroupConnectionManager] Source selected (${groupType}):`, groupId)
     } else {
       // Second click - create connection
-      if (pendingSource === groupId) {
+      if (pendingSource.id === groupId) {
         // Clicked same element - deselect
         setPendingSource(null)
-        spanGroup.style.outline = ''
-        spanGroup.style.outlineOffset = ''
-        console.log('[SpanGroupConnectionManager] Deselected source')
+        element.style.outline = ''
+        element.style.outlineOffset = ''
+        console.log('[GroupConnectionManager] Deselected source')
         return
       }
       
-      // Create the connection
-      const newConnection: SpanGroupConnection = {
+      // Create the connection (can be between any combination of block/span groups)
+      const newConnection: GroupConnection = {
         id: generateConnectionId(),
-        sourceId: pendingSource,
-        targetId: groupId
+        sourceId: pendingSource.id,
+        targetId: groupId,
+        sourceType: pendingSource.type,
+        targetType: groupType
       }
       
       const updatedConnections = [...connections, newConnection]
       setConnections(updatedConnections)
       saveConnections(updatedConnections)
       
-      console.log('[SpanGroupConnectionManager] Created connection:', newConnection)
+      console.log('[GroupConnectionManager] Created connection:', newConnection)
       
       // Clear source highlight
-      const sourceElement = document.querySelector(`[data-span-group-id="${pendingSource}"]`) as HTMLElement
+      const sourceElement = getGroupElement(pendingSource.id, pendingSource.type)
       if (sourceElement) {
         sourceElement.style.outline = ''
         sourceElement.style.outlineOffset = ''
@@ -147,14 +245,14 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
   // Add/remove click listener based on mode
   useEffect(() => {
     if (editorMode === 'connection') {
-      document.addEventListener('click', handleSpanGroupClick, true)
-      console.log('[SpanGroupConnectionManager] Connection mode active - listening for span group clicks')
+      document.addEventListener('click', handleGroupClick, true)
+      console.log('[GroupConnectionManager] Connection mode active - listening for group clicks (block and span)')
     } else {
-      document.removeEventListener('click', handleSpanGroupClick, true)
+      document.removeEventListener('click', handleGroupClick, true)
       
       // Clear any pending source highlight
       if (pendingSource) {
-        const sourceElement = document.querySelector(`[data-span-group-id="${pendingSource}"]`) as HTMLElement
+        const sourceElement = getGroupElement(pendingSource.id, pendingSource.type)
         if (sourceElement) {
           sourceElement.style.outline = ''
           sourceElement.style.outlineOffset = ''
@@ -163,9 +261,23 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
     }
     
     return () => {
-      document.removeEventListener('click', handleSpanGroupClick, true)
+      document.removeEventListener('click', handleGroupClick, true)
     }
-  }, [editorMode, handleSpanGroupClick, pendingSource])
+  }, [editorMode, handleGroupClick, pendingSource])
+
+  // Track mouse position when in connection mode (for cursor-following arrow)
+  useEffect(() => {
+    if (editorMode !== 'connection') return
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY })
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [editorMode])
 
   // Force re-render on scroll/resize to update arrow positions
   useEffect(() => {
@@ -180,42 +292,86 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
     }
   }, [])
 
-  // Calculate arrow path between two elements - connecting grip to grip
-  // The grip is an ::after pseudo-element on the right side of each span group
-  // Grip dimensions: 8px wide, 12px tall, with 4px margin-left
-  const getArrowPath = (sourceId: string, targetId: string): string | null => {
-    const sourceEl = document.querySelector(`[data-span-group-id="${sourceId}"]`)
-    const targetEl = document.querySelector(`[data-span-group-id="${targetId}"]`)
+  // Calculate grip position based on connectable element type
+  // All types have grips on the right side, but at different vertical positions
+  const getGripPosition = (rect: DOMRect, type: ConnectableType) => {
+    if (type === 'span') {
+      // Span group: grip is centered vertically, 6px from right edge
+      return {
+        x: rect.right - 6,
+        y: rect.top + rect.height / 2
+      }
+    } else if (type === 'block') {
+      // Block group: DragGrip is at top-right (top: 10px, right: 6px, grip is ~20px tall)
+      // Connect to center of the grip
+      return {
+        x: rect.right - 6 - 8, // 6px right offset + half grip width
+        y: rect.top + 10 + 18  // 10px top offset + ~half grip height
+      }
+    } else {
+      // Generic node (NodeOverlay): grip is at top-right (default: top: 10px, right: 6px)
+      // Position is similar to block group
+      return {
+        x: rect.right - 6 - 8,
+        y: rect.top + 10 + 18
+      }
+    }
+  }
+
+  // Calculate arrow path between two group elements - connecting grip to grip
+  // Handles both block groups (DragGrip component) and span groups (CSS ::after pseudo-element)
+  //
+  // Grip positions:
+  // - Span groups: grip is CSS ::after on right side, 8px wide, 12px tall, 4px margin-left
+  // - Block groups: DragGrip is positioned absolute top-right (top: 10px, right: 6px)
+  const getArrowPath = (conn: GroupConnection): string | null => {
+    const sourceEl = getGroupElement(conn.sourceId, conn.sourceType)
+    const targetEl = getGroupElement(conn.targetId, conn.targetType)
     
     if (!sourceEl || !targetEl) return null
     
     const sourceRect = sourceEl.getBoundingClientRect()
     const targetRect = targetEl.getBoundingClientRect()
     
-    // Grip is approximately 6px from the right edge of the element (8px wide grip, centered at 4px)
-    // The grip is vertically centered in the element
-    const gripOffsetFromRight = 6
-    
-    // Source grip position (right side of source element)
-    const sourceX = sourceRect.right - gripOffsetFromRight
-    const sourceY = sourceRect.top + sourceRect.height / 2
-    
-    // Target grip position (right side of target element)
-    const targetX = targetRect.right - gripOffsetFromRight
-    const targetY = targetRect.top + targetRect.height / 2
+    const sourcePos = getGripPosition(sourceRect, conn.sourceType)
+    const targetPos = getGripPosition(targetRect, conn.targetType)
     
     // Calculate control points for a smooth curve
     // Since both grips are on the right side, we need to curve outward to the right
-    const dy = Math.abs(targetY - sourceY)
+    const dy = Math.abs(targetPos.y - sourcePos.y)
     const curveOffset = Math.max(50, dy * 0.5) // Curve outward to the right
     
-    return `M ${sourceX} ${sourceY} C ${sourceX + curveOffset} ${sourceY}, ${targetX + curveOffset} ${targetY}, ${targetX} ${targetY}`
+    return `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + curveOffset} ${sourcePos.y}, ${targetPos.x + curveOffset} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`
+  }
+
+  // Calculate preview arrow path from source grip to mouse cursor
+  const getPreviewArrowPath = (): string | null => {
+    if (!pendingSource) return null
+    
+    const sourceEl = getGroupElement(pendingSource.id, pendingSource.type)
+    if (!sourceEl) return null
+    
+    const sourceRect = sourceEl.getBoundingClientRect()
+    const sourcePos = getGripPosition(sourceRect, pendingSource.type)
+    
+    // Calculate control points for smooth curve to cursor
+    const dy = Math.abs(mousePos.y - sourcePos.y)
+    const dx = mousePos.x - sourcePos.x
+    // Curve outward based on direction
+    const curveOffset = Math.max(30, Math.min(dy * 0.4, 100))
+    
+    // If cursor is to the right, curve right; if left, curve based on distance
+    const curveX = dx > 0 ? curveOffset : -curveOffset / 2
+    
+    return `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + curveX} ${sourcePos.y}, ${mousePos.x + curveX} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`
   }
 
   // Only render SVG overlay in connection mode or when there are connections
   if (editorMode !== 'connection' && connections.length === 0) {
     return null
   }
+
+  const previewPath = getPreviewArrowPath()
 
   return (
     <>
@@ -236,9 +392,56 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
         }}>
           {pendingSource 
-            ? `Click another span group to connect (or click same to deselect)` 
-            : `Click a span group to start a connection`
+            ? `Click another group to connect (or click same to deselect)` 
+            : `Click a group to start a connection`
           }
+        </div>
+      )}
+
+      {/* Cursor-following arrow indicator when in connection mode */}
+      {editorMode === 'connection' && (
+        <div
+          style={{
+            position: 'fixed',
+            left: mousePos.x + 15,
+            top: mousePos.y + 15,
+            pointerEvents: 'none',
+            zIndex: 10001,
+            transition: 'opacity 0.1s ease',
+          }}
+        >
+          {/* Arrow icon SVG */}
+          <svg 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none"
+            style={{
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+              transform: pendingSource ? 'rotate(-45deg)' : 'rotate(45deg)',
+              transition: 'transform 0.2s ease',
+            }}
+          >
+            {/* Arrow pointing right-down */}
+            <path 
+              d="M5 12h14M13 5l6 7-6 7" 
+              stroke={pendingSource ? '#007AFF' : '#666'} 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </svg>
+          {/* Small label */}
+          <div style={{
+            fontSize: 10,
+            color: pendingSource ? '#007AFF' : '#666',
+            fontWeight: 600,
+            marginTop: 2,
+            whiteSpace: 'nowrap',
+          }}>
+            {pendingSource ? 'to target' : 'select source'}
+          </div>
         </div>
       )}
       
@@ -266,10 +469,34 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
           >
             <polygon points="0 0, 10 3.5, 0 7" fill="#000000" />
           </marker>
+          <marker
+            id="arrowhead-preview"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#007AFF" />
+          </marker>
         </defs>
         
+        {/* Preview arrow from source to cursor when source is selected */}
+        {pendingSource && previewPath && (
+          <path
+            d={previewPath}
+            stroke="#007AFF"
+            strokeWidth={2}
+            strokeDasharray="8 4"
+            fill="none"
+            markerEnd="url(#arrowhead-preview)"
+            style={{ opacity: 0.8 }}
+          />
+        )}
+
+        {/* Existing connections */}
         {connections.map(conn => {
-          const path = getArrowPath(conn.sourceId, conn.targetId)
+          const path = getArrowPath(conn)
           if (!path) return null
           
           return (
@@ -288,7 +515,7 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
                   const updatedConnections = connections.filter(c => c.id !== conn.id)
                   setConnections(updatedConnections)
                   saveConnections(updatedConnections)
-                  console.log('[SpanGroupConnectionManager] Removed connection:', conn.id)
+                  console.log('[GroupConnectionManager] Removed connection:', conn.id)
                 }
               }}
             />
@@ -299,4 +526,8 @@ export const SpanGroupConnectionManager: React.FC<{ containerRef?: React.RefObje
   )
 }
 
-export default SpanGroupConnectionManager
+// Backward-compatible alias - SpanGroupConnectionManager is now GroupConnectionManager
+// SpanGroups are a type of Group (the inline variant), so the manager handles all Group types
+export const SpanGroupConnectionManager = GroupConnectionManager
+
+export default GroupConnectionManager

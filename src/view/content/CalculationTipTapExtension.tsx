@@ -5,6 +5,7 @@ import { MathfieldElement, MathfieldOptions } from "mathlive";
 import { Math } from "../content/Math"
 import { BoxedExpression, ComputeEngine } from '@cortex-js/compute-engine';
 import { Calculation } from "./Calculation";
+import { NodeOverlay } from "../components/NodeOverlay"
 
 const REGEX_BLOCK_MATH_DOLLARS: RegExp = /\$\$.*\$\$/;
 
@@ -78,21 +79,23 @@ export const CalculationExtension = Node.create({
 
       return (
         <NodeViewWrapper>
-          <Calculation
-            inputMaths={{
-              style: "cards",
-              equationString: props.node.attrs.equationValue1,
-              lensDisplay: props.node.attrs.lensDisplay1,
-              lensEvaluation: props.node.attrs.lensEvaluation1,
-              updateContent: updateContent1
-            }} 
-            outputMath={{
-              style: "cards",
-              equationString: "",
-              lensDisplay: "natural",
-              lensEvaluation: "evaluate",
-              updateContent: updateContent2
-            }} />
+          <NodeOverlay nodeProps={props} nodeType="calculation">
+            <Calculation
+              inputMaths={{
+                style: "cards",
+                equationString: props.node.attrs.equationValue1,
+                lensDisplay: props.node.attrs.lensDisplay1,
+                lensEvaluation: props.node.attrs.lensEvaluation1,
+                updateContent: updateContent1
+              }} 
+              outputMath={{
+                style: "cards",
+                equationString: "",
+                lensDisplay: "natural",
+                lensEvaluation: "evaluate",
+                updateContent: updateContent2
+              }} />
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

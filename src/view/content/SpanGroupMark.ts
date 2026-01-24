@@ -1,6 +1,25 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
 
-// Generate a short 6-character ID
+// ============================================================================
+// SPAN GROUP MARK - Inline Group Variant
+// ============================================================================
+// SpanGroups are the inline variant of Groups in the editor architecture.
+// 
+// GROUP TYPES:
+// 1. Block Group (GroupTipTapExtension.tsx) - wraps block-level content as cards
+// 2. Span Group (this file) - wraps inline text with highlighting
+//
+// Both types share:
+// - A 6-dot grip pattern (CSS ::after for spans, DragGrip component for blocks)
+// - Unique IDs for connection targeting (data-span-group-id / data-group-id)
+// - Participation in GroupConnectionManager for drawing arrows between groups
+//
+// SpanGroups are conceptually a "lightweight" or "inline" Group - they allow
+// users to mark up specific text segments that can be connected to other
+// groups (block or inline) via the connection system.
+// ============================================================================
+
+// Generate a short 6-character ID (same format as block Group IDs)
 const generateShortId = () => Math.random().toString(36).substring(2, 8);
 
 declare module '@tiptap/core' {

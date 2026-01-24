@@ -19,6 +19,9 @@ export const CustomMention = Mention.extend({
       classes = 'glow mention'
     } else if ((node.attrs.label as string).includes('✅ complete')) {
       classes = 'green-glow mention'
+    } else if ((node.attrs.label as string).includes('☀️ focus')) {
+      // Focus tag - triggers the Aura focus mode to highlight this node and dim others
+      classes = 'focus-glow mention'
     }
 
     return [
@@ -39,6 +42,8 @@ export const CustomMention = Mention.extend({
     return [
       nodeInputRule({ find: /!!!$/, type: this.type, getAttributes: () => ({ label: '⭐️ important' }) }),
       nodeInputRule({ find: /\\\/.*$/, type: this.type, getAttributes: () => ({ label: '️✅ complete' }) }),
+      // Focus tag - type "fff" to insert focus tag (triggers Aura focus mode)
+      nodeInputRule({ find: /fff$/, type: this.type, getAttributes: () => ({ label: '☀️ focus' }) }),
     ]
   },
   // TODO: Problem with this is the following: when enabled, the tags go block

@@ -510,11 +510,30 @@ body.call-mode-dimmed::before {
 }
 
 /* =====================
-   SPAN GROUP MARK
+   SPAN GROUP MARK (Inline Group Variant)
    ===================== */
-/* Contiguous inline highlight that flows with text.
-   Note: Each span group has a unique ID stored in the data-span-group-id attribute
-   which can be used for creating connections/arrows between span groups. */
+/* 
+   GROUP ARCHITECTURE:
+   Groups are a fundamental organizational unit in the editor with two variants:
+   
+   1. BLOCK GROUP (GroupTipTapExtension.tsx)
+      - A TipTap Node wrapping block content (cards, sections)
+      - Identified by: [data-group-node-view="true"][data-group-id="<uuid>"]
+      - Has a DragGrip React component positioned on the right side
+   
+   2. INLINE SPAN GROUP (SpanGroupMark.ts) - styled below
+      - A TipTap Mark wrapping inline text
+      - Identified by: .span-group[data-span-group-id="<uuid>"]
+      - Has a CSS pseudo-element grip (::after) on the right side
+   
+   Both variants share:
+   - A 6-dot grip pattern for visual identification and drag affordance
+   - Unique IDs for targeting by the connection system
+   - Participation in GroupConnectionManager for drawing arrows between groups
+   
+   SpanGroups are conceptually a type of Group - they're the inline variant
+   that flows with text, while block Groups are card-like containers.
+*/
 .span-group {
   background-color: #ffffff;
   border: 1px solid #BBBBBB;

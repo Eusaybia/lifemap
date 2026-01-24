@@ -38,6 +38,9 @@ export interface DocumentAttributes {
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
   // Editor mode: 'editing' for normal text editing, 'connection' for drawing arrows between span groups
   editorMode: 'editing' | 'connection';
+  // Focus mode: Array of quantaIds that have the "☀️ focus" tag
+  // When non-empty, all nodes NOT in this array get dimmed (Aura component handles this)
+  focusedNodeIds: string[];
 }
 
 // Define default attributes
@@ -47,6 +50,7 @@ export const defaultDocumentAttributes: DocumentAttributes = {
   irrelevantEventNodesDisplayLens: 'dim' as const,
   unimportantNodesDisplayLens: 'hide' as const,
   editorMode: 'editing' as const,
+  focusedNodeIds: [],
 };
 
 // Key for localStorage

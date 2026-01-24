@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // Week Helpers (ISO Week Format)
@@ -324,7 +325,7 @@ const WeekCard: React.FC<WeekCardProps> = ({ label, dateRange, isThisWeek, slug,
 const TOTAL_CARDS = 4 // Template, Last Week, This Week, Next Week
 const THIS_WEEK_INDEX = 2 // This Week is at index 2
 
-const WeeklyNodeView: React.FC<NodeViewProps> = () => {
+const WeeklyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(THIS_WEEK_INDEX)
   
@@ -396,7 +397,8 @@ const WeeklyNodeView: React.FC<NodeViewProps> = () => {
       data-weekly-node-view="true"
       style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
-      <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
+      <NodeOverlay nodeProps={props} nodeType="weekly">
+        <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
         {/* Navigation Arrows */}
         <button
           onClick={navigatePrevious}
@@ -540,6 +542,7 @@ const WeeklyNodeView: React.FC<NodeViewProps> = () => {
           </WeekCard>
         </div>
       </div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }

@@ -57,9 +57,9 @@ export const Group = (props: {
                 maxHeight: (isPreview || isPrivate) ? 100 : undefined,
                 overflow: (isPreview || isPrivate) ? "hidden" : "visible",
                 borderRadius: `10px`,
-                boxShadow: `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`,
+                // Note: boxShadow removed - now provided by NodeOverlay wrapper
                 padding: isCollapsed ? '10px 20px' : '20px',
-                margin: `8px 0px 8px 0px`,
+                // Note: margin removed - now provided by NodeOverlay wrapper
             }}
         >
             {/* Grip is now handled by the parent NodeView (GroupTipTapExtension) */}
@@ -90,46 +90,7 @@ export const Group = (props: {
                     }}
                 />
             )}
-            {/* Private lens overlay - truncated like preview with black background */}
-            {isPrivate && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: '#000000',
-                            borderRadius: 10,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 20,
-                            userSelect: 'none',
-                            pointerEvents: 'none',
-                        }}
-                    >
-                        <span style={{ color: '#666', fontSize: 14 }}>Private</span>
-                    </motion.div>
-                    {/* Private lens fade gradient at bottom */}
-                    <div
-                        style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: 40,
-                            background: 'linear-gradient(to bottom, transparent, #000000)',
-                            borderRadius: '0 0 10px 10px',
-                            pointerEvents: 'none',
-                            zIndex: 21,
-                        }}
-                    />
-                </>
-            )}
+            {/* Private lens overlay is now handled by NodeOverlay for full coverage */}
             {/* Overlay is now handled in the NodeView */}
         </motion.div>
     )

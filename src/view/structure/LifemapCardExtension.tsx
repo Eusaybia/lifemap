@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Node, NodeViewProps, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { NodeOverlay } from "../components/NodeOverlay";
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
@@ -341,7 +342,8 @@ const AddCardSkeleton = ({ onClick }: { onClick: () => void }) => (
 );
 
 // Main Card Row Component
-const LifemapCardRowNodeView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+const LifemapCardRowNodeView = (props: NodeViewProps) => {
+  const { node, updateAttributes, selected } = props;
   const { rowId, cards: cardsJson } = node.attrs;
   
   // Parse cards from JSON string
@@ -392,64 +394,67 @@ const LifemapCardRowNodeView = ({ node, updateAttributes, selected }: NodeViewPr
 
   return (
     <NodeViewWrapper style={{ outline: 'none' }}>
-      <Box
-        sx={{
-          position: 'relative',
-          outline: 'none',
-          borderRadius: 2,
-          // Selection overlay effect
-          '&::after': selected ? {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-            borderRadius: 2,
-            pointerEvents: 'none',
-            zIndex: 1,
-          } : {},
-        }}
-      >
-        {/* Inner scrollable container with padding for shadows */}
+      <NodeOverlay nodeProps={props} nodeType="lifemapCard">
         <Box
           sx={{
-            display: 'flex',
-            gap: 2,
-            overflowX: 'auto',
-            py: 4, // Vertical padding for shadows
-            px: 3, // Horizontal padding for shadows
-            mx: -3, // Negative margin to counteract padding for full-width scroll
-            // Hide scrollbar but keep scroll functionality
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none', // IE/Edge
-            '&::-webkit-scrollbar': {
-              display: 'none', // Chrome/Safari/Opera
-            },
+            position: 'relative',
+            outline: 'none',
+            borderRadius: 2,
+            // Selection overlay effect
+            '&::after': selected ? {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              borderRadius: 2,
+              pointerEvents: 'none',
+              zIndex: 1,
+            } : {},
           }}
         >
-          {/* Render existing cards */}
-          {cards.map((card) => (
-            <SingleCard
-              key={card.id}
-              card={card}
-              onUpdate={(updates) => updateCard(card.id, updates)}
-              onDelete={() => deleteCard(card.id)}
-              showDelete={cards.length > 1}
-            />
-          ))}
-          
-          {/* Add card skeleton */}
-          <AddCardSkeleton onClick={addCard} />
+          {/* Inner scrollable container with padding for shadows */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              overflowX: 'auto',
+              py: 4, // Vertical padding for shadows
+              px: 3, // Horizontal padding for shadows
+              mx: -3, // Negative margin to counteract padding for full-width scroll
+              // Hide scrollbar but keep scroll functionality
+              scrollbarWidth: 'none', // Firefox
+              msOverflowStyle: 'none', // IE/Edge
+              '&::-webkit-scrollbar': {
+                display: 'none', // Chrome/Safari/Opera
+              },
+            }}
+          >
+            {/* Render existing cards */}
+            {cards.map((card) => (
+              <SingleCard
+                key={card.id}
+                card={card}
+                onUpdate={(updates) => updateCard(card.id, updates)}
+                onDelete={() => deleteCard(card.id)}
+                showDelete={cards.length > 1}
+              />
+            ))}
+            
+            {/* Add card skeleton */}
+            <AddCardSkeleton onClick={addCard} />
+          </Box>
         </Box>
-      </Box>
+      </NodeOverlay>
     </NodeViewWrapper>
   );
 };
 
 // Single Standalone Card Node View
-const SingleLifemapCardNodeView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+const SingleLifemapCardNodeView = (props: NodeViewProps) => {
+  const { node, updateAttributes, selected } = props;
   const { cardId, title, description, imageUrl } = node.attrs;
   
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -524,7 +529,8 @@ const SingleLifemapCardNodeView = ({ node, updateAttributes, selected }: NodeVie
 
   return (
     <NodeViewWrapper style={{ outline: 'none', display: 'inline-block', verticalAlign: 'top' }}>
-      <Card sx={{ 
+      <NodeOverlay nodeProps={props} nodeType="singleLifemapCard">
+        <Card sx={{ 
         width: 280, 
         minWidth: 280, 
         position: 'relative',
@@ -676,6 +682,7 @@ const SingleLifemapCardNodeView = ({ node, updateAttributes, selected }: NodeVie
           )}
         </CardContent>
       </Card>
+      </NodeOverlay>
     </NodeViewWrapper>
   );
 };
