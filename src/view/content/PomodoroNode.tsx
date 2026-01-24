@@ -155,6 +155,151 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
     
     return `${formatTime(start)} - ${formatTime(end)}`
   }
+
+  // State for editing time values - using ref for input value to avoid re-renders
+  const [editingField, setEditingField] = useState<'start' | 'end' | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const editValueRef = useRef<string>('')
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingField && inputRef.current) {
+      inputRef.current.value = editValueRef.current
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editingField])
+
+  const handleTimeClick = useCallback((field: 'start' | 'end', time: Date | null) => {
+    if (!time) return
+    editValueRef.current = formatTime(time)
+    setEditingField(field)
+  }, [])
+
+  const handleTimeSubmit = useCallback(() => {
+    const editValue = inputRef.current?.value || ''
+    const currentEditingField = editingField
+    
+    if (!editValue || !currentEditingField) {
+      setEditingField(null)
+      return
+    }
+
+    // Parse the time input (HH:MM or HHMM format)
+    const timeMatch = editValue.match(/^(\d{1,2}):?(\d{2})$/)
+    if (!timeMatch) {
+      setEditingField(null)
+      return
+    }
+
+    const hours = parseInt(timeMatch[1])
+    const minutes = parseInt(timeMatch[2])
+    
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      setEditingField(null)
+      return
+    }
+
+    const start = startTime ? new Date(startTime) : new Date()
+    const end = isFreeform && endTime ? new Date(endTime) : getEndTime()
+
+    if (currentEditingField === 'start') {
+      // Update start time, keeping the same date but changing hours/minutes
+      const newStart = new Date(start)
+      newStart.setHours(hours, minutes, 0, 0)
+      
+      updateAttributes({
+        startTime: newStart.toISOString(),
+      })
+    } else if (currentEditingField === 'end') {
+      // Update end time
+      if (isFreeform) {
+        // For freeform, just update endTime directly
+        const newEnd = new Date(end || new Date())
+        newEnd.setHours(hours, minutes, 0, 0)
+        updateAttributes({
+          endTime: newEnd.toISOString(),
+        })
+      } else {
+        // For regular pomodoros, calculate new duration based on new end time
+        const newEnd = new Date(start)
+        newEnd.setHours(hours, minutes, 0, 0)
+        
+        // If new end is before start, assume it's the next day
+        if (newEnd <= start) {
+          newEnd.setDate(newEnd.getDate() + 1)
+        }
+        
+        const newDuration = Math.floor((newEnd.getTime() - start.getTime()) / 1000)
+        if (newDuration > 0) {
+          updateAttributes({
+            duration: newDuration,
+          })
+        }
+      }
+    }
+
+    setEditingField(null)
+  }, [editingField, startTime, endTime, isFreeform, getEndTime, updateAttributes])
+
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Stop all keyboard events from propagating to TipTap editor
+    e.stopPropagation()
+    
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleTimeSubmit()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setEditingField(null)
+    }
+  }, [handleTimeSubmit])
+
+  // Render editable time - inlined to avoid component identity issues
+  const renderEditableTime = (field: 'start' | 'end', time: Date | null, placeholder: string = '?') => {
+    if (editingField === field) {
+      return (
+        <span contentEditable={false} style={{ display: 'inline-block' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            className="pomodoro-time-input"
+            defaultValue={editValueRef.current}
+            onBlur={handleTimeSubmit}
+            onKeyDown={handleInputKeyDown}
+            onKeyUp={(e) => e.stopPropagation()}
+            onKeyPress={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="HH:MM"
+            style={{
+              width: '50px',
+              padding: '1px 4px',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              border: '1px solid #ccc',
+              borderRadius: '3px',
+              outline: 'none',
+            }}
+          />
+        </span>
+      )
+    }
+
+    return (
+      <span
+        className="nested-time-value editable"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleTimeClick(field, time)
+        }}
+        style={{ cursor: 'pointer' }}
+        title="Click to edit time"
+      >
+        {time ? formatTime(time) : placeholder}
+      </span>
+    )
+  }
   
   // Unrealized state: faded, just plan
   if (status === 'unrealized') {
@@ -180,6 +325,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
   }
   
   // Completed state: opaque, showing completed time range as joined timepoint-style badge
+  // Times are editable - click on them to modify
   if (status === 'completed') {
     const start = startTime ? new Date(startTime) : null
     // For freeform, use the stored endTime; for regular pomodoros, calculate from duration
@@ -197,12 +343,13 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
         <span className="pomodoro-label">{label}</span>
         <span className="pomodoro-divider">||</span>
         {/* Joined time range badge - both times in one connected container */}
+        {/* Click on times to edit them */}
         <span className="pomodoro-time-range-badge">
           <span className="nested-time-icon">🕐</span>
-          <span className="nested-time-value">{start ? formatTime(start) : ''}</span>
+          {renderEditableTime('start', start)}
           <span className="pomodoro-time-dash">-</span>
           <span className="nested-time-icon">🕐</span>
-          <span className="nested-time-value">{end ? formatTime(end) : '?'}</span>
+          {renderEditableTime('end', end, '?')}
         </span>
       </NodeViewWrapper>
     )
