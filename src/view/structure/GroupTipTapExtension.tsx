@@ -330,8 +330,16 @@ export const GroupExtension = TipTapNode.create({
       }, [props.editor]);
 
       // State for document attributes
+      // Safely check if getDocumentAttributes command exists (it won't in nested editors like Canvas MiniEditor)
       // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => {
+        // @ts-ignore - getDocumentAttributes may not exist in all editor contexts
+        if (typeof props.editor.commands.getDocumentAttributes === 'function') {
+          // @ts-ignore
+          return props.editor.commands.getDocumentAttributes();
+        }
+        return defaultDocumentAttributes;
+      });
       // State to track if the node is centered
       const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
 

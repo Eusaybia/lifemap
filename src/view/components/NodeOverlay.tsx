@@ -88,6 +88,9 @@ export interface NodeOverlayProps {
   enableAuraFocus?: boolean
   /** Whether this node is in private lens mode - shows full-coverage black overlay */
   isPrivate?: boolean
+  /** Custom mouseDown handler for the grip - overrides default selection behavior
+      Useful for canvas items where grip should trigger dragging instead of selection */
+  onGripMouseDown?: (e: React.MouseEvent<HTMLDivElement>) => void
 }
 
 // Spotlight glow - very wide, bright yellow bloom like sun rays when node is spotlit
@@ -110,6 +113,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   enableAuraGlow = true,
   enableAuraFocus = true,
   isPrivate = false,
+  onGripMouseDown,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null)
   
@@ -173,12 +177,20 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
     return shadows.filter(s => s).join(', ')
   }, [boxShadow, glowStyles, isSpotlit])
 
-  const handleGripClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const pos = nodeProps.getPos()
-    if (typeof pos === 'number') {
-      nodeProps.editor.commands.setNodeSelection(pos)
+  // Default grip handler - selects the node in the editor
+  // Can be overridden via onGripMouseDown prop for custom behavior (e.g., dragging in canvas)
+  const handleGripMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (onGripMouseDown) {
+      // Use custom handler if provided
+      onGripMouseDown(e)
+    } else {
+      // Default behavior: select the node
+      e.preventDefault()
+      e.stopPropagation()
+      const pos = nodeProps.getPos()
+      if (typeof pos === 'number') {
+        nodeProps.editor.commands.setNodeSelection(pos)
+      }
     }
   }
 
@@ -203,10 +215,11 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
       }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* DragGrip for selection and connection support */}
+      {/* DragGrip for selection and connection support
+          Can be customized via onGripMouseDown prop for dragging etc. */}
       {showGrip && (
         <div
-          onMouseDown={handleGripClick}
+          onMouseDown={handleGripMouseDown}
           style={{
             position: 'absolute',
             top: gripTop,
