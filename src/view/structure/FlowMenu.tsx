@@ -673,10 +673,10 @@ const ActionSwitch = React.memo((props: {
                     />
                 </Option>
             )}
-            {/* Manual backup option - create a named version (like Google Docs' "Name current version") */}
+            {/* Manual backup option - creates a named backup (not auto-backup) */}
             {currentQuantaId && (
                 <Option
-                    value={"Create named version"}
+                    value={"Create backup"}
                     onClick={() => {
                         if (!currentQuantaId) {
                             console.warn('[FlowMenu] Cannot create backup: no quanta ID found');
@@ -687,16 +687,16 @@ const ActionSwitch = React.memo((props: {
                             const newBackup = quantaBackup.createBackup(currentQuantaId, content);
                             // Refresh the backups list
                             setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
-                            setToastMessage(`Version saved: ${newBackup.label}`);
+                            setToastMessage(`Backup created: ${newBackup.label}`);
                         } catch (e) {
                             console.error('[FlowMenu] Failed to create backup:', e);
-                            setToastMessage('Failed to create version');
+                            setToastMessage('Failed to create backup');
                         }
                     }}
                 >
                     <motion.div>
                         <span>
-                            📌 Name current version
+                            📸 Create backup
                         </span>
                     </motion.div>
                 </Option>
@@ -729,11 +729,10 @@ const ActionSwitch = React.memo((props: {
                                 key={backup.timestamp}
                                 value={backup.label}
                                 onClick={() => {
-                                    if (window.confirm(`Restore to ${isAutoBackup ? 'auto-save' : 'version'} from ${timeStr} ${dateStr}?`)) {
-                                        props.editor.commands.setContent(backup.content);
-                                        console.log(`[FlowMenu] Restored to backup ${backup.label}`);
-                                        setToastMessage(`Restored to ${backup.label}`);
-                                    }
+                                    // Restore directly without confirmation dialog
+                                    props.editor.commands.setContent(backup.content);
+                                    console.log(`[FlowMenu] Restored to backup ${backup.label}`);
+                                    setToastMessage(`Restored to ${backup.label}`);
                                 }}
                             >
                                 <motion.div>
