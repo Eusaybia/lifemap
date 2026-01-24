@@ -406,11 +406,33 @@
 
   .nested-time-value {
     font-weight: 500;
+    
+    // Editable time values - show hover effect
+    &.editable {
+      padding: 1px 4px;
+      border-radius: 3px;
+      transition: background-color 0.15s ease;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.08);
+      }
+    }
   }
 
   .pomodoro-time-dash {
     margin: 0 0.1rem;
     color: #6b7280;
+  }
+  
+  // Time input field styling
+  .pomodoro-time-input {
+    background: white;
+    color: inherit;
+    
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
   }
 }
 
