@@ -45,7 +45,7 @@
     margin: 0.5em 0;
 
     > li {
-      display: flex;
+      display: flex !important; // !important to override task list's nested list-item rule
       flex-direction: row;
       align-items: flex-start;
       margin: 0.25em 0;
@@ -57,9 +57,16 @@
         color: #333;
       }
 
+      // Direct paragraph child gets flex: 1 to stay on same line as dash
       > p {
         margin: 0;
         flex: 1;
+      }
+
+      // Also handle divs that might wrap content (from TipTap structure)
+      > div {
+        flex: 1;
+        min-width: 0; // Prevent overflow issues
       }
     }
 
@@ -118,14 +125,18 @@
         flex: 1 1 auto;
       }
 
-      ul li,
+      // Ordered lists nested in task lists use list-item display
       ol li {
         display: list-item;
       }
 
+      // Nested task lists should still use flex
       ul[data-type="taskList"]>li {
         display: flex;
       }
+
+      // Bullet lists nested in task lists should use flex with dash styling
+      // (don't override to list-item, let the main ul:not([data-type="taskList"]) > li rule apply)
     }
   }
 
