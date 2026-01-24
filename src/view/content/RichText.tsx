@@ -76,8 +76,8 @@ import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
-// GroupConnectionManager handles connections between all Group types (block Groups and inline SpanGroups)
-import { GroupConnectionManager } from './SpanGroupConnectionManager'
+// NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
+import { NodeConnectionManager } from './NodeConnectionManager'
 import { CanvasExtension } from '../structure/CanvasExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
@@ -672,8 +672,19 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (dailyPageInitChecked.current || templateApplied.current) return;
       dailyPageInitChecked.current = true;
       
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
-      console.log(`[RichText PERF] ${urlId} checkAndApplyTemplate started, isEmpty=${isEmpty}`)
+      // Check Y.Doc directly for emptiness (more reliable than editor state during sync)
+      // The 'default' field is where TipTap Collaboration stores the document
+      const yFragment = yDoc.getXmlFragment('default');
+      const yDocIsEmpty = yFragment.length === 0;
+      
+      // Also check editor state as a fallback
+      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      // Only consider empty if BOTH Y.Doc and editor agree it's empty
+      // This prevents applying template when Y.Doc has content that hasn't synced to editor yet
+      const isEmpty = yDocIsEmpty && editorIsEmpty;
+      
+      console.log(`[RichText PERF] ${urlId} checkAndApplyTemplate started, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`)
       const perfStart = performance.now()
       
       if (isEmpty) {
@@ -687,6 +698,12 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         
         console.log(`[RichText PERF] ${urlId} Calling setContent...`)
         const setContentStart = performance.now()
+        
+        // Clear Y.Doc first to prevent Y.js from merging (which causes duplication)
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+        
         ;(editor as Editor)!.commands.setContent(contentToApply);
         console.log(`[RichText PERF] ${urlId} setContent took ${(performance.now() - setContentStart).toFixed(0)}ms`)
         
@@ -752,14 +769,25 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (dailyTemplateInitChecked.current || templateApplied.current) return;
       dailyTemplateInitChecked.current = true;
       
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      // Check Y.Doc directly for emptiness (more reliable than editor state during sync)
+      const yFragment = yDoc.getXmlFragment('default');
+      const yDocIsEmpty = yFragment.length === 0;
+      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      // Only consider empty if BOTH Y.Doc and editor agree it's empty
+      const isEmpty = yDocIsEmpty && editorIsEmpty;
       
       if (isEmpty) {
+        // Clear Y.Doc first to prevent Y.js from merging (which causes duplication)
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+        
         (editor as Editor)!.commands.setContent(getDailyScheduleTemplate());
         templateApplied.current = true;
         console.log('[RichText] Initialized daily-schedule-template with hardcoded template (after Y.Doc stabilization)');
       } else {
-        console.log('[RichText] daily-schedule-template already has content, skipping initialization');
+        console.log(`[RichText] daily-schedule-template already has content (yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}), skipping initialization`);
       }
     };
     
@@ -799,9 +827,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
   // Now fetches the editable template from IndexedDB instead of using hardcoded template
   // Supports initializing both this week and next week's schedules
+  //
+  // IMPORTANT: Uses Y.Doc event-based approach to wait for IndexedDB to sync before checking
+  // if the editor is empty. This prevents duplication from Y.js merging.
+  const weeklyPageInitChecked = React.useRef(false);
   React.useEffect(() => {
-    if (!props.quanta?.id || !editor || templateApplied.current) return;
-    
     const pendingSchedulesStr = localStorage.getItem('newWeeklySchedules');
     const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
     const urlId = window.location.pathname.split('/').pop();
@@ -809,46 +839,88 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const isInPending = urlId && pendingSchedules.includes(urlId);
     
     // Only apply template if URL ID is in the pending schedules array
-    if (isInPending && editor) {
-      // Check if editor is empty before applying template
-      const isEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+    if (!isInPending) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || weeklyPageInitChecked.current) return;
+    
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
+    
+    const removeFromPendingList = () => {
+      const currentPendingStr = localStorage.getItem('newWeeklySchedules');
+      const currentPending: string[] = currentPendingStr ? JSON.parse(currentPendingStr) : [];
+      const updatedPending = currentPending.filter(id => id !== urlId);
+      if (updatedPending.length > 0) {
+        localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
+      } else {
+        localStorage.removeItem('newWeeklySchedules');
+      }
+    };
+    
+    const checkAndApplyTemplate = async () => {
+      // Guard: only run once
+      if (weeklyPageInitChecked.current || templateApplied.current) return;
+      weeklyPageInitChecked.current = true;
+      
+      // Check Y.Doc directly for emptiness (more reliable than editor state during sync)
+      const yFragment = yDoc.getXmlFragment('default');
+      const yDocIsEmpty = yFragment.length === 0;
+      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      
+      // Only consider empty if BOTH Y.Doc and editor agree it's empty
+      const isEmpty = yDocIsEmpty && editorIsEmpty;
+      
+      console.log(`[RichText] ${urlId} weekly checkAndApplyTemplate, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`)
       
       if (isEmpty) {
         // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
-        const applyTemplate = async () => {
-          const templateContent = await fetchQuantaContentFromIndexedDB(WEEKLY_TEMPLATE_QUANTA_ID);
-          
-          // Use the editable template if found, otherwise fall back to hardcoded
-          const contentToApply = templateContent || getWeeklyScheduleTemplate();
-          
-          (editor as Editor)!.commands.setContent(contentToApply);
-          
-          // Mark template as applied
-          templateApplied.current = true;
-          
-          // Remove this URL from pending list (not all of them)
-          const updatedPending = pendingSchedules.filter(id => id !== urlId);
-          if (updatedPending.length > 0) {
-            localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
-          } else {
-            localStorage.removeItem('newWeeklySchedules');
-          }
-        };
+        const templateContent = await fetchQuantaContentFromIndexedDB(WEEKLY_TEMPLATE_QUANTA_ID);
+        const contentToApply = templateContent || getWeeklyScheduleTemplate();
         
-        setTimeout(() => {
-          applyTemplate();
-        }, 300);
+        // Clear Y.Doc first to prevent Y.js from merging (which causes duplication)
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+        
+        (editor as Editor)!.commands.setContent(contentToApply);
+        templateApplied.current = true;
+        console.log(`[RichText] Applied weekly template to ${urlId}`);
       } else {
-        // Remove this URL from pending list
-        const updatedPending = pendingSchedules.filter(id => id !== urlId);
-        if (updatedPending.length > 0) {
-          localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
-        } else {
-          localStorage.removeItem('newWeeklySchedules');
-        }
+        console.log(`[RichText] ${urlId} already has content, skipping weekly template application`);
       }
-    }
-  }, [props.quanta?.id, editor]);
+      
+      // Remove from pending list regardless
+      removeFromPendingList();
+    };
+    
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        checkAndApplyTemplate();
+      }, STABILIZATION_DELAY);
+    };
+    
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+    
+    yDoc.on('update', handleUpdate);
+    resetStabilizationTimer();
+    
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      checkAndApplyTemplate();
+    }, FALLBACK_TIMEOUT);
+    
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
 
   // Initialize life-mapping-main with LifeMappingMainTemplate if empty
   // DISABLED: Template auto-loading disabled to preserve user content
@@ -1060,9 +1132,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
               (nodes with ☀️ focus tag). Focused nodes are elevated above the overlay
               via the Aura component's z-index, creating a spotlight effect. */}
           <SpotlightOverlay />
-          {/* GroupConnectionManager - handles arrow connections between all Group types
-              (block-level Groups and inline SpanGroups). SpanGroups are an inline variant of Groups. */}
-          <GroupConnectionManager />
+          {/* NodeConnectionManager - handles hand-drawn arrow connections between all connectable elements
+              (block-level Groups, inline SpanGroups, and generic nodes with NodeOverlay). Uses Rough.js for sketchy style. */}
+          <NodeConnectionManager />
         </div>
       </div>
     )
