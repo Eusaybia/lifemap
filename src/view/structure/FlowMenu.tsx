@@ -22,6 +22,7 @@ import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logC
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 import { backup, quantaBackup, QuantaBackupEntry } from "../../backend/backup";
+import { useAutoBackup, AutoBackupStatus } from "../../backend/useAutoBackup";
 import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
 
@@ -200,8 +201,137 @@ const Toast = ({ message, onClose }: { message: string; onClose: () => void }) =
     );
 };
 
+/**
+ * AutoSaveIndicator - Shows the current auto-save status
+ * Mimics Google Docs' "All changes saved" indicator
+ * 
+ * States:
+ * - idle: No recent activity, shows last saved time
+ * - saving: Currently saving (shows spinner)
+ * - saved: Just saved (shows checkmark, then fades to idle)
+ * - error: Save failed (shows error message)
+ */
+const AutoSaveIndicator = ({ 
+    status, 
+    lastSavedAt 
+}: { 
+    status: AutoBackupStatus; 
+    lastSavedAt: number | null;
+}) => {
+    const [displayStatus, setDisplayStatus] = React.useState<'idle' | 'saving' | 'saved' | 'error'>(status);
+    
+    // Transition from 'saved' back to 'idle' after a brief display
+    React.useEffect(() => {
+        if (status === 'saved') {
+            setDisplayStatus('saved');
+            const timer = setTimeout(() => {
+                setDisplayStatus('idle');
+            }, 2000); // Show "Saved" for 2 seconds
+            return () => clearTimeout(timer);
+        } else {
+            setDisplayStatus(status);
+        }
+    }, [status]);
+    
+    const formatLastSaved = (timestamp: number | null): string => {
+        if (!timestamp) return '';
+        
+        const now = Date.now();
+        const diff = now - timestamp;
+        
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-GB', { 
+            day: 'numeric', 
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+    
+    const getStatusContent = () => {
+        switch (displayStatus) {
+            case 'saving':
+                return (
+                    <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                        <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            style={{ display: 'inline-block' }}
+                        >
+                            ⟳
+                        </motion.span>
+                        Saving...
+                    </motion.span>
+                );
+            case 'saved':
+                return (
+                    <motion.span
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#4CAF50' }}
+                    >
+                        ✓ Saved
+                    </motion.span>
+                );
+            case 'error':
+                return (
+                    <motion.span style={{ color: '#f44336' }}>
+                        ⚠ Save failed
+                    </motion.span>
+                );
+            case 'idle':
+            default:
+                return lastSavedAt ? (
+                    <span style={{ color: '#999' }}>
+                        Saved {formatLastSaved(lastSavedAt)}
+                    </span>
+                ) : (
+                    <span style={{ color: '#999' }}>
+                        Auto-save enabled
+                    </span>
+                );
+        }
+    };
+    
+    return (
+        <motion.div
+            style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 12,
+                padding: '4px 10px',
+                borderRadius: 6,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                minWidth: 100,
+                justifyContent: 'center',
+            }}
+        >
+            {getStatusContent()}
+        </motion.div>
+    );
+};
+
 // Memoize ActionSwitch to prevent re-renders if props haven't changed
-const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor | null, nodeType?: string }) => {
+const ActionSwitch = React.memo((props: { 
+    selectedAction: string, 
+    editor: Editor | null, 
+    nodeType?: string,
+    // Auto-backup props
+    autoBackupStatus?: AutoBackupStatus,
+    autoBackupLastSavedAt?: number | null,
+    onTriggerBackup?: () => void
+}) => {
     // Return null if editor is not available yet
     if (!props.editor) {
         return null;
@@ -222,6 +352,13 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
             setQuantaBackups(quantaBackup.getBackupsForDisplay(quantaId));
         }
     }, []);
+    
+    // Refresh backups when auto-backup creates a new one
+    React.useEffect(() => {
+        if (props.autoBackupStatus === 'saved' && currentQuantaId) {
+            setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
+        }
+    }, [props.autoBackupStatus, currentQuantaId]);
     
     // @ts-ignore - getDocumentAttributes exists via the extension
     const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
@@ -514,10 +651,32 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
-            {/* Create Backup Option - saves current state for this quanta */}
+            {/* 
+              Auto-Save Status Indicator (Google Docs-like)
+              Shows current save status: saving, saved, or last saved time
+              Replaces the manual "Create backup" button with automatic saving
+            */}
+            {currentQuantaId && props.autoBackupStatus && (
+                <Option
+                    value={"auto-save-status"}
+                    onClick={() => {
+                        // Clicking triggers a manual backup (like Google Docs' manual save)
+                        if (props.onTriggerBackup) {
+                            props.onTriggerBackup();
+                            setToastMessage('Manual backup created');
+                        }
+                    }}
+                >
+                    <AutoSaveIndicator 
+                        status={props.autoBackupStatus} 
+                        lastSavedAt={props.autoBackupLastSavedAt ?? null}
+                    />
+                </Option>
+            )}
+            {/* Manual backup option - create a named version (like Google Docs' "Name current version") */}
             {currentQuantaId && (
                 <Option
-                    value={"Create backup"}
+                    value={"Create named version"}
                     onClick={() => {
                         if (!currentQuantaId) {
                             console.warn('[FlowMenu] Cannot create backup: no quanta ID found');
@@ -528,24 +687,25 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                             const newBackup = quantaBackup.createBackup(currentQuantaId, content);
                             // Refresh the backups list
                             setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
-                            setToastMessage(`Backup created: ${newBackup.label} at ${quantaBackup.formatTimestamp(newBackup.timestamp)}`);
+                            setToastMessage(`Version saved: ${newBackup.label}`);
                         } catch (e) {
                             console.error('[FlowMenu] Failed to create backup:', e);
-                            setToastMessage('Failed to create backup');
+                            setToastMessage('Failed to create version');
                         }
                     }}
                 >
                     <motion.div>
                         <span>
-                            📸 Create backup
+                            📌 Name current version
                         </span>
                     </motion.div>
                 </Option>
             )}
         </FlowSwitch>
         
-        {/* Version History FlowSwitch - shows backups for current quanta (oldest to newest, bottom to top) */}
+        {/* Version History FlowSwitch - shows backups for current quanta (newest to oldest) */}
         {/* Hidden for group nodes */}
+        {/* Shows both auto-backups (⟳) and manual named versions (📌) */}
         {currentQuantaId && props.nodeType !== 'group' && (
             <FlowSwitch value={"restore"} isLens>
                 {quantaBackups.length > 0 ? (
@@ -558,25 +718,33 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                         });
                         const dateStr = date.toLocaleDateString('en-GB', { 
                             day: 'numeric',
-                            month: 'long', 
-                            year: 'numeric'
+                            month: 'short'
                         });
                         const isLatest = index === 0; // First in display order = most recent
+                        const isAutoBackup = backup.isAutoBackup;
+                        const icon = isAutoBackup ? '⟳' : '📌'; // Auto vs manual indicator
                         
                         return (
                             <Option
                                 key={backup.timestamp}
                                 value={backup.label}
                                 onClick={() => {
-                                    if (window.confirm(`Restore to backup from ${timeStr} ${dateStr}?`)) {
+                                    if (window.confirm(`Restore to ${isAutoBackup ? 'auto-save' : 'version'} from ${timeStr} ${dateStr}?`)) {
                                         props.editor.commands.setContent(backup.content);
                                         console.log(`[FlowMenu] Restored to backup ${backup.label}`);
+                                        setToastMessage(`Restored to ${backup.label}`);
                                     }
                                 }}
                             >
                                 <motion.div>
-                                    <span style={{ fontFamily: 'Inter', fontSize: '13px' }}>
-                                        {timeStr} {dateStr}{isLatest ? ' (Latest)' : ''}
+                                    <span style={{ 
+                                        fontFamily: 'Inter', 
+                                        fontSize: '13px',
+                                        color: isAutoBackup ? '#666' : '#333'
+                                    }}>
+                                        {icon} {timeStr} {dateStr}
+                                        {isLatest ? ' (Latest)' : ''}
+                                        {!isAutoBackup && ` - ${backup.label}`}
                                     </span>
                                 </motion.div>
                             </Option>
@@ -586,7 +754,7 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     [<Option key="no-backups" value={"no-backups"} onClick={() => {}}>
                         <motion.div>
                             <span style={{ fontFamily: 'Inter', fontSize: '13px', color: '#999' }}>
-                                No Backups
+                                No version history yet
                             </span>
                         </motion.div>
                     </Option>]
@@ -647,6 +815,29 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     
+    // Get current quanta ID from URL
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
+    React.useEffect(() => {
+        setCurrentQuantaId(quantaBackup.getCurrentQuantaId())
+    }, [])
+    
+    // Auto-backup hook - implements Google Docs-like auto-save strategy
+    // Saves 2s after typing stops, creates snapshots every 5 minutes,
+    // and saves on page events (blur, visibility change, beforeunload)
+    const { 
+        status: autoBackupStatus, 
+        lastSavedAt: autoBackupLastSavedAt,
+        triggerBackup 
+    } = useAutoBackup(editor, currentQuantaId, {
+        enabled: true,
+        onBackupCreated: (timestamp) => {
+            console.log('[DocumentFlowMenu] Auto-backup created at', new Date(timestamp).toLocaleTimeString())
+        },
+        onError: (error) => {
+            console.error('[DocumentFlowMenu] Auto-backup error:', error)
+        }
+    })
+    
     // Get current editor mode from document attributes
     // @ts-ignore - getDocumentAttributes exists via the extension
     const documentAttributes: DocumentAttributes = editor?.commands.getDocumentAttributes() || { editorMode: 'editing' };
@@ -692,7 +883,13 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            <ActionSwitch editor={editor} selectedAction={selectedAction} />
+            <ActionSwitch 
+                editor={editor} 
+                selectedAction={selectedAction}
+                autoBackupStatus={autoBackupStatus}
+                autoBackupLastSavedAt={autoBackupLastSavedAt}
+                onTriggerBackup={triggerBackup}
+            />
         </motion.div>
     )
 }
@@ -1405,6 +1602,19 @@ export const FlowMenu = (props: { editor: Editor }) => {
     
     // Track selection type changes to force re-render when switching between text and node selections
     const [currentNodeType, setCurrentNodeType] = React.useState<string>(() => getSelectedNodeType(props.editor))
+    
+    // Get current quanta ID for auto-backup
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
+    React.useEffect(() => {
+        setCurrentQuantaId(quantaBackup.getCurrentQuantaId())
+    }, [])
+    
+    // Auto-backup hook for BubbleMenu context
+    const { 
+        status: autoBackupStatus, 
+        lastSavedAt: autoBackupLastSavedAt,
+        triggerBackup 
+    } = useAutoBackup(props.editor, currentQuantaId, { enabled: true })
 
     const selection = props.editor!.view.state.selection
 
@@ -1482,7 +1692,14 @@ export const FlowMenu = (props: { editor: Editor }) => {
                     }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
                 {/* ActionSwitch (Copy, timestamp) comes after the Loupe */}
-                <ActionSwitch editor={props.editor} selectedAction={selectedAction} nodeType={currentNodeType} />
+                <ActionSwitch 
+                    editor={props.editor} 
+                    selectedAction={selectedAction} 
+                    nodeType={currentNodeType}
+                    autoBackupStatus={autoBackupStatus}
+                    autoBackupLastSavedAt={autoBackupLastSavedAt}
+                    onTriggerBackup={triggerBackup}
+                />
             </motion.div>
         </BubbleMenu>
     )
