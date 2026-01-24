@@ -5,7 +5,7 @@ const MAX_REVISIONS = 4
 
 // Per-quanta backup system
 const QUANTA_BACKUP_PREFIX = 'quanta_backup_'
-const MAX_QUANTA_REVISIONS = 10
+const MAX_QUANTA_REVISIONS = 5  // Reduced from 10 to prevent quota issues
 
 // Auto-backup timing constants (Google Docs-like strategy)
 // 
@@ -34,6 +34,150 @@ export interface QuantaBackupEntry {
 }
 
 // ============================================================================
+// Storage Quota Management
+// ============================================================================
+
+/**
+ * Check if an error is a quota exceeded error
+ */
+function isQuotaExceededError(e: unknown): boolean {
+  return (
+    e instanceof DOMException &&
+    (e.code === 22 || // Legacy code for QuotaExceededError
+     e.code === 1014 || // Firefox
+     e.name === 'QuotaExceededError' ||
+     e.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  )
+}
+
+/**
+ * Get all localStorage keys related to backups
+ */
+function getAllBackupKeys(): string[] {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && (key === BACKUP_KEY || key.startsWith(QUANTA_BACKUP_PREFIX))) {
+      keys.push(key)
+    }
+  }
+  return keys
+}
+
+/**
+ * Clean up oldest auto-backups across all quantas to free space
+ * Prioritizes removing auto-backups over manual named versions
+ * Returns true if any cleanup was performed
+ */
+function cleanupOldBackups(): boolean {
+  console.log('[Backup] Quota exceeded, cleaning up old backups...')
+  
+  let cleanedUp = false
+  const keys = getAllBackupKeys()
+  
+  // First pass: Remove oldest auto-backups from each quanta (keep only 2 auto-backups each)
+  for (const key of keys) {
+    if (key.startsWith(QUANTA_BACKUP_PREFIX)) {
+      try {
+        const data = localStorage.getItem(key)
+        if (!data) continue
+        
+        const backups: QuantaBackupEntry[] = JSON.parse(data)
+        if (!Array.isArray(backups)) continue
+        
+        // Separate auto and manual backups
+        const autoBackups = backups.filter(b => b.isAutoBackup)
+        const manualBackups = backups.filter(b => !b.isAutoBackup)
+        
+        // Keep only 2 most recent auto-backups
+        if (autoBackups.length > 2) {
+          const keptAuto = autoBackups.slice(0, 2)
+          const newBackups = [...keptAuto, ...manualBackups]
+            .sort((a, b) => b.timestamp - a.timestamp)
+          
+          localStorage.setItem(key, JSON.stringify(newBackups))
+          cleanedUp = true
+          console.log(`[Backup] Cleaned ${autoBackups.length - 2} old auto-backups from ${key}`)
+        }
+      } catch (e) {
+        console.error(`[Backup] Error cleaning ${key}:`, e)
+      }
+    }
+  }
+  
+  // Second pass: If still needed, clear the legacy backup entirely
+  if (!cleanedUp) {
+    try {
+      const legacyData = localStorage.getItem(BACKUP_KEY)
+      if (legacyData) {
+        localStorage.removeItem(BACKUP_KEY)
+        cleanedUp = true
+        console.log('[Backup] Cleared legacy backup storage')
+      }
+    } catch (e) {
+      console.error('[Backup] Error clearing legacy backup:', e)
+    }
+  }
+  
+  // Third pass: If still needed, remove all auto-backups entirely
+  if (!cleanedUp) {
+    for (const key of keys) {
+      if (key.startsWith(QUANTA_BACKUP_PREFIX)) {
+        try {
+          const data = localStorage.getItem(key)
+          if (!data) continue
+          
+          const backups: QuantaBackupEntry[] = JSON.parse(data)
+          if (!Array.isArray(backups)) continue
+          
+          // Keep only manual backups
+          const manualOnly = backups.filter(b => !b.isAutoBackup)
+          if (manualOnly.length < backups.length) {
+            if (manualOnly.length > 0) {
+              localStorage.setItem(key, JSON.stringify(manualOnly))
+            } else {
+              localStorage.removeItem(key)
+            }
+            cleanedUp = true
+            console.log(`[Backup] Removed all auto-backups from ${key}`)
+          }
+        } catch (e) {
+          console.error(`[Backup] Error removing auto-backups from ${key}:`, e)
+        }
+      }
+    }
+  }
+  
+  return cleanedUp
+}
+
+/**
+ * Safely set an item in localStorage with quota handling
+ * Automatically cleans up old backups if quota is exceeded
+ */
+function safeLocalStorageSet(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      // Try to clean up and retry
+      if (cleanupOldBackups()) {
+        try {
+          localStorage.setItem(key, value)
+          return true
+        } catch (retryError) {
+          console.error('[Backup] Still exceeded quota after cleanup:', retryError)
+          return false
+        }
+      }
+    }
+    console.error('[Backup] localStorage error:', e)
+    return false
+  }
+}
+
+// ============================================================================
 // Global Backup System (legacy - for error recovery)
 // ============================================================================
 
@@ -54,7 +198,10 @@ export const backup = {
       // Add new backup and limit to MAX_REVISIONS
       const updatedBackups = [newBackup, ...backupsArray].slice(0, MAX_REVISIONS)
 
-      localStorage.setItem(BACKUP_KEY, JSON.stringify(updatedBackups))
+      // Use safe storage with quota handling
+      if (!safeLocalStorageSet(BACKUP_KEY, JSON.stringify(updatedBackups))) {
+        console.warn('[Backup] Could not store backup due to quota limits')
+      }
     } catch (e) {
       console.error('Failed to store backup content:', e)
     }
@@ -101,29 +248,30 @@ export const quantaBackup = {
    * Create a manual backup for a specific quanta
    */
   createBackup(quantaId: string, content: JSONContent): QuantaBackupEntry {
-    try {
-      const existingBackups = this.getBackups(quantaId)
-      
-      // Generate version label (v1, v2, etc.)
-      const versionNumber = existingBackups.length + 1
-      
-      const newBackup: QuantaBackupEntry = {
-        content,
-        timestamp: Date.now(),
-        label: `v${versionNumber}`
-      }
-
-      // Add new backup at the beginning (most recent first)
-      // But we want to display oldest to newest (bottom to top), so we'll reverse when displaying
-      const updatedBackups = [newBackup, ...existingBackups].slice(0, MAX_QUANTA_REVISIONS)
-
-      localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(updatedBackups))
-      
-      return newBackup
-    } catch (e) {
-      console.error(`[QuantaBackup] Failed to create backup for ${quantaId}:`, e)
-      throw e
+    const existingBackups = this.getBackups(quantaId)
+    
+    // Generate version label (v1, v2, etc.)
+    // Count only manual backups for version numbering
+    const manualBackupCount = existingBackups.filter(b => !b.isAutoBackup).length
+    const versionNumber = manualBackupCount + 1
+    
+    const newBackup: QuantaBackupEntry = {
+      content,
+      timestamp: Date.now(),
+      label: `v${versionNumber}`,
+      isAutoBackup: false
     }
+
+    // Add new backup at the beginning (most recent first)
+    const updatedBackups = [newBackup, ...existingBackups].slice(0, MAX_QUANTA_REVISIONS)
+
+    // Use safe storage with quota handling
+    if (!safeLocalStorageSet(this.getStorageKey(quantaId), JSON.stringify(updatedBackups))) {
+      console.error(`[QuantaBackup] Failed to create backup for ${quantaId}: quota exceeded`)
+      throw new Error('Storage quota exceeded')
+    }
+    
+    return newBackup
   },
 
   /**
@@ -177,7 +325,11 @@ export const quantaBackup = {
         return false // Nothing was deleted
       }
       
-      localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(filtered))
+      if (filtered.length === 0) {
+        localStorage.removeItem(this.getStorageKey(quantaId))
+      } else {
+        localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(filtered))
+      }
       return true
     } catch (e) {
       console.error(`[QuantaBackup] Failed to delete backup for ${quantaId}:`, e)
@@ -233,33 +385,46 @@ export const quantaBackup = {
   /**
    * Create an automatic backup (used by auto-save system)
    * Auto-backups are labeled differently from manual backups
+   * 
+   * Auto-backups are more aggressively cleaned up when quota is exceeded,
+   * prioritizing preservation of manual named versions.
    */
   createAutoBackup(quantaId: string, content: JSONContent): QuantaBackupEntry {
-    try {
-      const existingBackups = this.getBackups(quantaId)
-      
-      // Generate auto-backup label with timestamp
-      const now = new Date()
-      const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      
-      const newBackup: QuantaBackupEntry = {
-        content,
-        timestamp: Date.now(),
-        label: `Auto ${timeStr}`,
-        isAutoBackup: true
-      }
-
-      // Add new backup at the beginning (most recent first)
-      const updatedBackups = [newBackup, ...existingBackups].slice(0, MAX_QUANTA_REVISIONS)
-
-      localStorage.setItem(this.getStorageKey(quantaId), JSON.stringify(updatedBackups))
-      
-      console.log(`[QuantaBackup] Auto-backup created for ${quantaId} at ${timeStr}`)
-      return newBackup
-    } catch (e) {
-      console.error(`[QuantaBackup] Failed to create auto-backup for ${quantaId}:`, e)
-      throw e
+    const existingBackups = this.getBackups(quantaId)
+    
+    // Generate auto-backup label with timestamp
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    
+    const newBackup: QuantaBackupEntry = {
+      content,
+      timestamp: Date.now(),
+      label: `Auto ${timeStr}`,
+      isAutoBackup: true
     }
+
+    // For auto-backups, be more aggressive with cleanup:
+    // Keep only the latest auto-backup + any manual backups
+    const manualBackups = existingBackups.filter(b => !b.isAutoBackup)
+    const recentAutoBackups = existingBackups
+      .filter(b => b.isAutoBackup)
+      .slice(0, 2) // Keep at most 2 previous auto-backups
+    
+    const updatedBackups = [newBackup, ...recentAutoBackups, ...manualBackups]
+      .slice(0, MAX_QUANTA_REVISIONS)
+
+    // Use safe storage with quota handling
+    if (!safeLocalStorageSet(this.getStorageKey(quantaId), JSON.stringify(updatedBackups))) {
+      // If still failing, try with just the new backup and manual backups
+      const minimalBackups = [newBackup, ...manualBackups].slice(0, MAX_QUANTA_REVISIONS)
+      if (!safeLocalStorageSet(this.getStorageKey(quantaId), JSON.stringify(minimalBackups))) {
+        console.error(`[QuantaBackup] Failed to create auto-backup for ${quantaId}: quota exceeded`)
+        throw new Error('Storage quota exceeded')
+      }
+    }
+    
+    console.log(`[QuantaBackup] Auto-backup created for ${quantaId} at ${timeStr}`)
+    return newBackup
   },
 
   /**
