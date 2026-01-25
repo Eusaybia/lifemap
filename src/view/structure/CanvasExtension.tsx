@@ -28,6 +28,7 @@ import { WarningExtension } from './WarningTipTapExtension'
 import { ExternalPortalExtension } from './ExternalPortalExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from './LifemapCardExtension'
 import { GroupExtension } from './GroupTipTapExtension'
+import { ConcentricRingsExtension } from './ConcentricRingsExtension'
 import Details from '@tiptap-pro/extension-details'
 import DetailsSummary from '@tiptap-pro/extension-details-summary'
 import DetailsContent from '@tiptap-pro/extension-details-content'
@@ -206,6 +207,13 @@ const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
     keywords: ['card', 'container'],
     nodeContent: { type: 'singleLifemapCard', attrs: { title: 'Card' } }
   },
+  { 
+    id: 'concentric-rings', 
+    title: 'Concentric Rings', 
+    emoji: '◎', 
+    keywords: ['rings', 'circles', 'concentric', 'layers', 'zones'],
+    nodeContent: { type: 'concentricRings' }
+  },
 ]
 
 // ============================================================================
@@ -261,6 +269,8 @@ const getNodeDefaults = (nodeType: string): { width: number; height: number } =>
       return { width: 400, height: 400 }
     case 'card':
       return { width: 200, height: 150 }
+    case 'concentric-rings':
+      return { width: 340, height: 400 }
     default:
       return { width: 200, height: 100 }
   }
@@ -457,6 +467,7 @@ const MiniEditor: React.FC<{
       LifemapCardExtension,
       SingleLifemapCardExtension,
       GroupExtension,
+      ConcentricRingsExtension,
     ],
     content: validContent,
     editable: isSelected,
