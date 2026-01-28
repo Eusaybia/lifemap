@@ -75,6 +75,7 @@ import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObserva
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
+import { Canvas3DExtension } from '../structure/Canvas3DExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
@@ -352,6 +353,7 @@ export const customExtensions: Extensions = [
   TemporalSpaceExtension,
   LifetimeViewExtension,
   WeatherExtension,
+  Canvas3DExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
 ]
