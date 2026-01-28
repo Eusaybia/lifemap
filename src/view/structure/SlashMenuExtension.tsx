@@ -357,6 +357,18 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
           editor.chain().focus().insertContent({ type: 'weatherCard' }).run()
       },
     },
+    {
+      id: 'canvas-3d',
+      title: '3D Canvas',
+      description: 'Canvas for placing 3D models from Sketchfab',
+      emoji: '🎨',
+      keywords: ['3d', 'canvas', 'model', 'sketchfab', 'three', 'object', 'scene'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertCanvas3D?.() ||
+          editor.chain().focus().insertContent({ type: 'canvas3D' }).run()
+      },
+    },
   ]
 }
 
