@@ -74,6 +74,7 @@ import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
+import { WeatherExtension } from '../structure/WeatherExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
@@ -350,6 +351,7 @@ export const customExtensions: Extensions = [
   DayHeaderExtension,
   TemporalSpaceExtension,
   LifetimeViewExtension,
+  WeatherExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
 ]
