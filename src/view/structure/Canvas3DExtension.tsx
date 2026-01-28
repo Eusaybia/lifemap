@@ -61,6 +61,16 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const [isLoading, setIsLoading] = useState(false)
   const importerContainerRef = useRef<HTMLDivElement>(null)
   const importerInitialized = useRef(false)
+  
+  // 2D backing square position within the canvas (percentage-based)
+  const [backingPosition, setBackingPosition] = useState<{ x: number; y: number }>({
+    x: node.attrs.backingX ?? 50, // Center by default
+    y: node.attrs.backingY ?? 50,
+  })
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const isDraggingBacking = useRef(false)
+  const dragStartPos = useRef({ x: 0, y: 0 })
+  const backingStartPos = useRef({ x: 50, y: 50 })
 
   // Load the Sketchfab Importer script
   useEffect(() => {
@@ -163,28 +173,99 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     })
   }
 
-  // Listen for messages from the iframe
+  // Send model data to parent window (mobile-prototype) for unified 3D rendering
+  // This enables all models to render in a single Three.js scene with shared lighting
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'model-loaded') {
-        setIsLoading(false)
-      }
+    // Generate a unique ID for this node instance
+    const nodeId = node.attrs.nodeId || `canvas3d-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    // Store nodeId in attributes if not already set
+    if (!node.attrs.nodeId) {
+      updateAttributes({ nodeId })
     }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
+    
+    // Send model data to parent (including backing position)
+    if (modelUrl || modelUid) {
+      window.parent?.postMessage({
+        type: 'canvas3d-model-update',
+        nodeId,
+        modelUrl,
+        modelUid,
+        modelName,
+        backingX: backingPosition.x,
+        backingY: backingPosition.y,
+      }, '*')
+      setIsLoading(false)
+    } else {
+      // Send removal message when model is cleared
+      window.parent?.postMessage({
+        type: 'canvas3d-model-remove',
+        nodeId,
+      }, '*')
+    }
+    
+    // Cleanup: remove model when component unmounts
+    return () => {
+      window.parent?.postMessage({
+        type: 'canvas3d-model-remove',
+        nodeId,
+      }, '*')
+    }
+  }, [modelUrl, modelUid, modelName, node.attrs.nodeId, updateAttributes, backingPosition])
 
   const handleOpenImporter = () => {
     importerInitialized.current = false
     setShowImporter(true)
   }
   
-  const handleClearModel = () => {
-    setModelUrl(null)
-    setModelUid(null)
-    setModelName(null)
-    updateAttributes({ modelUrl: null, modelUid: null, modelName: null })
+  // Handle backing square drag
+  const handleBackingPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    isDraggingBacking.current = true
+    dragStartPos.current = { x: e.clientX, y: e.clientY }
+    backingStartPos.current = { ...backingPosition }
+    document.body.style.cursor = 'grabbing'
   }
+  
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDraggingBacking.current || !canvasRef.current) return
+      
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const deltaX = e.clientX - dragStartPos.current.x
+      const deltaY = e.clientY - dragStartPos.current.y
+      
+      // Convert pixel delta to percentage
+      const deltaXPercent = (deltaX / canvasRect.width) * 100
+      const deltaYPercent = (deltaY / canvasRect.height) * 100
+      
+      const newX = Math.max(10, Math.min(90, backingStartPos.current.x + deltaXPercent))
+      const newY = Math.max(10, Math.min(90, backingStartPos.current.y + deltaYPercent))
+      
+      setBackingPosition({ x: newX, y: newY })
+    }
+    
+    const handlePointerUp = () => {
+      if (isDraggingBacking.current) {
+        isDraggingBacking.current = false
+        document.body.style.cursor = ''
+        // Persist position to node attributes
+        updateAttributes({ 
+          backingX: backingPosition.x, 
+          backingY: backingPosition.y 
+        })
+      }
+    }
+    
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [backingPosition, updateAttributes])
   
   // Determine if we have any model to display
   const hasModel = modelUrl || modelUid
@@ -195,6 +276,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       style={{ margin: '16px 0' }}
     >
       <motion.div
+        ref={canvasRef}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -204,13 +286,12 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
           minHeight: '400px',
           borderRadius: '12px',
           overflow: 'hidden',
-          // Cork board background - warm brown with subtle texture appearance
-          background: 'linear-gradient(135deg, #C4A574 0%, #B8956E 25%, #D4B896 50%, #C9A87C 75%, #BF9A6C 100%)',
-          border: selected ? '2px solid rgba(100, 150, 255, 0.8)' : '1px solid rgba(139, 90, 43, 0.4)',
-          boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.1), 0 4px 20px rgba(0, 0, 0, 0.15)',
+          // Transparent background so 3D models from parent scene show through
+          background: 'transparent',
+          border: selected ? '2px solid rgba(100, 150, 255, 0.8)' : '1px solid rgba(0, 0, 0, 0.3)',
         }}
       >
-        {/* Cork texture overlay */}
+        {/* Black dot grid - spaced apart for clean look */}
         <div
           style={{
             position: 'absolute',
@@ -219,15 +300,41 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             right: 0,
             bottom: 0,
             backgroundImage: `
-              radial-gradient(circle at 20% 30%, rgba(139, 90, 43, 0.15) 1px, transparent 1px),
-              radial-gradient(circle at 60% 70%, rgba(139, 90, 43, 0.12) 1px, transparent 1px),
-              radial-gradient(circle at 40% 50%, rgba(139, 90, 43, 0.1) 2px, transparent 2px),
-              radial-gradient(circle at 80% 20%, rgba(139, 90, 43, 0.08) 1px, transparent 1px)
+              radial-gradient(circle, rgba(0, 0, 0, 0.2) 1.5px, transparent 1.5px)
             `,
-            backgroundSize: '30px 30px, 40px 40px, 50px 50px, 35px 35px',
+            backgroundSize: '40px 40px',
             pointerEvents: 'none',
           }}
         />
+        
+        {/* 2D Backing square - draggable within canvas, shows model position */}
+        {hasModel && (
+          <div
+            onPointerDown={handleBackingPointerDown}
+            style={{
+              position: 'absolute',
+              left: `${backingPosition.x}%`,
+              top: `${backingPosition.y}%`,
+              transform: 'translate(-50%, -50%)',
+              width: '120px',
+              height: '120px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              border: '1px solid rgba(0, 0, 0, 0.2)',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              cursor: 'grab',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              color: '#666',
+              fontFamily: "'Inter', system-ui, sans-serif",
+              userSelect: 'none',
+            }}
+          >
+            <span style={{ opacity: 0.6 }}>🎨</span>
+          </div>
+        )}
 
         {/* Search button - top right */}
         <div
@@ -344,93 +451,6 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
           </div>
         )}
 
-        {/* 3D Model viewer - shows when model is selected */}
-        {hasModel && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderRadius: '12px',
-              overflow: 'hidden',
-            }}
-          >
-            {/* If we have a glTF URL, use our custom 3D canvas */}
-            {modelUrl && (
-              <iframe
-                title={modelName || '3D Model'}
-                src={`/canvas-3d?url=${encodeURIComponent(modelUrl)}`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                }}
-              />
-            )}
-            
-            {/* If we only have a UID (no download available), use Sketchfab embed */}
-            {!modelUrl && modelUid && (
-              <iframe
-                title={modelName || 'Sketchfab 3D Model'}
-                src={`https://sketchfab.com/models/${modelUid}/embed?autostart=1&ui_controls=1&ui_infos=0&ui_inspector=0&ui_stop=0&ui_watermark=0&ui_watermark_link=0`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                }}
-                allow="autoplay; fullscreen; xr-spatial-tracking"
-                allowFullScreen
-              />
-            )}
-            
-            {/* Model name overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '16px',
-                left: '16px',
-                padding: '6px 12px',
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                color: '#fff',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 500,
-                maxWidth: '200px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                pointerEvents: 'none',
-              }}
-            >
-              {modelName}
-            </div>
-            
-            {/* Clear model button */}
-            <button
-              type="button"
-              onClick={handleClearModel}
-              style={{
-                position: 'absolute',
-                bottom: '16px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                padding: '8px 16px',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: '#333',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: 500,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              }}
-            >
-              Choose different model
-            </button>
-          </div>
-        )}
 
         {/* Empty state / drop zone */}
         {!hasModel && !isLoading && (
@@ -523,39 +543,6 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             ✕ Delete
           </button>
         )}
-
-        {/* Sketchfab attribution - required by API guidelines */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '12px',
-            right: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            borderRadius: '4px',
-            fontSize: '11px',
-            color: '#666',
-            fontFamily: "'Inter', system-ui, sans-serif",
-          }}
-        >
-          <span>3D models by</span>
-          <a
-            href="https://sketchfab.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: '#1CAAD9',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            Sketchfab
-          </a>
-        </div>
       </motion.div>
     </NodeViewWrapper>
   )
@@ -583,6 +570,10 @@ export const Canvas3DExtension = TipTapNode.create({
   
   addAttributes() {
     return {
+      // Unique ID for this node instance (used for parent-child communication)
+      nodeId: {
+        default: null,
+      },
       // Store the glTF download URL (note: expires after ~5 mins, for session use)
       modelUrl: {
         default: null,
@@ -593,6 +584,13 @@ export const Canvas3DExtension = TipTapNode.create({
       },
       modelName: {
         default: null,
+      },
+      // 2D backing square position (percentage within canvas)
+      backingX: {
+        default: 50,
+      },
+      backingY: {
+        default: 50,
       },
     }
   },
