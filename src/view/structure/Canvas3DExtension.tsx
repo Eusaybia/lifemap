@@ -51,6 +51,47 @@ interface SketchfabModelResult {
   }
 }
 
+interface UnsplashPhoto {
+  id: string
+  alt_description?: string | null
+  description?: string | null
+  width: number
+  height: number
+  color?: string | null
+  urls: {
+    raw: string
+    full: string
+    regular: string
+    small: string
+    thumb: string
+  }
+  links: {
+    html: string
+    download_location: string
+  }
+  user: {
+    name: string
+    links: {
+      html: string
+    }
+  }
+}
+
+interface CanvasImageItem {
+  id: string
+  url: string
+  thumbUrl: string
+  x: number
+  y: number
+  width: number
+  height: number
+  authorName: string
+  authorUrl: string
+  photoUrl: string
+  downloadLocation: string
+  alt: string
+}
+
 const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const { selected, deleteNode, node, updateAttributes } = props
   const [showImporter, setShowImporter] = useState(false)
@@ -61,16 +102,32 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const [isLoading, setIsLoading] = useState(false)
   const importerContainerRef = useRef<HTMLDivElement>(null)
   const importerInitialized = useRef(false)
+  const unsplashAccessKey = process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY
   
-  // 2D backing square position within the canvas (percentage-based)
+  // 2D backing square position within the canvas (percentage-based for storage)
   const [backingPosition, setBackingPosition] = useState<{ x: number; y: number }>({
     x: node.attrs.backingX ?? 50, // Center by default
     y: node.attrs.backingY ?? 50,
   })
   const canvasRef = useRef<HTMLDivElement>(null)
+  const backingRef = useRef<HTMLDivElement>(null)
   const isDraggingBacking = useRef(false)
   const dragStartPos = useRef({ x: 0, y: 0 })
   const backingStartPos = useRef({ x: 50, y: 50 })
+
+  // 2D image search + canvas images
+  const [showImageSearch, setShowImageSearch] = useState(false)
+  const [imageQuery, setImageQuery] = useState("")
+  const [imageResults, setImageResults] = useState<UnsplashPhoto[]>([])
+  const [imageSearchLoading, setImageSearchLoading] = useState(false)
+  const [imageSearchError, setImageSearchError] = useState<string | null>(null)
+  const [canvasImages, setCanvasImages] = useState<CanvasImageItem[]>(
+    Array.isArray(node.attrs.images) ? node.attrs.images : []
+  )
+  const canvasImagesRef = useRef<CanvasImageItem[]>(canvasImages)
+  const isDraggingImage = useRef<string | null>(null)
+  const imageDragStart = useRef({ x: 0, y: 0 })
+  const imageStartPos = useRef({ x: 50, y: 50 })
 
   // Load the Sketchfab Importer script
   useEffect(() => {
@@ -95,6 +152,16 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       // Cleanup if needed
     }
   }, [showImporter])
+
+  useEffect(() => {
+    canvasImagesRef.current = canvasImages
+  }, [canvasImages])
+
+  useEffect(() => {
+    if (Array.isArray(node.attrs.images)) {
+      setCanvasImages(node.attrs.images)
+    }
+  }, [node.attrs.images])
 
   const initializeImporter = () => {
     if (!importerContainerRef.current || importerInitialized.current) return
@@ -184,7 +251,8 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       updateAttributes({ nodeId })
     }
     
-    // Send model data to parent (including backing position)
+    // Send model data to parent using percentage-based positioning
+    // Percentages work reliably across iframe boundaries (screen coords don't)
     if (modelUrl || modelUid) {
       window.parent?.postMessage({
         type: 'canvas3d-model-update',
@@ -192,6 +260,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
         modelUrl,
         modelUid,
         modelName,
+        // Percentage-based position (0-100) for cross-iframe compatibility
         backingX: backingPosition.x,
         backingY: backingPosition.y,
       }, '*')
@@ -216,6 +285,85 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const handleOpenImporter = () => {
     importerInitialized.current = false
     setShowImporter(true)
+  }
+
+  const handleOpenImageSearch = () => {
+    setImageSearchError(null)
+    setShowImageSearch(true)
+  }
+
+  const handleCloseImageSearch = () => {
+    setShowImageSearch(false)
+  }
+
+  const handleSearchImages = async (queryOverride?: string) => {
+    const query = (queryOverride ?? imageQuery).trim()
+    if (!query) return
+    if (!unsplashAccessKey) {
+      setImageSearchError("Missing Unsplash access key. Set NEXT_PUBLIC_UNSPLASH_ACCESS_KEY.")
+      return
+    }
+
+    setImageSearchLoading(true)
+    setImageSearchError(null)
+
+    try {
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=20`,
+        {
+          headers: {
+            Authorization: `Client-ID ${unsplashAccessKey}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setImageResults(Array.isArray(data?.results) ? data.results : [])
+    } catch (error) {
+      setImageSearchError("Unable to fetch images. Please try again.")
+    } finally {
+      setImageSearchLoading(false)
+    }
+  }
+
+  const handleSelectImage = async (photo: UnsplashPhoto) => {
+    const width = 180
+    const height = Math.max(100, Math.round((photo.height / photo.width) * width))
+    const newItem: CanvasImageItem = {
+      id: `${photo.id}-${Date.now()}`,
+      url: photo.urls.regular,
+      thumbUrl: photo.urls.small,
+      x: 50,
+      y: 50,
+      width,
+      height,
+      authorName: photo.user.name,
+      authorUrl: `${photo.user.links.html}?utm_source=kairos&utm_medium=referral`,
+      photoUrl: `${photo.links.html}?utm_source=kairos&utm_medium=referral`,
+      downloadLocation: photo.links.download_location,
+      alt: photo.alt_description || photo.description || "Unsplash photo",
+    }
+
+    const nextImages = [...canvasImagesRef.current, newItem]
+    // Architectural choice: store image metadata on the node so 2D canvas persists
+    // across editor sessions and can be synced later to the 3D scene if needed.
+    canvasImagesRef.current = nextImages
+    setCanvasImages(nextImages)
+    updateAttributes({ images: nextImages })
+    setShowImageSearch(false)
+
+    // Trigger Unsplash download tracking (required by API guidelines)
+    if (unsplashAccessKey) {
+      fetch(photo.links.download_location, {
+        headers: {
+          Authorization: `Client-ID ${unsplashAccessKey}`,
+        },
+      }).catch(() => null)
+    }
   }
   
   // Handle backing square drag
@@ -266,6 +414,61 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [backingPosition, updateAttributes])
+
+  const handleImagePointerDown = (e: React.PointerEvent, imageId: string) => {
+    e.stopPropagation()
+    e.preventDefault()
+    isDraggingImage.current = imageId
+    imageDragStart.current = { x: e.clientX, y: e.clientY }
+    const currentImage = canvasImagesRef.current.find((image) => image.id === imageId)
+    imageStartPos.current = {
+      x: currentImage?.x ?? 50,
+      y: currentImage?.y ?? 50,
+    }
+    document.body.style.cursor = 'grabbing'
+  }
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDraggingImage.current || !canvasRef.current) return
+
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const deltaX = e.clientX - imageDragStart.current.x
+      const deltaY = e.clientY - imageDragStart.current.y
+      const deltaXPercent = (deltaX / canvasRect.width) * 100
+      const deltaYPercent = (deltaY / canvasRect.height) * 100
+
+      const nextX = Math.max(5, Math.min(95, imageStartPos.current.x + deltaXPercent))
+      const nextY = Math.max(5, Math.min(95, imageStartPos.current.y + deltaYPercent))
+
+      setCanvasImages((prev) => {
+        const next = prev.map((image) =>
+          image.id === isDraggingImage.current
+            ? { ...image, x: nextX, y: nextY }
+            : image
+        )
+        canvasImagesRef.current = next
+        return next
+      })
+    }
+
+    const handlePointerUp = () => {
+      if (!isDraggingImage.current) return
+      isDraggingImage.current = null
+      document.body.style.cursor = ''
+      // Architectural choice: persist image positions only on drag end to avoid
+      // high-frequency editor updates while dragging.
+      updateAttributes({ images: canvasImagesRef.current })
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [updateAttributes])
   
   // Determine if we have any model to display
   const hasModel = modelUrl || modelUid
@@ -283,7 +486,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '400px',
+          minHeight: '720px',
           borderRadius: '12px',
           overflow: 'hidden',
           // Transparent background so 3D models from parent scene show through
@@ -306,10 +509,67 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             pointerEvents: 'none',
           }}
         />
+
+        {/* 2D images placed on the canvas */}
+        {canvasImages.map((image) => (
+          <div
+            key={image.id}
+            onPointerDown={(e) => handleImagePointerDown(e, image.id)}
+            style={{
+              position: 'absolute',
+              left: `${image.x}%`,
+              top: `${image.y}%`,
+              transform: 'translate(-50%, -50%)',
+              width: `${image.width}px`,
+              height: `${image.height}px`,
+              borderRadius: '10px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+              overflow: 'hidden',
+              cursor: 'grab',
+              backgroundColor: 'transparent',
+              border: 'none',
+            }}
+          >
+            <img
+              src={image.url}
+              alt={image.alt}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                left: 6,
+                bottom: 6,
+                padding: '2px 6px',
+                borderRadius: 6,
+                background: 'rgba(255, 255, 255, 0.85)',
+                fontSize: '10px',
+                fontFamily: "'Inter', system-ui, sans-serif",
+                color: '#444',
+                lineHeight: 1.2,
+              }}
+            >
+              <a
+                href={image.authorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                {image.authorName}
+              </a>
+            </div>
+          </div>
+        ))}
         
         {/* 2D Backing square - draggable within canvas, shows model position */}
         {hasModel && (
           <div
+            ref={backingRef}
             onPointerDown={handleBackingPointerDown}
             style={{
               position: 'absolute',
@@ -332,19 +592,57 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
               userSelect: 'none',
             }}
           >
-            <span style={{ opacity: 0.6 }}>🎨</span>
           </div>
         )}
 
-        {/* Search button - top right */}
+        {/* Search buttons - top right */}
         <div
           style={{
             position: 'absolute',
             top: '16px',
             right: '16px',
             zIndex: 10,
+            display: 'flex',
+            gap: '10px',
           }}
         >
+          <motion.button
+            type="button"
+            onClick={handleOpenImageSearch}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              fontSize: '14px',
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: 500,
+              color: '#333',
+            }}
+          >
+            {/* Search icon */}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#666"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            Search for 2D images
+          </motion.button>
           <motion.button
             type="button"
             onClick={handleOpenImporter}
@@ -383,6 +681,208 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             Search for 3D models
           </motion.button>
         </div>
+
+        {/* Unsplash Image Search Modal */}
+        {showImageSearch && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={handleCloseImageSearch}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: '12px',
+                width: '90%',
+                maxWidth: '900px',
+                height: '80vh',
+                maxHeight: '700px',
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={handleCloseImageSearch}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  zIndex: 10,
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                }}
+              >
+                ✕ Close
+              </button>
+
+              <div
+                style={{
+                  padding: '20px 24px 12px',
+                  borderBottom: '1px solid #eee',
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center',
+                }}
+              >
+                <input
+                  type="text"
+                  value={imageQuery}
+                  onChange={(e) => setImageQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearchImages()
+                  }}
+                  placeholder="Search Unsplash images"
+                  style={{
+                    flex: 1,
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSearchImages()}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#111',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                  }}
+                >
+                  Search
+                </button>
+              </div>
+
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '16px 24px 24px',
+                }}
+              >
+                {imageSearchError && (
+                  <div
+                    style={{
+                      marginBottom: '12px',
+                      color: '#b91c1c',
+                      fontSize: '13px',
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                    }}
+                  >
+                    {imageSearchError}
+                  </div>
+                )}
+
+                {imageSearchLoading && (
+                  <div
+                    style={{
+                      color: '#666',
+                      fontSize: '13px',
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                    }}
+                  >
+                    Searching Unsplash...
+                  </div>
+                )}
+
+                {!imageSearchLoading && imageResults.length === 0 && (
+                  <div
+                    style={{
+                      color: '#999',
+                      fontSize: '13px',
+                      fontFamily: "'Inter', system-ui, sans-serif",
+                    }}
+                  >
+                    Type a search term to find images.
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                    gap: '12px',
+                    marginTop: '12px',
+                  }}
+                >
+                  {imageResults.map((photo) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => handleSelectImage(photo)}
+                      style={{
+                        border: 'none',
+                        padding: 0,
+                        background: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div
+                        style={{
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          border: '1px solid #eee',
+                          backgroundColor: '#f4f4f4',
+                        }}
+                      >
+                        <img
+                          src={photo.urls.small}
+                          alt={photo.alt_description || photo.description || 'Unsplash photo'}
+                          style={{
+                            width: '100%',
+                            height: '120px',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          marginTop: '6px',
+                          fontSize: '11px',
+                          fontFamily: "'Inter', system-ui, sans-serif",
+                          color: '#555',
+                        }}
+                      >
+                        {photo.user.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Sketchfab Importer Modal */}
         {showImporter && (
@@ -461,37 +961,10 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               textAlign: 'center',
-              color: 'rgba(139, 90, 43, 0.6)',
+              color: 'rgba(0, 0, 0, 0.2)',
               pointerEvents: 'none',
             }}
           >
-            <div
-              style={{
-                fontSize: '48px',
-                marginBottom: '12px',
-              }}
-            >
-              🎨
-            </div>
-            <div
-              style={{
-                fontSize: '16px',
-                fontFamily: "'Inter', system-ui, sans-serif",
-                fontWeight: 500,
-              }}
-            >
-              Click "Search for 3D models" to browse Sketchfab
-            </div>
-            <div
-              style={{
-                fontSize: '13px',
-                fontFamily: "'Inter', system-ui, sans-serif",
-                marginTop: '8px',
-                opacity: 0.8,
-              }}
-            >
-              Over 1 million free 3D models available
-            </div>
           </div>
         )}
 
@@ -504,13 +977,12 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
               left: '50%',
               transform: 'translate(-50%, -50%)',
               textAlign: 'center',
-              color: 'rgba(139, 90, 43, 0.8)',
+              color: 'rgba(0, 0, 0, 0.4)',
             }}
           >
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>⏳</div>
             <div
               style={{
-                fontSize: '16px',
+                fontSize: '14px',
                 fontFamily: "'Inter', system-ui, sans-serif",
                 fontWeight: 500,
               }}
@@ -591,6 +1063,9 @@ export const Canvas3DExtension = TipTapNode.create({
       },
       backingY: {
         default: 50,
+      },
+      images: {
+        default: [],
       },
     }
   },
