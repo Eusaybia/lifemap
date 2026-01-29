@@ -264,9 +264,9 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: cardOpacity, scale: 1 }}
       transition={{ duration: 0.3 }}
+      className="daily-card"
       style={{
-        flex: '0 0 550px',
-        width: '550px',
+        // Base styles - responsive width handled by CSS class
         minHeight: '900px',
         display: 'flex',
         flexDirection: 'column',
@@ -377,6 +377,11 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
 const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
 
+// Stagger delays for sequential loading to avoid y-indexeddb contention
+// Today loads immediately, then Yesterday after YESTERDAY_DELAY, then Template after TEMPLATE_DELAY
+const YESTERDAY_LOAD_DELAY = 1500 // 1.5 seconds after mount
+const TEMPLATE_LOAD_DELAY = 3000 // 3 seconds after mount
+
 const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
@@ -389,6 +394,15 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   // Track if Tomorrow has been instantiated (click-to-load to avoid y-indexeddb contention)
   const [tomorrowInstantiated, setTomorrowInstantiated] = useState(false)
   
+  // Staggered loading state - Today is always ready, others wait their turn
+  // This prevents y-indexeddb contention by loading iframes one at a time
+  const [yesterdayReady, setYesterdayReady] = useState(false)
+  const [templateReady, setTemplateReady] = useState(false)
+  
+  // Track if initial scroll to Today has completed - prevents staggered loading from
+  // triggering unwanted scroll position changes
+  const initialScrollDoneRef = useRef(false)
+  
   // Calculate date slugs for each pane
   const todaySlug = `daily-${formatDateSlug(new Date())}`
   const yesterdaySlug = `daily-${formatDateSlug(getYesterdayDate())}`
@@ -399,34 +413,82 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
     checkAndInitializeDaily()
   }, [])
   
-  // Scroll to today on mount - with multiple attempts to ensure it works
-  const scrollToToday = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
-      const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
-      container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
-      setActiveIndex(TODAY_INDEX)
+  // Staggered loading: Today → Yesterday → Template
+  // This prevents all iframes from competing for IndexedDB simultaneously
+  useEffect(() => {
+    // Yesterday loads after YESTERDAY_LOAD_DELAY
+    const yesterdayTimer = setTimeout(() => {
+      console.log('[DailyExtension] Staggered load: Yesterday ready')
+      setYesterdayReady(true)
+    }, YESTERDAY_LOAD_DELAY)
+    
+    // Template loads after TEMPLATE_LOAD_DELAY
+    const templateTimer = setTimeout(() => {
+      console.log('[DailyExtension] Staggered load: Template ready')
+      setTemplateReady(true)
+    }, TEMPLATE_LOAD_DELAY)
+    
+    return () => {
+      clearTimeout(yesterdayTimer)
+      clearTimeout(templateTimer)
     }
   }, [])
   
+  // Helper to get responsive card width + gap based on viewport
+  // Matches the CSS breakpoints: mobile (<=768px), tablet (769-1024px), desktop (>1024px)
+  const getCardWidthWithGap = useCallback(() => {
+    if (typeof window === 'undefined') return 562 // Default desktop: 550 + 12 gap
+    const width = window.innerWidth
+    if (width <= 768) {
+      // Mobile: 100vw, no gap
+      return width
+    } else if (width <= 1024) {
+      // Tablet: 480px + 12 gap
+      return 492
+    }
+    // Desktop: 550px + 12 gap
+    return 562
+  }, [])
+  
+  // Scroll to today on mount - runs only once with multiple attempts to ensure it works
+  // Uses empty dependency array to prevent re-running when staggered loading causes re-renders
   useEffect(() => {
+    const scrollToTodayPosition = () => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current
+        const cardWidth = getCardWidthWithGap()
+        const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
+        container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
+        setActiveIndex(TODAY_INDEX)
+      }
+    }
+    
     // Multiple attempts to ensure scrolling works after layout is complete
     const attempts = [0, 100, 300, 500]
-    attempts.forEach(delay => {
-      setTimeout(scrollToToday, delay)
-    })
-  }, [scrollToToday])
+    const timeoutIds = attempts.map(delay => 
+      setTimeout(scrollToTodayPosition, delay)
+    )
+    
+    // Mark initial scroll as done after the last attempt
+    const doneTimeout = setTimeout(() => {
+      initialScrollDoneRef.current = true
+    }, 600) // After last scroll attempt (500ms) + buffer
+    
+    return () => {
+      timeoutIds.forEach(id => clearTimeout(id))
+      clearTimeout(doneTimeout)
+    }
+  }, []) // Empty deps - only run on mount
   
   const scrollToCard = useCallback((index: number) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
+      const cardWidth = getCardWidthWithGap()
       const scrollPosition = (index * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
       container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
       setActiveIndex(index)
     }
-  }, [])
+  }, [getCardWidthWithGap])
   
   const navigatePrevious = useCallback(() => {
     scrollToCard(Math.max(0, activeIndex - 1))
@@ -437,9 +499,15 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   }, [activeIndex, scrollToCard])
   
   const handleScroll = useCallback(() => {
+    // Ignore scroll events during initial loading period to prevent staggered
+    // iframe loading from accidentally changing the active card
+    if (!initialScrollDoneRef.current) {
+      return
+    }
+    
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
+      const cardWidth = getCardWidthWithGap()
       const scrollCenter = container.scrollLeft + (container.clientWidth / 2)
       const newIndex = Math.round((scrollCenter - cardWidth / 2) / cardWidth)
       const clampedIndex = Math.max(0, Math.min(TOTAL_CARDS - 1, newIndex))
@@ -447,7 +515,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
         setActiveIndex(clampedIndex)
       }
     }
-  }, [activeIndex])
+  }, [activeIndex, getCardWidthWithGap])
 
   return (
     <NodeViewWrapper 
@@ -455,17 +523,21 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
       style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
       {/* NodeOverlay provides the grip, connection ID, and standard card styling */}
+      {/* padding={0} and margin: 0 for mobile responsiveness - cards handle their own spacing */}
       <NodeOverlay 
         nodeProps={props} 
         nodeType="daily"
         gripTop={8}
         gripRight={8}
+        padding={0}
+        style={{ margin: 0 }}
       >
         <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
-          {/* Navigation Arrows */}
+          {/* Navigation Arrows - hidden on mobile via CSS */}
           <button
             onClick={navigatePrevious}
             disabled={activeIndex === 0}
+            className="daily-nav-arrow"
             style={{
               position: 'absolute',
               left: '0px',
@@ -474,90 +546,164 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
               zIndex: 10,
               width: '36px',
               height: '36px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            border: '1px solid #e5e5e5',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
-            opacity: activeIndex === 0 ? 0.4 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ChevronLeft size={18} color="#666" />
-        </button>
-        
-        <button
-          onClick={navigateNext}
-          disabled={activeIndex === TOTAL_CARDS - 1}
-          style={{
-            position: 'absolute',
-            right: '0px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 10,
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            border: '1px solid #e5e5e5',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: activeIndex === TOTAL_CARDS - 1 ? 'not-allowed' : 'pointer',
-            opacity: activeIndex === TOTAL_CARDS - 1 ? 0.4 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ChevronRight size={18} color="#666" />
-        </button>
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e5e5',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
+              opacity: activeIndex === 0 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronLeft size={18} color="#666" />
+          </button>
+          
+          <button
+            onClick={navigateNext}
+            disabled={activeIndex === TOTAL_CARDS - 1}
+            className="daily-nav-arrow"
+            style={{
+              position: 'absolute',
+              right: '0px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e5e5',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              cursor: activeIndex === TOTAL_CARDS - 1 ? 'not-allowed' : 'pointer',
+              opacity: activeIndex === TOTAL_CARDS - 1 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronRight size={18} color="#666" />
+          </button>
         
         {/* Horizontal Scroll Container */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
+          className="daily-carousel-scroll"
           style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: '12px',
             overflowX: 'auto',
             overflowY: 'visible',
             scrollSnapType: 'x mandatory',
             scrollBehavior: 'smooth',
-            padding: '8px 50px',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
-          className="daily-carousel-scroll"
         >
+          {/* Responsive styles for mobile vs desktop */}
           <style>{`
             .daily-carousel-scroll::-webkit-scrollbar {
               display: none;
             }
+            
+            /* Desktop styles - fixed width cards with gap and padding */
+            .daily-carousel-scroll {
+              gap: 12px;
+              padding: 8px 50px;
+            }
+            
+            .daily-card {
+              flex: 0 0 550px;
+              width: 550px;
+            }
+            
+            /* Mobile styles - full width cards, minimal padding */
+            @media (max-width: 768px) {
+              .daily-carousel-scroll {
+                gap: 0px;
+                padding: 8px 0px;
+              }
+              
+              .daily-card {
+                flex: 0 0 100vw;
+                width: 100vw;
+                border-radius: 0px;
+                border-left: none;
+                border-right: none;
+              }
+              
+              /* Hide navigation arrows on mobile - use swipe instead */
+              .daily-nav-arrow {
+                display: none !important;
+              }
+            }
+            
+            /* Tablet styles - slightly smaller cards */
+            @media (min-width: 769px) and (max-width: 1024px) {
+              .daily-card {
+                flex: 0 0 480px;
+                width: 480px;
+              }
+              
+              .daily-carousel-scroll {
+                padding: 8px 30px;
+              }
+            }
           `}</style>
           
-          {/* Template Card - lazy loaded (user must scroll left to see) */}
+          {/* Template Card - staggered load: loads TEMPLATE_LOAD_DELAY after mount */}
           <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
-            <LazyIframe
-              src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph&showFlowMenu=true`}
-              title="Daily Schedule Template"
-            />
+            {templateReady ? (
+              <LazyIframe
+                src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
+                title="Daily Schedule Template"
+                eager={true}
+              />
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                Loading template...
+              </div>
+            )}
           </DayCard>
           
-          {/* Yesterday Card - lazy loaded (user must scroll left to see) */}
+          {/* Yesterday Card - staggered load: loads YESTERDAY_LOAD_DELAY after mount */}
           <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
-            <LazyIframe
-              src={`/q/${yesterdaySlug}?mode=graph&showFlowMenu=true`}
-              title="Yesterday's Schedule"
-              iframeRef={yesterdayIframeRef}
-            />
+            {yesterdayReady ? (
+              <LazyIframe
+                src={`/q/${yesterdaySlug}?mode=graph`}
+                title="Yesterday's Schedule"
+                iframeRef={yesterdayIframeRef}
+                eager={true}
+              />
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                Loading yesterday...
+              </div>
+            )}
           </DayCard>
           
           {/* Today Card - EAGER loaded (this is the default view) */}
           <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
             <LazyIframe
-              src={`/q/${todaySlug}?mode=graph&showFlowMenu=true`}
+              src={`/q/${todaySlug}?mode=graph`}
               title="Today's Schedule"
               iframeRef={todayIframeRef}
               eager={true}
@@ -568,7 +714,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
           <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
             {tomorrowInstantiated ? (
               <LazyIframe
-                src={`/q/${tomorrowSlug}?mode=graph&showFlowMenu=true`}
+                src={`/q/${tomorrowSlug}?mode=graph`}
                 title="Tomorrow's Schedule"
                 iframeRef={tomorrowIframeRef}
                 eager={true}
