@@ -1,10 +1,12 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { NodeOverlay } from "../components/NodeOverlay"
+import { NodeConnectionManager } from "../content/NodeConnectionManager"
+import { CanvasItemComponent, CanvasSlashMenuItem, getNodeDefaults, SlashMenuDropdown, CanvasItem } from "./CanvasExtension"
 
 // ============================================================================
 // 3D Canvas Component
@@ -104,6 +106,21 @@ interface CanvasImageItem {
   alt: string
 }
 
+// Generate UUID using browser's crypto API (for external portal IDs)
+const generateCanvasUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
+
+const generateCanvasItemId = () => Math.random().toString(36).substring(2, 10)
+
 const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const { selected, deleteNode, node, updateAttributes } = props
   const canvasLens = (node.attrs.lens as Canvas3DLenses) || "identity"
@@ -142,6 +159,23 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const imageDragStart = useRef({ x: 0, y: 0 })
   const imageStartPos = useRef({ x: 50, y: 50 })
 
+  // Old Canvas-style node items (arbitrary nodes on canvas)
+  const [canvasItems, setCanvasItems] = useState<CanvasItem[]>(() => {
+    if (typeof node.attrs.items === 'string') {
+      try {
+        return JSON.parse(node.attrs.items) as CanvasItem[]
+      } catch {
+        return []
+      }
+    }
+    return []
+  })
+  const canvasItemsRef = useRef<CanvasItem[]>(canvasItems)
+  const [selectedCanvasItemId, setSelectedCanvasItemId] = useState<string | null>(null)
+  const [showCanvasSlashMenu, setShowCanvasSlashMenu] = useState(false)
+  const [canvasSlashMenuPosition, setCanvasSlashMenuPosition] = useState({ x: 100, y: 100 })
+  const [canvasSearchQuery, setCanvasSearchQuery] = useState('')
+
   // Load the Sketchfab Importer script
   useEffect(() => {
     if (!showImporter) return
@@ -175,6 +209,20 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       setCanvasImages(node.attrs.images)
     }
   }, [node.attrs.images])
+
+  useEffect(() => {
+    canvasItemsRef.current = canvasItems
+  }, [canvasItems])
+
+  useEffect(() => {
+    if (typeof node.attrs.items === 'string') {
+      try {
+        setCanvasItems(JSON.parse(node.attrs.items) as CanvasItem[])
+      } catch {
+        setCanvasItems([])
+      }
+    }
+  }, [node.attrs.items])
 
   const initializeImporter = () => {
     if (!importerContainerRef.current || importerInitialized.current) return
@@ -357,6 +405,97 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     }
     input.click()
   }
+
+  const updateCanvasItems = useCallback((newItems: CanvasItem[]) => {
+    canvasItemsRef.current = newItems
+    setCanvasItems(newItems)
+    updateAttributes({ items: JSON.stringify(newItems) })
+  }, [updateAttributes])
+
+  const addCanvasItemFromMenu = useCallback((menuItem: CanvasSlashMenuItem) => {
+    const defaults = getNodeDefaults(menuItem.id)
+
+    // Generate node content - handle special cases that need dynamic IDs
+    let nodeContent = menuItem.nodeContent
+    if (menuItem.id === 'external-portal') {
+      const newQuantaId = generateCanvasUUID()
+      nodeContent = {
+        type: 'externalPortal',
+        attrs: { externalQuantaId: newQuantaId },
+      }
+    }
+
+    const newItem: CanvasItem = {
+      id: generateCanvasItemId(),
+      nodeType: menuItem.id,
+      x: canvasSlashMenuPosition.x,
+      y: canvasSlashMenuPosition.y,
+      rotation: 0,
+      width: defaults.width,
+      height: defaults.height,
+      content: { type: 'doc', content: [nodeContent] },
+    }
+
+    updateCanvasItems([...canvasItemsRef.current, newItem])
+    setSelectedCanvasItemId(newItem.id)
+    setShowCanvasSlashMenu(false)
+    setCanvasSearchQuery('')
+  }, [canvasSlashMenuPosition, updateCanvasItems])
+
+  const updateCanvasItem = useCallback((id: string, updates: Partial<CanvasItem>) => {
+    const newItems = canvasItemsRef.current.map(item =>
+      item.id === id ? { ...item, ...updates } : item
+    )
+    updateCanvasItems(newItems)
+  }, [updateCanvasItems])
+
+  const deleteCanvasItem = useCallback((id: string) => {
+    const newItems = canvasItemsRef.current.filter(item => item.id !== id)
+    updateCanvasItems(newItems)
+    if (selectedCanvasItemId === id) {
+      setSelectedCanvasItemId(null)
+    }
+  }, [selectedCanvasItemId, updateCanvasItems])
+
+  const handleCanvasClick = useCallback(() => {
+    setSelectedCanvasItemId(null)
+  }, [])
+
+  const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
+    const canvasRect = canvasRef.current?.getBoundingClientRect()
+    if (!canvasRect) return
+
+    const x = e.clientX - canvasRect.left
+    const y = e.clientY - canvasRect.top
+
+    setCanvasSlashMenuPosition({ x, y })
+    setShowCanvasSlashMenu(true)
+    setCanvasSearchQuery('')
+  }, [])
+
+  const handleCanvasKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === '/' && !showCanvasSlashMenu) {
+      e.preventDefault()
+      const canvasRect = canvasRef.current?.getBoundingClientRect()
+      const centerX = canvasRect ? canvasRect.width / 2 - 100 : 100
+      const centerY = canvasRect ? canvasRect.height / 2 - 100 : 100
+      setCanvasSlashMenuPosition({ x: centerX, y: centerY })
+      setShowCanvasSlashMenu(true)
+      setCanvasSearchQuery('')
+    } else if (e.key === 'Escape' && showCanvasSlashMenu) {
+      setShowCanvasSlashMenu(false)
+      setCanvasSearchQuery('')
+    }
+  }, [showCanvasSlashMenu])
+
+  const handleAddNodeClick = useCallback(() => {
+    const canvasRect = canvasRef.current?.getBoundingClientRect()
+    const centerX = canvasRect ? canvasRect.width / 2 - 100 : 100
+    const centerY = canvasRect ? canvasRect.height / 2 - 100 : 100
+    setCanvasSlashMenuPosition({ x: centerX, y: centerY })
+    setShowCanvasSlashMenu(true)
+    setCanvasSearchQuery('')
+  }, [])
 
   const handleCloseImageSearch = () => {
     setShowImageSearch(false)
@@ -558,6 +697,10 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
+          tabIndex={0}
+          onClick={handleCanvasClick}
+          onDoubleClick={handleCanvasDoubleClick}
+          onKeyDown={handleCanvasKeyDown}
           style={{
             position: 'relative',
             width: '100%',
@@ -584,6 +727,38 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             pointerEvents: 'none',
           }}
         />
+
+        {/* Old Canvas-style node items */}
+        {canvasItems.map(item => (
+          <CanvasItemComponent
+            key={item.id}
+            item={item}
+            isSelected={selectedCanvasItemId === item.id}
+            onSelect={() => setSelectedCanvasItemId(item.id)}
+            onUpdate={(updates) => updateCanvasItem(item.id, updates)}
+            onDelete={() => deleteCanvasItem(item.id)}
+            canvasRef={canvasRef}
+          />
+        ))}
+
+        {/* NodeConnectionManager enables drawing connections between canvas items */}
+        <NodeConnectionManager containerRef={canvasRef} />
+
+        <AnimatePresence>
+          {showCanvasSlashMenu && (
+            <SlashMenuDropdown
+              isOpen={showCanvasSlashMenu}
+              onClose={() => {
+                setShowCanvasSlashMenu(false)
+                setCanvasSearchQuery('')
+              }}
+              onSelect={addCanvasItemFromMenu}
+              searchQuery={canvasSearchQuery}
+              onSearchChange={setCanvasSearchQuery}
+              position={canvasSlashMenuPosition}
+            />
+          )}
+        </AnimatePresence>
 
         {/* 2D images placed on the canvas */}
         {canvasImages.map((image) => (
@@ -683,6 +858,30 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             gap: '10px',
           }}
         >
+          <motion.button
+            type="button"
+            onClick={handleAddNodeClick}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              fontSize: '14px',
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: 500,
+              color: '#333',
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+            Add node
+          </motion.button>
           <motion.button
             type="button"
             onClick={handleUploadImage}
@@ -1174,6 +1373,9 @@ export const Canvas3DExtension = TipTapNode.create({
       },
       images: {
         default: [],
+      },
+      items: {
+        default: '[]',
       },
       lens: {
         default: "identity" as Canvas3DLenses,

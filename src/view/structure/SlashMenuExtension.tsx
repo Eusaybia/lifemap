@@ -369,6 +369,18 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
           editor.chain().focus().insertContent({ type: 'canvas3D' }).run()
       },
     },
+    {
+      id: 'canvas-old',
+      title: 'Old Canvas',
+      description: 'Legacy canvas for placing arbitrary nodes',
+      emoji: '🧱',
+      keywords: ['canvas', 'legacy', 'node', 'old', 'arbitrary', 'freeform'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertCanvas?.() ||
+          editor.chain().focus().insertContent({ type: 'canvas' }).run()
+      },
+    },
   ]
 }
 
