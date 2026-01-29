@@ -545,7 +545,14 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       style={{ margin: '16px 0' }}
     >
       {/* NodeOverlay provides the grip, shadow, and connection support */}
-      <NodeOverlay nodeProps={props} nodeType="canvas3D" isPrivate={canvasLens === "private"}>
+      <NodeOverlay
+        nodeProps={props}
+        nodeType="canvas3D"
+        isPrivate={canvasLens === "private"}
+        backgroundColor="transparent"
+        padding={0}
+        boxShadow="none"
+      >
         <motion.div
           ref={canvasRef}
           initial={{ opacity: 0, y: 10 }}
@@ -1132,14 +1139,6 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
 // ============================================================================
 // 3D Canvas TipTap Extension
 // ============================================================================
-
-declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
-    canvas3D: {
-      insertCanvas3D: () => ReturnType
-    }
-  }
-}
 
 export const Canvas3DExtension = TipTapNode.create({
   name: "canvas3D",
