@@ -711,14 +711,17 @@ const ActionSwitch = React.memo((props: {
                 {quantaBackups.length > 0 ? (
                     quantaBackups.map((backup, index) => {
                         const date = new Date(backup.timestamp);
-                        const timeStr = date.toLocaleTimeString('en-GB', { 
-                            hour: '2-digit', 
+                        // Format time with AM/PM (e.g., "10:51AM")
+                        const timeStr = date.toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
                             minute: '2-digit',
-                            hour12: false
-                        });
+                            hour12: true
+                        }).replace(' ', ''); // Remove space between time and AM/PM
+                        // Format date with year (e.g., "25 Jan, 2026")
                         const dateStr = date.toLocaleDateString('en-GB', { 
                             day: 'numeric',
-                            month: 'short'
+                            month: 'short',
+                            year: 'numeric'
                         });
                         const isLatest = index === 0; // First in display order = most recent
                         const isAutoBackup = backup.isAutoBackup;
@@ -741,9 +744,8 @@ const ActionSwitch = React.memo((props: {
                                         fontSize: '13px',
                                         color: isAutoBackup ? '#666' : '#333'
                                     }}>
-                                        {icon} {timeStr} {dateStr}
+                                        {icon} {timeStr} - {dateStr}
                                         {isLatest ? ' (Latest)' : ''}
-                                        {!isAutoBackup && ` - ${backup.label}`}
                                     </span>
                                 </motion.div>
                             </Option>
@@ -856,9 +858,26 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     }
 
     return (
-        <motion.div style={documentMenuStyle}>
-            {/* Editor Mode Toggle - Editing vs Connection mode */}
-            <FlowSwitch value={editorMode} isLens>
+        <>
+            {/* Responsive styles for DocumentFlowMenu - full width on mobile */}
+            <style>{`
+                .document-flow-menu {
+                    /* Desktop defaults are in inline styles */
+                }
+                
+                @media (max-width: 768px) {
+                    .document-flow-menu {
+                        left: 0 !important;
+                        right: 0 !important;
+                        width: 100% !important;
+                        border-radius: 0 !important;
+                        padding: 5px 10px !important;
+                    }
+                }
+            `}</style>
+            <motion.div style={documentMenuStyle} className="document-flow-menu">
+                {/* Editor Mode Toggle - Editing vs Connection mode */}
+                <FlowSwitch value={editorMode} isLens>
                 <Option 
                     value="editing" 
                     onClick={() => {
@@ -890,6 +909,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                 onTriggerBackup={triggerBackup}
             />
         </motion.div>
+        </>
     )
 }
 

@@ -330,10 +330,18 @@ const PortalExtension = Node.create({
         const isPrivate = currentLens === 'private';
         const isPreview = currentLens === 'preview';
 
+        // Handler to open the quanta in a new tab
+        // This allows users to quickly navigate to the full quanta page for detailed editing
+        const handleOpenQuantaInNewTab = () => {
+          if (referencedQuantaId) {
+            window.open(`/q/${referencedQuantaId}`, '_blank', 'noopener,noreferrer');
+          }
+        };
+
         return (
           <NodeViewWrapper>
             <NodeOverlay nodeProps={props} nodeType="portal" isPrivate={isPrivate}>
-              <div contentEditable={false}>
+              <div contentEditable={false} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <input
                 type="text"
                 value={referencedQuantaId}
@@ -354,6 +362,53 @@ const PortalExtension = Node.create({
                   zIndex: 1,
                 }}
               />
+              {/* Link out icon - opens the quanta in a new tab for full editing/viewing */}
+              <button
+                onClick={handleOpenQuantaInNewTab}
+                title={`Open ${referencedQuantaId} in new tab`}
+                style={{
+                  position: "absolute",
+                  left: "88px",
+                  zIndex: 1,
+                  background: "transparent",
+                  border: "none",
+                  cursor: referencedQuantaId ? "pointer" : "not-allowed",
+                  padding: "4px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: referencedQuantaId ? 0.6 : 0.3,
+                  transition: "opacity 0.2s ease, background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (referencedQuantaId) {
+                    e.currentTarget.style.opacity = "1";
+                    e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = referencedQuantaId ? "0.6" : "0.3";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+                disabled={!referencedQuantaId}
+              >
+                {/* External link icon SVG - used instead of lucide-react to avoid React types mismatch */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#666"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </button>
             </div>
             <div
               style={{
