@@ -42,7 +42,7 @@ import { NodeConnectionManager } from '../content/NodeConnectionManager'
 // Slash Menu Items for Canvas
 // ============================================================================
 
-interface CanvasSlashMenuItem {
+export interface CanvasSlashMenuItem {
   id: string
   title: string
   emoji: string
@@ -50,7 +50,7 @@ interface CanvasSlashMenuItem {
   nodeContent: any // TipTap node JSON content
 }
 
-const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
+export const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
   { 
     id: 'group', 
     title: 'Group', 
@@ -220,7 +220,7 @@ const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
 // Canvas Item Interface
 // ============================================================================
 
-interface CanvasItem {
+export interface CanvasItem {
   id: string
   nodeType: string
   x: number
@@ -235,7 +235,7 @@ interface CanvasItem {
 const generateId = () => Math.random().toString(36).substring(2, 10)
 
 // Get default dimensions for node types
-const getNodeDefaults = (nodeType: string): { width: number; height: number } => {
+export const getNodeDefaults = (nodeType: string): { width: number; height: number } => {
   switch (nodeType) {
     case 'group':
       return { width: 250, height: 120 }
@@ -289,7 +289,7 @@ interface SlashMenuDropdownProps {
   position: { x: number; y: number }
 }
 
-const SlashMenuDropdown: React.FC<SlashMenuDropdownProps> = ({
+export const SlashMenuDropdown: React.FC<SlashMenuDropdownProps> = ({
   isOpen,
   onClose,
   onSelect,
@@ -559,7 +559,7 @@ interface CanvasItemProps {
   canvasRef: React.RefObject<HTMLDivElement>
 }
 
-const CanvasItemComponent: React.FC<CanvasItemProps> = ({
+export const CanvasItemComponent: React.FC<CanvasItemProps> = ({
   item,
   isSelected,
   onSelect,
