@@ -359,7 +359,7 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     },
     {
       id: 'canvas-3d',
-      title: '3D Canvas',
+      title: 'Canvas',
       description: 'Canvas for placing 3D models from Sketchfab',
       emoji: '🎨',
       keywords: ['3d', 'canvas', 'model', 'sketchfab', 'three', 'object', 'scene'],

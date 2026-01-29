@@ -209,6 +209,8 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "portal"
       case "externalPortal":
         return "externalPortal"
+      case "canvas3D":
+        return "canvas3D"
       default:
         console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
         return "invalid"
