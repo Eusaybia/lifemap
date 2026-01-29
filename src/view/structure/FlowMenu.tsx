@@ -1030,6 +1030,38 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+// Memoize Canvas3DLoupe
+const Canvas3DLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setCanvas3DLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setCanvas3DLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Canvas
+            </Tag>
+        </div>
+    )
+})
+
 // Memoize TemporalSpaceLoupe - similar to GroupLoupe but with "Temporal Space" tag
 const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
     const selectedNode = getSelectedNode(props.editor)
@@ -1702,6 +1734,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
+                        'canvas3D': <Canvas3DLoupe editor={props.editor} />,
                         'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // 3D Canvas Component
@@ -51,6 +52,17 @@ interface SketchfabModelResult {
   }
 }
 
+type Canvas3DLenses = "identity" | "private"
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    canvas3D: {
+      insertCanvas3D: () => ReturnType
+      setCanvas3DLens: (options: { lens: Canvas3DLenses }) => ReturnType
+    }
+  }
+}
+
 interface UnsplashPhoto {
   id: string
   alt_description?: string | null
@@ -85,15 +97,16 @@ interface CanvasImageItem {
   y: number
   width: number
   height: number
-  authorName: string
-  authorUrl: string
-  photoUrl: string
-  downloadLocation: string
+  authorName?: string
+  authorUrl?: string
+  photoUrl?: string
+  downloadLocation?: string
   alt: string
 }
 
 const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const { selected, deleteNode, node, updateAttributes } = props
+  const canvasLens = (node.attrs.lens as Canvas3DLenses) || "identity"
   const [showImporter, setShowImporter] = useState(false)
   // Store the glTF download URL (expires in ~5 mins) or Sketchfab model UID for embed fallback
   const [modelUrl, setModelUrl] = useState<string | null>(node.attrs.modelUrl || null)
@@ -292,6 +305,59 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     setShowImageSearch(true)
   }
 
+  const handleUploadImage = () => {
+    // Reuse the same upload flow as the Image slash menu item
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      try {
+        const response = await fetch(
+          `/api/upload?filename=${encodeURIComponent(file.name)}`,
+          { method: 'POST', body: file }
+        )
+        if (!response.ok) throw new Error('Upload failed')
+        const blob = await response.json()
+
+        const width = 180
+        const objectUrl = URL.createObjectURL(file)
+        const img = new Image()
+        img.onload = () => {
+          const aspect = img.width > 0 ? img.height / img.width : 1
+          const height = Math.max(100, Math.round(aspect * width))
+          const newItem: CanvasImageItem = {
+            id: `${file.name}-${Date.now()}`,
+            url: blob.url,
+            thumbUrl: blob.url,
+            x: 50,
+            y: 50,
+            width,
+            height,
+            alt: file.name || 'Uploaded image',
+          }
+
+          const nextImages = [...canvasImagesRef.current, newItem]
+          // Architectural choice: keep uploads in node attributes so they persist
+          // with the canvas layout and can be synced later if needed.
+          canvasImagesRef.current = nextImages
+          setCanvasImages(nextImages)
+          updateAttributes({ images: nextImages })
+          URL.revokeObjectURL(objectUrl)
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl)
+        }
+        img.src = objectUrl
+      } catch (error) {
+        console.error('Image upload failed:', error)
+      }
+    }
+    input.click()
+  }
+
   const handleCloseImageSearch = () => {
     setShowImageSearch(false)
   }
@@ -478,22 +544,24 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
       data-canvas-3d="true"
       style={{ margin: '16px 0' }}
     >
-      <motion.div
-        ref={canvasRef}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          position: 'relative',
-          width: '100%',
-          minHeight: '720px',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          // Transparent background so 3D models from parent scene show through
-          background: 'transparent',
-          border: selected ? '2px solid rgba(100, 150, 255, 0.8)' : '1px solid rgba(0, 0, 0, 0.3)',
-        }}
-      >
+      {/* NodeOverlay provides the grip, shadow, and connection support */}
+      <NodeOverlay nodeProps={props} nodeType="canvas3D" isPrivate={canvasLens === "private"}>
+        <motion.div
+          ref={canvasRef}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: '720px',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            // Transparent background so 3D models from parent scene show through
+            background: 'transparent',
+            border: selected ? '2px solid rgba(100, 150, 255, 0.8)' : '1px solid rgba(0, 0, 0, 0.3)',
+          }}
+        >
         {/* Black dot grid - spaced apart for clean look */}
         <div
           style={{
@@ -540,29 +608,31 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
                 display: 'block',
               }}
             />
-            <div
-              style={{
-                position: 'absolute',
-                left: 6,
-                bottom: 6,
-                padding: '2px 6px',
-                borderRadius: 6,
-                background: 'rgba(255, 255, 255, 0.85)',
-                fontSize: '10px',
-                fontFamily: "'Inter', system-ui, sans-serif",
-                color: '#444',
-                lineHeight: 1.2,
-              }}
-            >
-              <a
-                href={image.authorUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'inherit', textDecoration: 'none' }}
+            {image.authorName && image.authorUrl && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 6,
+                  bottom: 6,
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '10px',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  color: '#444',
+                  lineHeight: 1.2,
+                }}
               >
-                {image.authorName}
-              </a>
-            </div>
+                <a
+                  href={image.authorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'none' }}
+                >
+                  {image.authorName}
+                </a>
+              </div>
+            )}
           </div>
         ))}
         
@@ -606,6 +676,44 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             gap: '10px',
           }}
         >
+          <motion.button
+            type="button"
+            onClick={handleUploadImage}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              fontSize: '14px',
+              fontFamily: "'Inter', system-ui, sans-serif",
+              fontWeight: 500,
+              color: '#333',
+            }}
+          >
+            {/* Upload icon */}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#666"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 5 17 10" />
+              <line x1="12" y1="5" x2="12" y2="19" />
+            </svg>
+            Upload photo
+          </motion.button>
           <motion.button
             type="button"
             onClick={handleOpenImageSearch}
@@ -1015,7 +1123,8 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             ✕ Delete
           </button>
         )}
-      </motion.div>
+        </motion.div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }
@@ -1067,6 +1176,9 @@ export const Canvas3DExtension = TipTapNode.create({
       images: {
         default: [],
       },
+      lens: {
+        default: "identity" as Canvas3DLenses,
+      },
     }
   },
   
@@ -1090,6 +1202,25 @@ export const Canvas3DExtension = TipTapNode.create({
             type: this.name,
           })
           .run()
+      },
+      setCanvas3DLens: (attributes: { lens: Canvas3DLenses }) => ({ state, dispatch }) => {
+        const { selection } = state
+        const pos = selection.$from.pos
+        const node = state.doc.nodeAt(pos)
+
+        if (node && node.type.name === "canvas3D" && dispatch) {
+          const tr = state.tr.setNodeMarkup(
+            pos,
+            null,
+            {
+              ...node.attrs,
+              lens: attributes.lens,
+            }
+          )
+          dispatch(tr)
+          return true
+        }
+        return false
       },
     }
   },
