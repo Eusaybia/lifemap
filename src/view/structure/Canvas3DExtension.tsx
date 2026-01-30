@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
+import InfiniteViewer from "infinite-viewer"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -121,6 +122,11 @@ const generateCanvasUUID = (): string => {
 
 const generateCanvasItemId = () => Math.random().toString(36).substring(2, 10)
 
+// ARCHITECTURE DECISION: Keep Canvas3D at a fixed desktop size and let
+// smaller viewports clip it instead of scaling the content.
+const CANVAS3D_WIDTH = 1920
+const CANVAS3D_HEIGHT = 1080
+
 const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const { selected, deleteNode, node, updateAttributes } = props
   const canvasLens = (node.attrs.lens as Canvas3DLenses) || "identity"
@@ -140,6 +146,8 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     y: node.attrs.backingY ?? 50,
   })
   const canvasRef = useRef<HTMLDivElement>(null)
+  const viewerContainerRef = useRef<HTMLDivElement>(null)
+  const viewerRef = useRef<InfiniteViewer | null>(null)
   const backingRef = useRef<HTMLDivElement>(null)
   const isDraggingBacking = useRef(false)
   const dragStartPos = useRef({ x: 0, y: 0 })
@@ -175,6 +183,8 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   const [showCanvasSlashMenu, setShowCanvasSlashMenu] = useState(false)
   const [canvasSlashMenuPosition, setCanvasSlashMenuPosition] = useState({ x: 100, y: 100 })
   const [canvasSearchQuery, setCanvasSearchQuery] = useState('')
+
+  // InfiniteViewer manages pan/zoom for the canvas3D surface.
 
   // Load the Sketchfab Importer script
   useEffect(() => {
@@ -678,10 +688,48 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
   // Determine if we have any model to display
   const hasModel = modelUrl || modelUid
 
+  useEffect(() => {
+    if (!viewerContainerRef.current || !canvasRef.current) return
+
+    const viewer = new InfiniteViewer(
+      viewerContainerRef.current,
+      canvasRef.current,
+      {
+        useTransform: true,
+        useResizeObserver: true,
+        pinchThreshold: 40,
+        zoomRange: [0.2, 4],
+        maxPinchWheel: 10,
+        useWheelScroll: true,
+        useAutoZoom: true,
+        useMouseDrag: true,
+        preventWheelClick: false,
+      }
+    )
+
+    viewer.on("dragStart", (e) => {
+      const target = e.inputEvent.target as HTMLElement
+      if (target.closest('[data-canvas3d-draggable="true"]')) {
+        e.stop()
+      }
+    })
+
+    viewerRef.current = viewer
+
+    // ARCHITECTURE DECISION: default to desktop-scale zoom across all devices.
+    viewer.setZoom(1)
+    viewer.scrollCenter()
+
+    return () => {
+      viewer.destroy()
+      viewerRef.current = null
+    }
+  }, [])
+
   return (
     <NodeViewWrapper
       data-canvas-3d="true"
-      style={{ margin: '16px 0' }}
+      style={{ margin: '16px 0', overflow: 'hidden' }}
     >
       {/* NodeOverlay provides the grip, shadow, and connection support */}
       <NodeOverlay
@@ -692,19 +740,12 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
         padding={0}
         boxShadow="none"
       >
-        <motion.div
-          ref={canvasRef}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          tabIndex={0}
-          onClick={handleCanvasClick}
-          onDoubleClick={handleCanvasDoubleClick}
-          onKeyDown={handleCanvasKeyDown}
+        <div
+          ref={viewerContainerRef}
           style={{
             position: 'relative',
-            width: '100%',
-            minHeight: '720px',
+            width: `${CANVAS3D_WIDTH}px`,
+            height: `${CANVAS3D_HEIGHT}px`,
             borderRadius: '12px',
             overflow: 'hidden',
             // Transparent background so 3D models from parent scene show through
@@ -712,141 +753,154 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             border: selected ? '2px solid rgba(100, 150, 255, 0.8)' : '1px solid rgba(0, 0, 0, 0.3)',
           }}
         >
-        {/* Black dot grid - spaced apart for clean look */}
         <div
+          ref={canvasRef}
+          tabIndex={0}
+          onClick={handleCanvasClick}
+          onDoubleClick={handleCanvasDoubleClick}
+          onKeyDown={handleCanvasKeyDown}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `
-              radial-gradient(circle, rgba(0, 0, 0, 0.2) 1.5px, transparent 1.5px)
-            `,
-            backgroundSize: '40px 40px',
-            pointerEvents: 'none',
+            position: 'relative',
+            width: `${CANVAS3D_WIDTH}px`,
+            height: `${CANVAS3D_HEIGHT}px`,
           }}
-        />
-
-        {/* Old Canvas-style node items */}
-        {canvasItems.map(item => (
-          <CanvasItemComponent
-            key={item.id}
-            item={item}
-            isSelected={selectedCanvasItemId === item.id}
-            onSelect={() => setSelectedCanvasItemId(item.id)}
-            onUpdate={(updates) => updateCanvasItem(item.id, updates)}
-            onDelete={() => deleteCanvasItem(item.id)}
-            canvasRef={canvasRef}
+        >
+          {/* Black dot grid - spaced apart for clean look */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: `
+                radial-gradient(circle, rgba(0, 0, 0, 0.2) 1.5px, transparent 1.5px)
+              `,
+              backgroundSize: '40px 40px',
+              pointerEvents: 'none',
+            }}
           />
-        ))}
 
-        {/* NodeConnectionManager enables drawing connections between canvas items */}
-        <NodeConnectionManager containerRef={canvasRef} />
-
-        <AnimatePresence>
-          {showCanvasSlashMenu && (
-            <SlashMenuDropdown
-              isOpen={showCanvasSlashMenu}
-              onClose={() => {
-                setShowCanvasSlashMenu(false)
-                setCanvasSearchQuery('')
-              }}
-              onSelect={addCanvasItemFromMenu}
-              searchQuery={canvasSearchQuery}
-              onSearchChange={setCanvasSearchQuery}
-              position={canvasSlashMenuPosition}
+          {/* Old Canvas-style node items */}
+          {canvasItems.map(item => (
+            <CanvasItemComponent
+              key={item.id}
+              item={item}
+              isSelected={selectedCanvasItemId === item.id}
+              onSelect={() => setSelectedCanvasItemId(item.id)}
+              onUpdate={(updates) => updateCanvasItem(item.id, updates)}
+              onDelete={() => deleteCanvasItem(item.id)}
+              canvasRef={canvasRef}
             />
-          )}
-        </AnimatePresence>
+          ))}
 
-        {/* 2D images placed on the canvas */}
-        {canvasImages.map((image) => (
-          <div
-            key={image.id}
-            onPointerDown={(e) => handleImagePointerDown(e, image.id)}
-            style={{
-              position: 'absolute',
-              left: `${image.x}%`,
-              top: `${image.y}%`,
-              transform: 'translate(-50%, -50%)',
-              width: `${image.width}px`,
-              height: `${image.height}px`,
-              borderRadius: '10px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-              overflow: 'hidden',
-              cursor: 'grab',
-              backgroundColor: 'transparent',
-              border: 'none',
-            }}
-          >
-            <img
-              src={image.url}
-              alt={image.alt}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-            {image.authorName && image.authorUrl && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 6,
-                  bottom: 6,
-                  padding: '2px 6px',
-                  borderRadius: 6,
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  fontSize: '10px',
-                  fontFamily: "'Inter', system-ui, sans-serif",
-                  color: '#444',
-                  lineHeight: 1.2,
+          {/* NodeConnectionManager enables drawing connections between canvas items */}
+          <NodeConnectionManager containerRef={canvasRef} />
+
+          <AnimatePresence>
+            {showCanvasSlashMenu && (
+              <SlashMenuDropdown
+                isOpen={showCanvasSlashMenu}
+                onClose={() => {
+                  setShowCanvasSlashMenu(false)
+                  setCanvasSearchQuery('')
                 }}
-              >
-                <a
-                  href={image.authorUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: 'inherit', textDecoration: 'none' }}
-                >
-                  {image.authorName}
-                </a>
-              </div>
+                onSelect={addCanvasItemFromMenu}
+                searchQuery={canvasSearchQuery}
+                onSearchChange={setCanvasSearchQuery}
+                position={canvasSlashMenuPosition}
+              />
             )}
-          </div>
-        ))}
-        
-        {/* 2D Backing square - draggable within canvas, shows model position */}
-        {hasModel && (
-          <div
-            ref={backingRef}
-            onPointerDown={handleBackingPointerDown}
-            style={{
-              position: 'absolute',
-              left: `${backingPosition.x}%`,
-              top: `${backingPosition.y}%`,
-              transform: 'translate(-50%, -50%)',
-              width: '120px',
-              height: '120px',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              border: '1px solid rgba(0, 0, 0, 0.2)',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-              cursor: 'grab',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              color: '#666',
-              fontFamily: "'Inter', system-ui, sans-serif",
-              userSelect: 'none',
-            }}
-          >
-          </div>
-        )}
+          </AnimatePresence>
 
+          {/* 2D images placed on the canvas */}
+          {canvasImages.map((image) => (
+            <div
+              key={image.id}
+              onPointerDown={(e) => handleImagePointerDown(e, image.id)}
+              data-canvas3d-draggable="true"
+              style={{
+                position: 'absolute',
+                left: `${image.x}%`,
+                top: `${image.y}%`,
+                transform: 'translate(-50%, -50%)',
+                width: `${image.width}px`,
+                height: `${image.height}px`,
+                borderRadius: '10px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                overflow: 'hidden',
+                cursor: 'grab',
+                backgroundColor: 'transparent',
+                border: 'none',
+              }}
+            >
+              <img
+                src={image.url}
+                alt={image.alt}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              {image.authorName && image.authorUrl && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 6,
+                    bottom: 6,
+                    padding: '2px 6px',
+                    borderRadius: 6,
+                    background: 'rgba(255, 255, 255, 0.85)',
+                    fontSize: '10px',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    color: '#444',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  <a
+                    href={image.authorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'inherit', textDecoration: 'none' }}
+                  >
+                    {image.authorName}
+                  </a>
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {/* 2D Backing square - draggable within canvas, shows model position */}
+          {hasModel && (
+            <div
+              ref={backingRef}
+              onPointerDown={handleBackingPointerDown}
+              data-canvas3d-draggable="true"
+              style={{
+                position: 'absolute',
+                left: `${backingPosition.x}%`,
+                top: `${backingPosition.y}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '120px',
+                height: '120px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid rgba(0, 0, 0, 0.2)',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                cursor: 'grab',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                color: '#666',
+                fontFamily: "'Inter', system-ui, sans-serif",
+                userSelect: 'none',
+              }}
+            >
+            </div>
+          )}
         {/* Search buttons - top right */}
         <div
           style={{
@@ -863,6 +917,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             onClick={handleAddNodeClick}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            data-canvas3d-draggable="true"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -887,6 +942,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             onClick={handleUploadImage}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            data-canvas3d-draggable="true"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -925,6 +981,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             onClick={handleOpenImageSearch}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            data-canvas3d-draggable="true"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -962,6 +1019,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             onClick={handleOpenImporter}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            data-canvas3d-draggable="true"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1329,7 +1387,8 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             ✕ Delete
           </button>
         )}
-        </motion.div>
+        </div>
+        </div>
       </NodeOverlay>
     </NodeViewWrapper>
   )
