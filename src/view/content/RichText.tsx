@@ -49,7 +49,7 @@ import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
-import { FinesseMention, FinesseNode } from './FinesseMention'
+import { AuraMention, AuraNode } from './AuraMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -305,8 +305,8 @@ export const customExtensions: Extensions = [
   MeritDemeritNode,
   MeritDemeritMention,
   // Finesse mentions - triggered by ^ for energy levels
-  FinesseNode,
-  FinesseMention,
+  AuraNode,
+  AuraMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   // PomodoroNode is for short durations (< 1 day) with timer functionality
   // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality
@@ -770,7 +770,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const STABILIZATION_DELAY = 800; // Wait 800ms of no updates before considering stable
     const FALLBACK_TIMEOUT = 2000; // Max wait time in case no updates come
     
-    const checkAndInitializeIfEmpty = () => {
+    const checkAndInitializeIfEmpty = async () => {
       // Guard: only run once
       if (dailyTemplateInitChecked.current || templateApplied.current) return;
       dailyTemplateInitChecked.current = true;
@@ -784,6 +784,14 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       const isEmpty = yDocIsEmpty && editorIsEmpty;
       
       if (isEmpty) {
+        // Architectural choice: verify IndexedDB before applying fallback to avoid
+        // merging the fallback into an existing custom template after late sync.
+        const persistedTemplate = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+        if (persistedTemplate) {
+          console.log('[RichText] Found persisted daily-schedule-template content; skipping fallback initialization');
+          return;
+        }
+
         // Clear Y.Doc first to prevent Y.js from merging (which causes duplication)
         yDoc.transact(() => {
           yFragment.delete(0, yFragment.length);
