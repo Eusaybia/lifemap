@@ -405,7 +405,9 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       Collaboration.configure({
         document: quanta.information,
         field: 'default',
-      }),
+      })
+    )
+    generatedOfficialExtensions.push(
       CollaborationHistory.configure({
         provider,
       })
