@@ -10,7 +10,6 @@ import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
-import { NodeOverlay } from "../components/NodeOverlay";
 
 // ============================================================================
 // Finesse Energy Glow Helper
@@ -348,76 +347,74 @@ export const TemporalSpaceExtension = TipTapNode.create({
           data-temporal-space-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          <NodeOverlay nodeProps={props} nodeType="temporalSpace">
-            {/* Debug logs removed for performance */}
-            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
-            <div
-              style={{
-                borderRadius: 12,
-                position: 'relative',
-                display: isHidden ? 'none' : 'block',
-                // Frosted glass effect - with subtle gradient for depth even on white
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)', // Safari support
-                // Multi-layer border for glass edge effect
-                border: '1px solid rgba(200, 200, 210, 0.4)',
-                // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
-                boxShadow: `
-                  0 4px 24px rgba(0, 0, 0, 0.08),
-                  0 1px 3px rgba(0, 0, 0, 0.06),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                  inset 0 -1px 0 rgba(0, 0, 0, 0.05),
-                  inset 1px 0 0 rgba(255, 255, 255, 0.4),
-                  inset -1px 0 0 rgba(0, 0, 0, 0.03)
-                `,
-                padding: isCollapsed ? '10px 20px' : '20px',
-                margin: '8px 0px',
-                minHeight: isCollapsed ? 48 : 20,
-                overflow: 'visible',
-              }}
-            >
-              {/* Content */}
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {(() => {
-                      switch (props.node.attrs.lens) {
-                        case "identity":
-                          return <NodeViewContent />;
-                        case "hideUnimportantNodes":
-                          return <div>Important Nodes Only (Pending)</div>;
-                        default:
-                          return <NodeViewContent />;
-                      }
-                    })()}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          {/* Architecture: TemporalSpace renders as a single node without Group wrapper
+              to keep its structure flat in the document tree. */}
+          <div
+            style={{
+              borderRadius: 12,
+              position: 'relative',
+              display: isHidden ? 'none' : 'block',
+              // Frosted glass effect - with subtle gradient for depth even on white
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)', // Safari support
+              // Multi-layer border for glass edge effect
+              border: '1px solid rgba(200, 200, 210, 0.4)',
+              // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
+              boxShadow: `
+                0 4px 24px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+                inset 1px 0 0 rgba(255, 255, 255, 0.4),
+                inset -1px 0 0 rgba(0, 0, 0, 0.03)
+              `,
+              padding: isCollapsed ? '10px 20px' : '20px',
+              margin: '8px 0px',
+              minHeight: isCollapsed ? 48 : 20,
+              overflow: 'visible',
+            }}
+          >
+            {/* Content */}
+            <AnimatePresence>
+              {!isCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {(() => {
+                    switch (props.node.attrs.lens) {
+                      case "identity":
+                        return <NodeViewContent />;
+                      case "hideUnimportantNodes":
+                        return <div>Important Nodes Only (Pending)</div>;
+                      default:
+                        return <NodeViewContent />;
+                    }
+                  })()}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'black',
-                  borderRadius: 10,
-                  pointerEvents: 'none',
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: dimmingOpacity }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-              />
-            </div>
-          </NodeOverlay>
+            {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'black',
+                borderRadius: 10,
+                pointerEvents: 'none',
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: dimmingOpacity }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            />
+          </div>
         </NodeViewWrapper>
       );
     });
