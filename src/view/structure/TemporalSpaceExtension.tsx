@@ -36,6 +36,9 @@ export const getAuraGlow = (node: ProseMirrorNode): string | null => {
       } else if (auraId?.includes('lower-energy')) {
         // Strong Yin - deeper dark shadow surrounding all sides
         glowStyle = '0 0 30px 8px rgba(0, 0, 0, 0.25), 0 0 60px 15px rgba(0, 0, 0, 0.15)';
+      } else if (auraId?.includes('blockage')) {
+        // Blockage - black aura, distinct from higher yang energies
+        glowStyle = '0 0 28px 8px rgba(0, 0, 0, 0.6), 0 0 60px 16px rgba(0, 0, 0, 0.35)';
       }
     }
   });
