@@ -11,23 +11,29 @@ import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 
 // Unique plugin key to avoid conflicts with other extensions
-const FinessePluginKey = new PluginKey('finesse-suggestion')
+const AuraPluginKey = new PluginKey('aura-suggestion')
+
+// Architectural choice: keep the underlying node name as "finesse" so existing
+// stored documents continue to parse without a migration, while exposing Aura
+// as the public-facing name.
+const AURA_NODE_NAME = 'finesse'
+const AURA_DATA_TYPE = 'aura'
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface Finesse {
+export interface AuraEnergyLevel {
   id: string
   label: string
   emoji: string
 }
 
-interface FinesseListProps extends SuggestionProps {
-  items: Finesse[]
+interface AuraListProps extends SuggestionProps {
+  items: AuraEnergyLevel[]
 }
 
-type FinesseListRef = {
+type AuraListRef = {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean
 }
 
@@ -35,60 +41,60 @@ type FinesseListRef = {
 // Energy Level Definitions
 // ============================================================================
 
-const FINESSE_ITEMS: Finesse[] = [
+const AURA_ITEMS: AuraEnergyLevel[] = [
   { 
-    id: 'finesse:higher-energy', 
+    id: 'aura:higher-energy', 
     label: 'Higher Energy (Strong Yang) ⚌', 
     emoji: '☀️',
   },
   { 
-    id: 'finesse:semi-higher-energy', 
+    id: 'aura:semi-higher-energy', 
     label: 'Semi-Higher Energy (Lesser Yang) ⚎', 
     emoji: '☁️',
   },
   { 
-    id: 'finesse:semi-lower-energy', 
+    id: 'aura:semi-lower-energy', 
     label: 'Semi-Lower Energy (Lesser Yin) ⚍', 
     emoji: '🌍',
   },
   { 
-    id: 'finesse:lower-energy', 
+    id: 'aura:lower-energy', 
     label: 'Lower Energy (Strong Yin) ⚏', 
     emoji: '🌙',
   },
 ]
 
 // ============================================================================
-// Finesse Search
+// Aura Search
 // ============================================================================
 
-const fetchFinesseItems = (query: string): Finesse[] => {
+const fetchAuraItems = (query: string): AuraEnergyLevel[] => {
   if (!query) {
-    return FINESSE_ITEMS
+    return AURA_ITEMS
   }
   
   const lowerQuery = query.toLowerCase().replace(/^\^/, '') // Remove leading ^ if present
   
-  return FINESSE_ITEMS.filter((item) =>
+  return AURA_ITEMS.filter((item) =>
     item.label.toLowerCase().includes(lowerQuery)
   )
 }
 
 // ============================================================================
-// Finesse List Component (Dropdown UI) - matches TimePointMention styling
+// Aura List Component (Dropdown UI) - matches TimePointMention styling
 // ============================================================================
 
-const FinesseList = forwardRef<FinesseListRef, FinesseListProps>((props, ref) => {
+const AuraList = forwardRef<AuraListRef, AuraListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const selectItem = (index: number) => {
     if (index >= props.items.length) return
 
-    const finesse = props.items[index]
-    const displayLabel = `${finesse.emoji} ${finesse.label}`
+    const auraItem = props.items[index]
+    const displayLabel = `${auraItem.emoji} ${auraItem.label}`
     
     props.command({
-      id: finesse.id,
+      id: auraItem.id,
       label: displayLabel,
     })
   }
@@ -111,7 +117,7 @@ const FinesseList = forwardRef<FinesseListRef, FinesseListProps>((props, ref) =>
   return (
     <div className="timepoint-items">
       {props.items.length > 0 ? (
-        props.items.map((item: Finesse, index) => (
+        props.items.map((item: AuraEnergyLevel, index) => (
           <motion.div
             className={`timepoint-item ${index === selectedIndex ? 'is-selected' : ''}`}
             key={item.id}
@@ -132,14 +138,14 @@ const FinesseList = forwardRef<FinesseListRef, FinesseListProps>((props, ref) =>
   )
 })
 
-FinesseList.displayName = 'FinesseList'
+AuraList.displayName = 'AuraList'
 
 // ============================================================================
-// Finesse Node (for rendering inserted finesse mentions)
+// Aura Node (for rendering inserted aura mentions)
 // ============================================================================
 
-export const FinesseNode = Node.create({
-  name: 'finesse',
+export const AuraNode = Node.create({
+  name: AURA_NODE_NAME,
   group: 'inline',
   inline: true,
   selectable: true,
@@ -153,33 +159,36 @@ export const FinesseNode = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-type="finesse"]' }]
+    return [
+      { tag: 'span[data-type="finesse"]' },
+      { tag: 'span[data-type="aura"]' },
+    ]
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const finesseId = node.attrs.id as string;
+    const auraId = node.attrs.id as string
     
     // Determine glow based on energy level
-    let glowStyle = '';
-    if (finesseId?.includes('higher-energy')) {
+    let glowStyle = ''
+    if (auraId?.includes('higher-energy')) {
       // Strong Yang - bright yellow sun glow
-      glowStyle = '0 0 12px 3px rgba(255, 240, 50, 0.6), 0 0 25px 6px rgba(255, 250, 100, 0.35)';
-    } else if (finesseId?.includes('semi-higher-energy')) {
+      glowStyle = '0 0 12px 3px rgba(255, 240, 50, 0.6), 0 0 25px 6px rgba(255, 250, 100, 0.35)'
+    } else if (auraId?.includes('semi-higher-energy')) {
       // Lesser Yang - dull pale yellow glow (closer to white)
-      glowStyle = '0 0 10px 3px rgba(255, 252, 230, 0.6), 0 0 20px 5px rgba(250, 248, 220, 0.35)';
-    } else if (finesseId?.includes('semi-lower-energy')) {
+      glowStyle = '0 0 10px 3px rgba(255, 252, 230, 0.6), 0 0 20px 5px rgba(250, 248, 220, 0.35)'
+    } else if (auraId?.includes('semi-lower-energy')) {
       // Lesser Yin - soft dark shadow
-      glowStyle = '0 0 10px 3px rgba(0, 0, 0, 0.2), 0 0 20px 5px rgba(0, 0, 0, 0.12)';
-    } else if (finesseId?.includes('lower-energy')) {
+      glowStyle = '0 0 10px 3px rgba(0, 0, 0, 0.2), 0 0 20px 5px rgba(0, 0, 0, 0.12)'
+    } else if (auraId?.includes('lower-energy')) {
       // Strong Yin - deeper dark shadow
-      glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.3), 0 0 25px 6px rgba(0, 0, 0, 0.18)';
+      glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.3), 0 0 25px 6px rgba(0, 0, 0, 0.18)'
     }
     
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
         class: 'timepoint-mention',
-        'data-type': 'finesse',
+        'data-type': AURA_DATA_TYPE,
         'data-id': node.attrs.id,
         style: glowStyle ? `box-shadow: ${glowStyle}; border-radius: 4px;` : '',
       }),
@@ -189,16 +198,16 @@ export const FinesseNode = Node.create({
 })
 
 // ============================================================================
-// Finesse Extension (combines Node + Suggestion)
+// Aura Extension (combines Node + Suggestion)
 // ============================================================================
 
-export interface FinesseOptions {
+export interface AuraOptions {
   HTMLAttributes: Record<string, any>
-  suggestion: Omit<SuggestionOptions<Finesse>, 'editor'>
+  suggestion: Omit<SuggestionOptions<AuraEnergyLevel>, 'editor'>
 }
 
-export const FinesseMention = Extension.create<FinesseOptions>({
-  name: 'finesse-extension',
+export const AuraMention = Extension.create<AuraOptions>({
+  name: 'aura-extension',
 
   addOptions() {
     return {
@@ -206,17 +215,17 @@ export const FinesseMention = Extension.create<FinesseOptions>({
       suggestion: {
         char: '^',
         allowSpaces: false,
-        pluginKey: FinessePluginKey,
-        items: ({ query }) => fetchFinesseItems(query),
+        pluginKey: AuraPluginKey,
+        items: ({ query }) => fetchAuraItems(query),
         command: ({ editor, range, props }) => {
-          // Delete the trigger text and insert the finesse node
+          // Delete the trigger text and insert the aura node
           editor
             .chain()
             .focus()
             .deleteRange(range)
             .insertContent([
               {
-                type: 'finesse',
+                type: AURA_NODE_NAME,
                 attrs: props,
               },
               { type: 'text', text: ' ' },
@@ -224,12 +233,12 @@ export const FinesseMention = Extension.create<FinesseOptions>({
             .run()
         },
         render: () => {
-          let component: ReactRenderer<FinesseListRef> | undefined
+          let component: ReactRenderer<AuraListRef> | undefined
           let popup: TippyInstance | undefined
 
           return {
             onStart: (props) => {
-              component = new ReactRenderer(FinesseList, {
+              component = new ReactRenderer(AuraList, {
                 props,
                 editor: props.editor,
               })
@@ -280,4 +289,4 @@ export const FinesseMention = Extension.create<FinesseOptions>({
   },
 })
 
-export default FinesseMention
+export default AuraMention
