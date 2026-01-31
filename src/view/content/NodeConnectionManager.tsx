@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { DocumentAttributes } from '../structure/DocumentAttributesExtension'
-import HandDrawnArrow from '../components/HandDrawnArrow'
 
 // ============================================================================
 // NODE CONNECTION MANAGER
 // ============================================================================
 // This manager handles connections/arrows between connectable elements in the editor.
-// Uses the HandDrawnArrow component for hand-drawn style arrows with click-to-navigate.
 // 
 // CONNECTABLE ELEMENT TYPES:
 // 1. BLOCK GROUP (GroupTipTapExtension.tsx)
@@ -101,33 +99,47 @@ const getConnectableElement = (id: string, type: ConnectableType): HTMLElement |
   }
 }
 
-// Generate a DOM-safe ID for an element based on its type and unique ID
-// HandDrawnArrow uses document.getElementById(), so we need actual id attributes
-const getElementDomId = (id: string, type: ConnectableType): string => {
-  return `connection-${type}-${id}`
+// Helper function to check if an element is in the viewport
+const isElementInViewport = (el: HTMLElement): boolean => {
+  if (!el) return false
+  const rect = el.getBoundingClientRect()
+  const vertInView = (rect.top <= window.innerHeight) && ((rect.top + rect.height) >= 0)
+  const horzInView = (rect.left <= window.innerWidth) && ((rect.left + rect.width) >= 0)
+  return vertInView && horzInView
 }
 
-// Ensure an element has an id attribute set for HandDrawnArrow to find it
-// This bridges our data-attribute based system with HandDrawnArrow's getElementById approach
-const ensureElementHasId = (id: string, type: ConnectableType): string | null => {
-  const element = getConnectableElement(id, type)
-  if (!element) return null
-  
-  const domId = getElementDomId(id, type)
-  
-  // Only set the id if it doesn't already have one (preserve existing ids)
-  if (!element.id) {
-    element.id = domId
+const isElementCompletelyHidden = (elem: HTMLElement): boolean => {
+  if (!elem) return true
+  const style = window.getComputedStyle(elem)
+  if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+    return true
   }
-  
-  return element.id
+  if (elem.offsetWidth <= 0 && elem.offsetHeight <= 0 && style.overflow !== 'visible') {
+    return true
+  }
+  if (elem.parentElement && elem.parentElement !== document.body) {
+    return isElementCompletelyHidden(elem.parentElement)
+  }
+  return false
 }
+
+type ConnectionPath = {
+  id: string
+  d: string
+  arrowPoints: string
+  sourceId: string
+  targetId: string
+  sourceType: ConnectableType
+  targetType: ConnectableType
+}
+
+const PATH_CURVE_OFFSET = 50
 
 /**
  * NodeConnectionManager
  * 
  * Manages connections between connectable elements.
- * Uses HandDrawnArrow component for rendering with built-in click-to-navigate.
+ * Uses a single SVG overlay for rendering with click-to-navigate.
  * 
  * - In Connection mode: click elements to create new connections
  * - Arrows always navigate on click (toggle between head/tail)
@@ -138,8 +150,9 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const [connections, setConnections] = useState<NodeConnection[]>([])
   const [pendingSource, setPendingSource] = useState<{ id: string, type: ConnectableType } | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
-  // Force re-render to update arrow positions on scroll/resize
-  const [, forceUpdate] = useState({})
+  const [connectionPaths, setConnectionPaths] = useState<ConnectionPath[]>([])
+  const focusedEndByConnection = useRef<Record<string, 'head' | 'tail'>>({})
+  const pendingRaf = useRef<number | null>(null)
 
   // Load connections on mount
   useEffect(() => {
@@ -267,40 +280,159 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     }
   }, [editorMode])
 
-  // Force re-render on scroll/resize to update HandDrawnArrow positions
+  const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right') => {
+    const mapContainer = elem.querySelector('.mapboxgl-map')
+    const marker = elem.querySelector('.mapboxgl-marker')
+    
+    if (mapContainer && marker) {
+      const markerRect = marker.getBoundingClientRect()
+      return {
+        x: markerRect.left + markerRect.width / 2,
+        y: markerRect.top + markerRect.height
+      }
+    }
+    
+    const rect = elem.getBoundingClientRect()
+    return {
+      x: side === 'left' ? rect.left : rect.right,
+      y: rect.top + rect.height / 2
+    }
+  }, [])
+
+  const computeConnectionPaths = useCallback((): ConnectionPath[] => {
+    const side: 'left' | 'right' = 'right'
+    
+    return connections.map((conn) => {
+      const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
+      const targetElement = getConnectableElement(conn.targetId, conn.targetType)
+      
+      if (!sourceElement || !targetElement) {
+        return null
+      }
+      
+      if (isElementCompletelyHidden(sourceElement) || isElementCompletelyHidden(targetElement)) {
+        return null
+      }
+      
+      const sourcePoint = getAnchorPoint(sourceElement, side)
+      const targetPoint = getAnchorPoint(targetElement, side)
+      
+      const x1 = sourcePoint.x + (side === 'left' ? 3 : -3)
+      const y1 = sourcePoint.y
+      const x2 = targetPoint.x + (side === 'left' ? -3 : 3)
+      const y2 = targetPoint.y
+      const midX = (x1 + x2) / 2 + (side === 'left' ? -PATH_CURVE_OFFSET : PATH_CURVE_OFFSET)
+      const midY = (y1 + y2) / 2
+      
+      const angle = Math.atan2(y2 - midY, x2 - midX)
+      const arrowSize = 12
+      const arrowPoints = `${x2},${y2} ${x2 - arrowSize * Math.cos(angle - Math.PI / 6)},${y2 - arrowSize * Math.sin(angle - Math.PI / 6)} ${x2 - arrowSize * Math.cos(angle + Math.PI / 6)},${y2 - arrowSize * Math.sin(angle + Math.PI / 6)}`
+      
+      return {
+        id: conn.id,
+        d: `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`,
+        arrowPoints,
+        sourceId: conn.sourceId,
+        targetId: conn.targetId,
+        sourceType: conn.sourceType,
+        targetType: conn.targetType
+      }
+    }).filter(Boolean) as ConnectionPath[]
+  }, [connections, getAnchorPoint])
+
+  const requestConnectionUpdate = useCallback(() => {
+    if (pendingRaf.current !== null) return
+    
+    // Architectural choice: use a single requestAnimationFrame for all connections
+    // to avoid per-arrow animation loops and DOM churn that can cause flicker.
+    pendingRaf.current = window.requestAnimationFrame(() => {
+      pendingRaf.current = null
+      setConnectionPaths(computeConnectionPaths())
+    })
+  }, [computeConnectionPaths])
+
+  // Update connection paths when connections change or when layout changes
   useEffect(() => {
-    const handleUpdate = () => forceUpdate({})
+    requestConnectionUpdate()
+  }, [connections, requestConnectionUpdate])
+
+  useEffect(() => {
+    const handleUpdate = () => requestConnectionUpdate()
+    const scrollTarget = containerRef?.current
+    
+    if (scrollTarget) {
+      scrollTarget.addEventListener('scroll', handleUpdate, { passive: true })
+    }
     
     window.addEventListener('scroll', handleUpdate, true)
     window.addEventListener('resize', handleUpdate)
     
+    // Architectural choice: observe DOM mutations so arrows track live edits
+    // without coupling to editor internals or forcing NodeView re-renders.
+    const mutationObserver = new MutationObserver(handleUpdate)
+    mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    })
+    
     return () => {
+      if (scrollTarget) {
+        scrollTarget.removeEventListener('scroll', handleUpdate)
+      }
       window.removeEventListener('scroll', handleUpdate, true)
       window.removeEventListener('resize', handleUpdate)
+      mutationObserver.disconnect()
     }
+  }, [containerRef, requestConnectionUpdate])
+
+  const handleConnectionClick = useCallback((conn: ConnectionPath, event: React.MouseEvent<SVGElement>) => {
+    const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
+    const targetElement = getConnectableElement(conn.targetId, conn.targetType)
+    
+    if (!sourceElement || !targetElement) return
+    
+    const sourceVisible = isElementInViewport(sourceElement)
+    const targetVisible = isElementInViewport(targetElement)
+    const currentFocus = focusedEndByConnection.current[conn.id] ?? 'tail'
+    
+    let targetElem: HTMLElement | null = null
+    let nextFocusedEnd: 'head' | 'tail' = currentFocus
+    
+    if (!sourceVisible && !targetVisible) {
+      const clickY = event.clientY
+      const viewportCenterY = window.innerHeight / 2
+      if (clickY < viewportCenterY) {
+        targetElem = targetElement
+        nextFocusedEnd = 'head'
+      } else {
+        targetElem = sourceElement
+        nextFocusedEnd = 'tail'
+      }
+    } else if (!targetVisible) {
+      targetElem = targetElement
+      nextFocusedEnd = 'head'
+    } else if (!sourceVisible) {
+      targetElem = sourceElement
+      nextFocusedEnd = 'tail'
+    } else {
+      if (currentFocus === 'tail') {
+        targetElem = targetElement
+        nextFocusedEnd = 'head'
+      } else {
+        targetElem = sourceElement
+        nextFocusedEnd = 'tail'
+      }
+    }
+    
+    focusedEndByConnection.current[conn.id] = nextFocusedEnd
+    targetElem?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
   // Only render when needed
   if (editorMode !== 'connection' && connections.length === 0) {
     return null
   }
-
-  // Ensure all connected elements have IDs for HandDrawnArrow
-  // This bridges our data-attribute system with HandDrawnArrow's getElementById
-  const validConnections = connections.map(conn => {
-    const sourceElementId = ensureElementHasId(conn.sourceId, conn.sourceType)
-    const targetElementId = ensureElementHasId(conn.targetId, conn.targetType)
-    
-    if (!sourceElementId || !targetElementId) {
-      return null
-    }
-    
-    return {
-      ...conn,
-      sourceElementId,
-      targetElementId
-    }
-  }).filter(Boolean) as (NodeConnection & { sourceElementId: string, targetElementId: string })[]
 
   return (
     <>
@@ -371,17 +503,42 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         </div>
       )}
       
-      {/* Render HandDrawnArrow for each connection */}
-      {/* HandDrawnArrow handles click-to-navigate automatically (toggles between head/tail) */}
-      {validConnections.map(conn => (
-        <HandDrawnArrow
-          key={conn.id}
-          fromId={conn.sourceElementId}
-          toId={conn.targetElementId}
-          side="right"
-          showArrowhead={true}
-        />
-      ))}
+      {/* Render all connections in a single overlay SVG */}
+      <svg
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 10000,
+          overflow: 'visible',
+        }}
+      >
+        {connectionPaths.map((conn) => (
+          <g key={conn.id}>
+            <path
+              d={conn.d}
+              // Black arrows represent physical-world actions; future translucent arrows will represent mental motion between concepts.
+              stroke="#262626"
+              strokeWidth={3}
+              fill="none"
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(event) => handleConnectionClick(conn, event)}
+            />
+            <polygon
+              points={conn.arrowPoints}
+              // Black arrowheads represent physical-world actions; future translucent arrows will represent mental motion between concepts.
+              fill="#262626"
+              stroke="#262626"
+              strokeWidth={1}
+              style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+              onClick={(event) => handleConnectionClick(conn, event)}
+            />
+          </g>
+        ))}
+      </svg>
     </>
   )
 }
