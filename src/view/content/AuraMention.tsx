@@ -62,6 +62,11 @@ const AURA_ITEMS: AuraEnergyLevel[] = [
     label: 'Lower Energy (Strong Yin) ⚏', 
     emoji: '🌙',
   },
+  {
+    id: 'aura:blockage',
+    label: 'Blockage',
+    emoji: '🪨',
+  },
 ]
 
 // ============================================================================
@@ -182,6 +187,9 @@ export const AuraNode = Node.create({
     } else if (auraId?.includes('lower-energy')) {
       // Strong Yin - deeper dark shadow
       glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.3), 0 0 25px 6px rgba(0, 0, 0, 0.18)'
+    } else if (auraId?.includes('blockage')) {
+      // Blockage - black aura, distinct from higher yang energies
+      glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.65), 0 0 28px 8px rgba(0, 0, 0, 0.4)'
     }
     
     return [
