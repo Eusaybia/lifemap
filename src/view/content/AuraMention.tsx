@@ -86,7 +86,7 @@ const fetchAuraItems = (query: string): AuraEnergyLevel[] => {
 }
 
 // ============================================================================
-// Aura List Component (Dropdown UI) - matches TimePointMention styling
+// Aura List Component (Dropdown UI) - matches TemporalFieldExtension styling
 // ============================================================================
 
 const AuraList = forwardRef<AuraListRef, AuraListProps>((props, ref) => {
