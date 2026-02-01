@@ -477,10 +477,12 @@ const MiniEditor: React.FC<{
     ConcentricRingsExtension,
   ]), [])
 
+  // ARCHITECTURE DECISION: Always editable so users can click and type directly
+  // without needing to select the canvas item first.
   const editor = useEditor({
     extensions: miniEditorExtensions,
     content: initialContentRef.current,
-    editable: isSelected,
+    editable: true,
     immediatelyRender: true, // Allow immediate render for nested editors
     onCreate: ({ editor }) => {
       console.log(`[MiniEditor] ${nodeType} editor created, schema nodes:`, Object.keys(editor.schema.nodes))
@@ -491,13 +493,6 @@ const MiniEditor: React.FC<{
       onUpdateRef.current(editor.getJSON())
     },
   }, [miniEditorExtensions])
-
-  // Update editability when selection changes
-  useEffect(() => {
-    if (editor) {
-      editor.setEditable(isSelected)
-    }
-  }, [editor, isSelected])
 
   // Update content when it changes externally
   useEffect(() => {

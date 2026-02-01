@@ -224,22 +224,14 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     canvasItemsRef.current = canvasItems
   }, [canvasItems])
 
-  // ARCHITECTURE DECISION: Only sync from node.attrs.items when the serialized
-  // value actually differs from our current state. This prevents the loop where
-  // updateCanvasItems → updateAttributes → node.attrs.items change → setCanvasItems
-  // which would cause MiniEditor to see "new" content and re-initialize nodes.
-  useEffect(() => {
-    if (typeof node.attrs.items === 'string') {
-      const currentSerialized = JSON.stringify(canvasItemsRef.current)
-      if (node.attrs.items !== currentSerialized) {
-        try {
-          setCanvasItems(JSON.parse(node.attrs.items) as CanvasItem[])
-        } catch {
-          setCanvasItems([])
-        }
-      }
-    }
-  }, [node.attrs.items])
+  // ARCHITECTURE DECISION: Disabled automatic sync from node.attrs.items during editing.
+  // React state is the source of truth; attrs are only used for initial hydration (via
+  // useState initializer) and persistence (via updateAttributes). The complex sync logic
+  // caused race conditions during typing that would reset or delete content. External
+  // changes like undo/redo will need a separate mechanism if required.
+  // 
+  // Previous implementation tracked pendingItemsRef and recentlyAddedIdsRef to avoid
+  // overwriting local changes, but timing issues during rapid typing still caused data loss.
 
   const initializeImporter = () => {
     if (!importerContainerRef.current || importerInitialized.current) return
