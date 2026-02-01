@@ -42,21 +42,48 @@ const addDays = (date: Date, days: number): Date => {
   return result
 }
 
+const NORTHERN_SEASON_MARKERS = [
+  { name: 'Spring', month: 2, day: 20, emoji: '🌸' },
+  { name: 'Summer', month: 5, day: 21, emoji: '☀️' },
+  { name: 'Autumn', month: 8, day: 22, emoji: '🍂' },
+  { name: 'Winter', month: 11, day: 21, emoji: '❄️' },
+]
+
+const getSeasonMarkersForUser = () => {
+  const location = cachedLocation || getStoredLocation()
+  const isSouthernHemisphere = location.latitude < 0
+  if (!isSouthernHemisphere) return NORTHERN_SEASON_MARKERS
+
+  // Southern Hemisphere swaps Spring/Autumn and Summer/Winter markers.
+  return [
+    { name: 'Spring', month: 8, day: 22, emoji: '🌸' },  // Sep equinox
+    { name: 'Summer', month: 11, day: 21, emoji: '☀️' }, // Dec solstice
+    { name: 'Autumn', month: 2, day: 20, emoji: '🍂' },   // Mar equinox
+    { name: 'Winter', month: 5, day: 21, emoji: '❄️' },   // Jun solstice
+  ]
+}
+
 const getNextSeason = (): { name: string; date: Date; emoji: string } => {
   const now = new Date()
   const year = now.getFullYear()
-  const month = now.getMonth()
   
-  if (month < 2 || (month === 2 && now.getDate() < 20)) {
-    return { name: 'Spring', date: new Date(year, 2, 20), emoji: '🌸' }
-  } else if (month < 5 || (month === 5 && now.getDate() < 21)) {
-    return { name: 'Summer', date: new Date(year, 5, 21), emoji: '☀️' }
-  } else if (month < 8 || (month === 8 && now.getDate() < 22)) {
-    return { name: 'Autumn', date: new Date(year, 8, 22), emoji: '🍂' }
-  } else if (month < 11 || (month === 11 && now.getDate() < 21)) {
-    return { name: 'Winter', date: new Date(year, 11, 21), emoji: '❄️' }
-  } else {
-    return { name: 'Spring', date: new Date(year + 1, 2, 20), emoji: '🌸' }
+  const seasonMarkers = getSeasonMarkersForUser()
+  const candidates = seasonMarkers.map((season) => ({
+    ...season,
+    date: new Date(year, season.month, season.day),
+  }))
+  
+  const upcoming = candidates.find((season) => season.date >= now)
+  if (upcoming) {
+    return { name: upcoming.name, date: upcoming.date, emoji: upcoming.emoji }
+  }
+  
+  const nextYear = year + 1
+  const firstSeason = seasonMarkers[0]
+  return {
+    name: firstSeason.name,
+    date: new Date(nextYear, firstSeason.month, firstSeason.day),
+    emoji: firstSeason.emoji,
   }
 }
 
@@ -443,14 +470,6 @@ const getLunarPhasePoints = (): TimePoint[] => {
   const lastQuarterEmoji = getQuarterMoonEmoji('last')
   
   const phases: TimePoint[] = [
-    // Current phase (today)
-    {
-      id: 'lunar:current',
-      label: `Current Phase: ${currentPhase.name}`,
-      date: now,
-      emoji: currentPhase.emoji,
-    },
-    
     // === ABSTRACT CONCEPTS (not tied to specific dates) ===
     // These represent the general class/concept of each lunar phase
     {
@@ -478,35 +497,6 @@ const getLunarPhasePoints = (): TimePoint[] => {
       emoji: lastQuarterEmoji, // Hemisphere-aware
     },
     
-    // === SPECIFIC UPCOMING PHASES (with dates) ===
-    // Next New Moon
-    {
-      id: 'lunar:new-moon',
-      label: 'Upcoming New Moon',
-      date: getNextLunarPhase(0, now),
-      emoji: '🌑',
-    },
-    // Next First Quarter
-    {
-      id: 'lunar:first-quarter',
-      label: 'Upcoming First Quarter',
-      date: getNextLunarPhase(2, now),
-      emoji: firstQuarterEmoji, // Hemisphere-aware
-    },
-    // Next Full Moon
-    {
-      id: 'lunar:full-moon',
-      label: 'Upcoming Full Moon',
-      date: getNextLunarPhase(4, now),
-      emoji: '🌕',
-    },
-    // Next Last Quarter
-    {
-      id: 'lunar:last-quarter',
-      label: 'Upcoming Last Quarter',
-      date: getNextLunarPhase(6, now),
-      emoji: lastQuarterEmoji, // Hemisphere-aware
-    },
   ]
   
   // Sort: abstract concepts first, then by date for specific phases
@@ -646,8 +636,29 @@ const getSolarTimePoints = (): TimePoint[] => {
 const getTimePoints = (): TimePoint[] => {
   const now = new Date()
   const nextSeason = getNextSeason()
+  const seasonMarkers = getSeasonMarkersForUser()
+  const seasonOrder = [
+    seasonMarkers.find((season) => season.name === 'Spring')!,
+    seasonMarkers.find((season) => season.name === 'Autumn')!,
+    seasonMarkers.find((season) => season.name === 'Summer')!,
+    seasonMarkers.find((season) => season.name === 'Winter')!,
+  ]
+  const nextSeasonIndex = seasonOrder.findIndex((season) => season.name === nextSeason.name)
+  const orderedSeasons = nextSeasonIndex >= 0
+    ? [...seasonOrder.slice(nextSeasonIndex), ...seasonOrder.slice(0, nextSeasonIndex)]
+    : seasonOrder
   
   return [
+    // Daily concept (not tied to a specific date)
+    { id: 'timepoint:daily', label: 'Daily', date: new Date(0), emoji: '📆' },
+    // Weekday concepts (ALL Mondays through Sundays, not tied to a specific date)
+    { id: 'timepoint:weekday-monday', label: 'Mondays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-tuesday', label: 'Tuesdays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-wednesday', label: 'Wednesdays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-thursday', label: 'Thursdays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-friday', label: 'Fridays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-saturday', label: 'Saturdays', date: new Date(0), emoji: '📅' },
+    { id: 'timepoint:weekday-sunday', label: 'Sundays', date: new Date(0), emoji: '📅' },
     // Abstract "Today" - not tied to a specific date, useful for templates
     { id: 'timepoint:today-abstract', label: "Today's abstract for templates", date: new Date(0), emoji: '📋' },
     { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
@@ -655,20 +666,75 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
     { id: 'timepoint:next-week', label: 'Next Week', date: addDays(now, 7), emoji: '📅' },
     { id: 'timepoint:next-month', label: 'Next Month', date: addDays(now, 30), emoji: '📅' },
-    // Abstract season concept (e.g., "Springs", "Summers") - not tied to a specific date
-    {
-      id: `timepoint:season-abstract-${nextSeason.name.toLowerCase()}`,
-      label: `${nextSeason.name}s`,
+    // Abstract season concepts (e.g., "Springs", "Summers") - not tied to a specific date
+    ...orderedSeasons.map((season) => ({
+      id: `timepoint:season-abstract-${season.name.toLowerCase()}`,
+      label: `${season.name}s`,
       date: new Date(0), // Epoch date to indicate abstract
-      emoji: nextSeason.emoji,
-    },
+      emoji: season.emoji,
+    })),
+    // Abstract seasonal markers - not tied to a specific date
+    { id: 'timepoint:season-marker-spring-equinox', label: 'Spring Equinox', date: new Date(0), emoji: '🌷' },
+    { id: 'timepoint:season-marker-summer-solistice', label: 'Summer Solistice', date: new Date(0), emoji: '🌞' },
+    { id: 'timepoint:season-marker-autumn-equinox', label: 'Autumn Equinox', date: new Date(0), emoji: '🍁' },
+    { id: 'timepoint:season-marker-winter-solistice', label: 'Winter Solistice', date: new Date(0), emoji: '❄️' },
     // Lunar phase points (New Moon, Full Moon, First Quarter, etc.)
     ...getLunarPhasePoints(),
     // Time of day periods (Dawn, Morning, Noon, Afternoon, Dusk, Evening, Night)
     ...getTimeOfDayPoints(),
-    // Solar time points (Sunrise, Sunset, Golden Hour, etc.)
-    ...getSolarTimePoints(),
   ]
+}
+
+const isRecurringPeriodId = (id: string): boolean =>
+  id === 'timepoint:daily' ||
+  id.startsWith('timepoint:weekday-') ||
+  id.startsWith('lunar:') ||
+  id.startsWith('timepoint:season-abstract-') ||
+  id.startsWith('timepoint:season-marker-')
+
+const getTemporalLengthDays = (tp: TimePoint): number => {
+  const id = tp.id
+  // Architecture: normalize temporal length estimates so the dropdown
+  // ordering stays consistent across mixed timepoint types.
+  if (id === 'timepoint:daily') return 1
+  if (id === 'timepoint:today-abstract') return 1
+  if (id.startsWith('timepoint:weekday-')) return 7
+  if (id === 'timepoint:next-week') return 7
+  if (id === 'timepoint:next-month') return 30
+  if (id.startsWith('timepoint:year-')) return 365
+  if (id.startsWith('timepoint:month-')) return 30
+  if (id.startsWith('timepoint:season-marker-')) return 90
+  if (id.startsWith('timepoint:recurring-')) return 365
+  if (id.startsWith('timepoint:date-')) return 1
+  if (id.startsWith('timepoint:time-')) return 1 / 24
+  if (id.startsWith('timepoint:season-abstract-')) return 90
+  if (id.startsWith('lunar:abstract:')) return 29.5
+  if (id.startsWith('lunar:')) return 1
+  if (
+    id.includes('dawn') ||
+    id.includes('sunrise') ||
+    id.includes('noon') ||
+    id.includes('afternoon') ||
+    id.includes('dusk') ||
+    id.includes('evening') ||
+    id.includes('night') ||
+    id.includes('sunset') ||
+    id.includes('golden-hour') ||
+    id.includes('midnight')
+  ) {
+    return 1 / 24
+  }
+  return 1
+}
+
+// Architecture: order timepoints from shortest → longest duration so the list
+// follows an intuitive temporal progression for scanning and selection.
+const sortTimePointsByLength = (points: TimePoint[]): TimePoint[] => {
+  return [...points].sort((a, b) => {
+    const lengthDiff = getTemporalLengthDays(a) - getTemporalLengthDays(b)
+    if (lengthDiff !== 0) return lengthDiff
+    return a.label.localeCompare(b.label)
+  })
 }
 
 const isValidYear = (str: string): boolean => {
@@ -1066,58 +1132,72 @@ const isCustomTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoin
 const fetchTimePoints = (query: string): TimePoint[] => {
   const timePoints = getTimePoints()
   console.log('[TimePoint] fetchTimePoints called with query:', JSON.stringify(query))
-  if (!query) return timePoints
+  if (!query) return sortTimePointsByLength(timePoints)
   
   const lowerQuery = query.toLowerCase()
+  const recurringItems = timePoints.filter((tp) => isRecurringPeriodId(tp.id))
+  // Keep specific time-based entries visible even when query narrows results.
+  const specificTimeItems = timePoints.filter(
+    (tp) => isTimeOfDayPoint(tp) || isSolarTimePoint(tp) || isTimeTimePoint(tp)
+  )
+  let results: TimePoint[] = []
   
   // Try parsing as arbitrary time (e.g., "8:00am", "3pm", "14:30")
   const timePoint = parseTimeString(query)
   if (timePoint) {
     console.log('[TimePoint] Matched time string:', timePoint)
-    return [timePoint]
-  }
-  
-  // Special handling for lunar-related queries
-  const lunarKeywords = ['moon', 'lunar', 'full', 'new', 'quarter', 'crescent', 'gibbous', 'waxing', 'waning', 'phase']
-  const isLunarQuery = lunarKeywords.some(keyword => lowerQuery.includes(keyword))
-  if (isLunarQuery) {
-    return timePoints.filter((tp) => tp.id.startsWith('lunar:') || tp.label.toLowerCase().includes(lowerQuery))
-  }
-  
-  // Pure numeric query - could be year or time
-  if (/^\d+$/.test(query)) {
-    // If it looks like a time (1-12 or 0-23), offer both interpretations
-    const num = parseInt(query, 10)
-    if (num >= 1 && num <= 12) {
-      // Could be hour - show AM/PM options
-      const amTime = parseTimeString(`${num}am`)
-      const pmTime = parseTimeString(`${num}pm`)
-      const results: TimePoint[] = []
-      if (amTime) results.push(amTime)
-      if (pmTime) results.push(pmTime)
-      // Also check year suggestions
-      const yearSuggestions = getYearSuggestions(query)
-      return [...results, ...yearSuggestions].slice(0, 6)
+    results = [timePoint]
+  } else {
+    // Special handling for lunar-related queries
+    const lunarKeywords = ['moon', 'lunar', 'full', 'new', 'quarter', 'crescent', 'gibbous', 'waxing', 'waning', 'phase']
+    const isLunarQuery = lunarKeywords.some(keyword => lowerQuery.includes(keyword))
+    if (isLunarQuery) {
+      results = timePoints.filter((tp) => tp.id.startsWith('lunar:') || tp.label.toLowerCase().includes(lowerQuery))
+    } else {
+      // Pure numeric query - could be year or time
+      if (/^\d+$/.test(query)) {
+        // If it looks like a time (1-12 or 0-23), offer both interpretations
+        const num = parseInt(query, 10)
+        if (num >= 1 && num <= 12) {
+          // Could be hour - show AM/PM options
+          const amTime = parseTimeString(`${num}am`)
+          const pmTime = parseTimeString(`${num}pm`)
+          const timeResults: TimePoint[] = []
+          if (amTime) timeResults.push(amTime)
+          if (pmTime) timeResults.push(pmTime)
+          // Also check year suggestions
+          const yearSuggestions = getYearSuggestions(query)
+          results = [...timeResults, ...yearSuggestions].slice(0, 6)
+        } else {
+          const yearSuggestions = getYearSuggestions(query)
+          if (yearSuggestions.length > 0) results = yearSuggestions
+        }
+      }
+      
+      if (results.length === 0) {
+        // Try full date parsing (e.g., "6 August 2026", "August 6, 2026", "6 Aug")
+        console.log('[TimePoint] Trying full date parsing for:', query)
+        const fullDateSuggestions = getFullDateSuggestions(query)
+        console.log('[TimePoint] Full date suggestions:', fullDateSuggestions)
+        if (fullDateSuggestions.length > 0) {
+          results = fullDateSuggestions
+        } else if (/^[a-zA-Z]/.test(query)) {
+          // Try month/month+year parsing (e.g., "April", "April 2026", "Apr 26")
+          const monthYearSuggestions = getMonthYearSuggestions(query)
+          if (monthYearSuggestions.length > 0) results = monthYearSuggestions
+        }
+      }
+      
+      // Fall back to filtering built-in timepoints (includes lunar phases)
+      if (results.length === 0) {
+        results = timePoints.filter((tp) => tp.label.toLowerCase().includes(lowerQuery))
+      }
     }
-    
-    const yearSuggestions = getYearSuggestions(query)
-    if (yearSuggestions.length > 0) return yearSuggestions
   }
-  
-  // Try full date parsing (e.g., "6 August 2026", "August 6, 2026", "6 Aug")
-  console.log('[TimePoint] Trying full date parsing for:', query)
-  const fullDateSuggestions = getFullDateSuggestions(query)
-  console.log('[TimePoint] Full date suggestions:', fullDateSuggestions)
-  if (fullDateSuggestions.length > 0) return fullDateSuggestions
-  
-  // Try month/month+year parsing (e.g., "April", "April 2026", "Apr 26")
-  if (/^[a-zA-Z]/.test(query)) {
-    const monthYearSuggestions = getMonthYearSuggestions(query)
-    if (monthYearSuggestions.length > 0) return monthYearSuggestions
-  }
-  
-  // Fall back to filtering built-in timepoints (includes lunar phases)
-  return timePoints.filter((tp) => tp.label.toLowerCase().includes(lowerQuery))
+
+  const merged = [...recurringItems, ...specificTimeItems, ...results]
+  const uniqueById = new Map(merged.map((item) => [item.id, item]))
+  return sortTimePointsByLength(Array.from(uniqueById.values()))
 }
 
 // ============================================================================
@@ -1128,7 +1208,8 @@ const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
 const isFullDateTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:date-')
 const isRecurringDatePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:recurring-')
-const isAbstractTimePoint = (tp: TimePoint): boolean => tp.id === 'timepoint:today-abstract'
+const isAbstractTimePoint = (tp: TimePoint): boolean =>
+  tp.id === 'timepoint:today-abstract' || tp.id === 'timepoint:daily'
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
 const isAbstractSeasonPoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:season-abstract-')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
@@ -1141,13 +1222,168 @@ const isSolarTimePoint = (tp: TimePoint): boolean => {
 }
 const isTimeTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:time-')
 const isLunarPhasePoint = (tp: TimePoint): boolean => tp.id.startsWith('lunar:')
+const isRecurringPeriodTimePoint = (tp: TimePoint): boolean =>
+  isRecurringPeriodId(tp.id)
+const isWeekdayTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:weekday-')
+
+const getWeekdayRecurringLabel = (tp: TimePoint): string => {
+  if (!isWeekdayTimePoint(tp)) return ''
+  const dayName = tp.label.replace(/s$/, '')
+  return `For events that are intended to happen every ${dayName}`
+}
+
+const getRecurringTimePeriodLabel = (tp: TimePoint): string => {
+  if (tp.id === 'timepoint:daily') return 'day'
+  if (isWeekdayTimePoint(tp)) return tp.label.replace(/s$/, '')
+  if (tp.id.startsWith('lunar:abstract:')) return tp.label.replace(/s$/, '')
+  if (tp.id.startsWith('timepoint:season-abstract-')) return tp.label.replace(/s$/, '')
+  if (tp.id.startsWith('timepoint:season-marker-')) return tp.label
+  return tp.label
+}
+
+const getSpecificTimeSortKey = (tp: TimePoint): number | null => {
+  if (isTimeOfDayPoint(tp) || isSolarTimePoint(tp) || isTimeTimePoint(tp)) {
+    return tp.date.getTime()
+  }
+  return null
+}
+
+const formatShortDate = (date: Date): string => {
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+const formatWeekdayShortDate = (date: Date): string => {
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+}
+
+const getNextWeekdayDate = (weekdayIndex: number): Date => {
+  const today = new Date()
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const currentDay = base.getDay()
+  let delta = (weekdayIndex - currentDay + 7) % 7
+  if (delta === 0) delta = 7
+  base.setDate(base.getDate() + delta)
+  return base
+}
+
+const getNextSeasonMarkerDate = (seasonName: string): Date | null => {
+  const seasonMarkers = getSeasonMarkersForUser()
+  const season = seasonMarkers.find((marker) => marker.name === seasonName)
+  if (!season) return null
+  const today = new Date()
+  const year = today.getFullYear()
+  const candidate = new Date(year, season.month, season.day)
+  if (candidate <= today) {
+    return new Date(year + 1, season.month, season.day)
+  }
+  return candidate
+}
+
+const getNextRecurringDateLabel = (tp: TimePoint): string | null => {
+  if (tp.id === 'timepoint:daily') {
+    const nextDay = new Date()
+    nextDay.setDate(nextDay.getDate() + 1)
+    return `Next ${formatWeekdayShortDate(nextDay)}`
+  }
+  if (tp.id.startsWith('timepoint:weekday-')) {
+    const weekdayMap: Record<string, number> = {
+      'timepoint:weekday-sunday': 0,
+      'timepoint:weekday-monday': 1,
+      'timepoint:weekday-tuesday': 2,
+      'timepoint:weekday-wednesday': 3,
+      'timepoint:weekday-thursday': 4,
+      'timepoint:weekday-friday': 5,
+      'timepoint:weekday-saturday': 6,
+    }
+    const targetDay = weekdayMap[tp.id]
+    if (targetDay === undefined) return null
+    return `Next ${formatWeekdayShortDate(getNextWeekdayDate(targetDay))}`
+  }
+  if (tp.id.startsWith('timepoint:season-abstract-')) {
+    const seasonName = tp.label.replace(/s$/, '')
+    const nextDate = getNextSeasonMarkerDate(seasonName)
+    if (!nextDate) return null
+    return `Next ${seasonName}, ${formatShortDate(nextDate)}`
+  }
+  if (tp.id.startsWith('timepoint:season-marker-')) {
+    const markerMap: Record<string, { seasonName: string; label: string }> = {
+      'timepoint:season-marker-spring-equinox': { seasonName: 'Spring', label: 'Spring Equinox' },
+      'timepoint:season-marker-summer-solistice': { seasonName: 'Summer', label: 'Summer Solistice' },
+      'timepoint:season-marker-autumn-equinox': { seasonName: 'Autumn', label: 'Autumn Equinox' },
+      'timepoint:season-marker-winter-solistice': { seasonName: 'Winter', label: 'Winter Solistice' },
+    }
+    const marker = markerMap[tp.id]
+    if (!marker) return null
+    const nextDate = getNextSeasonMarkerDate(marker.seasonName)
+    if (!nextDate) return null
+    return `Next ${marker.label}, ${formatShortDate(nextDate)}`
+  }
+  if (tp.id.startsWith('lunar:abstract:')) {
+    const phaseMap: Record<string, { index: number; label: string }> = {
+      'lunar:abstract:new-moons': { index: 0, label: 'New Moon' },
+      'lunar:abstract:first-quarters': { index: 2, label: 'First Quarter' },
+      'lunar:abstract:full-moons': { index: 4, label: 'Full Moon' },
+      'lunar:abstract:last-quarters': { index: 6, label: 'Last Quarter' },
+    }
+    const phase = phaseMap[tp.id]
+    if (!phase) return null
+    const nextDate = getNextLunarPhase(phase.index, new Date())
+    return `Next ${phase.label}, ${formatShortDate(nextDate)}`
+  }
+  return null
+}
+
+const WEEKDAY_SORT_ORDER: Record<string, number> = {
+  'timepoint:weekday-monday': 1,
+  'timepoint:weekday-tuesday': 2,
+  'timepoint:weekday-wednesday': 3,
+  'timepoint:weekday-thursday': 4,
+  'timepoint:weekday-friday': 5,
+  'timepoint:weekday-saturday': 6,
+  'timepoint:weekday-sunday': 7,
+}
+
+// Spec: seasons must follow natural UI order: Spring → Summer → Autumn → Winter.
+const SEASON_UI_ORDER: Record<string, number> = {
+  spring: 1,
+  summer: 2,
+  autumn: 3,
+  winter: 4,
+}
+
+// Spec: lunar phases must start at New Moon in the UI order.
+const LUNAR_UI_ORDER: Record<string, number> = {
+  'lunar:abstract:new-moons': 1,
+  'lunar:abstract:first-quarters': 2,
+  'lunar:abstract:full-moons': 3,
+  'lunar:abstract:last-quarters': 4,
+}
+
+const getRecurringPeriodSortKey = (tp: TimePoint): number => {
+  // Spec: lunar periods must appear before seasons in the recurring list
+  // because lunar cycles are shorter than seasonal periods.
+  if (tp.id === 'timepoint:daily') return 0
+  if (tp.id.startsWith('timepoint:weekday-')) return 10 + (WEEKDAY_SORT_ORDER[tp.id] ?? 0)
+  if (tp.id.startsWith('lunar:')) return 20 + (LUNAR_UI_ORDER[tp.id] ?? 0)
+  if (tp.id.startsWith('timepoint:season-abstract-')) {
+    const season = tp.id.replace('timepoint:season-abstract-', '')
+    return 30 + (SEASON_UI_ORDER[season] ?? 0)
+  }
+  if (tp.id.startsWith('timepoint:season-marker-')) {
+    const season = tp.id.replace('timepoint:season-marker-', '').split('-')[0]
+    return 40 + (SEASON_UI_ORDER[season] ?? 0)
+  }
+  return 99
+}
 
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 const formatTimePointLabel = (tp: TimePoint): string => {
-  if (isAbstractTimePoint(tp)) return `${tp.emoji} Today`
+  if (isAbstractTimePoint(tp)) {
+    return tp.id === 'timepoint:daily' ? `${tp.emoji} Daily` : `${tp.emoji} Today`
+  }
   if (isAbstractLunarPhase(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
   if (isAbstractSeasonPoint(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
   if (isRecurringDatePoint(tp)) return `${tp.emoji} ${tp.label} (every year)` // Recurring date
@@ -1164,15 +1400,38 @@ const formatTimePointLabel = (tp: TimePoint): string => {
 const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
 
-  const selectItem = (index: number) => {
-    if (index >= props.items.length) return
+  const recurringPeriodItems = sortTimePointsByLength(
+    props.items.filter(isRecurringPeriodTimePoint)
+  ).sort((a, b) => {
+    const keyDiff = getRecurringPeriodSortKey(a) - getRecurringPeriodSortKey(b)
+    if (keyDiff !== 0) return keyDiff
+    return getTemporalLengthDays(a) - getTemporalLengthDays(b)
+  })
+  const otherItems = sortTimePointsByLength(
+    props.items.filter((item) => !isRecurringPeriodTimePoint(item))
+  ).sort((a, b) => {
+    const aKey = getSpecificTimeSortKey(a)
+    const bKey = getSpecificTimeSortKey(b)
+    if (aKey !== null && bKey !== null) return aKey - bKey
+    if (aKey !== null) return -1
+    if (bKey !== null) return 1
+    return getTemporalLengthDays(a) - getTemporalLengthDays(b)
+  })
+  const orderedItems = [...recurringPeriodItems, ...otherItems]
 
-    const timePoint = props.items[index]
+  const selectItem = (index: number) => {
+    if (orderedItems.length === 0 || index >= orderedItems.length) return
+
+    const timePoint = orderedItems[index]
     let formattedDate: string
     const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint)
     
     if (isAbstractTimePoint(timePoint)) {
+      if (timePoint.id === 'timepoint:daily') {
+        formattedDate = 'Daily'
+      } else {
       formattedDate = 'Today'
+      }
     } else if (isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint)) {
       formattedDate = timePoint.label // Just the concept name, no date
     } else if (isRecurringDatePoint(timePoint)) {
@@ -1201,8 +1460,14 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     })
   }
 
-  const upHandler = () => setSelectedIndex((selectedIndex + props.items.length - 1) % props.items.length)
-  const downHandler = () => setSelectedIndex((selectedIndex + 1) % props.items.length)
+  const upHandler = () => {
+    if (orderedItems.length === 0) return
+    setSelectedIndex((selectedIndex + orderedItems.length - 1) % orderedItems.length)
+  }
+  const downHandler = () => {
+    if (orderedItems.length === 0) return
+    setSelectedIndex((selectedIndex + 1) % orderedItems.length)
+  }
   const enterHandler = () => selectItem(selectedIndex)
 
   useEffect(() => setSelectedIndex(0), [props.items])
@@ -1218,44 +1483,91 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
 
   return (
     <div className="timepoint-items">
-      {props.items.length > 0 ? (
-        props.items.map((item: TimePoint, index) => (
-          <motion.div
-            className={`timepoint-item ${index === selectedIndex ? 'is-selected' : ''}`}
-            key={item.id}
-            onClick={() => selectItem(index)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <span className="timepoint-emoji">{item.emoji}</span>
-            <div className="timepoint-content">
-              <span className="timepoint-label">{item.label}</span>
-                {isAbstractTimePoint(item) ? (
-                <span className="timepoint-date">Not tied to a specific date</span>
-              ) : isAbstractLunarPhase(item) || isAbstractSeasonPoint(item) ? (
-                <span className="timepoint-date">General concept, not a specific date</span>
-              ) : isRecurringDatePoint(item) ? (
-                <span className="timepoint-date">Recurring every year</span>
-              ) : isYearTimePoint(item) ? (
-                <span className="timepoint-date">January 1st, {item.label}</span>
-              ) : isMonthTimePoint(item) ? (
-                <span className="timepoint-date">1st {item.label}</span>
-              ) : isFullDateTimePoint(item) ? (
-                <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
-              ) : isTimeOfDayPoint(item) ? (
-                <span className="timepoint-date">~{formatTime(item.date)} today</span>
-              ) : isSolarTimePoint(item) ? (
-                <span className="timepoint-date">~{formatTime(item.date)} today</span>
-              ) : isTimeTimePoint(item) ? (
-                <span className="timepoint-date">Today at {item.label}</span>
-              ) : isLunarPhasePoint(item) ? (
-                <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
-              ) : (
-                <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
-              )}
-            </div>
-          </motion.div>
-        ))
+      {orderedItems.length > 0 ? (
+        <>
+          {recurringPeriodItems.length > 0 && (
+            <>
+              <div className="timepoint-section-label">Reoccuring events</div>
+              {recurringPeriodItems.map((item: TimePoint, index) => {
+                const absoluteIndex = index
+                const recurringPeriodLabel = getRecurringTimePeriodLabel(item)
+                const nextOccurrenceLabel = getNextRecurringDateLabel(item)
+                return (
+                  <motion.div
+                    className={`timepoint-item ${absoluteIndex === selectedIndex ? 'is-selected' : ''}`}
+                    key={item.id}
+                    onClick={() => selectItem(absoluteIndex)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="timepoint-emoji">{item.emoji}</span>
+                    <div className="timepoint-content">
+                      <span className="timepoint-label">{item.label}</span>
+                      <span className="timepoint-date">
+                        For events that are intended to happen every {recurringPeriodLabel}
+                        {nextOccurrenceLabel ? ` (${nextOccurrenceLabel})` : ''}
+                      </span>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </>
+          )}
+          {otherItems.length > 0 && (
+            <>
+              {/* Timepoints section label shown as "Specific times" in UI. */}
+              <div className="timepoint-section-label">Specific times</div>
+              {otherItems.map((item: TimePoint, index) => {
+                const absoluteIndex = index + recurringPeriodItems.length
+                return (
+                  <motion.div
+                    className={`timepoint-item ${absoluteIndex === selectedIndex ? 'is-selected' : ''}`}
+                    key={item.id}
+                    onClick={() => selectItem(absoluteIndex)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <span className="timepoint-emoji">{item.emoji}</span>
+                    <div className="timepoint-content">
+                      <span className="timepoint-label">{item.label}</span>
+                      {isAbstractTimePoint(item) ? (
+                        <span className="timepoint-date">
+                          {item.id === 'timepoint:daily'
+                            ? 'For events that are intended to happen every single day'
+                            : 'Not tied to a specific date'}
+                        </span>
+                      ) : isAbstractLunarPhase(item) || isAbstractSeasonPoint(item) ? (
+                        <span className="timepoint-date">
+                          Every so and so, events will reoccur during this period
+                        </span>
+                      ) : isRecurringDatePoint(item) ? (
+                        <span className="timepoint-date">Recurring every year</span>
+                      ) : isYearTimePoint(item) ? (
+                        <span className="timepoint-date">January 1st, {item.label}</span>
+                      ) : isMonthTimePoint(item) ? (
+                        <span className="timepoint-date">1st {item.label}</span>
+                      ) : isFullDateTimePoint(item) ? (
+                        <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
+                      ) : isTimeOfDayPoint(item) ? (
+                        <span className="timepoint-date">~{formatTime(item.date)} today</span>
+                      ) : isSolarTimePoint(item) ? (
+                        <span className="timepoint-date">~{formatTime(item.date)} today</span>
+                      ) : isWeekdayTimePoint(item) ? (
+                        <span className="timepoint-date">{getWeekdayRecurringLabel(item)}</span>
+                      ) : isTimeTimePoint(item) ? (
+                        <span className="timepoint-date">Today at {item.label}</span>
+                      ) : isLunarPhasePoint(item) ? (
+                        <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
+                      ) : (
+                        <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </>
+          )}
+        </>
       ) : (
         <div className="timepoint-item">No matching dates.</div>
       )}
@@ -1312,7 +1624,7 @@ export interface TimePointOptions {
   suggestion: Omit<SuggestionOptions<TimePoint>, 'editor'>
 }
 
-export const TimePointMention = Extension.create<TimePointOptions>({
+export const TemporalFieldExtension = Extension.create<TimePointOptions>({
   name: 'timepoint-extension',
 
   addOptions() {
@@ -1397,4 +1709,4 @@ export const TimePointMention = Extension.create<TimePointOptions>({
   },
 })
 
-export default TimePointMention
+export default TemporalFieldExtension
