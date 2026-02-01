@@ -717,6 +717,10 @@ export const CanvasItemComponent: React.FC<CanvasItemProps> = ({
       data-canvas-item="true"
       data-node-overlay="true"
       data-quanta-id={item.id}
+      // ARCHITECTURE DECISION: data-canvas3d-draggable tells InfiniteViewer to stop
+      // panning when interacting with this element, so canvas items can be dragged
+      // independently without moving the underlying viewer.
+      data-canvas3d-draggable="true"
       style={{
         position: 'absolute',
         left: item.x,
@@ -752,6 +756,7 @@ export const CanvasItemComponent: React.FC<CanvasItemProps> = ({
             This captures the grip area so dragging works from the content's grip */}
         <div
           onMouseDown={handleDragStart}
+          data-canvas3d-draggable="true"
           style={{
             position: 'absolute',
             top: 0,
