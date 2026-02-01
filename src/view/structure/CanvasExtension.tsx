@@ -446,30 +446,40 @@ const MiniEditor: React.FC<{
     return { type: 'doc', content: [content] }
   }, [content])
   
+  // ARCHITECTURE DECISION: Keep a stable editor instance per canvas item so
+  // parent state updates don't re-create the TipTap editor and re-initialize
+  // complex nodes like Group. Content updates are applied via setContent below.
+  const initialContentRef = useRef(validContent)
+  const onUpdateRef = useRef(onUpdate)
+  useEffect(() => {
+    onUpdateRef.current = onUpdate
+  }, [onUpdate])
+  const miniEditorExtensions = useMemo(() => ([
+    StarterKit.configure({
+      // Disable history to avoid conflicts
+      history: false,
+    }),
+    TaskList,
+    TaskItem.configure({ nested: true }),
+    Image,
+    Details,
+    DetailsSummary,
+    DetailsContent,
+    WarningExtension,
+    LifetimeViewExtension,
+    MapboxMapExtension,
+    ExcalidrawExtension,
+    QuantaFlowExtension,
+    ExternalPortalExtension,
+    LifemapCardExtension,
+    SingleLifemapCardExtension,
+    GroupExtension,
+    ConcentricRingsExtension,
+  ]), [])
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        // Disable history to avoid conflicts
-        history: false,
-      }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Image,
-      Details,
-      DetailsSummary,
-      DetailsContent,
-      WarningExtension,
-      LifetimeViewExtension,
-      MapboxMapExtension,
-      ExcalidrawExtension,
-      QuantaFlowExtension,
-      ExternalPortalExtension,
-      LifemapCardExtension,
-      SingleLifemapCardExtension,
-      GroupExtension,
-      ConcentricRingsExtension,
-    ],
-    content: validContent,
+    extensions: miniEditorExtensions,
+    content: initialContentRef.current,
     editable: isSelected,
     immediatelyRender: true, // Allow immediate render for nested editors
     onCreate: ({ editor }) => {
@@ -478,9 +488,9 @@ const MiniEditor: React.FC<{
       setTimeout(() => setIsReady(true), 100)
     },
     onUpdate: ({ editor }) => {
-      onUpdate(editor.getJSON())
+      onUpdateRef.current(editor.getJSON())
     },
-  })
+  }, [miniEditorExtensions])
 
   // Update editability when selection changes
   useEffect(() => {
@@ -491,14 +501,14 @@ const MiniEditor: React.FC<{
 
   // Update content when it changes externally
   useEffect(() => {
-    if (editor && content) {
+    if (editor) {
       const currentContent = JSON.stringify(editor.getJSON())
-      const newContent = JSON.stringify(content)
+      const newContent = JSON.stringify(validContent)
       if (currentContent !== newContent) {
-        editor.commands.setContent(content)
+        editor.commands.setContent(validContent)
       }
     }
-  }, [editor, content])
+  }, [editor, validContent])
 
   if (hasError) {
     return (

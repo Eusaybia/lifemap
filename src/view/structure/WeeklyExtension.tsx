@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
@@ -72,6 +72,37 @@ const DayCard: React.FC<DayCardProps> = ({ label, slug, children }) => {
 
 const WeeklyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [instantiatedDays, setInstantiatedDays] = useState<Record<string, boolean>>({})
+  const didPrefetchRef = useRef(false)
+
+  const handleInstantiateDay = (slug: string) => {
+    setInstantiatedDays((prev) => ({ ...prev, [slug]: true }))
+  }
+
+  useEffect(() => {
+    if (didPrefetchRef.current || typeof window === 'undefined') return
+    didPrefetchRef.current = true
+
+    const prefetchDays = () => {
+      WEEK_DAYS.forEach((day) => {
+        const link = document.createElement('link')
+        link.rel = 'prefetch'
+        link.as = 'document'
+        link.href = `/q/${day.slug}?mode=graph`
+        link.crossOrigin = 'anonymous'
+        document.head.appendChild(link)
+      })
+    }
+
+    // Architectural choice: prefetch in idle time to keep "click to init"
+    // semantics while reducing the perceived wait after a click.
+    if ('requestIdleCallback' in window) {
+      // @ts-ignore - requestIdleCallback is not in all TS libs
+      window.requestIdleCallback(prefetchDays)
+    } else {
+      setTimeout(prefetchDays, 1000)
+    }
+  }, [])
 
   return (
     <NodeViewWrapper 
@@ -106,16 +137,46 @@ const WeeklyNodeView: React.FC<NodeViewProps> = (props) => {
             {WEEK_DAYS.map((day) => (
               <DayCard key={day.slug} label={day.label} slug={day.slug}>
                 <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-                  <iframe
-                    src={`/q/${day.slug}?mode=graph`}
-                    title={`${day.label} Schedule`}
-                    style={{
-                      width: '100%',
+                  {instantiatedDays[day.slug] ? (
+                    <iframe
+                      src={`/q/${day.slug}?mode=graph`}
+                      title={`${day.label} Schedule`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#f9f9f9',
+                      color: '#999',
+                      fontSize: '14px',
                       height: '100%',
-                      border: 'none',
-                      display: 'block',
-                    }}
-                  />
+                    }}>
+                      <motion.button
+                        onClick={() => handleInstantiateDay(day.slug)}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '999px',
+                          border: '1px solid #ddd',
+                          backgroundColor: '#fff',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          color: '#666',
+                        }}
+                        whileHover={{ backgroundColor: '#f0f0f0' }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Click to load
+                      </motion.button>
+                    </div>
+                  )}
                 </div>
               </DayCard>
             ))}

@@ -131,9 +131,10 @@ interface LazyIframeProps {
   title: string
   iframeRef?: React.RefObject<HTMLIFrameElement | null>
   eager?: boolean // If true, load immediately without waiting for visibility
+  spill?: boolean // If true, allow iframe to overflow its card bounds
 }
 
-const LazyIframe: React.FC<LazyIframeProps> = ({ src, title, iframeRef, eager = false }) => {
+const LazyIframe: React.FC<LazyIframeProps> = ({ src, title, iframeRef, eager = false, spill = false }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(eager)
   const [hasLoaded, setHasLoaded] = useState(eager)
@@ -173,15 +174,26 @@ const LazyIframe: React.FC<LazyIframeProps> = ({ src, title, iframeRef, eager = 
   }, [eager, hasLoaded, title])
 
   return (
-    <div ref={containerRef} style={{ flex: 1, position: 'relative', height: '100%' }}>
+    <div
+      ref={containerRef}
+      style={{
+        flex: 1,
+        position: 'relative',
+        height: '100%',
+        overflow: spill ? 'visible' : 'hidden',
+      }}
+    >
       {isVisible ? (
         <iframe
           ref={iframeRef}
           src={src}
           title={title}
           style={{
-            width: '100%',
-            height: '100%',
+            position: spill ? 'absolute' : 'relative',
+            top: spill ? '-6%' : 0,
+            left: spill ? '-6%' : 0,
+            width: spill ? '112%' : '100%',
+            height: spill ? '112%' : '100%',
             border: 'none',
             display: 'block',
           }}
@@ -385,19 +397,22 @@ const TEMPLATE_LOAD_DELAY = 3000 // 3 seconds after mount
 const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
+  const activeIndexRef = useRef(TODAY_INDEX)
+  const scrollEndTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   
   // Iframe refs for refreshing
   const yesterdayIframeRef = useRef<HTMLIFrameElement>(null)
   const todayIframeRef = useRef<HTMLIFrameElement>(null)
   const tomorrowIframeRef = useRef<HTMLIFrameElement>(null)
   
-  // Track if Tomorrow has been instantiated (click-to-load to avoid y-indexeddb contention)
+  // Track if each pane has been instantiated (click-to-load to reduce memory pressure)
+  const [templateInstantiated, setTemplateInstantiated] = useState(false)
+  const [yesterdayInstantiated, setYesterdayInstantiated] = useState(false)
+  const [todayInstantiated, setTodayInstantiated] = useState(false)
   const [tomorrowInstantiated, setTomorrowInstantiated] = useState(false)
   
-  // Staggered loading state - Today is always ready, others wait their turn
-  // This prevents y-indexeddb contention by loading iframes one at a time
-  const [yesterdayReady, setYesterdayReady] = useState(false)
-  const [templateReady, setTemplateReady] = useState(false)
+  // Staggered loading removed - panes now require explicit click to initialize
   
   // Track if initial scroll to Today has completed - prevents staggered loading from
   // triggering unwanted scroll position changes
@@ -413,26 +428,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
     checkAndInitializeDaily()
   }, [])
   
-  // Staggered loading: Today → Yesterday → Template
-  // This prevents all iframes from competing for IndexedDB simultaneously
-  useEffect(() => {
-    // Yesterday loads after YESTERDAY_LOAD_DELAY
-    const yesterdayTimer = setTimeout(() => {
-      console.log('[DailyExtension] Staggered load: Yesterday ready')
-      setYesterdayReady(true)
-    }, YESTERDAY_LOAD_DELAY)
-    
-    // Template loads after TEMPLATE_LOAD_DELAY
-    const templateTimer = setTimeout(() => {
-      console.log('[DailyExtension] Staggered load: Template ready')
-      setTemplateReady(true)
-    }, TEMPLATE_LOAD_DELAY)
-    
-    return () => {
-      clearTimeout(yesterdayTimer)
-      clearTimeout(templateTimer)
-    }
-  }, [])
+  // Staggered loading removed - panes initialize on click
   
   // Helper to get responsive card width + gap based on viewport
   // Matches the CSS breakpoints: mobile (<=768px), tablet (769-1024px), desktop (>1024px)
@@ -479,6 +475,17 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
       clearTimeout(doneTimeout)
     }
   }, []) // Empty deps - only run on mount
+
+  // Track viewport size to avoid mounting multiple iframes on mobile
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === 'undefined') return
+      setIsMobileViewport(window.innerWidth <= 768)
+    }
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [])
   
   const scrollToCard = useCallback((index: number) => {
     if (scrollContainerRef.current) {
@@ -504,18 +511,36 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
     if (!initialScrollDoneRef.current) {
       return
     }
-    
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
+
+    if (!scrollContainerRef.current) return
+    const container = scrollContainerRef.current
+    const updateActiveIndex = () => {
       const cardWidth = getCardWidthWithGap()
       const scrollCenter = container.scrollLeft + (container.clientWidth / 2)
       const newIndex = Math.round((scrollCenter - cardWidth / 2) / cardWidth)
       const clampedIndex = Math.max(0, Math.min(TOTAL_CARDS - 1, newIndex))
-      if (clampedIndex !== activeIndex) {
+      if (clampedIndex !== activeIndexRef.current) {
+        activeIndexRef.current = clampedIndex
         setActiveIndex(clampedIndex)
       }
     }
-  }, [activeIndex, getCardWidthWithGap])
+
+    // Debounce updates to avoid re-rendering on every scroll event
+    if (scrollEndTimeoutRef.current) {
+      clearTimeout(scrollEndTimeoutRef.current)
+    }
+    scrollEndTimeoutRef.current = setTimeout(updateActiveIndex, 120)
+  }, [getCardWidthWithGap])
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
+
+  const shouldRenderIframe = (index: number, instantiated: boolean) => {
+    if (!instantiated) return false
+    if (!isMobileViewport) return true
+    return index === activeIndexRef.current
+  }
 
   return (
     <NodeViewWrapper 
@@ -530,7 +555,10 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
         gripTop={8}
         gripRight={8}
         padding={0}
-        style={{ margin: 0 }}
+        backgroundColor="transparent"
+        boxShadow="none"
+        borderRadius={0}
+        style={{ margin: 0, overflow: 'visible' }}
       >
         <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
           {/* Navigation Arrows - hidden on mobile via CSS */}
@@ -611,7 +639,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
             /* Desktop styles - fixed width cards with gap and padding */
             .daily-carousel-scroll {
               gap: 12px;
-              padding: 8px 50px;
+              padding: 0;
             }
             
             .daily-card {
@@ -623,7 +651,7 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
             @media (max-width: 768px) {
               .daily-carousel-scroll {
                 gap: 0px;
-                padding: 8px 0px;
+                padding: 0;
               }
               
               .daily-card {
@@ -648,18 +676,19 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
               }
               
               .daily-carousel-scroll {
-                padding: 8px 30px;
+                padding: 0;
               }
             }
           `}</style>
           
-          {/* Template Card - staggered load: loads TEMPLATE_LOAD_DELAY after mount */}
+          {/* Template Card - click to initialize */}
           <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
-            {templateReady ? (
+            {shouldRenderIframe(0, templateInstantiated) ? (
               <LazyIframe
                 src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
                 title="Daily Schedule Template"
                 eager={true}
+                spill={true}
               />
             ) : (
               <div style={{
@@ -671,19 +700,35 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
                 color: '#999',
                 fontSize: '14px',
               }}>
-                Loading template...
+                <motion.button
+                  onClick={() => setTemplateInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load template
+                </motion.button>
               </div>
             )}
           </DayCard>
           
-          {/* Yesterday Card - staggered load: loads YESTERDAY_LOAD_DELAY after mount */}
+          {/* Yesterday Card - click to initialize */}
           <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
-            {yesterdayReady ? (
+            {shouldRenderIframe(1, yesterdayInstantiated) ? (
               <LazyIframe
                 src={`/q/${yesterdaySlug}?mode=graph`}
                 title="Yesterday's Schedule"
                 iframeRef={yesterdayIframeRef}
                 eager={true}
+                spill={true}
               />
             ) : (
               <div style={{
@@ -695,29 +740,75 @@ const DailyNodeView: React.FC<NodeViewProps> = (props) => {
                 color: '#999',
                 fontSize: '14px',
               }}>
-                Loading yesterday...
+                <motion.button
+                  onClick={() => setYesterdayInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load yesterday
+                </motion.button>
               </div>
             )}
           </DayCard>
           
-          {/* Today Card - EAGER loaded (this is the default view) */}
+          {/* Today Card - click to initialize */}
           <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
-            <LazyIframe
-              src={`/q/${todaySlug}?mode=graph`}
-              title="Today's Schedule"
-              iframeRef={todayIframeRef}
-              eager={true}
-            />
+            {shouldRenderIframe(2, todayInstantiated) ? (
+              <LazyIframe
+                src={`/q/${todaySlug}?mode=graph`}
+                title="Today's Schedule"
+                iframeRef={todayIframeRef}
+                eager={true}
+                spill={true}
+              />
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                <motion.button
+                  onClick={() => setTodayInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load today
+                </motion.button>
+              </div>
+            )}
           </DayCard>
           
           {/* Tomorrow Card - Click to instantiate (prevents y-indexeddb contention on page load) */}
           <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
-            {tomorrowInstantiated ? (
+            {shouldRenderIframe(3, tomorrowInstantiated) ? (
               <LazyIframe
                 src={`/q/${tomorrowSlug}?mode=graph`}
                 title="Tomorrow's Schedule"
                 iframeRef={tomorrowIframeRef}
                 eager={true}
+                spill={true}
               />
             ) : (
               <div style={{
