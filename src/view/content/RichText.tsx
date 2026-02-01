@@ -43,7 +43,7 @@ import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
-import { TimePointMention, TimePointNode } from './TimePointMention'
+import { TemporalFieldExtension, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
@@ -294,7 +294,7 @@ export const customExtensions: Extensions = [
   // ),
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
-  TimePointMention,
+  TemporalFieldExtension,
   // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
   LocationMention,
