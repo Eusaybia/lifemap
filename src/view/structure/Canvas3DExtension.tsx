@@ -224,12 +224,19 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     canvasItemsRef.current = canvasItems
   }, [canvasItems])
 
+  // ARCHITECTURE DECISION: Only sync from node.attrs.items when the serialized
+  // value actually differs from our current state. This prevents the loop where
+  // updateCanvasItems → updateAttributes → node.attrs.items change → setCanvasItems
+  // which would cause MiniEditor to see "new" content and re-initialize nodes.
   useEffect(() => {
     if (typeof node.attrs.items === 'string') {
-      try {
-        setCanvasItems(JSON.parse(node.attrs.items) as CanvasItem[])
-      } catch {
-        setCanvasItems([])
+      const currentSerialized = JSON.stringify(canvasItemsRef.current)
+      if (node.attrs.items !== currentSerialized) {
+        try {
+          setCanvasItems(JSON.parse(node.attrs.items) as CanvasItem[])
+        } catch {
+          setCanvasItems([])
+        }
       }
     }
   }, [node.attrs.items])
@@ -452,7 +459,18 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     setCanvasSearchQuery('')
   }, [canvasSlashMenuPosition, updateCanvasItems])
 
+  // ARCHITECTURE DECISION: Skip update if the item's content hasn't actually changed.
+  // This prevents unnecessary state churn when MiniEditor fires onUpdate with identical content.
   const updateCanvasItem = useCallback((id: string, updates: Partial<CanvasItem>) => {
+    const existingItem = canvasItemsRef.current.find(item => item.id === id)
+    if (existingItem && updates.content) {
+      const oldContent = JSON.stringify(existingItem.content)
+      const newContent = JSON.stringify(updates.content)
+      if (oldContent === newContent) {
+        // Content unchanged, skip update to avoid re-render cascade
+        return
+      }
+    }
     const newItems = canvasItemsRef.current.map(item =>
       item.id === id ? { ...item, ...updates } : item
     )
