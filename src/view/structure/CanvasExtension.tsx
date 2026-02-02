@@ -47,7 +47,9 @@ export interface CanvasSlashMenuItem {
   title: string
   emoji: string
   keywords: string[]
-  nodeContent: any // TipTap node JSON content
+  nodeContent?: any // TipTap node JSON content (optional if using action)
+  // Optional action for dynamic items like image upload - returns a Promise with the content
+  action?: () => Promise<any | null>
 }
 
 export const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
@@ -214,6 +216,42 @@ export const canvasSlashMenuItems: CanvasSlashMenuItem[] = [
     keywords: ['rings', 'circles', 'concentric', 'layers', 'zones'],
     nodeContent: { type: 'concentricRings' }
   },
+  { 
+    id: 'image', 
+    title: 'Image', 
+    emoji: '🌁', 
+    keywords: ['image', 'picture', 'photo', 'upload'],
+    // Action-based item - triggers file picker and uploads image
+    action: () => new Promise((resolve) => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (!file) {
+          resolve(null)
+          return
+        }
+        
+        try {
+          const response = await fetch(
+            `/api/upload?filename=${encodeURIComponent(file.name)}`,
+            { method: 'POST', body: file }
+          )
+          if (!response.ok) throw new Error('Upload failed')
+          const blob = await response.json()
+          // Return image node content with the uploaded URL
+          resolve({ type: 'image', attrs: { src: blob.url } })
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          resolve(null)
+        }
+      }
+      // Handle cancel
+      input.addEventListener('cancel', () => resolve(null))
+      input.click()
+    })
+  },
 ]
 
 // ============================================================================
@@ -271,6 +309,8 @@ export const getNodeDefaults = (nodeType: string): { width: number; height: numb
       return { width: 200, height: 150 }
     case 'concentric-rings':
       return { width: 340, height: 400 }
+    case 'image':
+      return { width: 300, height: 200 }
     default:
       return { width: 200, height: 100 }
   }
@@ -1070,6 +1110,24 @@ const CanvasNodeView: React.FC<NodeViewProps> = (props) => {
             outline: 'none',
           }}
         >
+          {/* ARCHITECTURE DECISION: Watermark clarifies legacy canvas vs React Flow. */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 12,
+              bottom: 12,
+              fontSize: 12,
+              fontFamily: "'Inter', system-ui, sans-serif",
+              color: 'rgba(0, 0, 0, 0.45)',
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              padding: '4px 8px',
+              borderRadius: 6,
+              pointerEvents: 'none',
+              zIndex: 5,
+            }}
+          >
+            Legacy Canvas
+          </div>
           {items.map(item => (
             <CanvasItemComponent
               key={item.id}
@@ -1101,26 +1159,6 @@ const CanvasNodeView: React.FC<NodeViewProps> = (props) => {
               />
             )}
           </AnimatePresence>
-
-          {items.length === 0 && !showSlashMenu && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center',
-                color: '#999',
-                pointerEvents: 'none',
-              }}
-            >
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📌</div>
-              <div style={{ fontSize: 14 }}>Double-click or press "/" to add nodes</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>
-                Drag header to move • Resize from corner
-              </div>
-            </div>
-          )}
 
           {/* Canvas Resize Handle */}
           <div
@@ -1172,7 +1210,7 @@ declare module '@tiptap/core' {
   }
 }
 
-export const CanvasExtension = Node.create({
+export const CanvasOldExtension = Node.create({
   name: 'canvas',
   group: 'block',
   atom: true,
@@ -1237,4 +1275,4 @@ export const CanvasExtension = Node.create({
   },
 })
 
-export default CanvasExtension
+export default CanvasOldExtension
