@@ -21,12 +21,17 @@ import { DocumentAttributes } from '../structure/DocumentAttributesExtension'
 //    - Any node that uses NodeOverlay wrapper
 //    - Identified by: [data-node-overlay="true"][data-quanta-id="<uuid>"]
 //
+// 4. TODO MENTION (TodoMention.tsx)
+//    - Inline checkbox todo with text and connection grip
+//    - Identified by: .todo-mention[data-todo-id="<uuid>"]
+//
 // Connections are stored in localStorage and persist across sessions.
 // Clicking on arrows navigates between connected elements (head/tail toggle).
 // ============================================================================
 
 // Connection between two connectable elements
-type ConnectableType = 'block' | 'span' | 'node'
+// 'todo' type added for TodoMention nodes (inline checkbox todos with connections)
+type ConnectableType = 'block' | 'span' | 'node' | 'todo'
 
 interface NodeConnection {
   id: string
@@ -67,6 +72,13 @@ const saveConnections = (connections: NodeConnection[]) => {
 
 // Helper to find a connectable element and determine its type
 const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id: string, type: ConnectableType } | null => {
+  // Check for TodoMention (inline checkbox todo with connections)
+  const todoMention = target.closest('.todo-mention[data-todo-id]') as HTMLElement
+  if (todoMention) {
+    const id = todoMention.getAttribute('data-todo-id')
+    if (id) return { element: todoMention, id, type: 'todo' }
+  }
+  
   const spanGroup = target.closest('.span-group') as HTMLElement
   if (spanGroup) {
     const id = spanGroup.getAttribute('data-span-group-id')
@@ -90,7 +102,9 @@ const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id
 
 // Helper to get a connectable element by ID and type
 const getConnectableElement = (id: string, type: ConnectableType): HTMLElement | null => {
-  if (type === 'span') {
+  if (type === 'todo') {
+    return document.querySelector(`[data-todo-id="${id}"]`) as HTMLElement
+  } else if (type === 'span') {
     return document.querySelector(`[data-span-group-id="${id}"]`) as HTMLElement
   } else if (type === 'block') {
     return document.querySelector(`[data-group-id="${id}"]`) as HTMLElement
