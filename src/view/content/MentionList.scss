@@ -540,6 +540,135 @@
 }
 
 // ============================================================================
+// Todo Mention Styles ([] todo insertion)
+// ============================================================================
+// Inline checkbox todo that looks like a Mention but with editable content.
+// Triggered by typing [] in the editor.
+// 
+// ARCHITECTURE: Uses atomic node with text stored as attribute, edited via
+// inline input field. This avoids TipTap v2's inline node cursor issues.
+
+.todo-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827; /* Black text as per user requirement */
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+
+  // When checked, add subtle visual feedback
+  &.todo-checked {
+    background-color: #f0fdf4; /* Very light green */
+    border-color: #86efac;
+    
+    &:hover {
+      background-color: #dcfce7;
+      border-color: #4ade80;
+    }
+  }
+}
+
+.todo-checkbox {
+  cursor: pointer;
+  user-select: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+  
+  &:hover {
+    color: #374151;
+  }
+
+  // Checked state styling
+  .todo-checked & {
+    color: #22c55e; /* Green when checked */
+  }
+}
+
+// Inline input for editing todo text
+.todo-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+  
+  &:focus {
+    outline: none;
+  }
+}
+
+// Display text (non-editing state)
+.todo-text {
+  color: #111827;
+  cursor: text;
+  
+  // Placeholder styling when empty
+  &.todo-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+  
+  // Strikethrough when checked
+  &.todo-text-checked {
+    text-decoration: line-through;
+    color: #6b7280;
+  }
+}
+
+// 6-dot grip for connections (matches SpanGroup grip style)
+// This enables todo mentions to participate in the connection system
+.todo-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
+  }
+}
+
+// ============================================================================
 // Location Mention Styles (# location insertion)
 // ============================================================================
 
