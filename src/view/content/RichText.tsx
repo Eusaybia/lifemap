@@ -80,7 +80,7 @@ import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
 import { NodeConnectionManager } from './NodeConnectionManager'
-import { CanvasExtension } from '../structure/CanvasExtension'
+import { CanvasOldExtension } from '../structure/CanvasExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -333,7 +333,7 @@ export const customExtensions: Extensions = [
   ExternalPortalExtension,
   QuoteExtension,
   SpanGroupMark,
-  CanvasExtension,
+  CanvasOldExtension,
   WarningExtension,
   LifemapCardExtension,
   SingleLifemapCardExtension,

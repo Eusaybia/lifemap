@@ -360,9 +360,9 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     {
       id: 'canvas-3d',
       title: 'Canvas',
-      description: 'Canvas for placing 3D models from Sketchfab',
+      description: 'React Flow canvas for node-based layouts',
       emoji: '🎨',
-      keywords: ['3d', 'canvas', 'model', 'sketchfab', 'three', 'object', 'scene'],
+      keywords: ['react flow', 'canvas', 'nodes', 'graph', 'diagram', 'flow'],
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertCanvas3D?.() ||
