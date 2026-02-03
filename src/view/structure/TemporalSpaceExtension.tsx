@@ -379,6 +379,40 @@ export const TemporalSpaceExtension = TipTapNode.create({
               overflow: 'visible',
             }}
           >
+            {/* Architecture: Decorative tick marks live in the NodeView overlay so
+                the ProseMirror document content stays untouched and stable. */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                top: isCollapsed ? 8 : 12,
+                bottom: isCollapsed ? 8 : 12,
+                left: 6,
+                width: 16,
+                pointerEvents: 'none',
+                opacity: 0.6,
+                // Minute/5-minute ticks emulate watch spacing without extra DOM nodes.
+                backgroundImage: `
+                  linear-gradient(
+                    to bottom,
+                    rgba(90, 90, 100, 0.35) 0px,
+                    rgba(90, 90, 100, 0.35) 1px,
+                    transparent 1px,
+                    transparent 6px
+                  ),
+                  linear-gradient(
+                    to bottom,
+                    rgba(55, 55, 65, 0.8) 0px,
+                    rgba(55, 55, 65, 0.8) 1px,
+                    transparent 1px,
+                    transparent 30px
+                  )
+                `,
+                backgroundSize: '6px 6px, 12px 30px',
+                backgroundRepeat: 'repeat-y, repeat-y',
+                backgroundPosition: 'left top, left top',
+              }}
+            />
             {/* Content */}
             <AnimatePresence>
               {!isCollapsed && (
@@ -387,6 +421,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
+                  style={{ position: 'relative', zIndex: 1 }}
                 >
                   {(() => {
                     switch (props.node.attrs.lens) {
@@ -413,6 +448,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
                 backgroundColor: 'black',
                 borderRadius: 10,
                 pointerEvents: 'none',
+                zIndex: 2,
               }}
               initial={{ opacity: 0 }}
               animate={{ opacity: dimmingOpacity }}
