@@ -1391,6 +1391,8 @@ const formatTimePointLabel = (tp: TimePoint): string => {
   if (isAbstractTimePoint(tp)) {
     return tp.id === 'timepoint:daily' ? `${tp.emoji} Daily` : `${tp.emoji} Today`
   }
+  // Architecture: weekday timepoints are recurring concepts, not concrete dates.
+  if (isWeekdayTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isAbstractLunarPhase(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
   if (isAbstractSeasonPoint(tp)) return `${tp.emoji} ${tp.label}` // General concept, no date
   if (isRecurringDatePoint(tp)) return `${tp.emoji} ${tp.label} (every year)` // Recurring date
@@ -1431,7 +1433,9 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
 
     const timePoint = orderedItems[index]
     let formattedDate: string
-    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint)
+    const isWeekdayRecurring = isWeekdayTimePoint(timePoint)
+    // Architecture: recurring weekday tags should not serialize an epoch date.
+    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint) || isWeekdayRecurring
     
     if (isAbstractTimePoint(timePoint)) {
       if (timePoint.id === 'timepoint:daily') {
@@ -1439,6 +1443,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
       } else {
       formattedDate = 'Today'
       }
+    } else if (isWeekdayRecurring) {
+      formattedDate = timePoint.label
     } else if (isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint)) {
       formattedDate = timePoint.label // Just the concept name, no date
     } else if (isRecurringDatePoint(timePoint)) {

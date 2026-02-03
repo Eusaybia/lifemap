@@ -20,6 +20,11 @@ const WEEK_DAYS = [
   { label: 'Sundays', slug: 'sundays' },
 ]
 
+// Architectural choice: smaller embed cards keep the weekly overview compact
+// while preserving a clear, swipeable target for each day.
+const EMBED_CARD_WIDTH = 440
+const EMBED_CARD_MIN_HEIGHT = 720
+
 interface DayCardProps {
   label: string
   slug: string
@@ -33,9 +38,9 @@ const DayCard: React.FC<DayCardProps> = ({ label, slug, children }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2 }}
       style={{
-        flex: '0 0 520px',
-        width: '520px',
-        minHeight: '900px',
+        flex: `0 0 ${EMBED_CARD_WIDTH}px`,
+        width: `${EMBED_CARD_WIDTH}px`,
+        minHeight: `${EMBED_CARD_MIN_HEIGHT}px`,
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: '#FFFFFF',
