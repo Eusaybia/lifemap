@@ -70,7 +70,7 @@ import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/L
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
-import { WeeklyExtension } from '../structure/WeeklyExtension'
+import { WeeklyExtension, WeeklyQuantaExtension } from '../structure/WeeklyExtension'
 import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
@@ -264,7 +264,7 @@ export const officialExtensions = (quantaId: string) => {return [
     types: [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
-      'weekly', 'canvas', 'calendar', 'dayHeader', 'lunarMonth',
+      'weekly', 'weeklyQuanta', 'canvas', 'calendar', 'dayHeader', 'lunarMonth',
       'temporalSpace', 'externalPortal', 'portal', 'lifetimeView',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
@@ -350,6 +350,7 @@ export const customExtensions: Extensions = [
   DailyTomorrow,
   DailyExtension,
   WeeklyExtension,
+  WeeklyQuantaExtension,
   LunarMonthExtension,
   DayHeaderTasks,
   DayHeaderInsights,

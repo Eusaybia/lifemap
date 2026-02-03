@@ -197,6 +197,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'weekly-schedule-quanta',
+      title: 'Weekly Schedule (Quanta)',
+      description: 'Insert a weekly schedule view powered by Quanta',
+      emoji: '📆',
+      keywords: ['weekly', 'schedule', 'week', 'planner', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertWeeklyQuanta()
+      },
+    },
+    {
       id: 'lunar-month',
       title: 'Lunar Month',
       description: 'Monthly calendar based on lunar phases (New Moon = Day 1)',
