@@ -1070,6 +1070,12 @@ const getYearSuggestions = (query: string): TimePoint[] => {
 const parseTimeString = (query: string): TimePoint | null => {
   const lowerQuery = query.toLowerCase().trim()
   
+  // Architecture: prefer 4-digit valid years as calendar years, not HHMM times.
+  // This keeps "2027" discoverable as a year suggestion instead of parsing as 20:27.
+  if (/^\d{4}$/.test(lowerQuery) && isValidYear(lowerQuery)) {
+    return null
+  }
+
   let hour: number
   let minute: number
   let period: string | undefined
