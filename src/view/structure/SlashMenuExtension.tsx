@@ -208,6 +208,28 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'lunar-schedule',
+      title: 'Lunar Schedule',
+      description: 'Insert a lunar phase schedule powered by Quanta',
+      emoji: '🌒',
+      keywords: ['lunar', 'moon', 'schedule', 'phase', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertLunarSchedule()
+      },
+    },
+    {
+      id: 'seasonal-schedule',
+      title: 'Seasonal Schedule',
+      description: 'Insert a seasonal schedule powered by Quanta',
+      emoji: '🍁',
+      keywords: ['seasonal', 'season', 'spring', 'summer', 'autumn', 'winter', 'schedule', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertSeasonalSchedule()
+      },
+    },
+    {
       id: 'lunar-month',
       title: 'Lunar Month',
       description: 'Monthly calendar based on lunar phases (New Moon = Day 1)',

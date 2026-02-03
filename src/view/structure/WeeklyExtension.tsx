@@ -21,6 +21,20 @@ const WEEK_DAYS = [
   { label: 'Sundays', slug: 'sundays' },
 ]
 
+const LUNAR_PHASES = [
+  { label: 'New Moons', slug: 'new-moons' },
+  { label: 'First Quarters', slug: 'first-quarters' },
+  { label: 'Full Moons', slug: 'full-moons' },
+  { label: 'Last Quarters', slug: 'last-quarters' },
+]
+
+const SEASONS = [
+  { label: 'Spring', slug: 'spring' },
+  { label: 'Summer', slug: 'summer' },
+  { label: 'Autumn', slug: 'autumn' },
+  { label: 'Winter', slug: 'winter' },
+]
+
 // Architectural choice: smaller embed cards keep the weekly overview compact
 // while preserving a clear, swipeable target for each day.
 const EMBED_CARD_WIDTH = 256
@@ -300,6 +314,124 @@ export const WeeklyScheduleQuanta: React.FC<WeeklyScheduleQuantaProps> = (props)
   )
 }
 
+// Architectural choice: keep lunar schedule in the same carousel layout
+// for visual consistency with weekly Quanta while using phase-specific IDs.
+export const LunarSchedule: React.FC<WeeklyScheduleQuantaProps> = (props) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const userId = props.userId ?? '000000'
+
+  return (
+    <NodeViewWrapper 
+      data-lunar-schedule-node-view="true"
+      style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
+    >
+      {/* Architectural choice: lunar schedule uses the same flat, overflow-friendly
+          overlay so cards can breathe without the group chrome. */}
+      <NodeOverlay
+        nodeProps={props}
+        nodeType="lunarSchedule"
+        boxShadow="none"
+        style={{ overflow: 'visible' }}
+      >
+        <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
+          {/* Horizontal Scroll Container */}
+          <div
+            ref={scrollContainerRef}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              overflowX: 'auto',
+              overflowY: 'visible',
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              padding: '8px 50px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+            className="weekly-carousel-scroll"
+          >
+            <style>{`
+              .weekly-carousel-scroll::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            
+            {LUNAR_PHASES.map((phase) => (
+              <DayCard key={phase.slug} label={phase.label} slug={phase.slug} height={QUANTA_CARD_HEIGHT}>
+                <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+                  <div style={{ width: '100%', height: '100%' }}>
+                    <Quanta quantaId={phase.slug} userId={userId} />
+                  </div>
+                </div>
+              </DayCard>
+            ))}
+          </div>
+        </div>
+      </NodeOverlay>
+    </NodeViewWrapper>
+  )
+}
+
+// Architectural choice: seasonal schedule mirrors the lunar layout to keep
+// phase- and season-based planning visually consistent.
+export const SeasonalSchedule: React.FC<WeeklyScheduleQuantaProps> = (props) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const userId = props.userId ?? '000000'
+
+  return (
+    <NodeViewWrapper 
+      data-seasonal-schedule-node-view="true"
+      style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
+    >
+      {/* Architectural choice: reuse the same flat overlay styling so
+          seasonal cards behave like other schedule carousels. */}
+      <NodeOverlay
+        nodeProps={props}
+        nodeType="seasonalSchedule"
+        boxShadow="none"
+        style={{ overflow: 'visible' }}
+      >
+        <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
+          {/* Horizontal Scroll Container */}
+          <div
+            ref={scrollContainerRef}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: '12px',
+              overflowX: 'auto',
+              overflowY: 'visible',
+              scrollSnapType: 'x mandatory',
+              scrollBehavior: 'smooth',
+              padding: '8px 50px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+            className="weekly-carousel-scroll"
+          >
+            <style>{`
+              .weekly-carousel-scroll::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            
+            {SEASONS.map((season) => (
+              <DayCard key={season.slug} label={season.label} slug={season.slug} height={QUANTA_CARD_HEIGHT}>
+                <div style={{ flex: 1, position: 'relative', height: '100%' }}>
+                  <div style={{ width: '100%', height: '100%' }}>
+                    <Quanta quantaId={season.slug} userId={userId} />
+                  </div>
+                </div>
+              </DayCard>
+            ))}
+          </div>
+        </div>
+      </NodeOverlay>
+    </NodeViewWrapper>
+  )
+}
+
 // ============================================================================
 // Weekly TipTap Extension - Simple block container
 // ============================================================================
@@ -311,6 +443,12 @@ declare module '@tiptap/core' {
     }
     weeklyQuanta: {
       insertWeeklyQuanta: () => ReturnType
+    }
+    lunarSchedule: {
+      insertLunarSchedule: () => ReturnType
+    }
+    seasonalSchedule: {
+      insertSeasonalSchedule: () => ReturnType
     }
   }
 }
@@ -405,6 +543,104 @@ export const WeeklyQuantaExtension = TipTapNode.create({
           tr.delete(range.from, range.to)
           // @ts-ignore
           chain().insertWeeklyQuanta().run()
+        },
+      },
+    ]
+  },
+})
+
+// Architectural choice: separate lunar schedule node keeps phase-based Quanta
+// independent from the lunar month view and weekly schedules.
+export const LunarScheduleExtension = TipTapNode.create({
+  name: "lunarSchedule",
+  group: "block",
+  atom: true,
+  inline: false,
+  selectable: true,
+  draggable: true,
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="lunar-schedule"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { ...HTMLAttributes, 'data-type': 'lunar-schedule' }]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(LunarSchedule)
+  },
+
+  addCommands() {
+    return {
+      insertLunarSchedule: () => ({ chain }) => {
+        return chain()
+          .insertContent({
+            type: 'lunarSchedule',
+          })
+          .run()
+      },
+    }
+  },
+
+  addInputRules() {
+    return [
+      {
+        find: /^\/lunar-schedule\s$/,
+        handler: ({ state, range, chain }) => {
+          const { tr } = state
+          tr.delete(range.from, range.to)
+          // @ts-ignore
+          chain().insertLunarSchedule().run()
+        },
+      },
+    ]
+  },
+})
+
+// Architectural choice: seasonal schedule is its own node so it can evolve
+// independently from lunar/weekly schedules.
+export const SeasonalScheduleExtension = TipTapNode.create({
+  name: "seasonalSchedule",
+  group: "block",
+  atom: true,
+  inline: false,
+  selectable: true,
+  draggable: true,
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="seasonal-schedule"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { ...HTMLAttributes, 'data-type': 'seasonal-schedule' }]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(SeasonalSchedule)
+  },
+
+  addCommands() {
+    return {
+      insertSeasonalSchedule: () => ({ chain }) => {
+        return chain()
+          .insertContent({
+            type: 'seasonalSchedule',
+          })
+          .run()
+      },
+    }
+  },
+
+  addInputRules() {
+    return [
+      {
+        find: /^\/seasonal-schedule\s$/,
+        handler: ({ state, range, chain }) => {
+          const { tr } = state
+          tr.delete(range.from, range.to)
+          // @ts-ignore
+          chain().insertSeasonalSchedule().run()
         },
       },
     ]
