@@ -179,14 +179,16 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
 
   // Default grip handler - selects the node in the editor
   // Can be overridden via onGripMouseDown prop for custom behavior (e.g., dragging in canvas)
+  // IMPORTANT: Do NOT call e.preventDefault() or e.stopPropagation() here, as this would
+  // block TipTap's native drag behavior. The data-drag-handle attribute on DragGrip tells
+  // TipTap to use that element as the drag handle, and we need to let events bubble up.
   const handleGripMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onGripMouseDown) {
-      // Use custom handler if provided
+      // Use custom handler if provided (caller is responsible for event handling)
       onGripMouseDown(e)
     } else {
-      // Default behavior: select the node
-      e.preventDefault()
-      e.stopPropagation()
+      // Default behavior: select the node for TipTap dragging
+      // We don't preventDefault or stopPropagation to allow native drag to work
       const pos = nodeProps.getPos()
       if (typeof pos === 'number') {
         nodeProps.editor.commands.setNodeSelection(pos)

@@ -10,6 +10,7 @@ import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
+import { NodeOverlay } from "../components/NodeOverlay";
 
 // ============================================================================
 // Aura Energy Glow Helper
@@ -351,110 +352,114 @@ export const TemporalSpaceExtension = TipTapNode.create({
           data-temporal-space-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          {/* Architecture: TemporalSpace renders as a single node without Group wrapper
-              to keep its structure flat in the document tree. */}
-          <div
-            style={{
-              borderRadius: 12,
-              position: 'relative',
-              display: isHidden ? 'none' : 'block',
-              // Frosted glass effect - with subtle gradient for depth even on white
-              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 245, 0.85) 50%, rgba(255, 255, 255, 0.9) 100%)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)', // Safari support
-              // Multi-layer border for glass edge effect
-              border: '1px solid rgba(200, 200, 210, 0.4)',
-              // Complex shadow for glass depth: outer shadow + inner highlight + subtle inner shadow
-              boxShadow: `
-                0 4px 24px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.05),
-                inset 1px 0 0 rgba(255, 255, 255, 0.4),
-                inset -1px 0 0 rgba(0, 0, 0, 0.03)
-              `,
-              padding: isCollapsed ? '10px 20px' : '20px',
-              margin: '8px 0px',
-              minHeight: isCollapsed ? 48 : 20,
-              overflow: 'visible',
-            }}
+          {/* Architecture: TemporalSpace uses NodeOverlay for consistent grip system
+              and connection support, matching the Group node's UX pattern.
+              The frosted glass effect is applied within the NodeOverlay. */}
+          <NodeOverlay
+            nodeProps={props}
+            nodeType="temporalSpace"
+            style={{ display: isHidden ? 'none' : 'block' }}
+            // Frosted glass box shadow - multi-layer for depth
+            boxShadow={`
+              0 4px 24px rgba(0, 0, 0, 0.08),
+              0 1px 3px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+              inset 1px 0 0 rgba(255, 255, 255, 0.4),
+              inset -1px 0 0 rgba(0, 0, 0, 0.03)
+            `}
+            borderRadius={12}
+            padding={isCollapsed ? '10px 20px' : '20px'}
+            // Use a semi-transparent background for frosted glass effect
+            backgroundColor="rgba(255, 255, 255, 0.92)"
           >
-            {/* Architecture: Decorative tick marks live in the NodeView overlay so
-                the ProseMirror document content stays untouched and stable. */}
+            {/* Inner container for frosted glass effect and content positioning */}
             <div
-              aria-hidden="true"
               style={{
-                position: 'absolute',
-                top: isCollapsed ? 8 : 12,
-                bottom: isCollapsed ? 8 : 12,
-                left: 6,
-                width: 16,
-                pointerEvents: 'none',
-                opacity: 0.6,
-                // Minute/5-minute ticks emulate watch spacing without extra DOM nodes.
-                backgroundImage: `
-                  linear-gradient(
-                    to bottom,
-                    rgba(90, 90, 100, 0.35) 0px,
-                    rgba(90, 90, 100, 0.35) 1px,
-                    transparent 1px,
-                    transparent 6px
-                  ),
-                  linear-gradient(
-                    to bottom,
-                    rgba(55, 55, 65, 0.8) 0px,
-                    rgba(55, 55, 65, 0.8) 1px,
-                    transparent 1px,
-                    transparent 30px
-                  )
-                `,
-                backgroundSize: '6px 6px, 12px 30px',
-                backgroundRepeat: 'repeat-y, repeat-y',
-                backgroundPosition: 'left top, left top',
+                position: 'relative',
+                minHeight: isCollapsed ? 48 : 20,
+                // Frosted glass backdrop blur effect
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)', // Safari support
               }}
-            />
-            {/* Content */}
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ position: 'relative', zIndex: 1 }}
-                >
-                  {(() => {
-                    switch (props.node.attrs.lens) {
-                      case "identity":
-                        return <NodeViewContent />;
-                      case "hideUnimportantNodes":
-                        return <div>Important Nodes Only (Pending)</div>;
-                      default:
-                        return <NodeViewContent />;
-                    }
-                  })()}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            >
+              {/* Architecture: Decorative tick marks live in the NodeView overlay so
+                  the ProseMirror document content stays untouched and stable. */}
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: isCollapsed ? -2 : -8,
+                  bottom: isCollapsed ? -2 : -8,
+                  left: -14,
+                  width: 16,
+                  pointerEvents: 'none',
+                  opacity: 0.6,
+                  // Minute/5-minute ticks emulate watch spacing without extra DOM nodes.
+                  backgroundImage: `
+                    linear-gradient(
+                      to bottom,
+                      rgba(90, 90, 100, 0.35) 0px,
+                      rgba(90, 90, 100, 0.35) 1px,
+                      transparent 1px,
+                      transparent 6px
+                    ),
+                    linear-gradient(
+                      to bottom,
+                      rgba(55, 55, 65, 0.8) 0px,
+                      rgba(55, 55, 65, 0.8) 1px,
+                      transparent 1px,
+                      transparent 30px
+                    )
+                  `,
+                  backgroundSize: '6px 6px, 12px 30px',
+                  backgroundRepeat: 'repeat-y, repeat-y',
+                  backgroundPosition: 'left top, left top',
+                }}
+              />
+              {/* Content */}
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ position: 'relative', zIndex: 1 }}
+                  >
+                    {(() => {
+                      switch (props.node.attrs.lens) {
+                        case "identity":
+                          return <NodeViewContent />;
+                        case "hideUnimportantNodes":
+                          return <div>Important Nodes Only (Pending)</div>;
+                        default:
+                          return <NodeViewContent />;
+                      }
+                    })()}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
-            <motion.div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
-                borderRadius: 10,
-                pointerEvents: 'none',
-                zIndex: 2,
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </div>
+              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: -20,
+                  left: -20,
+                  right: -20,
+                  bottom: -20,
+                  backgroundColor: 'black',
+                  borderRadius: 12,
+                  pointerEvents: 'none',
+                  zIndex: 2,
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });
