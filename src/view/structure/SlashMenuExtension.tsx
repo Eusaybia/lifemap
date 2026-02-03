@@ -262,6 +262,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         editor.commands.insertTemporalSpace()
       },
     },
+    {
+      id: 'temporal-order',
+      title: 'Temporal Order',
+      description: 'Auto-sorts children by date (past→future)',
+      emoji: '↑',
+      keywords: ['temporal', 'order', 'chronological', 'sort', 'date', 'time', 'arrow', 'past', 'future', 'timeline'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertTemporalOrder()
+      },
+    },
     // Text formatting
     {
       id: 'heading-1',

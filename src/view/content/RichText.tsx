@@ -74,6 +74,7 @@ import { WeeklyExtension, WeeklyQuantaExtension, LunarScheduleExtension, Seasona
 import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
+import { TemporalOrderExtension } from '../structure/TemporalOrderExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
 import { Canvas3DExtension } from '../structure/Canvas3DExtension'
@@ -265,7 +266,7 @@ export const officialExtensions = (quantaId: string) => {return [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'externalPortal', 'portal', 'lifetimeView',
+      'temporalSpace', 'temporalOrder', 'externalPortal', 'portal', 'lifetimeView',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
       'excalidraw', 'mapboxMap', 'warning', 'quote',
@@ -359,6 +360,7 @@ export const customExtensions: Extensions = [
   DayHeaderObservations,
   DayHeaderExtension,
   TemporalSpaceExtension,
+  TemporalOrderExtension,
   LifetimeViewExtension,
   WeatherExtension,
   Canvas3DExtension,
