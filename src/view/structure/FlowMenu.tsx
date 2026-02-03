@@ -1094,6 +1094,20 @@ const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+// Architectural choice: keep the Weekly loupe tag-only because the
+// weekly node's interactions live inside the embedded day cards,
+// and the flow menu should stay lightweight while scanning schedules.
+const WeeklyLoupe = React.memo((_props: { editor: Editor }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Weekly Schedule
+            </Tag>
+        </div>
+    )
+})
+
 // Memoize MathLoupe and manage its state locally
 const MathLoupe = React.memo((props: { editor: Editor }) => {
     const { editor } = props;
@@ -1739,6 +1753,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
                         'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
+                        'weekly': <WeeklyLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
                     }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
