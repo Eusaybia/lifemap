@@ -1731,14 +1731,20 @@ export const FlowMenu = (props: { editor: Editor }) => {
             // Show for both text selections AND node selections (portal, externalPortal, group, etc.)
             shouldShow={({ editor, state }) => {
                 const { selection } = state;
-                // Show for text selections (default behavior)
-                if (!selection.empty) return true;
-                // Also show for node selections
-                if (isNodeSelection(selection)) return true;
-                return false;
+                const hasSelection = !selection.empty || isNodeSelection(selection)
+                if (!hasSelection) return false
+
+                // Architectural choice: only show the flow menu for the active
+                // editor (or when interacting with the menu itself) so multiple
+                // embedded Quanta don't leave overlapping menus behind.
+                const editorHasFocus = editor.isFocused || editor.view.hasFocus()
+                const activeElement = typeof document === 'undefined' ? null : document.activeElement
+                const menuHasFocus = !!activeElement && !!elementRef.current?.contains(activeElement)
+
+                return editorHasFocus || menuHasFocus
             }}>
             <motion.div
-                // ref={elementRef} // ref might not be needed if positioning is handled by Tippy
+                ref={elementRef}
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
