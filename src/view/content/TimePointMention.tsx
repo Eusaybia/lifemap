@@ -1135,10 +1135,17 @@ const fetchTimePoints = (query: string): TimePoint[] => {
   if (!query) return sortTimePointsByLength(timePoints)
   
   const lowerQuery = query.toLowerCase()
-  const recurringItems = timePoints.filter((tp) => isRecurringPeriodId(tp.id))
-  // Keep specific time-based entries visible even when query narrows results.
+  // Architecture: When a query is provided, we must filter recurring and specific time items
+  // to only include those matching the query. Previously, these were always included unfiltered,
+  // which caused the search functionality to appear broken - matching items would be buried
+  // under non-matching recurring/time items, preventing the auto-select of the first match.
+  const recurringItems = timePoints.filter((tp) => 
+    isRecurringPeriodId(tp.id) && tp.label.toLowerCase().includes(lowerQuery)
+  )
+  // Keep specific time-based entries visible only when they match the query.
   const specificTimeItems = timePoints.filter(
-    (tp) => isTimeOfDayPoint(tp) || isSolarTimePoint(tp) || isTimeTimePoint(tp)
+    (tp) => (isTimeOfDayPoint(tp) || isSolarTimePoint(tp) || isTimeTimePoint(tp)) &&
+            tp.label.toLowerCase().includes(lowerQuery)
   )
   let results: TimePoint[] = []
   
