@@ -165,6 +165,104 @@ interface Duration {
   emoji: string
 }
 
+type DurationUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'season'
+
+interface DurationUnitDefinition {
+  unit: DurationUnit
+  aliases: string[]
+  seconds: number
+  emoji: string
+}
+
+const DURATION_UNIT_DEFINITIONS: DurationUnitDefinition[] = [
+  {
+    unit: 'second',
+    aliases: ['s', 'sec', 'secs', 'second', 'seconds'],
+    seconds: 1,
+    emoji: '⏳',
+  },
+  {
+    unit: 'minute',
+    aliases: ['m', 'min', 'mins', 'minute', 'minutes'],
+    seconds: 60,
+    emoji: '⏳',
+  },
+  {
+    unit: 'hour',
+    aliases: ['h', 'hr', 'hrs', 'hour', 'hours'],
+    seconds: 3600,
+    emoji: '⏳',
+  },
+  {
+    unit: 'day',
+    aliases: ['d', 'day', 'days'],
+    seconds: 86400,
+    emoji: '☀️',
+  },
+  {
+    unit: 'week',
+    aliases: ['w', 'wk', 'wks', 'week', 'weeks'],
+    seconds: 604800,
+    emoji: '🌘',
+  },
+  {
+    unit: 'month',
+    aliases: ['mo', 'month', 'months'],
+    seconds: 2592000,
+    emoji: '🌕',
+  },
+  {
+    unit: 'season',
+    aliases: ['season', 'seasons'],
+    seconds: 7776000,
+    emoji: '🌻',
+  },
+]
+
+const DURATION_QUERY_PATTERN = /^(\d+(?:\.\d+)?)\s*([a-z]+)?$/i
+
+const formatDurationValue = (value: number): string => {
+  return Number.isInteger(value) ? value.toString() : value.toString()
+}
+
+const formatDurationLabel = (value: number, unit: DurationUnit): string => {
+  const valueLabel = formatDurationValue(value)
+  const unitLabel = Math.abs(value) === 1 ? unit : `${unit}s`
+  return `${valueLabel} ${unitLabel}`
+}
+
+const resolveDurationUnit = (unitRaw?: string): DurationUnitDefinition | null => {
+  if (!unitRaw) return null
+  const normalized = unitRaw.toLowerCase()
+  return DURATION_UNIT_DEFINITIONS.find(definition =>
+    definition.aliases.includes(normalized)
+  ) || null
+}
+
+const parseCustomDuration = (query: string): Duration | null => {
+  const match = query.match(DURATION_QUERY_PATTERN)
+  if (!match) return null
+
+  const [, valueRaw, unitRaw] = match
+  const value = parseFloat(valueRaw)
+  if (!Number.isFinite(value) || value <= 0) return null
+
+  const unitDefinition = resolveDurationUnit(unitRaw)
+  if (!unitDefinition) return null
+
+  // Keep conversion rules centralized so custom and preset durations stay consistent.
+  const seconds = Math.round(value * unitDefinition.seconds)
+  const label = formatDurationLabel(value, unitDefinition.unit)
+  const idValue = formatDurationValue(value).replace('.', '_')
+
+  return {
+    id: `duration:custom:${unitDefinition.unit}:${idValue}`,
+    label,
+    seconds,
+    emoji: unitDefinition.emoji,
+  }
+}
+
 // ============================================================================
 // Duration Suggestions
 // ============================================================================
@@ -307,81 +405,17 @@ const fetchDurations = (query: string): Duration[] => {
   // Strip leading ~ if present
   let lowerQuery = query.toLowerCase().replace(/^~/, '').trim()
   
-  // Extract numeric part and unit for smarter matching
-  const match = lowerQuery.match(/^(\d+\.?\d*)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds|d|day|days|w|wk|wks|week|weeks|mo|month|months|season|seasons)?$/i)
-  
-  if (match) {
-    const [, numStr, unit] = match
-    const num = parseFloat(numStr)
-    
-    // Match based on the number and unit type
-    return durations.filter((d) => {
-      const labelLower = d.label.toLowerCase()
-      
-      // Check if this is a season-based query
-      if (unit && unit.startsWith('season')) {
-        if (labelLower.includes('season')) {
-          const seasonMatch = labelLower.match(/^(\d+)\s*season/)
-          if (seasonMatch && parseInt(seasonMatch[1]) === num) return true
-        }
-      }
-      
-      // Check if this is a month-based query
-      if (unit && (unit === 'mo' || unit.startsWith('month'))) {
-        if (labelLower.includes('month')) {
-          const monthMatch = labelLower.match(/^(\d+)\s*month/)
-          if (monthMatch && parseInt(monthMatch[1]) === num) return true
-        }
-      }
-      
-      // Check if this is a week-based query
-      if (unit && (unit === 'w' || unit.startsWith('wk') || unit.startsWith('week'))) {
-        if (labelLower.includes('week')) {
-          const weekMatch = labelLower.match(/^(\d+)\s*week/)
-          if (weekMatch && parseInt(weekMatch[1]) === num) return true
-        }
-      }
-      
-      // Check if this is a day-based query
-      if (unit && (unit === 'd' || unit.startsWith('day'))) {
-        if (labelLower.includes('day')) {
-          const dayMatch = labelLower.match(/^(\d+)\s*day/)
-          if (dayMatch && parseInt(dayMatch[1]) === num) return true
-        }
-      }
-      
-      // Check if this is an hour-based query
-      if (!unit || unit.startsWith('h')) {
-        // Match hour-based durations
-        if (labelLower.includes('hour')) {
-          const hourMatch = labelLower.match(/^(\d+\.?\d*)\s*hour/)
-          if (hourMatch && parseFloat(hourMatch[1]) === num) return true
-        }
-        // Also match equivalent minutes (e.g., 1 hour = 60 minutes)
-        if (labelLower.includes('minute')) {
-          const minMatch = labelLower.match(/^(\d+)\s*minute/)
-          if (minMatch && parseInt(minMatch[1]) === num * 60) return true
-        }
-      }
-      
-      // Check if this is a minute-based query
-      if (unit && (unit.startsWith('m') && !unit.startsWith('mi') && !unit.startsWith('mo') || unit.startsWith('min'))) {
-        if (labelLower.includes('minute')) {
-          const minMatch = labelLower.match(/^(\d+)\s*minute/)
-          if (minMatch && parseInt(minMatch[1]) === num) return true
-        }
-      }
-      
-      // Check if this is a second-based query
-      if (unit && unit.startsWith('s') && !unit.startsWith('season')) {
-        if (labelLower.includes('second')) {
-          const secMatch = labelLower.match(/^(\d+)\s*second/)
-          if (secMatch && parseInt(secMatch[1]) === num) return true
-        }
-      }
-      
-      return false
-    })
+  const customDuration = parseCustomDuration(lowerQuery)
+  if (customDuration) {
+    const matchingDurations = durations.filter(
+      duration => duration.seconds === customDuration.seconds
+    )
+    const hasExactLabel = matchingDurations.some(
+      duration => duration.label.toLowerCase() === customDuration.label.toLowerCase()
+    )
+    return hasExactLabel
+      ? matchingDurations
+      : [customDuration, ...matchingDurations]
   }
   
   // Fall back to simple text matching
@@ -487,6 +521,9 @@ const DurationPluginKey = new PluginKey('duration-suggestion')
 export const durationSuggestionOptions = {
   char: '~',
   pluginKey: DurationPluginKey,
+  // allowSpaces lets users type natural inputs like "2 hours"
+  // without breaking the suggestion query on whitespace.
+  allowSpaces: true,
   
   items: ({ query }: { query: string }): Duration[] => {
     return fetchDurations(query)
