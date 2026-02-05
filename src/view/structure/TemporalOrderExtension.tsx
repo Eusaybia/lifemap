@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { Node as ProseMirrorNode, Fragment } from "prosemirror-model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
 import { Plugin, PluginKey, Transaction, EditorState } from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
@@ -83,6 +84,37 @@ const extractEarliestDateFromNode = (node: ProseMirrorNode): Date | null => {
   });
 
   return earliestDate;
+};
+
+// ============================================================================
+// Temporal Fade Utilities
+// ============================================================================
+
+/**
+ * ARCHITECTURE: We fade based on absolute distance from "now" using a fixed
+ * horizon so an event's clarity is stable across documents and sessions.
+ * This avoids relative fading where far-future items could look "present"
+ * simply because all events are far away.
+ */
+const TEMPORAL_FADE_CONFIG = {
+  fadeRangeMs: 1000 * 60 * 60 * 24 * 365 * 2, // 2 years
+  minOpacity: 0.35,
+  maxOpacity: 1,
+};
+
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+const getTemporalDistanceMs = (date: Date, nowMs: number): number =>
+  Math.abs(date.getTime() - nowMs);
+
+const getTemporalFadeOpacity = (distanceMs: number): number => {
+  const normalized = Math.min(distanceMs / TEMPORAL_FADE_CONFIG.fadeRangeMs, 1);
+  const opacity =
+    TEMPORAL_FADE_CONFIG.maxOpacity -
+    normalized * (TEMPORAL_FADE_CONFIG.maxOpacity - TEMPORAL_FADE_CONFIG.minOpacity);
+
+  return clampNumber(opacity, TEMPORAL_FADE_CONFIG.minOpacity, TEMPORAL_FADE_CONFIG.maxOpacity);
 };
 
 /**
@@ -605,6 +637,42 @@ export const TemporalOrderExtension = TipTapNode.create({
           });
 
           return tr;
+        },
+      }),
+      new Plugin({
+        key: new PluginKey('temporalOrderFader'),
+        // ARCHITECTURE: We use node decorations to apply temporal fading
+        // without mutating the ProseMirror document or node attributes.
+        props: {
+          decorations(state) {
+            const decorations: Decoration[] = [];
+            const nowMs = Date.now();
+
+            state.doc.descendants((node, pos) => {
+              if (node.type.name !== 'temporalOrder') return;
+
+              node.forEach((child, offset) => {
+                const childPos = pos + 1 + offset;
+                const date = extractEarliestDateFromNode(child);
+                if (!date) return;
+
+                const distanceMs = getTemporalDistanceMs(date, nowMs);
+                const opacity = getTemporalFadeOpacity(distanceMs);
+                const distanceDays = Math.round(distanceMs / (1000 * 60 * 60 * 24));
+
+                decorations.push(
+                  Decoration.node(childPos, childPos + child.nodeSize, {
+                    style: `opacity: ${opacity}; transition: opacity 0.2s ease;`,
+                    'data-temporal-distance-days': String(distanceDays),
+                  })
+                );
+              });
+            });
+
+            return decorations.length
+              ? DecorationSet.create(state.doc, decorations)
+              : DecorationSet.empty;
+          },
         },
       }),
     ];
