@@ -213,6 +213,10 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "canvas3D"
       case "weekly":
         return "weekly"
+      // ARCHITECTURE: Pomodoro is an inline atom node that supports selection.
+      // We return a dedicated type so FlowMenu can show a simple loupe for it.
+      case "pomodoro":
+        return "pomodoro"
       default:
         console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
         return "invalid"
