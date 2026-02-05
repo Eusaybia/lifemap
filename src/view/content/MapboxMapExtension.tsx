@@ -224,7 +224,14 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
   return (
     <NodeViewWrapper style={{ margin: '16px 0' }}>
-      <NodeOverlay nodeProps={props} nodeType="mapboxMap">
+      <NodeOverlay
+        nodeProps={props}
+        nodeType="mapboxMap"
+        // ARCHITECTURE: Mapbox tiles already provide depth/shading.
+        // Removing the overlay shadow keeps the map clean and avoids
+        // a "double shadow" effect in the slash-menu inserted node.
+        boxShadow="none"
+      >
         <div
           style={{
             borderRadius: 8,
@@ -233,143 +240,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             outlineOffset: 2,
           }}
         >
-        {/* Search Bar */}
-        <div
-          style={{
-            padding: '12px 16px',
-            backgroundColor: '#ffffff',
-            borderBottom: '1px solid #e5e7eb',
-            position: 'relative',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#6b7280"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search for a location to pin..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              onBlur={() => setTimeout(() => setShowResults(false), 200)}
-              style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                fontSize: 14,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                color: '#374151',
-                backgroundColor: 'transparent',
-              }}
-            />
-            {isSearching && (
-              <div
-                style={{
-                  width: 16,
-                  height: 16,
-                  border: '2px solid #e5e7eb',
-                  borderTopColor: '#6366f1',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-            )}
-          </div>
-
-          {/* Search Results Dropdown */}
-          {showResults && searchResults.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderTop: 'none',
-                borderRadius: '0 0 8px 8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                zIndex: 1000,
-                maxHeight: 240,
-                overflowY: 'auto',
-              }}
-            >
-              {searchResults.map((result, index) => (
-                <div
-                  key={result.id || index}
-                  onClick={() => handleSelectLocation(result)}
-                  style={{
-                    padding: '10px 16px',
-                    cursor: 'pointer',
-                    borderBottom: index < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
-                    transition: 'background-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f9fafb')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 10,
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#9ca3af"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{ marginTop: 2, flexShrink: 0 }}
-                    >
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: '#374151',
-                          fontFamily: "'Inter', sans-serif",
-                        }}
-                      >
-                        {result.text}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: '#9ca3af',
-                          fontFamily: "'Inter', sans-serif",
-                          marginTop: 2,
-                        }}
-                      >
-                        {result.place_name}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Pinned Locations List */}
         {markers.length > 0 && (
           <div
@@ -447,12 +317,159 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
         {/* Map Container */}
         <div
-          ref={mapContainer}
           style={{
+            position: 'relative',
             width: '100%',
             height: 400,
           }}
-        />
+        >
+          {/* ARCHITECTURE: Keep the search UI as a floating overlay so the
+              map remains the primary surface and the controls are always
+              within reach (top-right) without adding layout height. */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              zIndex: 5,
+              width: 280,
+              maxWidth: 'calc(100% - 24px)',
+              backgroundColor: '#ffffff',
+              borderRadius: 10,
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 8px 20px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#6b7280"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search for a location to pin..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => searchResults.length > 0 && setShowResults(true)}
+                  onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 14,
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                    color: '#374151',
+                    backgroundColor: 'transparent',
+                  }}
+                />
+                {isSearching && (
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      border: '2px solid #e5e7eb',
+                      borderTopColor: '#6366f1',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Search Results Dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  maxHeight: 240,
+                  overflowY: 'auto',
+                }}
+              >
+                {searchResults.map((result, index) => (
+                  <div
+                    key={result.id || index}
+                    onClick={() => handleSelectLocation(result)}
+                    style={{
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      borderBottom: index < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
+                      transition: 'background-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f9fafb')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#9ca3af"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ marginTop: 2, flexShrink: 0 }}
+                      >
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: '#374151',
+                            fontFamily: "'Inter', sans-serif",
+                          }}
+                        >
+                          {result.text}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: '#9ca3af',
+                            fontFamily: "'Inter', sans-serif",
+                            marginTop: 2,
+                          }}
+                        >
+                          {result.place_name}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            ref={mapContainer}
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          />
+        </div>
       </div>
 
       {/* CSS for spinner animation */}
