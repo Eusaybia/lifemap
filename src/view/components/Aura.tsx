@@ -60,7 +60,19 @@ export interface AuraProps {
 }
 
 /**
- * Scans a ProseMirror node and its descendants for specific tags/mentions
+ * Scans a ProseMirror node for specific tags/mentions - SHALLOW SCAN ONLY
+ * 
+ * ARCHITECTURE DECISION: One-level-deep scanning
+ * ==============================================
+ * We only scan the node's immediate children and their inline content,
+ * NOT deeply nested block nodes. This prevents a tag inside a nested
+ * TemporalSpace from causing the parent container to glow.
+ * 
+ * Scan depth:
+ * - Immediate children (paragraphs, taskItems, etc.)
+ * - Inline content within those children (mentions, hashtags)
+ * - STOPS at nested block nodes (temporalSpace, group, etc.) which have their own NodeOverlay
+ * 
  * EXPORTED so NodeOverlay can use this for glow calculations
  */
 export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, unknown> }) => {
@@ -69,30 +81,52 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
   let hasUncheckedTodo = false
   let hasCheckItem = false
 
-  // Check if node has descendants method (real ProseMirrorNode)
-  if ('descendants' in node && typeof node.descendants === 'function') {
-    node.descendants((childNode: ProseMirrorNode) => {
-      // Check for mention tags (legacy CustomMention extension)
-      // and hashtag nodes (current HashtagMention extension)
-      if (childNode.type.name === 'mention' || childNode.type.name === 'hashtag') {
-        const label = childNode.attrs.label as string
-        const dataTag = childNode.attrs['data-tag'] as string
-        
-        // Check for focus tag - either by label or data-tag attribute
-        if (label?.includes(FOCUS_TAG) || dataTag === 'focus') {
-          hasFocusTag = true
-        }
-        // Check for complete tag
-        if (label?.includes(COMPLETE_TAG) || dataTag === 'complete') {
-          hasCompleteTag = true
-        }
+  // Block node types that have their own NodeOverlay - don't scan into these
+  const BLOCK_NODE_TYPES_WITH_OVERLAY = ['temporalSpace', 'group', 'daily', 'weekly', 'canvas', 'mapboxMap']
+
+  // Helper to check a single node for tags
+  const checkNodeForTags = (childNode: ProseMirrorNode) => {
+    // Check for mention tags (legacy CustomMention extension)
+    // and hashtag nodes (current HashtagMention extension)
+    if (childNode.type.name === 'mention' || childNode.type.name === 'hashtag') {
+      const label = childNode.attrs.label as string
+      const dataTag = childNode.attrs['data-tag'] as string
+      
+      // Check for focus tag - either by label or data-tag attribute
+      if (label?.includes(FOCUS_TAG) || dataTag === 'focus') {
+        hasFocusTag = true
       }
-      // Check for task items
-      if (childNode.type.name === 'taskItem') {
-        hasCheckItem = true
-        if (!childNode.attrs.checked) {
-          hasUncheckedTodo = true
-        }
+      // Check for complete tag
+      if (label?.includes(COMPLETE_TAG) || dataTag === 'complete') {
+        hasCompleteTag = true
+      }
+    }
+    // Check for task items
+    if (childNode.type.name === 'taskItem') {
+      hasCheckItem = true
+      if (!childNode.attrs.checked) {
+        hasUncheckedTodo = true
+      }
+    }
+  }
+
+  // Check if node has forEach method (real ProseMirrorNode)
+  if ('forEach' in node && typeof node.forEach === 'function') {
+    // Scan immediate children only
+    (node as ProseMirrorNode).forEach((childNode: ProseMirrorNode) => {
+      // Skip nested block nodes that have their own NodeOverlay
+      if (BLOCK_NODE_TYPES_WITH_OVERLAY.includes(childNode.type.name)) {
+        return // Don't scan into nested blocks
+      }
+
+      // Check the child node itself
+      checkNodeForTags(childNode)
+
+      // For inline containers (paragraphs, etc.), scan their inline content
+      if ('forEach' in childNode && typeof childNode.forEach === 'function') {
+        childNode.forEach((inlineNode: ProseMirrorNode) => {
+          checkNodeForTags(inlineNode)
+        })
       }
     })
   }
