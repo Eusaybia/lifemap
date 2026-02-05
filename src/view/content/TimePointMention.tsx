@@ -661,6 +661,8 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:weekday-sunday', label: 'Sundays', date: new Date(0), emoji: '📅' },
     // Abstract "Today" - not tied to a specific date, useful for templates
     { id: 'timepoint:today-abstract', label: "Today's abstract for templates", date: new Date(0), emoji: '📋' },
+    // Architecture: "Some day" represents an intentionally indeterminate future, so we keep it abstract.
+    { id: 'timepoint:someday', label: 'Some day', date: new Date(0), emoji: '⏳' },
     { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
@@ -698,6 +700,8 @@ const getTemporalLengthDays = (tp: TimePoint): number => {
   // ordering stays consistent across mixed timepoint types.
   if (id === 'timepoint:daily') return 1
   if (id === 'timepoint:today-abstract') return 1
+  // Architecture: "Some day" should sort after concrete near-term dates.
+  if (id === 'timepoint:someday') return 3650
   if (id.startsWith('timepoint:weekday-')) return 7
   if (id === 'timepoint:next-week') return 7
   if (id === 'timepoint:next-month') return 30
@@ -1141,6 +1145,10 @@ const fetchTimePoints = (query: string): TimePoint[] => {
   if (!query) return sortTimePointsByLength(timePoints)
   
   const lowerQuery = query.toLowerCase()
+  // Architecture: normalize "some day" vs "someday" so the indeterminate option is discoverable.
+  const normalizedQuery = lowerQuery.replace(/\s+/g, '')
+  const isSomeDayQuery = normalizedQuery.includes('someday')
+  const someDayPoint = timePoints.find((tp) => tp.id === 'timepoint:someday')
   // Architecture: When a query is provided, we must filter recurring and specific time items
   // to only include those matching the query. Previously, these were always included unfiltered,
   // which caused the search functionality to appear broken - matching items would be buried
@@ -1207,6 +1215,9 @@ const fetchTimePoints = (query: string): TimePoint[] => {
       }
     }
   }
+  if (isSomeDayQuery && someDayPoint) {
+    results = [someDayPoint, ...results.filter((tp) => tp.id !== someDayPoint.id)]
+  }
 
   const merged = [...recurringItems, ...specificTimeItems, ...results]
   const uniqueById = new Map(merged.map((item) => [item.id, item]))
@@ -1222,7 +1233,7 @@ const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint
 const isFullDateTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:date-')
 const isRecurringDatePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:recurring-')
 const isAbstractTimePoint = (tp: TimePoint): boolean =>
-  tp.id === 'timepoint:today-abstract' || tp.id === 'timepoint:daily'
+  tp.id === 'timepoint:today-abstract' || tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday'
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
 const isAbstractSeasonPoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:season-abstract-')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
@@ -1395,7 +1406,9 @@ const formatTime = (date: Date): string => {
 
 const formatTimePointLabel = (tp: TimePoint): string => {
   if (isAbstractTimePoint(tp)) {
-    return tp.id === 'timepoint:daily' ? `${tp.emoji} Daily` : `${tp.emoji} Today`
+    if (tp.id === 'timepoint:daily') return `${tp.emoji} Daily`
+    if (tp.id === 'timepoint:today-abstract') return `${tp.emoji} Today`
+    return `${tp.emoji} Some day`
   }
   // Architecture: weekday timepoints are recurring concepts, not concrete dates.
   if (isWeekdayTimePoint(tp)) return `${tp.emoji} ${tp.label}`
@@ -1446,8 +1459,10 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     if (isAbstractTimePoint(timePoint)) {
       if (timePoint.id === 'timepoint:daily') {
         formattedDate = 'Daily'
+      } else if (timePoint.id === 'timepoint:someday') {
+        formattedDate = 'Some day'
       } else {
-      formattedDate = 'Today'
+        formattedDate = 'Today'
       }
     } else if (isWeekdayRecurring) {
       formattedDate = timePoint.label
@@ -1553,6 +1568,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                         <span className="timepoint-date">
                           {item.id === 'timepoint:daily'
                             ? 'For events that are intended to happen every single day'
+                            : item.id === 'timepoint:someday'
+                              ? 'For events that will happen one day, but are intentionally indeterminate'
                             : 'Not tied to a specific date'}
                         </span>
                       ) : isAbstractLunarPhase(item) || isAbstractSeasonPoint(item) ? (
