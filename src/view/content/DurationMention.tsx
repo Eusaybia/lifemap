@@ -9,9 +9,9 @@ import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { PluginKey } from 'prosemirror-state'
 
 // ============================================================================
-// Duration Badge Node (for durations >= 1 day - no pomodoro functionality)
-// These are celestial durations that represent longer time periods
-// and don't need timer/pomodoro features
+// Duration Badge Node (for durations that should NOT use Pomodoro)
+// Includes celestial durations (>= 1 day) and longer commitments (> 2 hours)
+// that shouldn't be treated as single-session timers.
 // ============================================================================
 
 interface DurationBadgeNodeViewProps {
@@ -151,8 +151,11 @@ export const DurationBadgeNode = Node.create<DurationBadgeOptions>({
   },
 })
 
-// Threshold for using duration badge vs pomodoro (1 day in seconds)
+// Threshold for celestial durations (1 day in seconds)
 const DURATION_BADGE_THRESHOLD = 86400
+// ARCHITECTURE: Pomodoro is optimized for single-session work; anything longer
+// than 2 hours is treated as a multi-session commitment and uses the badge.
+const POMODORO_MAX_SECONDS = 2 * 60 * 60
 
 // ============================================================================
 // Duration Types
@@ -531,9 +534,14 @@ export const durationSuggestionOptions = {
   
   command: ({ editor, range, props }: { editor: any; range: any; props: Duration }) => {
     // Delete the trigger character and query
-    // Use duration badge for celestial durations (>= 1 day) - no pomodoro/timer functionality
-    // Use pomodoro for shorter durations that benefit from timer features
-    if (props.seconds >= DURATION_BADGE_THRESHOLD) {
+    const isCelestialDuration = props.seconds >= DURATION_BADGE_THRESHOLD
+    const exceedsPomodoroLimit = props.seconds > POMODORO_MAX_SECONDS
+    const shouldUsePomodoro = props.seconds < 0 || (!isCelestialDuration && !exceedsPomodoroLimit)
+
+    // ARCHITECTURE: Pomodoro is for short, single-session focus blocks.
+    // Longer durations (including celestial time) become badges to avoid
+    // implying a single uninterrupted timer.
+    if (!shouldUsePomodoro) {
       editor
         .chain()
         .focus()
