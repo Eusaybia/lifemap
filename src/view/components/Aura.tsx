@@ -38,11 +38,18 @@ import { DocumentAttributes, defaultDocumentAttributes } from "../structure/Docu
 export const ORANGE_GLOW = `0 0 20px 5px hsla(30, 100%, 50%, 0.35), 0 0 80px 20px hsla(30, 100%, 50%, 0.18), 0 0 160px 40px hsla(30, 100%, 50%, 0.08), 0 0 250px 60px hsla(30, 100%, 50%, 0.04)`
 export const GREEN_GLOW = `0 0 20px 5px hsl(104, 64%, 45%, 0.35), 0 0 80px 20px hsl(104, 64%, 45%, 0.18), 0 0 160px 40px hsl(104, 64%, 45%, 0.08), 0 0 250px 60px hsl(104, 64%, 45%, 0.04)`
 export const FOCUS_GLOW = `0 0 20px 5px hsla(55, 100%, 50%, 0.4), 0 0 80px 20px hsla(55, 100%, 50%, 0.2), 0 0 160px 40px hsla(55, 100%, 50%, 0.1), 0 0 250px 60px hsla(55, 100%, 50%, 0.05)`
+// Yellow glow for important tag - uses yellow hue (50°), reduced brightness for moderate emphasis
+export const IMPORTANT_GLOW = `0 0 15px 4px hsla(50, 100%, 50%, 0.25), 0 0 60px 15px hsla(50, 100%, 50%, 0.12), 0 0 120px 30px hsla(50, 100%, 50%, 0.06), 0 0 180px 45px hsla(50, 100%, 50%, 0.03)`
+// Very important glow - bright yellow for maximum attention
+export const VERY_IMPORTANT_GLOW = `0 0 20px 5px hsla(50, 100%, 50%, 0.4), 0 0 80px 20px hsla(50, 100%, 50%, 0.2), 0 0 160px 40px hsla(50, 100%, 50%, 0.1), 0 0 250px 60px hsla(50, 100%, 50%, 0.05)`
 export const NO_GLOW = ``
 
 // Tag detection patterns
 const FOCUS_TAG = "☀️ focus"
 const COMPLETE_TAG = "✅ complete"
+const IMPORTANT_TAG = "⭐️ important"
+const VERY_IMPORTANT_TAG = "🌟 very important"
+const UNIMPORTANT_TAG = "🌫️ unimportant"
 
 export interface AuraProps {
   /** The ProseMirror node to scan for tags */
@@ -78,6 +85,9 @@ export interface AuraProps {
 export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, unknown> }) => {
   let hasFocusTag = false
   let hasCompleteTag = false
+  let hasImportantTag = false
+  let hasVeryImportantTag = false
+  let hasUnimportantTag = false
   let hasUncheckedTodo = false
   let hasCheckItem = false
 
@@ -99,6 +109,18 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
       // Check for complete tag
       if (label?.includes(COMPLETE_TAG) || dataTag === 'complete') {
         hasCompleteTag = true
+      }
+      // Check for very important tag (must check before important since "very important" contains "important")
+      if (label?.includes(VERY_IMPORTANT_TAG) || dataTag === 'very important') {
+        hasVeryImportantTag = true
+      }
+      // Check for important tag (only if not already very important)
+      else if (label?.includes(IMPORTANT_TAG) || dataTag === 'important') {
+        hasImportantTag = true
+      }
+      // Check for unimportant tag (triggers darkening overlay)
+      if (label?.includes(UNIMPORTANT_TAG) || dataTag === 'unimportant') {
+        hasUnimportantTag = true
       }
     }
     // Check for task items
@@ -131,7 +153,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
     })
   }
 
-  return { hasFocusTag, hasCompleteTag, hasUncheckedTodo, hasCheckItem }
+  return { hasFocusTag, hasCompleteTag, hasImportantTag, hasVeryImportantTag, hasUnimportantTag, hasUncheckedTodo, hasCheckItem }
 }
 
 /**
@@ -149,6 +171,15 @@ export const calculateGlowStyles = (tags: ReturnType<typeof scanNodeForTags>): s
   // Complete tag adds green glow
   if (tags.hasCompleteTag) {
     glowStyles.push(GREEN_GLOW)
+  }
+
+  // Very important tag adds bright yellow glow (maximum emphasis)
+  if (tags.hasVeryImportantTag) {
+    glowStyles.push(VERY_IMPORTANT_GLOW)
+  }
+  // Important tag adds yellow glow (moderate emphasis)
+  else if (tags.hasImportantTag) {
+    glowStyles.push(IMPORTANT_GLOW)
   }
 
   // Task items: orange for unchecked, green if all checked

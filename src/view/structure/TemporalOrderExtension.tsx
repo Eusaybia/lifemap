@@ -7,6 +7,7 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap
 import { motion, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
+import { scanNodeForTags } from "../components/Aura";
 import './styles.scss';
 
 // ============================================================================
@@ -643,6 +644,11 @@ export const TemporalOrderExtension = TipTapNode.create({
         key: new PluginKey('temporalOrderFader'),
         // ARCHITECTURE: We use node decorations to apply temporal fading
         // without mutating the ProseMirror document or node attributes.
+        //
+        // IMPORTANT TAG OVERRIDE: Nodes with the "important" tag are exempt
+        // from temporal fading - they always appear at full opacity regardless
+        // of how far in the past/future they are. This allows users to mark
+        // key events that should remain visually prominent.
         props: {
           decorations(state) {
             const decorations: Decoration[] = [];
@@ -655,6 +661,21 @@ export const TemporalOrderExtension = TipTapNode.create({
                 const childPos = pos + 1 + offset;
                 const date = extractEarliestDateFromNode(child);
                 if (!date) return;
+
+                // Check if this node has the important or very important tag - if so, skip fading
+                const tags = scanNodeForTags(child);
+                if (tags.hasImportantTag || tags.hasVeryImportantTag) {
+                  // Still add the distance data attribute for debugging, but no opacity
+                  const distanceMs = getTemporalDistanceMs(date, nowMs);
+                  const distanceDays = Math.round(distanceMs / (1000 * 60 * 60 * 24));
+                  decorations.push(
+                    Decoration.node(childPos, childPos + child.nodeSize, {
+                      'data-temporal-distance-days': String(distanceDays),
+                      'data-important': 'true',
+                    })
+                  );
+                  return; // Skip opacity fading for important/very important nodes
+                }
 
                 const distanceMs = getTemporalDistanceMs(date, nowMs);
                 const opacity = getTemporalFadeOpacity(distanceMs);

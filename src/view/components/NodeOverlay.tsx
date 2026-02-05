@@ -249,6 +249,31 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
         {children}
       </Aura>
 
+      {/* Unimportant tag overlay - 55% white overlay to strongly fade/de-emphasize content
+          ARCHITECTURE DECISION: Fading via white overlay instead of darkening
+          =====================================================================
+          Using a white overlay creates a "faded" appearance that de-emphasizes
+          content while preserving readability. The content remains interactive
+          (pointerEvents: none). */}
+      {tags.hasUnimportantTag && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.55 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: '#FFFFFF',
+            borderRadius,
+            zIndex: 20,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       {/* Private lens overlay - full coverage black overlay */}
       {isPrivate && (
         <motion.div

@@ -63,8 +63,10 @@ const POPULAR_HASHTAGS: Hashtag[] = [
   // Special Aura tags (trigger visual effects - see Aura.tsx)
   // Shortcuts: !!! for important, \/ for complete, fff for focus
   { id: 'tag:focus', label: '☀️ focus', color: '#ffb700' },
+  { id: 'tag:very-important', label: '🌟 very important', color: '#fbbf24' },
   { id: 'tag:important', label: '⭐️ important', color: '#f59e0b' },
   { id: 'tag:complete', label: '✅ complete', color: '#10b981' },
+  { id: 'tag:unimportant', label: '🌫️ unimportant', color: '#6b7280' },
   
   // Productivity
   { id: 'tag:todo', label: 'todo', color: '#ef4444' },
