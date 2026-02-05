@@ -1108,6 +1108,20 @@ const WeeklyLoupe = React.memo((_props: { editor: Editor }) => {
     )
 })
 
+// ARCHITECTURE: Pomodoro is an inline atom node representing a timer/focus block.
+// The loupe is minimal - just a tag identifier. Interactions (play, pause, notes)
+// are handled directly on the node view itself, not via the FlowMenu.
+const PomodoroLoupe = React.memo((_props: { editor: Editor }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                ⏳ Pomodoro
+            </Tag>
+        </div>
+    )
+})
+
 // Memoize MathLoupe and manage its state locally
 const MathLoupe = React.memo((props: { editor: Editor }) => {
     const { editor } = props;
@@ -1761,6 +1775,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
                         'weekly': <WeeklyLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,
+                        'pomodoro': <PomodoroLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
                     }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }

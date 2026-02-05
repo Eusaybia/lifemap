@@ -4,8 +4,22 @@ import './MentionList.scss'
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
+import { motion, AnimatePresence } from 'framer-motion'
 // Note: NodeOverlay intentionally not used for Pomodoro - it's an inline element that
 // shouldn't have the card styling and grip. Pomodoro nodes flow inline with text.
+
+// ============================================================================
+// Helper: Generate random Quanta ID for notes
+// ============================================================================
+const generateNotesQuantaId = () => {
+  // Generate a short random ID like "pom-notes-abc123"
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let id = 'pom-notes-'
+  for (let i = 0; i < 8; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return id
+}
 
 // ============================================================================
 // Audio utility functions - using actual MP3 files
@@ -54,16 +68,86 @@ const playTickSound = () => {
 // PomodoroNodeView Component
 // ============================================================================
 
+// ARCHITECTURE: Pomodoro sessions are fixed to a 30-minute focus block.
+// This keeps the timer consistent while allowing the label to reflect the intent.
+const POMODORO_SESSION_SECONDS = 30 * 60
+
 const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes, selected } = props
-  const { duration, label, emoji, status, startTime, endTime } = node.attrs
+  const { duration, label, emoji, status, startTime, endTime, notesQuantaId } = node.attrs
   const [currentTime, setCurrentTime] = useState(new Date())
   const hasPlayedCompleteTone = useRef(false)
+  const [showNotesOverlay, setShowNotesOverlay] = useState(false)
+  const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 })
+  const overlayRef = useRef<HTMLDivElement>(null)
   
   // Check for freeform: duration is negative or label indicates freeform
   const isFreeform = duration < 0 || label?.toLowerCase().includes('freeform')
   // Use the stored emoji, or ☀️ for freeform, or default ⏳
   const displayEmoji = emoji || (isFreeform ? '☀️' : '⏳')
+  const displayLabel = label
+  const pomodoroDurationSeconds = isFreeform ? duration : POMODORO_SESSION_SECONDS
+
+  // Normalize legacy pomodoros that were created with longer durations.
+  useEffect(() => {
+    if (!isFreeform && duration !== POMODORO_SESSION_SECONDS) {
+      updateAttributes({
+        duration: POMODORO_SESSION_SECONDS,
+      })
+    }
+  }, [duration, isFreeform, updateAttributes])
+  
+  // ARCHITECTURE: Click on the pomodoro time badge opens a notes overlay.
+  // The label stays non-interactive so notes attach to a specific session,
+  // not the general duration tag. Quanta ID is generated on first click.
+  const handleNotesClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    // Generate notes quanta ID if it doesn't exist
+    if (!notesQuantaId) {
+      const newId = generateNotesQuantaId()
+      updateAttributes({ notesQuantaId: newId })
+    }
+    
+    // Position overlay near the click, with bounds checking
+    const overlayWidth = 400
+    const overlayHeight = 300
+    let x = e.clientX - overlayWidth / 2
+    let y = e.clientY + 20 // Below the click
+    
+    // Keep within viewport
+    if (x < 10) x = 10
+    if (x + overlayWidth > window.innerWidth - 10) x = window.innerWidth - overlayWidth - 10
+    if (y + overlayHeight > window.innerHeight - 10) {
+      // Show above click if not enough room below
+      y = e.clientY - overlayHeight - 20
+    }
+    if (y < 10) y = 10
+    
+    setOverlayPosition({ x, y })
+    setShowNotesOverlay(true)
+  }, [notesQuantaId, updateAttributes])
+  
+  // Close overlay when clicking outside
+  useEffect(() => {
+    if (!showNotesOverlay) return
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (overlayRef.current && !overlayRef.current.contains(e.target as Node)) {
+        setShowNotesOverlay(false)
+      }
+    }
+    
+    // Delay adding listener to avoid immediate close
+    const timeout = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 100)
+    
+    return () => {
+      clearTimeout(timeout)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNotesOverlay])
   
   // Update current time every second when active
   useEffect(() => {
@@ -79,7 +163,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
       // Check if timer has completed (skip for freeform time - it never auto-completes)
       if (startTime && !isFreeform) {
         const start = new Date(startTime)
-        const end = new Date(start.getTime() + duration * 1000)
+        const end = new Date(start.getTime() + pomodoroDurationSeconds * 1000)
         
         if (now >= end && !hasPlayedCompleteTone.current) {
           hasPlayedCompleteTone.current = true
@@ -93,7 +177,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
     }, 1000)
     
     return () => clearInterval(interval)
-  }, [status, startTime, duration, isFreeform, updateAttributes])
+  }, [status, startTime, pomodoroDurationSeconds, isFreeform, updateAttributes])
   
   const handlePlay = useCallback(() => {
     playStartSound()
@@ -103,26 +187,23 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
     })
   }, [updateAttributes])
   
-  const handlePause = useCallback(() => {
-    // For freeform time, pressing pause completes it and logs the end time
-    if (isFreeform) {
-      updateAttributes({
-        status: 'completed',
-        endTime: new Date().toISOString(),
-      })
-    } else {
-      // For regular pomodoros, pause resets to unrealized
-      updateAttributes({
-        status: 'unrealized',
-        startTime: null,
-      })
-    }
-  }, [isFreeform, updateAttributes])
+  const handleStop = useCallback(() => {
+    // ARCHITECTURE: Stopping a pomodoro should persist it as completed,
+    // not reset it to unrealized. We record an endTime for accuracy.
+    updateAttributes({
+      status: 'completed',
+      endTime: new Date().toISOString(),
+    })
+  }, [updateAttributes])
   
   const getEndTime = (): Date | null => {
     if (!startTime) return null
+    // ARCHITECTURE: If a stop time was recorded, prefer it for display.
+    if (endTime) {
+      return new Date(endTime)
+    }
     const start = new Date(startTime)
-    const end = new Date(start.getTime() + duration * 1000)
+    const end = new Date(start.getTime() + pomodoroDurationSeconds * 1000)
     return end
   }
   
@@ -210,6 +291,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
       
       updateAttributes({
         startTime: newStart.toISOString(),
+        duration: isFreeform ? duration : POMODORO_SESSION_SECONDS,
       })
     } else if (currentEditingField === 'end') {
       // Update end time
@@ -221,7 +303,8 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
           endTime: newEnd.toISOString(),
         })
       } else {
-        // For regular pomodoros, calculate new duration based on new end time
+        // For regular pomodoros, keep duration fixed and shift start time
+        // so the user-chosen end time becomes the 30-minute session end.
         const newEnd = new Date(start)
         newEnd.setHours(hours, minutes, 0, 0)
         
@@ -230,12 +313,11 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
           newEnd.setDate(newEnd.getDate() + 1)
         }
         
-        const newDuration = Math.floor((newEnd.getTime() - start.getTime()) / 1000)
-        if (newDuration > 0) {
-          updateAttributes({
-            duration: newDuration,
-          })
-        }
+        const newStart = new Date(newEnd.getTime() - POMODORO_SESSION_SECONDS * 1000)
+        updateAttributes({
+          startTime: newStart.toISOString(),
+          duration: POMODORO_SESSION_SECONDS,
+        })
       }
     }
 
@@ -254,6 +336,87 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
       setEditingField(null)
     }
   }, [handleTimeSubmit])
+
+  // ARCHITECTURE: Notes overlay renders an embedded quanta via iframe.
+  // This allows users to write notes about what they're doing during the pomodoro.
+  // The quanta ID is auto-generated and persisted on the pomodoro node.
+  const renderNotesOverlay = () => {
+    const quantaId = notesQuantaId || node.attrs.notesQuantaId
+    if (!quantaId) return null
+    
+    return (
+      <AnimatePresence>
+        {showNotesOverlay && (
+          <motion.div
+            ref={overlayRef}
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'fixed',
+              left: overlayPosition.x,
+              top: overlayPosition.y,
+              zIndex: 1000,
+              width: 400,
+              height: 300,
+              backgroundColor: '#ffffff',
+              borderRadius: 12,
+              boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            className="pomodoro-notes-overlay"
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '10px 14px',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#f9fafb',
+              }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>
+                📝 Notes for {label || 'Pomodoro'}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowNotesOverlay(false)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  fontSize: 14,
+                  color: '#6b7280',
+                  borderRadius: 4,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            {/* ARCHITECTURE: Embed the quanta via /q/{id} route which uses
+                the lifemap Quanta component. Quantas are auto-created on demand. */}
+            <iframe
+              src={`/q/${quantaId}`}
+              style={{
+                flex: 1,
+                width: '100%',
+                border: 'none',
+              }}
+              title={`Notes for ${label || 'Pomodoro'}`}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    )
+  }
 
   // Render editable time - inlined to avoid component identity issues
   const renderEditableTime = (field: 'start' | 'end', time: Date | null, placeholder: string = '?') => {
@@ -310,7 +473,9 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
         data-id={node.attrs.id}
       >
         <span className="pomodoro-icon">{displayEmoji}</span>
-        <span className="pomodoro-label">{label}</span>
+        <span className="pomodoro-label">
+          {displayLabel}
+        </span>
         <button
           className="pomodoro-play-btn"
           onClick={handlePlay}
@@ -320,6 +485,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
         </button>
+        {renderNotesOverlay()}
       </NodeViewWrapper>
     )
   }
@@ -340,22 +506,33 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
         data-id={node.attrs.id}
       >
         <span className="pomodoro-icon">{displayEmoji}</span>
-        <span className="pomodoro-label">{label}</span>
-        <span className="pomodoro-divider">||</span>
-        {/* Joined time range badge - both times in one connected container */}
-        {/* Click on times to edit them */}
-        <span className="pomodoro-time-range-badge">
+        <span className="pomodoro-label">
+          {displayLabel}
+        </span>
+        {/* ARCHITECTURE: Time range is a nested tag inside the main pomodoro
+            to show the pomodoro "contains" timing data while staying compact. */}
+        <span
+          className="pomodoro-time-range-badge pomodoro-notes-trigger"
+          onMouseDown={(e) => {
+            // Prevent ProseMirror from selecting the pomodoro node on badge click.
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onClick={handleNotesClick}
+          title="Click to add notes"
+        >
           <span className="nested-time-icon">🕐</span>
           {renderEditableTime('start', start)}
           <span className="pomodoro-time-dash">-</span>
-          <span className="nested-time-icon">🕐</span>
           {renderEditableTime('end', end, '?')}
         </span>
+        {renderNotesOverlay()}
       </NodeViewWrapper>
     )
   }
   
   // Active state: opaque, showing time range and pause button
+  // Active state: opaque, showing time range (as nested tag) and pause button
   return (
     <NodeViewWrapper
       as="span"
@@ -363,21 +540,36 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
       data-id={node.attrs.id}
     >
       <span className="pomodoro-icon">{displayEmoji}</span>
-      <span className="pomodoro-label">{label}</span>
+      <span className="pomodoro-label">
+        {displayLabel}
+      </span>
       <button
         className="pomodoro-pause-btn"
-        onClick={handlePause}
-        title="Pause timer"
+        onClick={handleStop}
+        title="Stop timer"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="6" y="4" width="4" height="16" rx="1" />
-          <rect x="14" y="4" width="4" height="16" rx="1" />
+          <rect x="6" y="6" width="12" height="12" rx="2" />
         </svg>
       </button>
-      <span className="pomodoro-time-icon">🕐</span>
-      <span className="pomodoro-time-range">
-        {formatTimeRange()} {isNow() && <span className="pomodoro-now">(Now)</span>}
+      {/* ARCHITECTURE: Time range is a nested tag inside the main pomodoro
+          to show the pomodoro "contains" timing data while staying compact. */}
+      <span
+        className="pomodoro-time-range-badge pomodoro-notes-trigger"
+        onMouseDown={(e) => {
+          // Prevent ProseMirror from selecting the pomodoro node on badge click.
+          e.preventDefault()
+          e.stopPropagation()
+        }}
+        onClick={handleNotesClick}
+        title="Click to add notes"
+      >
+        <span className="nested-time-icon">🕐</span>
+        <span className="pomodoro-time-range">
+          {formatTimeRange()} {isNow() && <span className="pomodoro-now">(Now)</span>}
+        </span>
       </span>
+      {renderNotesOverlay()}
     </NodeViewWrapper>
   )
 }
@@ -486,6 +678,19 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
         renderHTML: attributes => {
           return {
             'data-id': attributes.id || `pomodoro:${Date.now()}`,
+          }
+        },
+      },
+      // ARCHITECTURE: notesQuantaId links this pomodoro to a separate quanta
+      // where users can write notes about what they're doing/planning.
+      // The ID is generated on first click and persisted for future access.
+      notesQuantaId: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-notes-quanta-id'),
+        renderHTML: attributes => {
+          if (!attributes.notesQuantaId) return {}
+          return {
+            'data-notes-quanta-id': attributes.notesQuantaId,
           }
         },
       },
