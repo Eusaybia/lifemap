@@ -288,12 +288,12 @@
   border: 1px solid #d1d5db;
   color: #111827;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  opacity: 0.6; // Indicates unrealized/planned duration
+  opacity: 0.35; // Indicates unrealized/planned duration
 
   &:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-    opacity: 0.8; // Slightly more visible on hover
+    opacity: 0.55; // Slightly more visible on hover
   }
 }
 
@@ -505,13 +505,13 @@
   border: 1px solid #d1d5db;
   color: #111827;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  opacity: 0.6; // Indicates unrealized/planned duration estimate
+  opacity: 0.35; // Indicates unrealized/planned duration estimate
   transition: all 0.15s ease;
 
   &:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-    opacity: 0.8;
+    opacity: 0.55;
   }
 
   &.selected {

@@ -225,7 +225,9 @@ const DURATION_UNIT_DEFINITIONS: DurationUnitDefinition[] = [
   },
 ]
 
-const DURATION_QUERY_PATTERN = /^(\d+(?:\.\d+)?)\s*([a-z]+)?$/i
+// ARCHITECTURE: Allow trailing characters so inputs like "20 hours," or
+// "20 hours of work" still resolve to a custom duration suggestion.
+const DURATION_QUERY_PATTERN = /^(\d+(?:\.\d+)?)\s*([a-z]+)\b/i
 
 const formatDurationValue = (value: number): string => {
   return Number.isInteger(value) ? value.toString() : value.toString()
