@@ -78,7 +78,7 @@ export interface NodeOverlayProps {
   boxShadow?: string
   /** Border radius in pixels (default: 10, matching Group) */
   borderRadius?: number
-  /** Background color (default: '#FFFFFF') */
+  /** Background color (default: 'transparent' for 3D scene integration) */
   backgroundColor?: string
   /** Padding (default: '20px', matching Group) */
   padding?: string | number
@@ -108,7 +108,11 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   gripDotColor = '#999',
   boxShadow = GROUP_BOX_SHADOW,
   borderRadius = GROUP_BORDER_RADIUS,
-  backgroundColor = '#FFFFFF',
+  // ARCHITECTURE DECISION: Transparent default for 3D scene integration
+  // ===================================================================
+  // When embedded in 3D scenes (natural-calendar-v3, notes-natural-ui),
+  // we want shadows to show through from the Canvas behind.
+  backgroundColor = 'transparent',
   padding = '20px',
   enableAuraGlow = true,
   enableAuraFocus = true,
@@ -250,11 +254,11 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
       </Aura>
 
       {/* Unimportant tag overlay - 55% white overlay to strongly fade/de-emphasize content
-          ARCHITECTURE DECISION: Fading via white overlay instead of darkening
-          =====================================================================
-          Using a white overlay creates a "faded" appearance that de-emphasizes
-          content while preserving readability. The content remains interactive
-          (pointerEvents: none). */}
+          ARCHITECTURE DECISION: Fading via semi-transparent white overlay
+          ================================================================
+          Using a semi-transparent white overlay creates a "faded" appearance that 
+          de-emphasizes content while preserving readability and allowing 3D shadows
+          to partially show through. */}
       {tags.hasUnimportantTag && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -266,7 +270,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: '#FFFFFF',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
             borderRadius,
             zIndex: 20,
             pointerEvents: 'none',

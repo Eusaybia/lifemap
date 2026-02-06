@@ -14,7 +14,7 @@ import Focus from '@tiptap/extension-focus'
 import TextStyle from '@tiptap/extension-text-style'
 import Gapcursor from '@tiptap/extension-gapcursor'
 import Underline from '@tiptap/extension-underline'
-import Image from '@tiptap/extension-image'
+import Image from '@/components/tiptap-node/image-node/image-node-extension'
 import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
@@ -51,6 +51,7 @@ import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { AuraMention, AuraNode } from './AuraMention'
 import { TodoMention, TodoMentionNode } from './TodoMention'
+import { QuestionMention, QuestionMentionNode } from './QuestionMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -213,6 +214,8 @@ export const officialExtensions = (quantaId: string) => {return [
   Highlight.configure({
     multicolor: true,
   }),
+  // ARCHITECTURE: Use the resizable Image node view so slash-menu uploads
+  // and inline inserts share the same resize/persisted-width behavior.
   Image,
   Placeholder.configure({
     includeChildren: true,
@@ -313,6 +316,10 @@ export const customExtensions: Extensions = [
   // Styled like a Mention but with a checkbox and editable text content
   TodoMentionNode,
   TodoMention,
+  // Question mentions - triggered by [?] for inline clarify-question items
+  // Left icon toggles between boxed question mark and light bulb
+  QuestionMentionNode,
+  QuestionMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   // PomodoroNode is for short durations (< 1 day) with timer functionality
   // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality

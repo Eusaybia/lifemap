@@ -370,53 +370,33 @@ export const TemporalSpaceExtension = TipTapNode.create({
             `}
             borderRadius={12}
             padding={isCollapsed ? '10px 20px' : '20px'}
-            // Use a semi-transparent background for frosted glass effect
-            backgroundColor="rgba(255, 255, 255, 0.92)"
+            // ARCHITECTURE DECISION: Transparent background for 3D scene integration
+            // ===================================================================
+            // When embedded in 3D scenes (natural-calendar-v3, notes-natural-ui),
+            // we want shadows to show through from the Canvas behind.
+            backgroundColor="transparent"
           >
-            {/* Inner container for frosted glass effect and content positioning */}
+          {/* Inner container for content positioning */}
             <div
               style={{
                 position: 'relative',
                 minHeight: isCollapsed ? 48 : 20,
-                // Frosted glass backdrop blur effect
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)', // Safari support
+              // ARCHITECTURE DECISION: Frosted glass blur to the edges
+              // =====================================================
+              // NodeOverlay applies padding, so we extend the blur layer to the
+              // card edges with negative margins while keeping content padding.
+              margin: isCollapsed ? '-10px -20px' : '-20px',
+              padding: isCollapsed ? '10px 20px' : '20px',
+              borderRadius: 12,
+              // Frosted glass backdrop blur effect
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)', // Safari support
               }}
             >
-              {/* Architecture: Decorative tick marks live in the NodeView overlay so
-                  the ProseMirror document content stays untouched and stable. */}
-              <div
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  top: isCollapsed ? -2 : -8,
-                  bottom: isCollapsed ? -2 : -8,
-                  left: -14,
-                  width: 16,
-                  pointerEvents: 'none',
-                  opacity: 0.6,
-                  // Minute/5-minute ticks emulate watch spacing without extra DOM nodes.
-                  backgroundImage: `
-                    linear-gradient(
-                      to bottom,
-                      rgba(90, 90, 100, 0.35) 0px,
-                      rgba(90, 90, 100, 0.35) 1px,
-                      transparent 1px,
-                      transparent 6px
-                    ),
-                    linear-gradient(
-                      to bottom,
-                      rgba(55, 55, 65, 0.8) 0px,
-                      rgba(55, 55, 65, 0.8) 1px,
-                      transparent 1px,
-                      transparent 30px
-                    )
-                  `,
-                  backgroundSize: '6px 6px, 12px 30px',
-                  backgroundRepeat: 'repeat-y, repeat-y',
-                  backgroundPosition: 'left top, left top',
-                }}
-              />
+            {/* Architecture: Decorative tick marks live in the NodeView overlay so
+                the ProseMirror document content stays untouched and stable.
+                NOTE: Ticks removed to simplify the TemporalSpace UI and
+                reduce visual noise in 3D embeds. */}
               {/* Content */}
               <AnimatePresence>
                 {!isCollapsed && (
@@ -445,10 +425,10 @@ export const TemporalSpaceExtension = TipTapNode.create({
               <motion.div
                 style={{
                   position: 'absolute',
-                  top: -20,
-                  left: -20,
-                  right: -20,
-                  bottom: -20,
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                   backgroundColor: 'black',
                   borderRadius: 12,
                   pointerEvents: 'none',
