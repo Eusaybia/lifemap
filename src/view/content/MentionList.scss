@@ -688,6 +688,142 @@
 }
 
 // ============================================================================
+// Question Mention Styles ([?] question insertion)
+// ============================================================================
+// Inline question mention with boxed icon:
+// - unchecked: question mark in a checkbox-like square
+// - checked: light bulb
+
+.question-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+
+  &.question-checked {
+    background-color: #fffbeb;
+    border-color: #fcd34d;
+
+    &:hover {
+      background-color: #fef3c7;
+      border-color: #f59e0b;
+    }
+  }
+}
+
+.question-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1.5px solid #9ca3af;
+  border-radius: 0.2rem;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #4b5563;
+    background: #f9fafb;
+  }
+
+  .question-checked & {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+}
+
+.question-checkbox-icon {
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #4b5563;
+
+  .question-checked & {
+    font-size: 0.85rem;
+    color: #d97706;
+  }
+}
+
+.question-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.question-text {
+  color: #111827;
+  cursor: text;
+
+  &.question-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &.question-text-checked {
+    color: #6b7280;
+  }
+}
+
+.question-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
+  }
+}
+
+// ============================================================================
 // Location Mention Styles (# location insertion)
 // ============================================================================
 

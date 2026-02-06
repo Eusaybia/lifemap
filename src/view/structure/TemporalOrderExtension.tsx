@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Node as ProseMirrorNode, Fragment } from "prosemirror-model";
+import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "prosemirror-model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
 import { Plugin, PluginKey, Transaction, EditorState } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
@@ -158,6 +158,105 @@ const sortChildrenByDate = (
 };
 
 // ============================================================================
+// Clipboard Utilities
+// ============================================================================
+
+interface ClipboardPayload {
+  html: string | null;
+  text: string | null;
+}
+
+/**
+ * ARCHITECTURE: Prefer HTML clipboard parsing to preserve rich formatting,
+ * then fall back to plain text so paste works even from external sources.
+ */
+const parseClipboardPayloadToNodes = (
+  payload: ClipboardPayload,
+  schema: Schema
+): ProseMirrorNode[] => {
+  if (payload.html && typeof document !== 'undefined') {
+    const container = document.createElement('div');
+    container.innerHTML = payload.html;
+    const parser = DOMParser.fromSchema(schema);
+    const slice = parser.parseSlice(container);
+    const nodes: ProseMirrorNode[] = [];
+    slice.content.forEach((node) => nodes.push(node));
+    if (nodes.length) {
+      return nodes;
+    }
+  }
+
+  if (payload.text) {
+    const paragraphType = schema.nodes.paragraph;
+    if (!paragraphType) return [];
+
+    return payload.text.split(/\r?\n/).map((line) => {
+      if (!line) {
+        return paragraphType.create();
+      }
+      return paragraphType.create({}, schema.text(line));
+    });
+  }
+
+  return [];
+};
+
+/**
+ * ARCHITECTURE: Normalize pasted content into TemporalSpace blocks so the
+ * timeline remains visually consistent and the sorter can reorder items
+ * just like drag-and-drop inserts.
+ */
+const normalizeClipboardNodesForTemporalOrder = (
+  nodes: ProseMirrorNode[],
+  schema: Schema
+): ProseMirrorNode[] => {
+  const temporalSpaceType = schema.nodes.temporalSpace;
+  const temporalOrderType = schema.nodes.temporalOrder;
+  const paragraphType = schema.nodes.paragraph;
+
+  if (!temporalSpaceType) {
+    return nodes.filter((node) => !temporalOrderType || node.type !== temporalOrderType);
+  }
+
+  const normalized: ProseMirrorNode[] = [];
+  let pending: ProseMirrorNode[] = [];
+
+  const flushPending = () => {
+    if (!pending.length) return;
+    const blocks = pending.map((node) => {
+      if (node.isBlock) return node;
+      if (paragraphType) return paragraphType.create({}, node);
+      return node;
+    });
+
+    try {
+      normalized.push(temporalSpaceType.create({}, blocks));
+    } catch (error) {
+      // Fallback: keep raw blocks if wrapping fails to avoid losing paste content.
+      normalized.push(...blocks);
+    }
+
+    pending = [];
+  };
+
+  nodes.forEach((node) => {
+    if (temporalOrderType && node.type === temporalOrderType) {
+      return;
+    }
+    if (node.type === temporalSpaceType) {
+      flushPending();
+      normalized.push(node);
+      return;
+    }
+    pending.push(node);
+  });
+
+  flushPending();
+
+  return normalized;
+};
+
+// ============================================================================
 // Timeline Arrow Component
 // ============================================================================
 
@@ -259,6 +358,7 @@ interface DraggedNodeInfo {
 interface DropZoneProps {
   onDrop: (draggedNode: DraggedNodeInfo | null) => void;
   onDragEnter: () => DraggedNodeInfo | null;
+  onPaste: (payload: ClipboardPayload) => void;
   isCollapsed: boolean;
 }
 
@@ -274,8 +374,9 @@ interface DropZoneProps {
  * IMPORTANT: We use isProcessingRef to prevent double-processing which can
  * happen if both our handler and ProseMirror's native drop handler run.
  */
-const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, isCollapsed }) => {
+const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, onPaste, isCollapsed }) => {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const draggedNodeRef = useRef<DraggedNodeInfo | null>(null);
   const isProcessingRef = useRef(false);
 
@@ -340,16 +441,64 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, isCollapsed })
     }, 0);
   };
 
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // ARCHITECTURE: Keep focus on the drop zone so paste events fire here
+    // instead of being captured by the editor selection.
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.focus();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isProcessingRef.current) {
+      console.log('[DropZone] Already processing, skipping duplicate paste');
+      return;
+    }
+
+    const html = e.clipboardData?.getData('text/html') || null;
+    const text = e.clipboardData?.getData('text/plain') || null;
+
+    if (!html && !text) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    setIsDragOver(false);
+    onPaste({ html, text });
+
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 100);
+  };
+
   return (
     <motion.div
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onPaste={handlePaste}
+      onMouseDown={handleMouseDown}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      tabIndex={0}
+      role="button"
+      aria-label="Drop or paste to add to timeline"
       initial={false}
       animate={{
-        backgroundColor: isDragOver ? 'rgba(100, 149, 237, 0.15)' : 'rgba(100, 100, 110, 0.03)',
-        borderColor: isDragOver ? 'rgba(100, 149, 237, 0.5)' : 'rgba(100, 100, 110, 0.15)',
+        backgroundColor: isDragOver
+          ? 'rgba(100, 149, 237, 0.15)'
+          : isFocused
+            ? 'rgba(100, 149, 237, 0.08)'
+            : 'rgba(100, 100, 110, 0.03)',
+        borderColor: isDragOver
+          ? 'rgba(100, 149, 237, 0.5)'
+          : isFocused
+            ? 'rgba(100, 149, 237, 0.35)'
+            : 'rgba(100, 100, 110, 0.15)',
         scale: isDragOver ? 1.01 : 1,
       }}
       transition={{ duration: 0.15 }}
@@ -358,13 +507,14 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, isCollapsed })
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        padding: '24px 16px',
+        padding: '28px 16px',
         marginBottom: 12,
         borderRadius: 10,
         border: '2px dashed',
-        cursor: 'default',
+        cursor: 'pointer',
         userSelect: 'none',
-        minHeight: 60,
+        minHeight: 72,
+        outline: 'none',
       }}
     >
       {/* Drop icon */}
@@ -392,7 +542,7 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, isCollapsed })
           fontWeight: 500,
         }}
       >
-        {isDragOver ? 'Release to move here' : 'Drop to add to timeline'}
+        {isDragOver ? 'Release to move here' : 'Drop or paste to add to timeline'}
       </motion.span>
     </motion.div>
   );
@@ -408,6 +558,7 @@ interface TemporalOrderContentProps {
   backgroundColor?: string;
   onDropZoneDrop: (draggedNode: DraggedNodeInfo | null) => void;
   onDropZoneDragEnter: () => DraggedNodeInfo | null;
+  onDropZonePaste: (payload: ClipboardPayload) => void;
 }
 
 const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
@@ -416,6 +567,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   backgroundColor = '#FFFFFF',
   onDropZoneDrop,
   onDropZoneDragEnter,
+  onDropZonePaste,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(200);
@@ -446,7 +598,12 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       <TemporalArrow height={contentHeight} isCollapsed={isCollapsed} />
 
       {/* Drop Zone at the top */}
-      <DropZone onDrop={onDropZoneDrop} onDragEnter={onDropZoneDragEnter} isCollapsed={isCollapsed} />
+      <DropZone
+        onDrop={onDropZoneDrop}
+        onDragEnter={onDropZoneDragEnter}
+        onPaste={onDropZonePaste}
+        isCollapsed={isCollapsed}
+      />
 
       {/* Content */}
       <AnimatePresence>
@@ -816,13 +973,40 @@ export const TemporalOrderExtension = TipTapNode.create({
           .run();
       }, [props.editor, props.getPos, props.node.nodeSize]);
 
+      const handleDropZonePaste = useCallback((payload: ClipboardPayload) => {
+        if (!payload.html && !payload.text) return;
+
+        const pos = props.getPos();
+        if (typeof pos !== 'number') return;
+
+        const schema = props.editor.schema;
+        const parsedNodes = parseClipboardPayloadToNodes(payload, schema);
+        const normalizedNodes = normalizeClipboardNodesForTemporalOrder(parsedNodes, schema);
+
+        if (!normalizedNodes.length) return;
+
+        // ARCHITECTURE: Insert as one transaction so paste stays atomic and
+        // the temporal sorter runs once to position new items.
+        props.editor.commands.focus();
+        const { state, view } = props.editor;
+        const tr = state.tr.insert(pos + 1, Fragment.from(normalizedNodes));
+        view.dispatch(tr.scrollIntoView());
+      }, [props.editor, props.getPos]);
+
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
           style={{ overflow: 'visible' }}
         >
           {/* ARCHITECTURE: TemporalOrder uses NodeOverlay for consistent grip system
-              and connection support, matching TemporalSpace and Group patterns. */}
+              and connection support, matching TemporalSpace and Group patterns.
+              
+              ARCHITECTURE DECISION: Transparent background for 3D scene integration
+              =======================================================================
+              When embedded in 3D scenes (natural-calendar-v3, notes-natural-ui),
+              we want shadows from TreeCanopy and WindowBlinds to show through.
+              Using rgba with 0.1 opacity allows subtle card definition while
+              maintaining shadow visibility. */}
           <NodeOverlay
             nodeProps={props}
             nodeType="temporalOrder"
@@ -833,13 +1017,14 @@ export const TemporalOrderExtension = TipTapNode.create({
             `}
             borderRadius={16}
             padding="24px 20px 24px 32px"
-            backgroundColor="rgba(250, 250, 252, 0.95)"
+            backgroundColor="rgba(255, 255, 255, 0.1)"
           >
             <TemporalOrderContent
               isCollapsed={isCollapsed}
               backgroundColor={backgroundColor}
               onDropZoneDrop={handleDropZoneDrop}
               onDropZoneDragEnter={handleDropZoneDragEnter}
+              onDropZonePaste={handleDropZonePaste}
             >
               <NodeViewContent />
             </TemporalOrderContent>

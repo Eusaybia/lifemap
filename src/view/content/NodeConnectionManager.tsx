@@ -25,13 +25,17 @@ import { DocumentAttributes } from '../structure/DocumentAttributesExtension'
 //    - Inline checkbox todo with text and connection grip
 //    - Identified by: .todo-mention[data-todo-id="<uuid>"]
 //
+// 5. QUESTION MENTION (QuestionMention.tsx)
+//    - Inline clarify-question mention with text and connection grip
+//    - Identified by: .question-mention[data-question-id="<uuid>"]
+//
 // Connections are stored in localStorage and persist across sessions.
 // Clicking on arrows navigates between connected elements (head/tail toggle).
 // ============================================================================
 
 // Connection between two connectable elements
-// 'todo' type added for TodoMention nodes (inline checkbox todos with connections)
-type ConnectableType = 'block' | 'span' | 'node' | 'todo'
+// 'todo' and 'question' types are for inline mention nodes with connection grips
+type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question'
 
 interface NodeConnection {
   id: string
@@ -78,6 +82,13 @@ const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id
     const id = todoMention.getAttribute('data-todo-id')
     if (id) return { element: todoMention, id, type: 'todo' }
   }
+
+  // Check for QuestionMention (inline clarify-question mention with connections)
+  const questionMention = target.closest('.question-mention[data-question-id]') as HTMLElement
+  if (questionMention) {
+    const id = questionMention.getAttribute('data-question-id')
+    if (id) return { element: questionMention, id, type: 'question' }
+  }
   
   const spanGroup = target.closest('.span-group') as HTMLElement
   if (spanGroup) {
@@ -104,6 +115,8 @@ const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id
 const getConnectableElement = (id: string, type: ConnectableType): HTMLElement | null => {
   if (type === 'todo') {
     return document.querySelector(`[data-todo-id="${id}"]`) as HTMLElement
+  } else if (type === 'question') {
+    return document.querySelector(`[data-question-id="${id}"]`) as HTMLElement
   } else if (type === 'span') {
     return document.querySelector(`[data-span-group-id="${id}"]`) as HTMLElement
   } else if (type === 'block') {

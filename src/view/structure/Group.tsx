@@ -13,14 +13,17 @@ export const Group = (props: {
     quantaId: QuantaId, 
     backgroundColor?: string,
 }) => {
-    // Helper function to make color opaque
-    const getOpaqueBackground = (color: string) => {
-        // If color has alpha channel (8 character hex), make it fully opaque
-        if (color && color.length === 9 && color.startsWith('#')) {
-            return color.substring(0, 7); // Remove alpha channel
+    // Helper function to get background color
+    // ARCHITECTURE DECISION: Semi-transparent backgrounds for 3D scene integration
+    // ===========================================================================
+    // When embedded in 3D scenes (natural-calendar-v3, notes-natural-ui), we want
+    // shadows to show through. Use 0.1 opacity (10% visible) by default so shadows
+    // from the 3D canvas are visible through the content.
+    const getBackground = (color: string | undefined) => {
+        if (!color || color === '#FFFFFF' || color === offWhite) {
+            return 'rgba(255, 255, 255, 0.1)';
         }
-        
-        return color || '#FFFFFF';
+        return color;
     };
 
     // TODO: Exit animation doesn't work
@@ -41,7 +44,7 @@ export const Group = (props: {
             }}
             animate={{
                 // opacity: 1,
-                backgroundColor: getOpaqueBackground(props.backgroundColor || '#FFFFFF'),
+                backgroundColor: getBackground(props.backgroundColor),
             }}
             exit={{
                 // opacity: 0,
@@ -84,7 +87,7 @@ export const Group = (props: {
                         left: 0,
                         right: 0,
                         height: 40,
-                        background: `linear-gradient(to bottom, transparent, ${getOpaqueBackground(props.backgroundColor || '#FFFFFF')})`,
+                        background: `linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1))`,
                         borderRadius: '0 0 10px 10px',
                         pointerEvents: 'none',
                     }}
