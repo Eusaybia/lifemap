@@ -68,10 +68,6 @@ const playTickSound = () => {
 // PomodoroNodeView Component
 // ============================================================================
 
-// ARCHITECTURE: Pomodoro sessions are fixed to a 30-minute focus block.
-// This keeps the timer consistent while allowing the label to reflect the intent.
-const POMODORO_SESSION_SECONDS = 30 * 60
-
 const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes, selected } = props
   const { duration, label, emoji, status, startTime, endTime, notesQuantaId } = node.attrs
@@ -86,16 +82,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
   // Use the stored emoji, or ☀️ for freeform, or default ⏳
   const displayEmoji = emoji || (isFreeform ? '☀️' : '⏳')
   const displayLabel = label
-  const pomodoroDurationSeconds = isFreeform ? duration : POMODORO_SESSION_SECONDS
-
-  // Normalize legacy pomodoros that were created with longer durations.
-  useEffect(() => {
-    if (!isFreeform && duration !== POMODORO_SESSION_SECONDS) {
-      updateAttributes({
-        duration: POMODORO_SESSION_SECONDS,
-      })
-    }
-  }, [duration, isFreeform, updateAttributes])
+  const pomodoroDurationSeconds = isFreeform ? duration : Math.max(duration || 0, 0)
   
   // ARCHITECTURE: Click on the pomodoro time badge opens a notes overlay.
   // The label stays non-interactive so notes attach to a specific session,
@@ -291,7 +278,6 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
       
       updateAttributes({
         startTime: newStart.toISOString(),
-        duration: isFreeform ? duration : POMODORO_SESSION_SECONDS,
       })
     } else if (currentEditingField === 'end') {
       // Update end time
@@ -304,7 +290,7 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
         })
       } else {
         // For regular pomodoros, keep duration fixed and shift start time
-        // so the user-chosen end time becomes the 30-minute session end.
+        // so the user-chosen end time becomes the session end.
         const newEnd = new Date(start)
         newEnd.setHours(hours, minutes, 0, 0)
         
@@ -313,16 +299,15 @@ const PomodoroNodeView: React.FC<NodeViewProps> = (props) => {
           newEnd.setDate(newEnd.getDate() + 1)
         }
         
-        const newStart = new Date(newEnd.getTime() - POMODORO_SESSION_SECONDS * 1000)
+        const newStart = new Date(newEnd.getTime() - pomodoroDurationSeconds * 1000)
         updateAttributes({
           startTime: newStart.toISOString(),
-          duration: POMODORO_SESSION_SECONDS,
         })
       }
     }
 
     setEditingField(null)
-  }, [editingField, startTime, endTime, isFreeform, getEndTime, updateAttributes])
+  }, [editingField, startTime, endTime, isFreeform, getEndTime, pomodoroDurationSeconds, updateAttributes])
 
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
     // Stop all keyboard events from propagating to TipTap editor
@@ -779,4 +764,3 @@ export const PomodoroNode = Node.create<PomodoroOptions>({
     }
   },
 })
-

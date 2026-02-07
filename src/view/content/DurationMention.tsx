@@ -156,10 +156,6 @@ const DURATION_BADGE_THRESHOLD = 86400
 // ARCHITECTURE: Pomodoro is optimized for single-session work; anything longer
 // than 2 hours is treated as a multi-session commitment and uses the badge.
 const POMODORO_MAX_SECONDS = 2 * 60 * 60
-// ARCHITECTURE: Pomodoro sessions are fixed to 30 minutes so they represent
-// a single focused block. Longer intents still map to a 30-minute session.
-const POMODORO_SESSION_SECONDS = 30 * 60
-
 // ============================================================================
 // Duration Types
 // ============================================================================
@@ -558,7 +554,7 @@ export const durationSuggestionOptions = {
         })
         .run()
     } else {
-      const pomodoroDuration = props.seconds < 0 ? props.seconds : POMODORO_SESSION_SECONDS
+      const pomodoroDuration = props.seconds
       editor
         .chain()
         .focus()
@@ -669,4 +665,3 @@ export const DurationExtension = Extension.create<DurationExtensionOptions>({
     ]
   },
 })
-
