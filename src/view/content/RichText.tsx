@@ -104,6 +104,8 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 // Template quanta ID - this is the editable template in the Daily carousel
 // When empty, it will be initialized from the hardcoded TEMPLATE_SCHEMA in DailyScheduleTemplate.ts
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
+// Period source-of-truth quanta for daily recurring content
+const PERIOD_DAILY_QUANTA_ID = 'period-daily'
 // Template quanta ID - this is the editable template in the Weekly carousel
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
@@ -184,6 +186,122 @@ const getPeriodTemplate = (mapping: PeriodTimepointMapping): JSONContent => ({
 })
 
 /**
+ * Returns true when TipTap JSON content has user-meaningful content.
+ * Treats empty docs / docs with only empty paragraphs as empty.
+ */
+const hasMeaningfulContent = (content: JSONContent | null | undefined): boolean => {
+  if (!content || !Array.isArray(content.content) || content.content.length === 0) {
+    return false
+  }
+
+  // If every top-level node is an empty paragraph, it's effectively empty.
+  const allEmptyParagraphs = content.content.every((node: any) => {
+    if (!node || node.type !== 'paragraph') return false
+    if (!Array.isArray(node.content) || node.content.length === 0) return true
+
+    return node.content.every((child: any) => {
+      if (!child) return true
+      if (child.type === 'text') return !child.text || child.text.trim() === ''
+      // Non-text child nodes (mentions/timepoints/etc.) are meaningful.
+      return false
+    })
+  })
+
+  return !allEmptyParagraphs
+}
+
+// ============================================================================
+// Daily Template Token Resolution
+// ============================================================================
+// Prototype behavior: when initializing today's daily quanta from period-daily,
+// resolve template placeholders like "Today {todays_date}" into concrete labels.
+const TODAY_TEMPLATE_TIMEPOINT_ID = 'timepoint:today-template'
+const TODAY_TIMEPOINT_ID = 'timepoint:today'
+const TODAY_TEMPLATE_TOKEN_REGEX_REPLACE = /\{todays_date\}/gi
+const TODAY_TEMPLATE_TOKEN_REGEX_TEST = /\{todays_date\}/i
+
+const formatResolvedTodayDate = (date: Date): string => {
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+const formatResolvedTodayLabel = (date: Date): string => `Today (${formatResolvedTodayDate(date)})`
+
+const resolveTemplateTokensInString = (value: string, date: Date): string => {
+  return value.replace(TODAY_TEMPLATE_TOKEN_REGEX_REPLACE, formatResolvedTodayDate(date))
+}
+
+const resolveDailyTemplateTokensForDate = (content: JSONContent, targetDate: Date): JSONContent => {
+  const walk = (node: JSONContent): JSONContent => {
+    const resolvedNode: JSONContent = { ...node }
+
+    if (resolvedNode.type === 'text' && typeof resolvedNode.text === 'string') {
+      resolvedNode.text = resolveTemplateTokensInString(resolvedNode.text, targetDate)
+    }
+
+    if (resolvedNode.attrs && typeof resolvedNode.attrs === 'object') {
+      const attrs = { ...(resolvedNode.attrs as Record<string, any>) }
+
+      if (attrs.id === TODAY_TEMPLATE_TIMEPOINT_ID) {
+        attrs.id = TODAY_TIMEPOINT_ID
+        attrs.label = `🗓️ ${formatResolvedTodayLabel(targetDate)}`
+        attrs['data-date'] = targetDate.toISOString()
+        attrs['data-formatted'] = formatResolvedTodayLabel(targetDate)
+        attrs['data-relative-label'] = "Today's date"
+      } else {
+        ;['label', 'data-formatted', 'data-relative-label'].forEach((key) => {
+          if (typeof attrs[key] === 'string') {
+            attrs[key] = resolveTemplateTokensInString(attrs[key], targetDate)
+          }
+        })
+      }
+
+      resolvedNode.attrs = attrs
+    }
+
+    if (Array.isArray(resolvedNode.content)) {
+      resolvedNode.content = resolvedNode.content.map((child) => walk(child))
+    }
+
+    return resolvedNode
+  }
+
+  return walk(content)
+}
+
+const hasResolvableTodayTemplateTokens = (content: JSONContent | null | undefined): boolean => {
+  if (!content) return false
+
+  const walk = (node: JSONContent): boolean => {
+    if (node.type === 'text' && typeof node.text === 'string' && TODAY_TEMPLATE_TOKEN_REGEX_TEST.test(node.text)) {
+      return true
+    }
+
+    if (node.attrs && typeof node.attrs === 'object') {
+      const attrs = node.attrs as Record<string, any>
+      if (attrs.id === TODAY_TEMPLATE_TIMEPOINT_ID) return true
+      const stringAttrs = ['label', 'data-formatted', 'data-relative-label']
+      for (const key of stringAttrs) {
+        if (typeof attrs[key] === 'string' && TODAY_TEMPLATE_TOKEN_REGEX_TEST.test(attrs[key])) {
+          return true
+        }
+      }
+    }
+
+    if (Array.isArray(node.content)) {
+      return node.content.some((child) => walk(child))
+    }
+
+    return false
+  }
+
+  return walk(content)
+}
+
+/**
  * Fetches the content of a quanta from IndexedDB
  * Returns the JSONContent or null if not found/empty
  */
@@ -211,14 +329,7 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
         const content = TiptapTransformer.fromYdoc(yDoc, 'default')
         console.log(`[fetchQuanta PERF] ${quantaId} TiptapTransformer.fromYdoc took ${(performance.now() - transformStart).toFixed(0)}ms`)
         
-        // Check if content is empty
-        const hasContent = content && 
-          content.content && 
-          content.content.length > 0 &&
-          // Check it's not just an empty paragraph
-          !(content.content.length === 1 && 
-            content.content[0].type === 'paragraph' && 
-            !content.content[0].content)
+        const hasContent = hasMeaningfulContent(content)
         
         persistence.destroy()
         
@@ -729,7 +840,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
   // Check for new daily schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
-  // Fetches from the editable template at /q/daily-schedule-template, falls back to hardcoded
+  // For today/tomorrow daily pages, first tries /q/period-daily as source-of-truth.
+  // If period-daily is empty/missing, falls back to /q/daily-schedule-template,
+  // and finally to hardcoded template.
   // Supports initializing both today and tomorrow's schedules
   //
   // IMPORTANT: Uses Y.Doc event-based approach to wait for IndexedDB to sync before checking
@@ -740,11 +853,22 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const pendingSchedulesStr = localStorage.getItem('newDailySchedules');
     const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
     const urlId = window.location.pathname.split('/').pop();
+    const searchParams = new URLSearchParams(window.location.search);
+    const forceDailySeed = searchParams.get('forceDailySeed') === 'true';
+    const now = new Date();
+    const todaySlug = `daily-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const tomorrowDate = new Date(now);
+    tomorrowDate.setDate(now.getDate() + 1);
+    const tomorrowSlug = `daily-${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
     
     const isInPending = urlId && pendingSchedules.includes(urlId);
+    const isTodayDailyPage = urlId === todaySlug;
+    const isTomorrowDailyPage = urlId === tomorrowSlug;
+    const isTodayOrTomorrowDailyPage = isTodayDailyPage || isTomorrowDailyPage;
     
-    // Only apply template if URL ID is in the pending schedules array
-    if (!isInPending) return;
+    // Apply for pending schedules, and also allow today/tomorrow daily pages even if
+    // the pending list wasn't set before iframe/editor mount.
+    if (!isInPending && !isTodayOrTomorrowDailyPage) return;
     if (!props.quanta?.information || !editor || templateApplied.current || dailyPageInitChecked.current) return;
     
     const yDoc = props.quanta.information;
@@ -769,29 +893,62 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (dailyPageInitChecked.current || templateApplied.current) return;
       dailyPageInitChecked.current = true;
       
-      // Check Y.Doc directly for emptiness (more reliable than editor state during sync)
-      // The 'default' field is where TipTap Collaboration stores the document
+      // Check Y.Doc directly for effective emptiness.
+      // The 'default' field is where TipTap Collaboration stores the document.
       const yFragment = yDoc.getXmlFragment('default');
-      const yDocIsEmpty = yFragment.length === 0;
+      let yDocHasMeaningfulContent = yFragment.length > 0;
+      try {
+        const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent
+        yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson)
+      } catch (error) {
+        // Keep conservative fallback when transform fails during sync transitions.
+        yDocHasMeaningfulContent = yFragment.length > 0
+      }
       
       // Also check editor state as a fallback
       const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
       
-      // Only consider empty if BOTH Y.Doc and editor agree it's empty
-      // This prevents applying template when Y.Doc has content that hasn't synced to editor yet
-      const isEmpty = yDocIsEmpty && editorIsEmpty;
+      // Only consider empty if BOTH Y.Doc and editor agree it's empty.
+      const isEmpty = !yDocHasMeaningfulContent && editorIsEmpty;
+      const shouldForceSeedTodayOrTomorrow = isTodayOrTomorrowDailyPage && forceDailySeed;
+      const shouldApplySeed = isEmpty || shouldForceSeedTodayOrTomorrow;
+      const resolutionDate = isTomorrowDailyPage ? tomorrowDate : now;
       
-      console.log(`[RichText PERF] ${urlId} checkAndApplyTemplate started, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`)
+      console.log(
+        `[RichText PERF] ${urlId} checkAndApplyTemplate started, yDocHasMeaningfulContent=${yDocHasMeaningfulContent}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}, forceDailySeed=${forceDailySeed}, shouldApplySeed=${shouldApplySeed}, isTodayOrTomorrowDailyPage=${isTodayOrTomorrowDailyPage}`
+      )
       const perfStart = performance.now()
       
-      if (isEmpty) {
-        // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
-        console.log(`[RichText PERF] ${urlId} Calling fetchQuantaContentFromIndexedDB...`)
-        const fetchStart = performance.now()
-        const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
-        console.log(`[RichText PERF] ${urlId} fetchQuantaContentFromIndexedDB took ${(performance.now() - fetchStart).toFixed(0)}ms, got content: ${!!templateContent}`)
-        
-        const contentToApply = templateContent || getDailyScheduleTemplate();
+      if (shouldApplySeed) {
+        // Today/tomorrow daily page priority:
+        // 1) period-daily (recurring daily quanta), 2) editable daily template, 3) hardcoded fallback
+        let contentToApply: JSONContent | null = null;
+
+        if (isTodayOrTomorrowDailyPage) {
+          console.log(`[RichText PERF] ${urlId} Trying period source: ${PERIOD_DAILY_QUANTA_ID}`)
+          const periodFetchStart = performance.now()
+          const periodContent = await fetchQuantaContentFromIndexedDB(PERIOD_DAILY_QUANTA_ID);
+          console.log(
+            `[RichText PERF] ${urlId} period fetch took ${(performance.now() - periodFetchStart).toFixed(0)}ms, got content: ${!!periodContent}`
+          )
+          if (periodContent) {
+            contentToApply = periodContent;
+          }
+        }
+
+        if (!contentToApply) {
+          console.log(`[RichText PERF] ${urlId} Calling fetchQuantaContentFromIndexedDB for daily template...`)
+          const templateFetchStart = performance.now()
+          const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+          console.log(
+            `[RichText PERF] ${urlId} daily template fetch took ${(performance.now() - templateFetchStart).toFixed(0)}ms, got content: ${!!templateContent}`
+          )
+          contentToApply = templateContent || getDailyScheduleTemplate();
+        }
+
+        if (isTodayOrTomorrowDailyPage && contentToApply) {
+          contentToApply = resolveDailyTemplateTokensForDate(contentToApply, resolutionDate);
+        }
         
         console.log(`[RichText PERF] ${urlId} Calling setContent...`)
         const setContentStart = performance.now()
@@ -805,7 +962,26 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         console.log(`[RichText PERF] ${urlId} setContent took ${(performance.now() - setContentStart).toFixed(0)}ms`)
         
         templateApplied.current = true;
-        console.log(`[RichText] Applied daily template to ${urlId} (after Y.Doc stabilization) - total: ${(performance.now() - perfStart).toFixed(0)}ms`);
+        console.log(`[RichText] Applied daily initialization content to ${urlId} (after Y.Doc stabilization) - total: ${(performance.now() - perfStart).toFixed(0)}ms`);
+      } else if (isTodayOrTomorrowDailyPage) {
+        // Edge case: content exists but still contains unresolved template tokens
+        // from a previous prototype copy. Resolve in-place on today/tomorrow pages.
+        const existingContent = editor.getJSON() as JSONContent
+        const shouldResolveInPlace = hasResolvableTodayTemplateTokens(existingContent)
+
+        if (shouldResolveInPlace) {
+          const resolvedContent = resolveDailyTemplateTokensForDate(existingContent, resolutionDate)
+
+          yDoc.transact(() => {
+            yFragment.delete(0, yFragment.length);
+          });
+
+          ;(editor as Editor)!.commands.setContent(resolvedContent);
+          templateApplied.current = true;
+          console.log(`[RichText] Resolved existing today template tokens in-place for ${urlId}`);
+        } else {
+          console.log(`[RichText] ${urlId} already has content, skipping template application`);
+        }
       } else {
         console.log(`[RichText] ${urlId} already has content, skipping template application`);
       }
