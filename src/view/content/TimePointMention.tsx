@@ -106,6 +106,10 @@ const formatDateWithDay = (date: Date): string => {
   return date.toLocaleDateString('en-GB', options)
 }
 
+const TODAY_TEMPLATE_ID = 'timepoint:today-template'
+const TEMPLATE_TODAY_LITERAL = 'Today {todays_date}'
+const formatTemplateTodayLabel = (): string => TEMPLATE_TODAY_LITERAL
+
 // ============================================================================
 // Solar Time Calculations
 // ============================================================================
@@ -659,11 +663,10 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:weekday-friday', label: 'Fridays', date: new Date(0), emoji: '📅' },
     { id: 'timepoint:weekday-saturday', label: 'Saturdays', date: new Date(0), emoji: '📅' },
     { id: 'timepoint:weekday-sunday', label: 'Sundays', date: new Date(0), emoji: '📅' },
-    // Abstract "Today" - not tied to a specific date, useful for templates
-    { id: 'timepoint:today-abstract', label: "Today's abstract for templates", date: new Date(0), emoji: '📋' },
     // Architecture: "Some day" represents an intentionally indeterminate future, so we keep it abstract.
     { id: 'timepoint:someday', label: 'Some day', date: new Date(0), emoji: '⏳' },
     { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
+    { id: TODAY_TEMPLATE_ID, label: 'Today (Template) version', date: new Date(0), emoji: '📋' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
     { id: 'timepoint:next-week', label: 'Next Week', date: addDays(now, 7), emoji: '📅' },
@@ -699,7 +702,6 @@ const getTemporalLengthDays = (tp: TimePoint): number => {
   // Architecture: normalize temporal length estimates so the dropdown
   // ordering stays consistent across mixed timepoint types.
   if (id === 'timepoint:daily') return 1
-  if (id === 'timepoint:today-abstract') return 1
   // Architecture: "Some day" should sort after concrete near-term dates.
   if (id === 'timepoint:someday') return 3650
   if (id.startsWith('timepoint:weekday-')) return 7
@@ -1232,8 +1234,9 @@ const isYearTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:
 const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:month-')
 const isFullDateTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:date-')
 const isRecurringDatePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:recurring-')
+const isTemplateTodayPoint = (tp: TimePoint): boolean => tp.id === TODAY_TEMPLATE_ID
 const isAbstractTimePoint = (tp: TimePoint): boolean =>
-  tp.id === 'timepoint:today-abstract' || tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday'
+  tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday'
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
 const isAbstractSeasonPoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:season-abstract-')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
@@ -1405,9 +1408,10 @@ const formatTime = (date: Date): string => {
 }
 
 const formatTimePointLabel = (tp: TimePoint): string => {
+  if (tp.id === 'timepoint:today') return `${tp.emoji} Today (${formatDate(tp.date)})`
+  if (isTemplateTodayPoint(tp)) return `${tp.emoji} ${formatTemplateTodayLabel()}`
   if (isAbstractTimePoint(tp)) {
     if (tp.id === 'timepoint:daily') return `${tp.emoji} Daily`
-    if (tp.id === 'timepoint:today-abstract') return `${tp.emoji} Today`
     return `${tp.emoji} Some day`
   }
   // Architecture: weekday timepoints are recurring concepts, not concrete dates.
@@ -1451,18 +1455,16 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     if (orderedItems.length === 0 || index >= orderedItems.length) return
 
     const timePoint = orderedItems[index]
-    let formattedDate: string
+    let formattedDate: string = timePoint.label
     const isWeekdayRecurring = isWeekdayTimePoint(timePoint)
     // Architecture: recurring weekday tags should not serialize an epoch date.
-    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint) || isWeekdayRecurring
+    const isAbstract = isAbstractTimePoint(timePoint) || isAbstractLunarPhase(timePoint) || isAbstractSeasonPoint(timePoint) || isRecurringDatePoint(timePoint) || isWeekdayRecurring || isTemplateTodayPoint(timePoint)
     
     if (isAbstractTimePoint(timePoint)) {
       if (timePoint.id === 'timepoint:daily') {
         formattedDate = 'Daily'
       } else if (timePoint.id === 'timepoint:someday') {
         formattedDate = 'Some day'
-      } else {
-        formattedDate = 'Today'
       }
     } else if (isWeekdayRecurring) {
       formattedDate = timePoint.label
@@ -1480,17 +1482,22 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
       formattedDate = timePoint.label
     } else if (isLunarPhasePoint(timePoint)) {
       formattedDate = `${timePoint.label} (${formatDate(timePoint.date)})`
+    } else if (isTemplateTodayPoint(timePoint)) {
+      formattedDate = formatTemplateTodayLabel()
+    } else if (timePoint.id === 'timepoint:today') {
+      formattedDate = `Today (${formatDate(timePoint.date)})`
     } else {
       formattedDate = formatDate(timePoint.date)
     }
     const displayLabel = formatTimePointLabel(timePoint)
+    const relativeLabel = isTemplateTodayPoint(timePoint) ? formatTemplateTodayLabel() : timePoint.label
 
     props.command({
       id: timePoint.id,
       label: displayLabel,
       'data-date': isAbstract ? '' : timePoint.date.toISOString(),
       'data-formatted': formattedDate,
-      'data-relative-label': isAbstract ? timePoint.label : timePoint.label,
+      'data-relative-label': relativeLabel,
     })
   }
 
@@ -1578,6 +1585,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                         </span>
                       ) : isRecurringDatePoint(item) ? (
                         <span className="timepoint-date">Recurring every year</span>
+                      ) : isTemplateTodayPoint(item) ? (
+                        <span className="timepoint-date">For templating: inserts {formatTemplateTodayLabel()}</span>
                       ) : isYearTimePoint(item) ? (
                         <span className="timepoint-date">January 1st, {item.label}</span>
                       ) : isMonthTimePoint(item) ? (
