@@ -109,6 +109,80 @@ const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
 const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
 
+// ============================================================================
+// Period Quanta Templates
+// ============================================================================
+// Architecture: Each recurring period from TimePointMention.tsx gets a dedicated
+// Quanta at /q/period-{slug}. When opened empty for the first time, it is
+// initialized with a paragraph containing the corresponding TimePoint mention
+// so the document is immediately tagged with its period identity.
+//
+// The slug-to-timepoint mapping must stay in sync with the PERIOD_GROUPS
+// definition in /app/periods/page.tsx and the IDs in TimePointMention.tsx.
+
+interface PeriodTimepointMapping {
+  timepointId: string
+  label: string
+  formatted: string
+}
+
+const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
+  // Daily
+  'daily': { timepointId: 'timepoint:daily', label: '\u{1F4C6} Daily', formatted: 'Daily' },
+  // Weekdays
+  'weekday-monday': { timepointId: 'timepoint:weekday-monday', label: '\u{1F4C5} Mondays', formatted: 'Mondays' },
+  'weekday-tuesday': { timepointId: 'timepoint:weekday-tuesday', label: '\u{1F4C5} Tuesdays', formatted: 'Tuesdays' },
+  'weekday-wednesday': { timepointId: 'timepoint:weekday-wednesday', label: '\u{1F4C5} Wednesdays', formatted: 'Wednesdays' },
+  'weekday-thursday': { timepointId: 'timepoint:weekday-thursday', label: '\u{1F4C5} Thursdays', formatted: 'Thursdays' },
+  'weekday-friday': { timepointId: 'timepoint:weekday-friday', label: '\u{1F4C5} Fridays', formatted: 'Fridays' },
+  'weekday-saturday': { timepointId: 'timepoint:weekday-saturday', label: '\u{1F4C5} Saturdays', formatted: 'Saturdays' },
+  'weekday-sunday': { timepointId: 'timepoint:weekday-sunday', label: '\u{1F4C5} Sundays', formatted: 'Sundays' },
+  // Lunar Phases
+  'lunar-new-moons': { timepointId: 'lunar:abstract:new-moons', label: '\u{1F311} New Moons', formatted: 'New Moons' },
+  'lunar-first-quarters': { timepointId: 'lunar:abstract:first-quarters', label: '\u{1F313} First Quarters', formatted: 'First Quarters' },
+  'lunar-full-moons': { timepointId: 'lunar:abstract:full-moons', label: '\u{1F315} Full Moons', formatted: 'Full Moons' },
+  'lunar-last-quarters': { timepointId: 'lunar:abstract:last-quarters', label: '\u{1F317} Last Quarters', formatted: 'Last Quarters' },
+  // Seasons
+  'season-spring': { timepointId: 'timepoint:season-abstract-spring', label: '\u{1F338} Springs', formatted: 'Springs' },
+  'season-summer': { timepointId: 'timepoint:season-abstract-summer', label: '\u2600\uFE0F Summers', formatted: 'Summers' },
+  'season-autumn': { timepointId: 'timepoint:season-abstract-autumn', label: '\u{1F342} Autumns', formatted: 'Autumns' },
+  'season-winter': { timepointId: 'timepoint:season-abstract-winter', label: '\u2744\uFE0F Winters', formatted: 'Winters' },
+  // Seasonal Markers (Equinoxes and Solstices)
+  'marker-spring-equinox': { timepointId: 'timepoint:season-marker-spring-equinox', label: '\u{1F337} Spring Equinox', formatted: 'Spring Equinox' },
+  'marker-summer-solstice': { timepointId: 'timepoint:season-marker-summer-solistice', label: '\u{1F31E} Summer Solistice', formatted: 'Summer Solistice' },
+  'marker-autumn-equinox': { timepointId: 'timepoint:season-marker-autumn-equinox', label: '\u{1F341} Autumn Equinox', formatted: 'Autumn Equinox' },
+  'marker-winter-solstice': { timepointId: 'timepoint:season-marker-winter-solistice', label: '\u2744\uFE0F Winter Solistice', formatted: 'Winter Solistice' },
+}
+
+/**
+ * Generate template content for a period Quanta.
+ * Places the corresponding TimePoint mention as the first element, followed
+ * by an empty paragraph for the user to start writing.
+ */
+const getPeriodTemplate = (mapping: PeriodTimepointMapping): JSONContent => ({
+  type: 'doc',
+  content: [
+    {
+      type: 'paragraph',
+      content: [
+        {
+          type: 'timepoint',
+          attrs: {
+            id: mapping.timepointId,
+            label: mapping.label,
+            'data-date': '',
+            'data-formatted': mapping.formatted,
+            'data-relative-label': mapping.formatted,
+          },
+        },
+      ],
+    },
+    {
+      type: 'paragraph',
+    },
+  ],
+})
+
 /**
  * Fetches the content of a quanta from IndexedDB
  * Returns the JSONContent or null if not found/empty
@@ -946,6 +1020,83 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       checkAndApplyTemplate();
     }, FALLBACK_TIMEOUT);
     
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
+
+  // ============================================================================
+  // Initialize Period Quanta with TimePoint Mention
+  // ============================================================================
+  // Architecture: When a period Quanta (e.g., /q/period-daily) is opened for the
+  // first time and is empty, we insert the corresponding TimePoint mention at the
+  // top of the document. This tags the Quanta with its period identity.
+  //
+  // Uses the same Y.Doc stabilization pattern as daily/weekly templates to avoid
+  // race conditions with IndexedDB sync.
+  const periodInitChecked = React.useRef(false);
+  React.useEffect(() => {
+    const urlId = window.location.pathname.split('/').pop();
+    if (!urlId || !urlId.startsWith('period-')) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || periodInitChecked.current) return;
+
+    // Extract the period slug (everything after "period-")
+    const periodSlug = urlId.replace('period-', '');
+    const mapping = PERIOD_SLUG_TO_TIMEPOINT[periodSlug];
+    if (!mapping) return;
+
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
+
+    const checkAndApplyPeriodTemplate = () => {
+      if (periodInitChecked.current || templateApplied.current) return;
+      periodInitChecked.current = true;
+
+      const yFragment = yDoc.getXmlFragment('default');
+      const yDocIsEmpty = yFragment.length === 0;
+      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      const isEmpty = yDocIsEmpty && editorIsEmpty;
+
+      console.log(`[RichText] ${urlId} period checkAndApply, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`);
+
+      if (isEmpty) {
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+
+        (editor as Editor)!.commands.setContent(getPeriodTemplate(mapping));
+        templateApplied.current = true;
+        console.log(`[RichText] Applied period template to ${urlId} (timepoint: ${mapping.timepointId})`);
+      } else {
+        console.log(`[RichText] ${urlId} already has content, skipping period template`);
+      }
+    };
+
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        checkAndApplyPeriodTemplate();
+      }, STABILIZATION_DELAY);
+    };
+
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+
+    yDoc.on('update', handleUpdate);
+    resetStabilizationTimer();
+
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      checkAndApplyPeriodTemplate();
+    }, FALLBACK_TIMEOUT);
+
     return () => {
       yDoc.off('update', handleUpdate);
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
