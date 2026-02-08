@@ -1017,6 +1017,108 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     };
   }, [props.quanta?.information, editor]);
 
+  // ARCHITECTURE DECISION: Generic custom template seeding via URL query param + localStorage
+  // ========================================================================================
+  // The parent page (e.g., natural-calendar-v3) stores template JSON in localStorage under
+  // 'templateContent:{key}' and passes `templateKey={key}` as a URL query parameter.
+  //
+  // This approach is more reliable than localStorage-only signaling because:
+  //   - The URL param is available immediately (no race condition with parent useEffect)
+  //   - The template content is stored synchronously before render in the parent
+  //   - No mutable pending list that can get out of sync
+  //
+  // Supports seeding any Quanta document: just store the template and add templateKey to the URL.
+  const customTemplateInitChecked = React.useRef(false);
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const templateKey = searchParams.get('templateKey');
+    if (!templateKey) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || customTemplateInitChecked.current) return;
+
+    const urlId = window.location.pathname.split('/').pop();
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
+
+    const checkAndApplyCustomTemplate = () => {
+      if (customTemplateInitChecked.current || templateApplied.current) return;
+      customTemplateInitChecked.current = true;
+
+      // Check Y.Doc for effective emptiness
+      const yFragment = yDoc.getXmlFragment('default');
+      let yDocHasMeaningfulContent = yFragment.length > 0;
+      try {
+        const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
+        yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
+      } catch (error) {
+        yDocHasMeaningfulContent = yFragment.length > 0;
+      }
+
+      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
+      const isEmpty = !yDocHasMeaningfulContent && editorIsEmpty;
+
+      console.log(
+        `[RichText] ${urlId} custom template check (key=${templateKey}): yDocHasMeaningfulContent=${yDocHasMeaningfulContent}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`
+      );
+
+      if (isEmpty) {
+        // Read template content from localStorage using the templateKey
+        const templateRaw = localStorage.getItem(`templateContent:${templateKey}`);
+        if (!templateRaw) {
+          console.warn(`[RichText] ${urlId} has templateKey=${templateKey} but no template found in localStorage at 'templateContent:${templateKey}'`);
+          return;
+        }
+
+        let contentToApply: JSONContent;
+        try {
+          contentToApply = JSON.parse(templateRaw);
+        } catch (e) {
+          console.error(`[RichText] Failed to parse custom template for ${urlId} (key=${templateKey}):`, e);
+          return;
+        }
+
+        // Clear Y.Doc first to prevent Y.js merge duplication
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+
+        ;(editor as Editor)!.commands.setContent(contentToApply);
+        templateApplied.current = true;
+        console.log(`[RichText] Applied custom template '${templateKey}' to ${urlId}`);
+      } else {
+        console.log(`[RichText] ${urlId} already has content, skipping custom template '${templateKey}'`);
+      }
+    };
+
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        checkAndApplyCustomTemplate();
+      }, STABILIZATION_DELAY);
+    };
+
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+
+    yDoc.on('update', handleUpdate);
+    resetStabilizationTimer();
+
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      checkAndApplyCustomTemplate();
+    }, FALLBACK_TIMEOUT);
+
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
+
   // Initialize the editable daily-schedule-template with the hardcoded template if it's empty
   // This allows users to edit the template at /q/daily-schedule-template
   // 
