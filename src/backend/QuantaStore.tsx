@@ -37,9 +37,16 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   
   const quanta = quantaRef.current;
 
-  // Anyone accessing this particular "room" will be able to make changes to the doc
-  // The room can also be understood to be the unique id of each quanta
-  const roomName = props.quantaId
+  // ARCHITECTURE DECISION: User-scoped document naming for multi-user isolation
+  // =============================================================================
+  // The roomName uniquely identifies a document in TipTap Cloud and IndexedDB.
+  // By prefixing with userId, each anonymous user gets their own isolated copy of
+  // every document. For example, user "abc-123" editing "daily-2026-02-08" gets
+  // room "abc-123/daily-2026-02-08", while user "def-456" gets "def-456/daily-2026-02-08".
+  //
+  // The fallback userId '000000' (from /q/[slug] when no userId query param is provided)
+  // preserves backward compatibility for direct URL access during development.
+  const roomName = `${props.userId}/${props.quantaId}`
 
   // TipTap Cloud App ID - get this at collab.tiptap.dev
   const appId = 'dy9wzo9x'
