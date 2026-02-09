@@ -106,6 +106,7 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 // Period source-of-truth quanta for daily recurring content
 const PERIOD_DAILY_QUANTA_ID = 'period-daily'
+const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules'
 // Template quanta ID - this is the editable template in the Weekly carousel
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
@@ -354,6 +355,38 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
       resolve(null)
     }, 3000)
   })
+}
+
+const readPendingList = (key: string): string[] => {
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const writePendingList = (key: string, values: string[]) => {
+  if (values.length > 0) {
+    localStorage.setItem(key, JSON.stringify(values))
+  } else {
+    localStorage.removeItem(key)
+  }
+}
+
+const fetchQuantaContentWithLegacyFallback = async (params: {
+  userId?: string | null
+  quantaId: string
+}): Promise<JSONContent | null> => {
+  const trimmedUserId = params.userId?.trim()
+  if (trimmedUserId) {
+    const scopedRoomName = `${trimmedUserId}/${params.quantaId}`
+    const scopedContent = await fetchQuantaContentFromIndexedDB(scopedRoomName)
+    if (scopedContent) return scopedContent
+  }
+
+  return fetchQuantaContentFromIndexedDB(params.quantaId)
 }
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
@@ -850,11 +883,17 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // before IndexedDB finishes syncing.
   const dailyPageInitChecked = React.useRef(false);
   React.useEffect(() => {
-    const pendingSchedulesStr = localStorage.getItem('newDailySchedules');
-    const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
-    const urlId = window.location.pathname.split('/').pop();
     const searchParams = new URLSearchParams(window.location.search);
+    const userId = searchParams.get('userId');
+    const urlId = window.location.pathname.split('/').pop();
+    const templateKey = searchParams.get('templateKey');
     const forceDailySeed = searchParams.get('forceDailySeed') === 'true';
+    const scopedSchedulesKey = userId ? `${NEW_DAILY_SCHEDULES_KEY}-${userId}` : NEW_DAILY_SCHEDULES_KEY;
+    const scopedPendingSchedules = readPendingList(scopedSchedulesKey);
+    const legacyPendingSchedules = scopedSchedulesKey === NEW_DAILY_SCHEDULES_KEY
+      ? []
+      : readPendingList(NEW_DAILY_SCHEDULES_KEY);
+    const pendingSchedules = [...new Set([...scopedPendingSchedules, ...legacyPendingSchedules])];
     const now = new Date();
     const todaySlug = `daily-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const tomorrowDate = new Date(now);
@@ -866,6 +905,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const isTomorrowDailyPage = urlId === tomorrowSlug;
     const isTodayOrTomorrowDailyPage = isTodayDailyPage || isTomorrowDailyPage;
     
+    // When templateKey is present, custom template initialization (below) is the
+    // single source of truth. Skip legacy daily initialization to avoid double-seeding
+    // races that can overwrite freshly applied template content.
+    if (templateKey) return;
+
     // Apply for pending schedules, and also allow today/tomorrow daily pages even if
     // the pending list wasn't set before iframe/editor mount.
     if (!isInPending && !isTodayOrTomorrowDailyPage) return;
@@ -878,13 +922,17 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const FALLBACK_TIMEOUT = 2000;
     
     const removeFromPendingList = () => {
-      const currentPendingStr = localStorage.getItem('newDailySchedules');
-      const currentPending: string[] = currentPendingStr ? JSON.parse(currentPendingStr) : [];
-      const updatedPending = currentPending.filter(id => id !== urlId);
-      if (updatedPending.length > 0) {
-        localStorage.setItem('newDailySchedules', JSON.stringify(updatedPending));
-      } else {
-        localStorage.removeItem('newDailySchedules');
+      if (!urlId) return;
+
+      const updateKey = (key: string) => {
+        const currentPending = readPendingList(key);
+        const updatedPending = currentPending.filter(id => id !== urlId);
+        writePendingList(key, updatedPending);
+      };
+
+      updateKey(scopedSchedulesKey);
+      if (scopedSchedulesKey !== NEW_DAILY_SCHEDULES_KEY) {
+        updateKey(NEW_DAILY_SCHEDULES_KEY);
       }
     };
     
@@ -927,7 +975,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         if (isTodayOrTomorrowDailyPage) {
           console.log(`[RichText PERF] ${urlId} Trying period source: ${PERIOD_DAILY_QUANTA_ID}`)
           const periodFetchStart = performance.now()
-          const periodContent = await fetchQuantaContentFromIndexedDB(PERIOD_DAILY_QUANTA_ID);
+          const periodContent = await fetchQuantaContentWithLegacyFallback({
+            userId,
+            quantaId: PERIOD_DAILY_QUANTA_ID,
+          });
           console.log(
             `[RichText PERF] ${urlId} period fetch took ${(performance.now() - periodFetchStart).toFixed(0)}ms, got content: ${!!periodContent}`
           )
@@ -939,7 +990,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         if (!contentToApply) {
           console.log(`[RichText PERF] ${urlId} Calling fetchQuantaContentFromIndexedDB for daily template...`)
           const templateFetchStart = performance.now()
-          const templateContent = await fetchQuantaContentFromIndexedDB(DAILY_TEMPLATE_QUANTA_ID);
+          const templateContent = await fetchQuantaContentWithLegacyFallback({
+            userId,
+            quantaId: DAILY_TEMPLATE_QUANTA_ID,
+          });
           console.log(
             `[RichText PERF] ${urlId} daily template fetch took ${(performance.now() - templateFetchStart).toFixed(0)}ms, got content: ${!!templateContent}`
           )
