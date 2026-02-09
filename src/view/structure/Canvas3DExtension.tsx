@@ -228,15 +228,13 @@ const EditableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       />
 
       <div
-        // ARCHITECTURE DECISION: Stop double-click propagation so clicking to edit
+        // Stop double-click propagation so clicking to edit
         // the MiniEditor doesn't trigger the pane's slash menu handler.
         onDoubleClick={(e) => e.stopPropagation()}
         style={{
           padding: 0,
-          borderRadius: 10,
-          backgroundColor: "rgba(255, 255, 255, 0.98)",
-          border: selected ? "2px solid #007AFF" : "1px solid #ddd",
-          boxShadow: selected ? "0 4px 12px rgba(0, 122, 255, 0.2)" : "0 2px 8px rgba(0, 0, 0, 0.08)",
+          backgroundColor: "transparent",
+          border: "none",
           overflow: "visible",
           width: "100%",
           height: "100%",
@@ -244,7 +242,6 @@ const EditableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           minHeight: 80,
         }}
       >
-        {/* Editable content area */}
         <div style={{ padding: 0, minHeight: 60 }}>
           <MiniEditor content={nodeData.content} onUpdate={handleContentUpdate} nodeType={nodeData.nodeType} nodeId={id} />
         </div>
@@ -520,6 +517,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
               nodeTypes={nodeTypes}
               defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
               fitView={nodes.length > 0}
+              fitViewOptions={{ maxZoom: 0.7 }}
               proOptions={{ hideAttribution: true }}
             >
               <Controls />
