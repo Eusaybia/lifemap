@@ -1239,6 +1239,41 @@ const MathLoupe = React.memo((props: { editor: Editor }) => {
 // Need to add additional state variables that currently have a placeholder using justification
 // Memoize RichTextLoupe
 const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
+    const [formatState, setFormatState] = React.useState(() => ({
+        bold: props.editor.isActive('bold'),
+        italic: props.editor.isActive('italic'),
+        underline: props.editor.isActive('underline'),
+        strike: props.editor.isActive('strike'),
+        alignLeft: props.editor.isActive({ textAlign: 'left' }),
+        alignCenter: props.editor.isActive({ textAlign: 'center' }),
+        alignRight: props.editor.isActive({ textAlign: 'right' }),
+        alignJustify: props.editor.isActive({ textAlign: 'justify' }),
+    }))
+
+    React.useEffect(() => {
+        const syncFormattingState = () => {
+            setFormatState({
+                bold: props.editor.isActive('bold'),
+                italic: props.editor.isActive('italic'),
+                underline: props.editor.isActive('underline'),
+                strike: props.editor.isActive('strike'),
+                alignLeft: props.editor.isActive({ textAlign: 'left' }),
+                alignCenter: props.editor.isActive({ textAlign: 'center' }),
+                alignRight: props.editor.isActive({ textAlign: 'right' }),
+                alignJustify: props.editor.isActive({ textAlign: 'justify' }),
+            })
+        }
+
+        syncFormattingState()
+        props.editor.on('selectionUpdate', syncFormattingState)
+        props.editor.on('transaction', syncFormattingState)
+
+        return () => {
+            props.editor.off('selectionUpdate', syncFormattingState)
+            props.editor.off('transaction', syncFormattingState)
+        }
+    }, [props.editor])
+
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
@@ -1343,8 +1378,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
+                        className={formatState.alignLeft ? 'is-active' : ''}
+                        variant={formatState.alignLeft ? "solid" : "plain"}>
                         <FormatAlignLeft />
                     </IconButton>
                 </Option>
@@ -1353,8 +1388,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignCenter ? 'is-active' : ''}
+                        variant={formatState.alignCenter ? "solid" : "plain"}>
                         <FormatAlignCentre />
                     </IconButton>
                 </Option>
@@ -1363,8 +1398,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignRight ? 'is-active' : ''}
+                        variant={formatState.alignRight ? "solid" : "plain"}>
                         <FormatAlignRight />
                     </IconButton>
                 </Option>
@@ -1373,42 +1408,42 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignJustify ? 'is-active' : ''}
+                        variant={formatState.alignJustify ? "solid" : "plain"}>
                         <FormatAlignJustify />
                     </IconButton>
                 </Option>
             </FlowSwitch>
             <Tag isLens>
                 <IconButton
-                    style={{ color: props.editor!.isActive('bold') ? offWhite : black }}
+                    style={{ color: formatState.bold ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleBold should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleBold().run()}
-                    variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
+                    variant={formatState.bold ? "solid" : "plain"}>
                     <FormatBoldIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('italic') ? offWhite : black }}
+                    style={{ color: formatState.italic ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleItalic should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleItalic().run()}
-                    variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
+                    variant={formatState.italic ? "solid" : "plain"}>
                     <FormatItalicIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('underline') ? offWhite : black }}
+                    style={{ color: formatState.underline ? offWhite : black }}
                     size="sm"
                     onClick={() => props.editor!.chain().focus().toggleUnderline().run()}
-                    variant={props.editor!.isActive('underline') ? "solid" : "plain"}>
+                    variant={formatState.underline ? "solid" : "plain"}>
                     <FormatUnderlinedIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('strike') ? offWhite : black }}
+                    style={{ color: formatState.strike ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleStrike should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleStrike().run()}
-                    variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
+                    variant={formatState.strike ? "solid" : "plain"}>
                     <FormatStrikethrough />
                 </IconButton>
             </Tag>
