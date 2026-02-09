@@ -23,6 +23,20 @@ export interface SlashMenuItem {
   action: (editor: Editor) => void
 }
 
+export type Canvas3DSlashMenuInsertPayload = {
+  type: '3d-photo'
+  imageUrl: string
+}
+
+export interface Canvas3DSlashMenuItem {
+  id: string
+  title: string
+  description: string
+  emoji: string
+  keywords: string[]
+  action: (onInsert: (payload: Canvas3DSlashMenuInsertPayload) => void) => void
+}
+
 interface SlashMenuListProps extends SuggestionProps {
   items: SlashMenuItem[]
 }
@@ -37,6 +51,69 @@ const SlashMenuPluginKey = new PluginKey('slash-menu')
 // ============================================================================
 // Slash Menu Items
 // ============================================================================
+
+function insertFirstAvailableNode(editor: Editor, nodeTypeCandidates: string[]): boolean {
+  const nodeType = nodeTypeCandidates.find((candidate) => editor.schema.nodes[candidate])
+  if (!nodeType) return false
+  return editor.chain().focus().insertContent({ type: nodeType }).run()
+}
+
+function insertCanvasNode(editor: Editor): boolean {
+  // Prefer the React Flow canvas node; support both name variants to avoid
+  // case-related schema naming drift across environments.
+  if (insertFirstAvailableNode(editor, ['canvas3D', 'canvas3d'])) {
+    return true
+  }
+
+  // Fallback to parseHTML rule for Canvas3D (`div[data-type="canvas-3d"]`).
+  return editor.chain().focus().insertContent('<div data-type="canvas-3d"></div>').run()
+}
+
+// Shared upload mechanism used by both the editor slash menu and the 3D canvas slash menu.
+// Keep this flow identical to existing slash image upload behavior.
+export function uploadImageThroughSlashMenu(onUploaded: (imageUrl: string) => void): void {
+  // Create file input for image upload
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) return
+
+    try {
+      const response = await fetch(
+        `/api/upload?filename=${encodeURIComponent(file.name)}`,
+        { method: 'POST', body: file }
+      )
+      if (!response.ok) throw new Error('Upload failed')
+      const blob = await response.json()
+      onUploaded(blob.url)
+    } catch (error) {
+      console.error('Image upload failed:', error)
+    }
+  }
+  input.click()
+}
+
+export const getCanvas3DSlashMenuItems = (): Canvas3DSlashMenuItem[] => {
+  return [
+    {
+      id: 'canvas-3d-photo',
+      title: '3D Photo',
+      description: 'Upload an image as a 3D photo plane',
+      emoji: '🖼️',
+      keywords: ['3d', 'photo', 'image', 'picture', 'plane', 'upload'],
+      action: (onInsert) => {
+        uploadImageThroughSlashMenu((imageUrl) => {
+          onInsert({
+            type: '3d-photo',
+            imageUrl,
+          })
+        })
+      },
+    },
+  ]
+}
 
 const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
   return [
@@ -86,27 +163,9 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       emoji: '🌁',
       keywords: ['image', 'picture', 'photo', 'upload'],
       action: (editor) => {
-        // Create file input for image upload
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.accept = 'image/*'
-        input.onchange = async (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0]
-          if (!file) return
-          
-          try {
-            const response = await fetch(
-              `/api/upload?filename=${encodeURIComponent(file.name)}`,
-              { method: 'POST', body: file }
-            )
-            if (!response.ok) throw new Error('Upload failed')
-            const blob = await response.json()
-            editor.chain().focus().setImage({ src: blob.url }).run()
-          } catch (error) {
-            console.error('Image upload failed:', error)
-          }
-        }
-        input.click()
+        uploadImageThroughSlashMenu((imageUrl) => {
+          editor.chain().focus().setImage({ src: imageUrl }).run()
+        })
       },
     },
     {
@@ -408,21 +467,7 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       emoji: '🎨',
       keywords: ['react flow', 'canvas', 'nodes', 'graph', 'diagram', 'flow'],
       action: (editor) => {
-        // @ts-ignore
-        editor.commands.insertCanvas3D?.() ||
-          editor.chain().focus().insertContent({ type: 'canvas3D' }).run()
-      },
-    },
-    {
-      id: 'canvas-old',
-      title: 'Old Canvas',
-      description: 'Legacy canvas for placing arbitrary nodes',
-      emoji: '🧱',
-      keywords: ['canvas', 'legacy', 'node', 'old', 'arbitrary', 'freeform'],
-      action: (editor) => {
-        // @ts-ignore
-        editor.commands.insertCanvas?.() ||
-          editor.chain().focus().insertContent({ type: 'canvas' }).run()
+        insertCanvasNode(editor)
       },
     },
   ]
@@ -686,5 +731,3 @@ export const SlashMenuExtension = Extension.create({
 })
 
 export default SlashMenuExtension
-
-
