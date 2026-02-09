@@ -92,7 +92,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
   let hasCheckItem = false
 
   // Block node types that have their own NodeOverlay - don't scan into these
-  const BLOCK_NODE_TYPES_WITH_OVERLAY = ['temporalSpace', 'group', 'daily', 'weekly', 'canvas', 'mapboxMap']
+  const BLOCK_NODE_TYPES_WITH_OVERLAY = ['temporalSpace', 'group', 'daily', 'weekly', 'canvas3D', 'mapboxMap']
 
   // Helper to check a single node for tags
   const checkNodeForTags = (childNode: ProseMirrorNode) => {

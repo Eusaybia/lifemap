@@ -83,7 +83,6 @@ import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
 import { NodeConnectionManager } from './NodeConnectionManager'
-import { CanvasOldExtension } from '../structure/CanvasExtension'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
@@ -486,7 +485,7 @@ export const officialExtensions = (quantaId: string) => {return [
     types: [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
-      'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas', 'calendar', 'dayHeader', 'lunarMonth',
+      'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
       'temporalSpace', 'temporalOrder', 'externalPortal', 'portal', 'lifetimeView',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
@@ -564,7 +563,6 @@ export const customExtensions: Extensions = [
   ExternalPortalExtension,
   QuoteExtension,
   SpanGroupMark,
-  CanvasOldExtension,
   WarningExtension,
   LifemapCardExtension,
   SingleLifemapCardExtension,
