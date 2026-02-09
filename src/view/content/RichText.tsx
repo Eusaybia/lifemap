@@ -128,6 +128,8 @@ interface PeriodTimepointMapping {
   formatted: string
 }
 
+type PeriodGroupKey = 'daily' | 'weekday' | 'lunar' | 'season-abstract' | 'season-marker' | null
+
 const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
   // Daily
   'daily': { timepointId: 'timepoint:daily', label: '\u{1F4C6} Daily', formatted: 'Daily' },
@@ -156,6 +158,114 @@ const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
   'marker-winter-solstice': { timepointId: 'timepoint:season-marker-winter-solistice', label: '\u2744\uFE0F Winter Solistice', formatted: 'Winter Solistice' },
 }
 
+const getPeriodGroupKeyForTimepointId = (timepointId: string): PeriodGroupKey => {
+  if (timepointId === 'timepoint:daily') return 'daily'
+  if (timepointId.startsWith('timepoint:weekday-')) return 'weekday'
+  if (timepointId.startsWith('lunar:abstract:')) return 'lunar'
+  if (timepointId.startsWith('timepoint:season-abstract-')) return 'season-abstract'
+  if (timepointId.startsWith('timepoint:season-marker-')) return 'season-marker'
+  return null
+}
+
+const getPeriodTimepointNode = (mapping: PeriodTimepointMapping): JSONContent => ({
+  type: 'timepoint',
+  attrs: {
+    id: mapping.timepointId,
+    label: mapping.label,
+    'data-date': '',
+    'data-formatted': mapping.formatted,
+    'data-relative-label': mapping.formatted,
+  },
+})
+
+interface PeriodTagInvariantResult {
+  normalizedContent: JSONContent
+  changed: boolean
+  removedCount: number
+  addedCanonicalTag: boolean
+}
+
+/**
+ * Invariant for period documents:
+ * exactly one timepoint tag must exist for the period's own group.
+ */
+const enforceSingleTagPerPeriodGroup = (
+  content: JSONContent,
+  mapping: PeriodTimepointMapping,
+): PeriodTagInvariantResult => {
+  const expectedGroup = getPeriodGroupKeyForTimepointId(mapping.timepointId)
+  if (!expectedGroup) {
+    return {
+      normalizedContent: content,
+      changed: false,
+      removedCount: 0,
+      addedCanonicalTag: false,
+    }
+  }
+
+  let changed = false
+  let removedCount = 0
+  let canonicalCount = 0
+
+  const normalizeNode = (node: JSONContent): JSONContent | null => {
+    const normalizedNode: JSONContent = { ...node }
+
+    if (normalizedNode.type === 'timepoint') {
+      const attrs = (normalizedNode.attrs as Record<string, unknown> | undefined) ?? {}
+      const nodeId = typeof attrs.id === 'string' ? attrs.id : ''
+      const nodeGroup = getPeriodGroupKeyForTimepointId(nodeId)
+
+      if (nodeGroup === expectedGroup) {
+        if (nodeId !== mapping.timepointId) {
+          changed = true
+          removedCount += 1
+          return null
+        }
+
+        canonicalCount += 1
+        if (canonicalCount > 1) {
+          changed = true
+          removedCount += 1
+          return null
+        }
+      }
+    }
+
+    if (Array.isArray(node.content)) {
+      const normalizedChildren: JSONContent[] = []
+      for (const child of node.content) {
+        const normalizedChild = normalizeNode(child)
+        if (normalizedChild) normalizedChildren.push(normalizedChild)
+      }
+      normalizedNode.content = normalizedChildren
+    }
+
+    return normalizedNode
+  }
+
+  const normalizedRoot = normalizeNode(content) ?? ({ type: 'doc', content: [] } as JSONContent)
+  const rootContent = Array.isArray(normalizedRoot.content) ? [...normalizedRoot.content] : []
+
+  let addedCanonicalTag = false
+  if (canonicalCount === 0) {
+    rootContent.unshift({
+      type: 'paragraph',
+      content: [getPeriodTimepointNode(mapping)],
+    })
+    changed = true
+    addedCanonicalTag = true
+  }
+
+  normalizedRoot.content = rootContent
+
+  return {
+    normalizedContent: normalizedRoot,
+    changed,
+    removedCount,
+    addedCanonicalTag,
+  }
+}
+
 /**
  * Generate template content for a period Quanta.
  * Places the corresponding TimePoint mention as the first element, followed
@@ -166,18 +276,7 @@ const getPeriodTemplate = (mapping: PeriodTimepointMapping): JSONContent => ({
   content: [
     {
       type: 'paragraph',
-      content: [
-        {
-          type: 'timepoint',
-          attrs: {
-            id: mapping.timepointId,
-            label: mapping.label,
-            'data-date': '',
-            'data-formatted': mapping.formatted,
-            'data-relative-label': mapping.formatted,
-          },
-        },
-      ],
+      content: [getPeriodTimepointNode(mapping)],
     },
     {
       type: 'paragraph',
@@ -305,7 +404,10 @@ const hasResolvableTodayTemplateTokens = (content: JSONContent | null | undefine
  * Fetches the content of a quanta from IndexedDB
  * Returns the JSONContent or null if not found/empty
  */
-const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONContent | null> => {
+const fetchQuantaContentFromIndexedDB = async (
+  quantaId: string,
+  timeoutMs = 3000,
+): Promise<JSONContent | null> => {
   const perfStart = performance.now()
   console.log(`[fetchQuanta PERF] Starting for ${quantaId}`)
   
@@ -347,12 +449,14 @@ const fetchQuantaContentFromIndexedDB = async (quantaId: string): Promise<JSONCo
       }
     })
     
-    // Timeout after 3 seconds
+    // Timeout to avoid hanging forever if IndexedDB sync stalls
     setTimeout(() => {
-      console.warn(`[fetchQuanta PERF] ${quantaId} TIMEOUT after 3s (total: ${(performance.now() - perfStart).toFixed(0)}ms)`)
+      console.warn(
+        `[fetchQuanta PERF] ${quantaId} TIMEOUT after ${timeoutMs}ms (total: ${(performance.now() - perfStart).toFixed(0)}ms)`,
+      )
       persistence.destroy()
       resolve(null)
-    }, 3000)
+    }, timeoutMs)
   })
 }
 
@@ -377,15 +481,16 @@ const writePendingList = (key: string, values: string[]) => {
 const fetchQuantaContentWithLegacyFallback = async (params: {
   userId?: string | null
   quantaId: string
+  timeoutMs?: number
 }): Promise<JSONContent | null> => {
   const trimmedUserId = params.userId?.trim()
   if (trimmedUserId) {
     const scopedRoomName = `${trimmedUserId}/${params.quantaId}`
-    const scopedContent = await fetchQuantaContentFromIndexedDB(scopedRoomName)
+    const scopedContent = await fetchQuantaContentFromIndexedDB(scopedRoomName, params.timeoutMs)
     if (scopedContent) return scopedContent
   }
 
-  return fetchQuantaContentFromIndexedDB(params.quantaId)
+  return fetchQuantaContentFromIndexedDB(params.quantaId, params.timeoutMs)
 }
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
@@ -1104,7 +1209,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       try {
         const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
         yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
-      } catch (error) {
+      } catch {
         yDocHasMeaningfulContent = yFragment.length > 0;
       }
 
@@ -1368,6 +1473,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // race conditions with IndexedDB sync.
   const periodInitChecked = React.useRef(false);
   React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const userId = searchParams.get('userId');
     const urlId = window.location.pathname.split('/').pop();
     if (!urlId || !urlId.startsWith('period-')) return;
     if (!props.quanta?.information || !editor || templateApplied.current || periodInitChecked.current) return;
@@ -1380,21 +1487,43 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
+    let isCancelled = false;
     const STABILIZATION_DELAY = 800;
     const FALLBACK_TIMEOUT = 2000;
 
-    const checkAndApplyPeriodTemplate = () => {
-      if (periodInitChecked.current || templateApplied.current) return;
-      periodInitChecked.current = true;
+    const checkAndApplyPeriodTemplate = async () => {
+      if (isCancelled || periodInitChecked.current || templateApplied.current) return;
 
       const yFragment = yDoc.getXmlFragment('default');
-      const yDocIsEmpty = yFragment.length === 0;
-      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
-      const isEmpty = yDocIsEmpty && editorIsEmpty;
+      let yDocHasMeaningfulContent = yFragment.length > 0;
+      try {
+        const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
+        yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
+      } catch {
+        yDocHasMeaningfulContent = yFragment.length > 0;
+      }
+      const editorHasMeaningfulContent = hasMeaningfulContent((editor as Editor).getJSON() as JSONContent);
+      const isEmpty = !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
 
-      console.log(`[RichText] ${urlId} period checkAndApply, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`);
+      console.log(
+        `[RichText] ${urlId} period checkAndApply, yDocHasMeaningfulContent=${yDocHasMeaningfulContent}, editorHasMeaningfulContent=${editorHasMeaningfulContent}, isEmpty=${isEmpty}`
+      );
 
       if (isEmpty) {
+        // Guard against late Yjs sync races: if IndexedDB already has content,
+        // skip initialization so we don't merge duplicate period mentions.
+        const persistedPeriodContent = await fetchQuantaContentWithLegacyFallback({
+          userId,
+          quantaId: urlId,
+          timeoutMs: 8000,
+        });
+        if (isCancelled) return;
+        if (persistedPeriodContent) {
+          console.log(`[RichText] Found persisted ${urlId} content; waiting for sync before enforcing period tag invariant`);
+          return;
+        }
+
+        periodInitChecked.current = true;
         yDoc.transact(() => {
           yFragment.delete(0, yFragment.length);
         });
@@ -1402,16 +1531,33 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         (editor as Editor)!.commands.setContent(getPeriodTemplate(mapping));
         templateApplied.current = true;
         console.log(`[RichText] Applied period template to ${urlId} (timepoint: ${mapping.timepointId})`);
-      } else {
-        console.log(`[RichText] ${urlId} already has content, skipping period template`);
+        return;
       }
+
+      const currentContent = (editor as Editor).getJSON() as JSONContent;
+      const invariantResult = enforceSingleTagPerPeriodGroup(currentContent, mapping);
+      periodInitChecked.current = true;
+
+      if (!invariantResult.changed) {
+        console.log(`[RichText] ${urlId} period tag invariant already satisfied`);
+        return;
+      }
+
+      yDoc.transact(() => {
+        yFragment.delete(0, yFragment.length);
+      });
+
+      (editor as Editor)!.commands.setContent(invariantResult.normalizedContent);
+      console.log(
+        `[RichText] Enforced period tag invariant for ${urlId} (removed=${invariantResult.removedCount}, added=${invariantResult.addedCanonicalTag})`,
+      );
     };
 
     const resetStabilizationTimer = () => {
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       stabilizationTimeout = setTimeout(() => {
         if (fallbackTimeout) clearTimeout(fallbackTimeout);
-        checkAndApplyPeriodTemplate();
+        void checkAndApplyPeriodTemplate();
       }, STABILIZATION_DELAY);
     };
 
@@ -1424,10 +1570,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     fallbackTimeout = setTimeout(() => {
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
-      checkAndApplyPeriodTemplate();
+      void checkAndApplyPeriodTemplate();
     }, FALLBACK_TIMEOUT);
 
     return () => {
+      isCancelled = true;
       yDoc.off('update', handleUpdate);
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
