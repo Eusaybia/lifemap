@@ -244,23 +244,6 @@ const EditableNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           minHeight: 80,
         }}
       >
-        {/* Header with node type label */}
-        <div
-          style={{
-            padding: "6px 10px",
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            borderBottom: "1px solid #eee",
-            fontSize: 11,
-            fontWeight: 600,
-            color: "#666",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            cursor: "grab",
-          }}
-        >
-          {nodeData.label}
-        </div>
-
         {/* Editable content area */}
         <div style={{ padding: 0, minHeight: 60 }}>
           <MiniEditor content={nodeData.content} onUpdate={handleContentUpdate} nodeType={nodeData.nodeType} nodeId={id} />
@@ -286,7 +269,7 @@ const nodeTypes = {
 // ============================================================================
 
 const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
-  const { selected, deleteNode, node, updateAttributes } = props
+  const { selected, node, updateAttributes } = props
   const canvasLens = (node.attrs.lens as Canvas3DLenses) || "identity"
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -395,14 +378,29 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     setSearchQuery("")
   }, [])
 
-  // Handle Escape key to close slash menu
-  // ARCHITECTURE DECISION: Removed "/" shortcut because it conflicts with the
-  // SlashMenuExtension inside MiniEditor nodes. Users can add nodes via the
-  // "Add Node" button or double-clicking on the canvas.
+  // Handle keyboard shortcuts for slash menu
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape" && showSlashMenu) {
         setShowSlashMenu(false)
+        setSearchQuery("")
+      }
+      // Activate slash menu when "/" is pressed on the canvas itself.
+      // Skip if the keypress originated inside a MiniEditor to avoid
+      // conflicting with the SlashMenuExtension in nested editors.
+      if (e.key === "/" && !showSlashMenu) {
+        const target = e.target as HTMLElement
+        if (target.closest?.(".canvas-mini-editor") || target.closest?.('[contenteditable="true"]')) {
+          return
+        }
+        e.preventDefault()
+        const rect = containerRef.current?.getBoundingClientRect()
+        const centerX = rect ? rect.width / 2 - 100 : 100
+        const centerY = rect ? rect.height / 2 - 100 : 100
+        pendingNodePosition.current = { x: centerX, y: centerY }
+        // Open the dropdown at the top-left button position
+        setSlashMenuPosition({ x: 16, y: 56 })
+        setShowSlashMenu(true)
         setSearchQuery("")
       }
     },
@@ -470,16 +468,22 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
     [updateAttributes]
   )
 
-  // Handle Add Node button click
+  // Toggle the top-left add-node dropdown
   const handleAddNodeClick = useCallback(() => {
+    if (showSlashMenu) {
+      setShowSlashMenu(false)
+      setSearchQuery("")
+      return
+    }
     const rect = containerRef.current?.getBoundingClientRect()
     const centerX = rect ? rect.width / 2 - 100 : 100
     const centerY = rect ? rect.height / 2 - 100 : 100
     pendingNodePosition.current = { x: centerX, y: centerY }
-    setSlashMenuPosition({ x: centerX + 100, y: centerY + 50 })
+    // Position dropdown directly below the button (top-left corner)
+    setSlashMenuPosition({ x: 16, y: 56 })
     setShowSlashMenu(true)
     setSearchQuery("")
-  }, [])
+  }, [showSlashMenu])
 
   return (
     <NodeViewWrapper data-canvas-3d="true" style={{ margin: "16px 0", overflow: "hidden" }}>
@@ -514,6 +518,7 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               nodeTypes={nodeTypes}
+              defaultViewport={{ x: 0, y: 0, zoom: 0.7 }}
               fitView={nodes.length > 0}
               proOptions={{ hideAttribution: true }}
             >
@@ -522,75 +527,48 @@ const Canvas3DNodeView: React.FC<NodeViewProps> = (props) => {
             </ReactFlow>
           </div>
 
-          {/* Floating Add Node Button */}
-          <button
-            type="button"
-            onClick={handleAddNodeClick}
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 14px",
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              borderRadius: "8px",
-              border: "1px solid #ddd",
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-              fontSize: "14px",
-              fontFamily: "'Inter', system-ui, sans-serif",
-              fontWeight: 500,
-              color: "#333",
-              zIndex: 10,
-            }}
-          >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
-            Add Node
-          </button>
-
-          {/* Slash Menu Dropdown */}
-          <AnimatePresence>
-            {showSlashMenu && (
-              <SlashMenuDropdown
-                isOpen={showSlashMenu}
-                onClose={() => {
-                  setShowSlashMenu(false)
-                  setSearchQuery("")
-                }}
-                onSelect={addNodeFromMenu}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                position={slashMenuPosition}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Delete button - only show when selected */}
-          {selected && (
+          {/* Top-left Add Node button + dropdown */}
+          <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10 }} className="canvas3d-add-node-wrapper">
             <button
               type="button"
-              onClick={deleteNode}
+              onClick={handleAddNodeClick}
               style={{
-                position: "absolute",
-                top: "16px",
-                left: "16px",
-                padding: "6px 10px",
-                background: "rgba(220, 38, 38, 0.9)",
-                border: "none",
-                borderRadius: "6px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                borderRadius: "8px",
+                border: "1px solid #ddd",
                 cursor: "pointer",
-                fontSize: "12px",
-                color: "#FFFFFF",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                fontSize: "14px",
+                fontFamily: "'Inter', system-ui, sans-serif",
                 fontWeight: 500,
-                zIndex: 10,
+                color: "#333",
               }}
-              title="Delete"
             >
-              ✕ Delete
+              <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+              Add Node
             </button>
-          )}
+
+            <AnimatePresence>
+              {showSlashMenu && (
+                <SlashMenuDropdown
+                  isOpen={showSlashMenu}
+                  onClose={() => {
+                    setShowSlashMenu(false)
+                    setSearchQuery("")
+                  }}
+                  onSelect={addNodeFromMenu}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  position={{ x: 0, y: 44 }}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+
         </div>
       </NodeOverlay>
     </NodeViewWrapper>
