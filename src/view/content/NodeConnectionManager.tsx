@@ -29,13 +29,17 @@ import { DocumentAttributes } from '../structure/DocumentAttributesExtension'
 //    - Inline clarify-question mention with text and connection grip
 //    - Identified by: .question-mention[data-question-id="<uuid>"]
 //
+// 6. MOTIVATIONS MENTION (MotivationsMention.tsx)
+//    - Inline motivation mention with text and connection grip
+//    - Identified by: .motivations-mention[data-motivation-id="<uuid>"]
+//
 // Connections are stored in localStorage and persist across sessions.
 // Clicking on arrows navigates between connected elements (head/tail toggle).
 // ============================================================================
 
 // Connection between two connectable elements
-// 'todo' and 'question' types are for inline mention nodes with connection grips
-type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question'
+// 'todo', 'question', and 'motivation' types are for inline mention nodes with connection grips
+type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question' | 'motivation'
 
 interface NodeConnection {
   id: string
@@ -89,6 +93,13 @@ const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id
     const id = questionMention.getAttribute('data-question-id')
     if (id) return { element: questionMention, id, type: 'question' }
   }
+
+  // Check for MotivationsMention (inline motivation mention with connections)
+  const motivationMention = target.closest('.motivations-mention[data-motivation-id]') as HTMLElement
+  if (motivationMention) {
+    const id = motivationMention.getAttribute('data-motivation-id')
+    if (id) return { element: motivationMention, id, type: 'motivation' }
+  }
   
   const spanGroup = target.closest('.span-group') as HTMLElement
   if (spanGroup) {
@@ -117,6 +128,8 @@ const getConnectableElement = (id: string, type: ConnectableType): HTMLElement |
     return document.querySelector(`[data-todo-id="${id}"]`) as HTMLElement
   } else if (type === 'question') {
     return document.querySelector(`[data-question-id="${id}"]`) as HTMLElement
+  } else if (type === 'motivation') {
+    return document.querySelector(`[data-motivation-id="${id}"]`) as HTMLElement
   } else if (type === 'span') {
     return document.querySelector(`[data-span-group-id="${id}"]`) as HTMLElement
   } else if (type === 'block') {

@@ -824,6 +824,112 @@
 }
 
 // ============================================================================
+// Motivations Mention Styles (!! motivation insertion)
+// ============================================================================
+
+.motivations-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  // Warm luminous aura so the glow is visible on light backgrounds
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 130, 0.55),
+    0 0 10px rgba(255, 224, 130, 0.65),
+    0 0 24px rgba(255, 224, 130, 0.4),
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    opacity: 1;
+    box-shadow:
+      0 0 0 1px rgba(255, 224, 130, 0.75),
+      0 0 14px rgba(255, 224, 130, 0.8),
+      0 0 30px rgba(255, 224, 130, 0.55),
+      0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+}
+
+.motivations-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.motivations-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 0.95em;
+  flex-shrink: 0;
+  user-select: none;
+  filter: drop-shadow(0 0 3px rgba(255, 225, 140, 0.9));
+}
+
+.motivations-text {
+  color: #111827;
+  cursor: text;
+
+  &.motivations-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+}
+
+.motivations-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
+  }
+}
+
+// ============================================================================
 // Location Mention Styles (# location insertion)
 // ============================================================================
 

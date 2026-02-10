@@ -52,6 +52,7 @@ import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { AuraMention, AuraNode } from './AuraMention'
 import { TodoMention, TodoMentionNode } from './TodoMention'
 import { QuestionMention, QuestionMentionNode } from './QuestionMention'
+import { MotivationsMention, MotivationsMentionNode } from './MotivationsMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
@@ -642,6 +643,10 @@ export const customExtensions: Extensions = [
   // Left icon toggles between boxed question mark and light bulb
   QuestionMentionNode,
   QuestionMention,
+  // Motivations mentions - triggered by !! for inline motivation items
+  // Has editable text and connection grip (no checkbox)
+  MotivationsMentionNode,
+  MotivationsMention,
   // Pomodoro/Duration - triggered by ~ for duration insertion (5 mins, 10 mins, etc.)
   // PomodoroNode is for short durations (< 1 day) with timer functionality
   // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality
