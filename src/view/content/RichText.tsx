@@ -319,6 +319,54 @@ const hasMeaningfulContent = (content: JSONContent | null | undefined): boolean 
   return !allEmptyParagraphs
 }
 
+const LEGACY_DAILY_FALLBACK_NOTICE_SNIPPET = 'Since no template was provided in the daily-schedule-template page'
+
+const stripLegacyDailyFallbackNotice = (content: JSONContent): JSONContent => {
+  const hasLegacyNoticeText = (node: JSONContent): boolean => {
+    if (node.type === 'text' && typeof node.text === 'string') {
+      return node.text.includes(LEGACY_DAILY_FALLBACK_NOTICE_SNIPPET)
+    }
+
+    if (!Array.isArray(node.content)) return false
+    return node.content.some((child) => hasLegacyNoticeText(child))
+  }
+
+  const isLegacyNoticeParagraph = (node: JSONContent): boolean => {
+    if (node.type !== 'paragraph') return false
+
+    const attrs = (node.attrs as Record<string, unknown> | undefined) ?? {}
+    if (attrs.quantaId === 'fallback-notice-paragraph') return true
+    return hasLegacyNoticeText(node)
+  }
+
+  const walk = (node: JSONContent): JSONContent | null => {
+    if (isLegacyNoticeParagraph(node)) return null
+
+    const nextNode: JSONContent = { ...node }
+    if (Array.isArray(node.content)) {
+      const nextChildren: JSONContent[] = []
+      for (const child of node.content) {
+        const nextChild = walk(child)
+        if (nextChild) nextChildren.push(nextChild)
+      }
+      nextNode.content = nextChildren
+    }
+    return nextNode
+  }
+
+  const sanitized = walk(content) ?? ({ type: 'doc', content: [] } as JSONContent)
+  const rootContent = Array.isArray(sanitized.content) ? sanitized.content : []
+  if (rootContent.length === 0) {
+    sanitized.content = [{ type: 'paragraph' }]
+  }
+  return sanitized
+}
+
+const hasLegacyDailyFallbackNotice = (content: JSONContent): boolean => {
+  const sanitized = stripLegacyDailyFallbackNotice(content)
+  return JSON.stringify(content) !== JSON.stringify(sanitized)
+}
+
 // ============================================================================
 // Daily Template Token Resolution
 // ============================================================================
@@ -1117,6 +1165,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           contentToApply = templateContent || getDailyScheduleTemplate();
         }
 
+        if (contentToApply) {
+          contentToApply = stripLegacyDailyFallbackNotice(contentToApply)
+        }
+
         if (isTodayOrTomorrowDailyPage && contentToApply) {
           contentToApply = resolveDailyTemplateTokensForDate(contentToApply, resolutionDate);
         }
@@ -1138,10 +1190,14 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         // Edge case: content exists but still contains unresolved template tokens
         // from a previous prototype copy. Resolve in-place on today/tomorrow pages.
         const existingContent = editor.getJSON() as JSONContent
-        const shouldResolveInPlace = hasResolvableTodayTemplateTokens(existingContent)
+        const sanitizedExistingContent = stripLegacyDailyFallbackNotice(existingContent)
+        const shouldStripLegacyNotice = hasLegacyDailyFallbackNotice(existingContent)
+        const shouldResolveInPlace = hasResolvableTodayTemplateTokens(sanitizedExistingContent)
 
-        if (shouldResolveInPlace) {
-          const resolvedContent = resolveDailyTemplateTokensForDate(existingContent, resolutionDate)
+        if (shouldResolveInPlace || shouldStripLegacyNotice) {
+          const resolvedContent = shouldResolveInPlace
+            ? resolveDailyTemplateTokensForDate(sanitizedExistingContent, resolutionDate)
+            : sanitizedExistingContent
 
           yDoc.transact(() => {
             yFragment.delete(0, yFragment.length);
@@ -1149,12 +1205,33 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
           ;(editor as Editor)!.commands.setContent(resolvedContent);
           templateApplied.current = true;
-          console.log(`[RichText] Resolved existing today template tokens in-place for ${urlId}`);
+          if (shouldResolveInPlace && shouldStripLegacyNotice) {
+            console.log(`[RichText] Resolved today tokens and removed legacy daily fallback notice for ${urlId}`);
+          } else if (shouldResolveInPlace) {
+            console.log(`[RichText] Resolved existing today template tokens in-place for ${urlId}`);
+          } else {
+            console.log(`[RichText] Removed legacy daily fallback notice for ${urlId}`);
+          }
         } else {
           console.log(`[RichText] ${urlId} already has content, skipping template application`);
         }
       } else {
-        console.log(`[RichText] ${urlId} already has content, skipping template application`);
+        const existingContent = editor.getJSON() as JSONContent
+        const shouldStripLegacyNotice = hasLegacyDailyFallbackNotice(existingContent)
+
+        if (shouldStripLegacyNotice) {
+          const sanitizedExistingContent = stripLegacyDailyFallbackNotice(existingContent)
+
+          yDoc.transact(() => {
+            yFragment.delete(0, yFragment.length);
+          });
+
+          ;(editor as Editor)!.commands.setContent(sanitizedExistingContent);
+          templateApplied.current = true;
+          console.log(`[RichText] Removed legacy daily fallback notice for ${urlId}`);
+        } else {
+          console.log(`[RichText] ${urlId} already has content, skipping template application`);
+        }
       }
       
       // Remove from pending list regardless

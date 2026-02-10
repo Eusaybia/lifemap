@@ -32,25 +32,6 @@ const TEMPLATE_SCHEMA: JSONContent = {
     {
       "type": "paragraph",
       "attrs": {
-        "quantaId": "fallback-notice-paragraph",
-        "textAlign": "left",
-        "indent": 0
-      },
-      "content": [
-        {
-          "type": "text",
-          "marks": [
-            {
-              "type": "italic"
-            }
-          ],
-          "text": "Since no template was provided in the daily-schedule-template page, we've reverted to a fallback. Please fill out /q/daily-schedule-template if you want to see your own custom template."
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "attrs": {
         "quantaId": "fallback-empty-paragraph",
         "textAlign": "left",
         "indent": 0
