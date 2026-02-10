@@ -54,6 +54,7 @@ import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
 import { Editor } from '@tiptap/core'
+import { NodeSelection } from 'prosemirror-state'
 
 // ============================================================================
 // Types
@@ -95,6 +96,7 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
   const [isEditing, setIsEditing] = useState(text === '')
   const [editValue, setEditValue] = useState(text)
   const inputRef = useRef<HTMLInputElement>(null)
+  const isDeletingRef = useRef(false)
 
   // Ensure every todo has an ID so it can participate in connections
   useEffect(() => {
@@ -139,7 +141,32 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
     editor.commands.focus()
   }, [editValue, updateAttributes, editor])
 
+  const removeNode = useCallback(() => {
+    try {
+      const pos = getPos()
+      if (typeof pos !== 'number') return false
+      const nodeAtPos = editor.state.doc.nodeAt(pos)
+      if (!nodeAtPos) return false
+      const tr = editor.state.tr.delete(pos, pos + nodeAtPos.nodeSize)
+      editor.view.dispatch(tr)
+      editor.commands.focus()
+      return true
+    } catch {
+      return false
+    }
+  }, [editor, getPos])
+
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && editValue.trim() === '') {
+      e.preventDefault()
+      isDeletingRef.current = true
+      const deleted = removeNode()
+      if (!deleted) {
+        isDeletingRef.current = false
+      }
+      return
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault()
       commitEdit()
@@ -149,9 +176,13 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
       setIsEditing(false)
       editor.commands.focus()
     }
-  }, [commitEdit, text, editor])
+  }, [commitEdit, text, editor, editValue, removeNode])
 
   const handleInputBlur = useCallback(() => {
+    if (isDeletingRef.current) {
+      isDeletingRef.current = false
+      return
+    }
     commitEdit()
   }, [commitEdit])
 
@@ -273,6 +304,24 @@ export const TodoMentionNode = Node.create({
 
   addNodeView() {
     return ReactNodeViewRenderer(TodoNodeView)
+  },
+
+  addKeyboardShortcuts() {
+    const deleteIfEmptyAndSelected = () => {
+      const { selection } = this.editor.state
+      if (!(selection instanceof NodeSelection)) return false
+      if (selection.node.type.name !== this.name) return false
+
+      const text = String(selection.node.attrs.text ?? '').trim()
+      if (text !== '') return false
+
+      return this.editor.commands.deleteSelection()
+    }
+
+    return {
+      Backspace: deleteIfEmptyAndSelected,
+      Delete: deleteIfEmptyAndSelected,
+    }
   },
 })
 

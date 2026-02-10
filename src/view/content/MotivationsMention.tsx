@@ -1,26 +1,5 @@
 'use client'
 
-/**
- * ============================================================================
- * QUESTION MENTION EXTENSION
- * ============================================================================
- *
- * PURPOSE:
- * A question-based item that appears inline within text, styled like a Mention.
- * It behaves like TodoMention but is focused on clarifying questions:
- * - A boxed question mark icon on the left
- * - Editable text on the right (stored as attribute, edited via inline input)
- * - A 6-dot grip on the right for connections (like SpanGroups)
- * - Placeholder "Your question here" when empty
- *
- * USAGE:
- * Type `??` in the editor to insert a question mention. An input appears for
- * typing your question. Press Enter or click outside to confirm.
- * Click the checkbox icon to toggle resolved state (`?` -> `💡`).
- * Click the text to edit. Click the grip to create connections.
- * ============================================================================
- */
-
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
@@ -28,36 +7,34 @@ import { InputRule } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
-import { motion } from 'framer-motion'
 import { Editor } from '@tiptap/core'
 import { NodeSelection } from 'prosemirror-state'
 
-export interface QuestionMentionAttributes {
-  checked: boolean
+export interface MotivationsMentionAttributes {
   text: string
-  questionId: string
+  motivationId: string
 }
 
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
+const MOTIVATION_EMOJI = '✨'
 
-interface QuestionNodeViewProps {
+interface MotivationsNodeViewProps {
   node: ProseMirrorNode
-  updateAttributes: (attrs: Partial<QuestionMentionAttributes>) => void
+  updateAttributes: (attrs: Partial<MotivationsMentionAttributes>) => void
   selected: boolean
   editor: Editor
   getPos: () => number
 }
 
-const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
+const MotivationsNodeView: React.FC<MotivationsNodeViewProps> = ({
   node,
   updateAttributes,
   selected,
   editor,
   getPos,
 }) => {
-  const checked = node.attrs.checked as boolean
   const text = node.attrs.text as string
-  const questionId = node.attrs.questionId as string | null
+  const motivationId = node.attrs.motivationId as string | null
 
   const [isEditing, setIsEditing] = useState(text === '')
   const [editValue, setEditValue] = useState(text)
@@ -65,10 +42,10 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
   const isDeletingRef = useRef(false)
 
   useEffect(() => {
-    if (!questionId) {
-      updateAttributes({ questionId: generateShortId() })
+    if (!motivationId) {
+      updateAttributes({ motivationId: generateShortId() })
     }
-  }, [questionId, updateAttributes])
+  }, [motivationId, updateAttributes])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -82,12 +59,6 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
       setEditValue(text)
     }
   }, [text, isEditing])
-
-  const handleCheckboxChange = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    updateAttributes({ checked: !checked })
-  }, [checked, updateAttributes])
 
   const handleTextClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -154,47 +125,41 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
   return (
     <NodeViewWrapper
       as="span"
-      className={`question-mention ${checked ? 'question-checked' : ''} ${selected ? 'selected' : ''}`}
-      data-question-id={questionId ?? undefined}
+      className={`motivations-mention ${selected ? 'selected' : ''}`}
+      data-motivation-id={motivationId ?? undefined}
     >
-      <motion.span
-        className="question-checkbox"
-        onClick={handleCheckboxChange}
-        contentEditable={false}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <span className="question-checkbox-icon">{checked ? '💡' : '?'}</span>
-      </motion.span>
+      <span className="motivations-emoji" contentEditable={false}>
+        {MOTIVATION_EMOJI}
+      </span>
 
       {isEditing ? (
         <input
           ref={inputRef}
           type="text"
-          className="question-input"
+          className="motivations-input"
           value={editValue}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
-          placeholder="Your question here"
+          placeholder="Your motivation here"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <span
-          className={`question-text ${checked ? 'question-text-checked' : ''} ${!text ? 'question-text-empty' : ''}`}
+          className={`motivations-text ${!text ? 'motivations-text-empty' : ''}`}
           onClick={handleTextClick}
         >
-          {text || 'Your question here'}
+          {text || 'Your motivation here'}
         </span>
       )}
 
-      <span className="question-grip" contentEditable={false} />
+      <span className="motivations-grip" contentEditable={false} />
     </NodeViewWrapper>
   )
 }
 
-export const QuestionMentionNode = Node.create({
-  name: 'questionMention',
+export const MotivationsMentionNode = Node.create({
+  name: 'motivationsMention',
   group: 'inline',
   inline: true,
   atom: true,
@@ -202,13 +167,6 @@ export const QuestionMentionNode = Node.create({
 
   addAttributes() {
     return {
-      checked: {
-        default: false,
-        parseHTML: element => element.getAttribute('data-checked') === 'true',
-        renderHTML: attributes => ({
-          'data-checked': attributes.checked ? 'true' : 'false',
-        }),
-      },
       text: {
         default: '',
         parseHTML: element => element.getAttribute('data-text') || element.textContent || '',
@@ -216,15 +174,15 @@ export const QuestionMentionNode = Node.create({
           'data-text': attributes.text,
         }),
       },
-      questionId: {
+      motivationId: {
         default: null,
-        parseHTML: element => element.getAttribute('data-question-id'),
+        parseHTML: element => element.getAttribute('data-motivation-id'),
         renderHTML: attributes => {
-          if (!attributes.questionId) {
+          if (!attributes.motivationId) {
             return {}
           }
           return {
-            'data-question-id': attributes.questionId,
+            'data-motivation-id': attributes.motivationId,
           }
         },
       },
@@ -232,28 +190,26 @@ export const QuestionMentionNode = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-type="question-mention"]' }]
+    return [{ tag: 'span[data-type="motivations-mention"]' }]
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    const checked = node.attrs.checked
-    const text = node.attrs.text || 'Your question here'
-    const icon = checked ? '💡' : '?'
-    const questionId = node.attrs.questionId
+    const text = node.attrs.text || 'Your motivation here'
+    const motivationId = node.attrs.motivationId
 
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        class: `question-mention ${checked ? 'question-checked' : ''}`,
-        'data-type': 'question-mention',
-        ...(questionId ? { 'data-question-id': questionId } : {}),
+        class: 'motivations-mention',
+        'data-type': 'motivations-mention',
+        ...(motivationId ? { 'data-motivation-id': motivationId } : {}),
       }),
-      `${icon} ${text}`,
+      `${MOTIVATION_EMOJI} ${text}`,
     ]
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(QuestionNodeView)
+    return ReactNodeViewRenderer(MotivationsNodeView)
   },
 
   addKeyboardShortcuts() {
@@ -275,45 +231,42 @@ export const QuestionMentionNode = Node.create({
   },
 })
 
-const questionInputRule = new InputRule({
-  find: /\?\?$/,
+const motivationsInputRule = new InputRule({
+  find: /!!$/,
   handler: ({ state, range }) => {
     const { tr } = state
-    const questionType = state.schema.nodes.questionMention
+    const motivationType = state.schema.nodes.motivationsMention
 
-    if (!questionType) {
-      console.warn('[QuestionMention] questionMention node type not found in schema')
+    if (!motivationType) {
+      console.warn('[MotivationsMention] motivationsMention node type not found in schema')
       return null
     }
 
-    const questionNode = questionType.create({
-      checked: false,
+    const motivationNode = motivationType.create({
       text: '',
-      questionId: generateShortId(),
+      motivationId: generateShortId(),
     })
 
-    tr.replaceWith(range.from, range.to, questionNode)
-
-    return tr
+    tr.replaceWith(range.from, range.to, motivationNode)
   },
 })
 
-export interface QuestionMentionOptions {
+export interface MotivationsMentionOptions {
   HTMLAttributes: Record<string, any>
 }
 
-export const QuestionMention = Extension.create<QuestionMentionOptions>({
-  name: 'questionMention-extension',
+export const MotivationsMention = Extension.create<MotivationsMentionOptions>({
+  name: 'motivationsMention-extension',
 
   addOptions() {
     return {
-      HTMLAttributes: { class: 'question-mention' },
+      HTMLAttributes: { class: 'motivations-mention' },
     }
   },
 
   addInputRules() {
-    return [questionInputRule]
+    return [motivationsInputRule]
   },
 })
 
-export default QuestionMention
+export default MotivationsMention
