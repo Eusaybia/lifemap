@@ -129,11 +129,15 @@ interface PeriodTimepointMapping {
   formatted: string
 }
 
-type PeriodGroupKey = 'daily' | 'weekday' | 'lunar' | 'season-abstract' | 'season-marker' | null
+type PeriodGroupKey = 'daily' | 'weekly' | 'weekday' | 'lunar' | 'monthly' | 'season-abstract' | 'seasonally' | 'season-marker' | null
 
 const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
   // Daily
   'daily': { timepointId: 'timepoint:daily', label: '\u{1F4C6} Daily', formatted: 'Daily' },
+  // Weekly
+  'weekly': { timepointId: 'timepoint:weekly', label: '\u{1F5D3}\uFE0F Weekly', formatted: 'Weekly' },
+  // Monthly
+  'monthly': { timepointId: 'timepoint:monthly', label: '\u{1F5D3}\uFE0F Monthly', formatted: 'Monthly' },
   // Weekdays
   'weekday-monday': { timepointId: 'timepoint:weekday-monday', label: '\u{1F4C5} Mondays', formatted: 'Mondays' },
   'weekday-tuesday': { timepointId: 'timepoint:weekday-tuesday', label: '\u{1F4C5} Tuesdays', formatted: 'Tuesdays' },
@@ -152,6 +156,8 @@ const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
   'season-summer': { timepointId: 'timepoint:season-abstract-summer', label: '\u2600\uFE0F Summers', formatted: 'Summers' },
   'season-autumn': { timepointId: 'timepoint:season-abstract-autumn', label: '\u{1F342} Autumns', formatted: 'Autumns' },
   'season-winter': { timepointId: 'timepoint:season-abstract-winter', label: '\u2744\uFE0F Winters', formatted: 'Winters' },
+  // Seasonally
+  'seasonally': { timepointId: 'timepoint:seasonally', label: '\u{1F341} Seasonally', formatted: 'Seasonally' },
   // Seasonal Markers (Equinoxes and Solstices)
   'marker-spring-equinox': { timepointId: 'timepoint:season-marker-spring-equinox', label: '\u{1F337} Spring Equinox', formatted: 'Spring Equinox' },
   'marker-summer-solstice': { timepointId: 'timepoint:season-marker-summer-solistice', label: '\u{1F31E} Summer Solistice', formatted: 'Summer Solistice' },
@@ -161,9 +167,12 @@ const PERIOD_SLUG_TO_TIMEPOINT: Record<string, PeriodTimepointMapping> = {
 
 const getPeriodGroupKeyForTimepointId = (timepointId: string): PeriodGroupKey => {
   if (timepointId === 'timepoint:daily') return 'daily'
+  if (timepointId === 'timepoint:weekly') return 'weekly'
   if (timepointId.startsWith('timepoint:weekday-')) return 'weekday'
   if (timepointId.startsWith('lunar:abstract:')) return 'lunar'
+  if (timepointId === 'timepoint:monthly') return 'monthly'
   if (timepointId.startsWith('timepoint:season-abstract-')) return 'season-abstract'
+  if (timepointId === 'timepoint:seasonally') return 'seasonally'
   if (timepointId.startsWith('timepoint:season-marker-')) return 'season-marker'
   return null
 }
