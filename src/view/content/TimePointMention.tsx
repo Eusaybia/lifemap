@@ -108,6 +108,9 @@ const formatDateWithDay = (date: Date): string => {
 
 const TODAY_TEMPLATE_ID = 'timepoint:today-template'
 const TEMPLATE_TODAY_LITERAL = 'Today {todays_date}'
+const THIS_SUMMER_ID = 'timepoint:this-summer'
+const THIS_MONTH_ID = 'timepoint:this-month'
+const THIS_WEEK_ID = 'timepoint:this-week'
 const formatTemplateTodayLabel = (): string => TEMPLATE_TODAY_LITERAL
 
 // ============================================================================
@@ -119,6 +122,12 @@ interface UserLocation {
   longitude: number
   timezone: number // offset in hours from UTC
   locationName?: string
+}
+
+interface DateRange {
+  start: Date
+  end: Date
+  totalDays: number
 }
 
 interface SolarTimes {
@@ -156,6 +165,105 @@ const getStoredLocation = (): UserLocation => {
   }
   return DEFAULT_LOCATION
 }
+
+const getLocalDateForLocation = (location: UserLocation): Date => {
+  // Convert UTC to user's configured local timezone and keep date-only precision.
+  const localTimestamp = Date.now() + (location.timezone * 60 * 60 * 1000)
+  const localNow = new Date(localTimestamp)
+  return new Date(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate())
+}
+
+const getInclusiveDayCount = (start: Date, end: Date): number => {
+  return Math.floor((Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+    Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / 86400000) + 1
+}
+
+const getCalendarWeekStartDayForUser = (): number => {
+  if (typeof window === 'undefined') return 0 // Sunday
+  const locale = navigator.language || 'en-US'
+  try {
+    if (typeof Intl === 'undefined' || typeof Intl.Locale === 'undefined') return 0
+    const localeInfo = new Intl.Locale(locale) as Intl.Locale & { weekInfo?: { firstDay?: number } }
+    const firstDay = localeInfo.weekInfo?.firstDay
+    // Intl weekInfo uses 1..7 where 7 is Sunday.
+    if (typeof firstDay === 'number' && firstDay >= 1 && firstDay <= 7) return firstDay % 7
+  } catch {
+    // Fall back to Sunday-based calendar week.
+  }
+  return 0
+}
+
+const getThisWeekRangeForUser = (): DateRange => {
+  const location = cachedLocation || getStoredLocation()
+  const localToday = getLocalDateForLocation(location)
+  const weekStartDay = getCalendarWeekStartDayForUser()
+  const delta = (localToday.getDay() - weekStartDay + 7) % 7
+  const start = addDays(localToday, -delta)
+  const end = addDays(start, 6)
+  return {
+    start,
+    end,
+    totalDays: 7,
+  }
+}
+
+const getThisMonthRangeForUser = (): DateRange => {
+  const location = cachedLocation || getStoredLocation()
+  const localToday = getLocalDateForLocation(location)
+  const start = new Date(localToday.getFullYear(), localToday.getMonth(), 1)
+  const end = new Date(localToday.getFullYear(), localToday.getMonth() + 1, 0)
+  return {
+    start,
+    end,
+    totalDays: getInclusiveDayCount(start, end),
+  }
+}
+
+const getThisSummerRangeForUser = (): DateRange => {
+  const location = cachedLocation || getStoredLocation()
+  const seasonMarkers = getSeasonMarkersForUser()
+  const summerMarker = seasonMarkers.find((season) => season.name === 'Summer')
+  const autumnMarker = seasonMarkers.find((season) => season.name === 'Autumn')
+
+  if (!summerMarker || !autumnMarker) {
+    const fallbackYear = new Date().getFullYear()
+    const fallbackStart = new Date(fallbackYear, 5, 21)
+    const fallbackEnd = new Date(fallbackYear, 8, 21)
+    const fallbackDays = getInclusiveDayCount(fallbackStart, fallbackEnd)
+
+    return { start: fallbackStart, end: fallbackEnd, totalDays: fallbackDays }
+  }
+
+  const localToday = getLocalDateForLocation(location)
+  const localYear = localToday.getFullYear()
+
+  const buildSummerRange = (summerStartYear: number): Pick<DateRange, 'start' | 'end'> => {
+    const start = new Date(summerStartYear, summerMarker.month, summerMarker.day)
+    const autumnYear = (autumnMarker.month < summerMarker.month ||
+      (autumnMarker.month === summerMarker.month && autumnMarker.day <= summerMarker.day))
+      ? summerStartYear + 1
+      : summerStartYear
+    const autumnStart = new Date(autumnYear, autumnMarker.month, autumnMarker.day)
+    const end = addDays(autumnStart, -1)
+    return { start, end }
+  }
+
+  const previousRange = buildSummerRange(localYear - 1)
+  const currentRange = buildSummerRange(localYear)
+  const inPreviousRange = localToday >= previousRange.start && localToday <= previousRange.end
+  const selectedRange = inPreviousRange ? previousRange : currentRange
+
+  const totalDays = getInclusiveDayCount(selectedRange.start, selectedRange.end)
+
+  return {
+    start: selectedRange.start,
+    end: selectedRange.end,
+    totalDays,
+  }
+}
+
+const formatDateRange = (range: DateRange): string =>
+  `${formatDate(range.start)} to ${formatDate(range.end)}`
 
 // Store location
 const storeLocation = (location: UserLocation): void => {
@@ -639,6 +747,9 @@ const getSolarTimePoints = (): TimePoint[] => {
 
 const getTimePoints = (): TimePoint[] => {
   const now = new Date()
+  const thisWeekRange = getThisWeekRangeForUser()
+  const thisMonthRange = getThisMonthRangeForUser()
+  const thisSummerRange = getThisSummerRangeForUser()
   const nextSeason = getNextSeason()
   const seasonMarkers = getSeasonMarkersForUser()
   const seasonOrder = [
@@ -669,8 +780,11 @@ const getTimePoints = (): TimePoint[] => {
     { id: TODAY_TEMPLATE_ID, label: 'Today (Template) version', date: new Date(0), emoji: '📋' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
     { id: 'timepoint:yesterday', label: 'Yesterday', date: addDays(now, -1), emoji: '🗓️' },
+    { id: THIS_WEEK_ID, label: 'This Week', date: thisWeekRange.start, emoji: '📅' },
+    { id: THIS_MONTH_ID, label: 'This Month', date: thisMonthRange.start, emoji: '🗓️' },
     { id: 'timepoint:next-week', label: 'Next Week', date: addDays(now, 7), emoji: '📅' },
     { id: 'timepoint:next-month', label: 'Next Month', date: addDays(now, 30), emoji: '📅' },
+    { id: THIS_SUMMER_ID, label: 'This Summer', date: thisSummerRange.start, emoji: '☀️' },
     // Abstract season concepts (e.g., "Springs", "Summers") - not tied to a specific date
     ...orderedSeasons.map((season) => ({
       id: `timepoint:season-abstract-${season.name.toLowerCase()}`,
@@ -705,8 +819,11 @@ const getTemporalLengthDays = (tp: TimePoint): number => {
   // Architecture: "Some day" should sort after concrete near-term dates.
   if (id === 'timepoint:someday') return 3650
   if (id.startsWith('timepoint:weekday-')) return 7
+  if (id === THIS_WEEK_ID) return getThisWeekRangeForUser().totalDays
+  if (id === THIS_MONTH_ID) return getThisMonthRangeForUser().totalDays
   if (id === 'timepoint:next-week') return 7
   if (id === 'timepoint:next-month') return 30
+  if (id === THIS_SUMMER_ID) return getThisSummerRangeForUser().totalDays
   if (id.startsWith('timepoint:year-')) return 365
   if (id.startsWith('timepoint:month-')) return 30
   if (id.startsWith('timepoint:season-marker-')) return 90
@@ -1235,6 +1352,9 @@ const isMonthTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint
 const isFullDateTimePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:date-')
 const isRecurringDatePoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:recurring-')
 const isTemplateTodayPoint = (tp: TimePoint): boolean => tp.id === TODAY_TEMPLATE_ID
+const isThisWeekPoint = (tp: TimePoint): boolean => tp.id === THIS_WEEK_ID
+const isThisMonthPoint = (tp: TimePoint): boolean => tp.id === THIS_MONTH_ID
+const isThisSummerPoint = (tp: TimePoint): boolean => tp.id === THIS_SUMMER_ID
 const isAbstractTimePoint = (tp: TimePoint): boolean =>
   tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday'
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
@@ -1422,6 +1542,9 @@ const formatTimePointLabel = (tp: TimePoint): string => {
   if (isYearTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isMonthTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isFullDateTimePoint(tp)) return `${tp.emoji} ${tp.label}`
+  if (isThisWeekPoint(tp)) return `${tp.emoji} This Week (${formatDateRange(getThisWeekRangeForUser())})`
+  if (isThisMonthPoint(tp)) return `${tp.emoji} This Month (${formatDateRange(getThisMonthRangeForUser())})`
+  if (isThisSummerPoint(tp)) return `${tp.emoji} This Summer (${formatDateRange(getThisSummerRangeForUser())})`
   if (isTimeOfDayPoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isSolarTimePoint(tp)) return `${tp.emoji} ${tp.label}`
   if (isTimeTimePoint(tp)) return `${tp.emoji} ${tp.label}`
@@ -1474,6 +1597,12 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
       formattedDate = `${timePoint.label} (every year)` // Recurring date, no specific year
     } else if (isYearTimePoint(timePoint) || isMonthTimePoint(timePoint) || isFullDateTimePoint(timePoint)) {
       formattedDate = timePoint.label
+    } else if (isThisWeekPoint(timePoint)) {
+      formattedDate = `This Week (${formatDateRange(getThisWeekRangeForUser())})`
+    } else if (isThisMonthPoint(timePoint)) {
+      formattedDate = `This Month (${formatDateRange(getThisMonthRangeForUser())})`
+    } else if (isThisSummerPoint(timePoint)) {
+      formattedDate = `This Summer (${formatDateRange(getThisSummerRangeForUser())})`
     } else if (isTimeOfDayPoint(timePoint)) {
       formattedDate = `${timePoint.label} (~${formatTime(timePoint.date)})`
     } else if (isSolarTimePoint(timePoint)) {
@@ -1593,6 +1722,12 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                         <span className="timepoint-date">1st {item.label}</span>
                       ) : isFullDateTimePoint(item) ? (
                         <span className="timepoint-date">{formatDateWithDay(item.date)}</span>
+                      ) : isThisWeekPoint(item) ? (
+                        <span className="timepoint-date">{formatDateRange(getThisWeekRangeForUser())}</span>
+                      ) : isThisMonthPoint(item) ? (
+                        <span className="timepoint-date">{formatDateRange(getThisMonthRangeForUser())}</span>
+                      ) : isThisSummerPoint(item) ? (
+                        <span className="timepoint-date">{formatDateRange(getThisSummerRangeForUser())}</span>
                       ) : isTimeOfDayPoint(item) ? (
                         <span className="timepoint-date">~{formatTime(item.date)} today</span>
                       ) : isSolarTimePoint(item) ? (
