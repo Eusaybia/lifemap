@@ -124,11 +124,28 @@ export const QuoteExtension = Node.create({
 
       const nodeViewRef = useRef<HTMLDivElement>(null);
 
-      // State for document attributes
-      // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // Initialize with defaults to avoid command calls during render.
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes);
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
+      const [isCentered, setIsCentered] = useState(false);
+
+      // Fetch actual document attributes after mount.
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          try {
+            // @ts-ignore
+            const attrs = props.editor.commands.getDocumentAttributes();
+            if (attrs) {
+              setDocAttributes(attrs);
+              setIsCentered(attrs.selectedFocusLens === 'call-mode');
+            }
+          } catch (e) {
+            // Ignore errors if editor is not ready.
+          }
+        }, 0);
+
+        return () => clearTimeout(timer);
+      }, [props.editor]);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {

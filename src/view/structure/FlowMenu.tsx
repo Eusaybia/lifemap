@@ -19,7 +19,7 @@ import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
 import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
-import { DocumentAttributes } from "./DocumentAttributesExtension";
+import { defaultDocumentAttributes, DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 import { backup, quantaBackup, QuantaBackupEntry } from "../../backend/backup";
 import { useAutoBackup, AutoBackupStatus } from "../../backend/useAutoBackup";
@@ -52,6 +52,53 @@ export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties 
 }
 
 type Action = (editor: Editor) => boolean
+
+const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
+
+const readDocumentAttributesFromStorage = (): DocumentAttributes => {
+    if (typeof window === 'undefined') {
+        return defaultDocumentAttributes
+    }
+
+    try {
+        const stored = window.localStorage.getItem(DOC_ATTRIBUTES_STORAGE_KEY)
+        if (stored) {
+            return { ...defaultDocumentAttributes, ...JSON.parse(stored) }
+        }
+    } catch (error) {
+        console.error('[FlowMenu] Error reading document attributes from localStorage:', error)
+    }
+
+    return defaultDocumentAttributes
+}
+
+const useDocumentAttributes = (): DocumentAttributes => {
+    const [documentAttributes, setDocumentAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes)
+
+    useEffect(() => {
+        setDocumentAttributes(readDocumentAttributesFromStorage())
+
+        const handleUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent<DocumentAttributes>
+            if (customEvent.detail) {
+                setDocumentAttributes({
+                    ...defaultDocumentAttributes,
+                    ...customEvent.detail,
+                })
+                return
+            }
+
+            setDocumentAttributes(readDocumentAttributesFromStorage())
+        }
+
+        window.addEventListener('doc-attributes-updated', handleUpdate)
+        return () => {
+            window.removeEventListener('doc-attributes-updated', handleUpdate)
+        }
+    }, [])
+
+    return documentAttributes
+}
 
 const handleCopyNodeJSONContentToClipboardAction: Action = (editor: Editor) => {
     copySelectedNodeToClipboard(editor)
@@ -360,8 +407,7 @@ const ActionSwitch = React.memo((props: {
         }
     }, [props.autoBackupStatus, currentQuantaId]);
     
-    // @ts-ignore - getDocumentAttributes exists via the extension
-    const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
+    const documentAttributes = readDocumentAttributesFromStorage();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
 
     return (
@@ -840,8 +886,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     })
     
     // Get current editor mode from document attributes
-    // @ts-ignore - getDocumentAttributes exists via the extension
-    const documentAttributes: DocumentAttributes = editor?.commands.getDocumentAttributes() || { editorMode: 'editing' };
+    const documentAttributes = useDocumentAttributes();
     const editorMode = documentAttributes.editorMode || 'editing';
 
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
