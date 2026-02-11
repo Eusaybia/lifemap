@@ -1268,10 +1268,10 @@
   dependencies:
     lib0 "^0.2.87"
 
-"@hocuspocus/common@^3.4.3":
-  version "3.4.3"
-  resolved "https://registry.npmjs.org/@hocuspocus/common/-/common-3.4.3.tgz"
-  integrity sha512-wnBBO9sWcVAoUPEXN1qO+zk3HaEF9VTemxB6kjuuH6e1dHnD0v12m4P4X1wiZVhmMIX/PMl/fu3MGtYWQJz8gA==
+"@hocuspocus/common@^2.15.3":
+  version "2.15.3"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/common/-/common-2.15.3.tgz#c5e6a326141b2ceaf49d555fd35917211340ceee"
+  integrity sha512-Rzh1HF0a2o/tf90A3w2XNdXd9Ym3aQzMDfD3lAUONCX9B9QOdqdyiORrj6M25QEaJrEIbXFy8LtAFcL0wRdWzA==
   dependencies:
     lib0 "^0.2.87"
 
@@ -1308,12 +1308,12 @@
     "@hocuspocus/transformer" "^2.15.2"
     axios "^1.6.2"
 
-"@hocuspocus/provider@^3.4.3":
-  version "3.4.3"
-  resolved "https://registry.npmjs.org/@hocuspocus/provider/-/provider-3.4.3.tgz"
-  integrity sha512-zt+UgVXGsEQrqnDZgavc2PT9yKJjmVjV+5YxvhlmFVFLVORqawT4l601aKmLPhvyK97un4ZApZ5rso8iO6crWg==
+"@hocuspocus/provider@^2.13.0":
+  version "2.15.3"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/provider/-/provider-2.15.3.tgz#d3a7ec469c5b0d9d079430710e9869bb09fedec5"
+  integrity sha512-oadN05m+KL4ylNKVo5YspNG4MXkT2Y+FUFzrgigpQeTjQibkPUwCNmUnkUxMgrGRgxb+O0lJCfirFIJMxedctA==
   dependencies:
-    "@hocuspocus/common" "^3.4.3"
+    "@hocuspocus/common" "^2.15.3"
     "@lifeomic/attempt" "^3.0.2"
     lib0 "^0.2.87"
     ws "^8.17.1"

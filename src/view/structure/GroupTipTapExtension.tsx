@@ -329,19 +329,31 @@ export const GroupExtension = TipTapNode.create({
         };
       }, [props.editor]);
 
-      // State for document attributes
-      // Safely check if getDocumentAttributes command exists (it won't in nested editors like Canvas MiniEditor)
-      // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => {
-        // @ts-ignore - getDocumentAttributes may not exist in all editor contexts
-        if (typeof props.editor.commands.getDocumentAttributes === 'function') {
-          // @ts-ignore
-          return props.editor.commands.getDocumentAttributes();
-        }
-        return defaultDocumentAttributes;
-      });
+      // Initialize with defaults to avoid command calls during render.
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes);
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
+      const [isCentered, setIsCentered] = useState(false);
+
+      // Fetch actual document attributes after mount.
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          try {
+            // @ts-ignore - getDocumentAttributes may not exist in all editor contexts
+            if (typeof props.editor.commands.getDocumentAttributes === 'function') {
+              // @ts-ignore
+              const attrs = props.editor.commands.getDocumentAttributes();
+              if (attrs) {
+                setDocAttributes(attrs);
+                setIsCentered(attrs.selectedFocusLens === 'call-mode');
+              }
+            }
+          } catch (e) {
+            // Ignore errors if editor is not ready.
+          }
+        }, 0);
+
+        return () => clearTimeout(timer);
+      }, [props.editor]);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
