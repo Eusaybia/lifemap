@@ -106,9 +106,11 @@ import { TiptapTransformer } from '@hocuspocus/transformer'
 const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 // Period source-of-truth quanta for daily recurring content
 const PERIOD_DAILY_QUANTA_ID = 'period-daily'
+const PERIOD_WEEKLY_QUANTA_ID = 'period-weekly'
 const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules'
 // Template quanta ID - this is the editable template in the Weekly carousel
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
+const LONG_TERM_THIS_WEEK_QUANTA_ID = 'long-term-this-week'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
 const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
 const TEMPORAL_MATERIALIZATION_PARAM = 'temporalMaterialization'
@@ -119,7 +121,7 @@ const TEMPORAL_MATERIALIZATION_META_KEY_PREFIX = 'temporalMaterializationMeta'
 interface TemporalMaterializationPlan {
   sourceQuantaIds: string[]
   resolveTokensForDate?: Date
-  allowDailyTemplateFallback?: boolean
+  fallbackTemplate?: 'daily' | 'weekly'
 }
 
 interface TemporalMaterializationMeta {
@@ -173,6 +175,13 @@ const parseDailySlugDate = (slug: string): Date | null => {
 }
 
 const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalMaterializationPlan | null => {
+  if (quantaId === LONG_TERM_THIS_WEEK_QUANTA_ID) {
+    return {
+      sourceQuantaIds: [PERIOD_WEEKLY_QUANTA_ID],
+      fallbackTemplate: 'weekly',
+    }
+  }
+
   const dailyDate = parseDailySlugDate(quantaId)
   if (!dailyDate) return null
 
@@ -185,13 +194,28 @@ const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalM
   if (!isToday) return null
 
   return {
-    sourceQuantaIds: ['period-daily'],
+    sourceQuantaIds: [PERIOD_DAILY_QUANTA_ID],
     resolveTokensForDate: dailyDate,
-    allowDailyTemplateFallback: true,
+    fallbackTemplate: 'daily',
   }
 }
 
 const cloneJsonContent = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const buildTemporalMergeSignature = (node: JSONContent): string => {
+  const clonedNode = cloneJsonContent(node)
+  if (clonedNode.attrs && typeof clonedNode.attrs === 'object') {
+    const attrs = { ...(clonedNode.attrs as Record<string, unknown>) }
+    delete attrs['data-temporal-origin']
+    delete attrs['data-temporal-source']
+    if (Object.keys(attrs).length === 0) {
+      delete clonedNode.attrs
+    } else {
+      clonedNode.attrs = attrs
+    }
+  }
+  return JSON.stringify(clonedNode)
+}
 
 const mergeTemporalMaterializationSources = (
   sources: Array<{ sourceQuantaId: string; content: JSONContent }>,
@@ -240,6 +264,7 @@ const mergeTemporalMaterializationIntoExistingDoc = (
   const existingTopLevel = Array.isArray(existingDoc.content) ? existingDoc.content : []
   const materializedTopLevel = Array.isArray(materializedDoc.content) ? materializedDoc.content : []
   const existingOrigins = new Set<string>()
+  const existingSignatures = new Set<string>()
 
   existingTopLevel.forEach((node) => {
     const attrs = node.attrs as Record<string, unknown> | undefined
@@ -247,6 +272,7 @@ const mergeTemporalMaterializationIntoExistingDoc = (
     if (typeof origin === 'string' && origin.length > 0) {
       existingOrigins.add(origin)
     }
+    existingSignatures.add(buildTemporalMergeSignature(node))
   })
 
   const additions: JSONContent[] = []
@@ -255,8 +281,10 @@ const mergeTemporalMaterializationIntoExistingDoc = (
     const origin = typeof attrs?.['data-temporal-origin'] === 'string'
       ? (attrs?.['data-temporal-origin'] as string)
       : `temporal:auto:${index}`
-    if (existingOrigins.has(origin)) return
+    const signature = buildTemporalMergeSignature(node)
+    if (existingOrigins.has(origin) || existingSignatures.has(signature)) return
     existingOrigins.add(origin)
+    existingSignatures.add(signature)
     additions.push(cloneJsonContent(node))
   })
 
@@ -707,17 +735,6 @@ const fetchQuantaContentWithLegacyFallback = async (params: {
   return fetchQuantaContentFromIndexedDB(params.quantaId, params.timeoutMs)
 }
 
-const fetchQuantaContentForScopedUserOnly = async (params: {
-  userId?: string | null
-  quantaId: string
-  timeoutMs?: number
-}): Promise<JSONContent | null> => {
-  const trimmedUserId = params.userId?.trim()
-  if (trimmedUserId) {
-    return fetchQuantaContentFromIndexedDB(`${trimmedUserId}/${params.quantaId}`, params.timeoutMs)
-  }
-  return fetchQuantaContentFromIndexedDB(params.quantaId, params.timeoutMs)
-}
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
 import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
@@ -1235,8 +1252,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
-    const STABILIZATION_DELAY = 800;
-    const FALLBACK_TIMEOUT = 2000;
+    const isFastMaterializationTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID;
+    const STABILIZATION_DELAY = isFastMaterializationTarget ? 150 : 800;
+    const FALLBACK_TIMEOUT = isFastMaterializationTarget ? 700 : 2000;
 
     const persistMeta = (status: TemporalMaterializationMeta['status'], sourceQuantaIds: string[]) => {
       writeTemporalMaterializationMeta(metaKey, {
@@ -1268,31 +1286,56 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           ? !editorHasMeaningfulContent
           : !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
       const isDailyTarget = parseDailySlugDate(urlId) !== null;
+      const isLongTermThisWeekTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID;
+      const supportsMergeIntoExisting = isDailyTarget || isLongTermThisWeekTarget;
+      const shouldBypassMetaShortCircuit = isLongTermThisWeekTarget;
+
+      if (
+        !shouldBypassMetaShortCircuit &&
+        existingMeta &&
+        existingMeta.version === LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION &&
+        !forceTemporalMaterialization
+      ) {
+        // Enforce at-most-once-per-version semantics for this quanta.
+        if (existingMeta.status === 'seeded' && !isEmpty) return;
+        if (existingMeta.status === 'existing' && !isEmpty) return;
+      }
 
       const sourceContents: Array<{ sourceQuantaId: string; content: JSONContent }> = [];
       for (const sourceQuantaId of plan.sourceQuantaIds) {
-        const sourceContent = await fetchQuantaContentForScopedUserOnly({
+        const sourceContent = await fetchQuantaContentWithLegacyFallback({
           userId,
           quantaId: sourceQuantaId,
           timeoutMs: 8000,
         });
         if (!sourceContent) continue;
+        const sanitizedSourceContent = stripLegacyDailyFallbackNotice(sourceContent);
+        if (!hasMeaningfulContent(sanitizedSourceContent)) continue;
         sourceContents.push({
           sourceQuantaId,
-          content: stripLegacyDailyFallbackNotice(sourceContent),
+          content: sanitizedSourceContent,
         });
       }
 
       let contentToApply = mergeTemporalMaterializationSources(sourceContents);
-      if (!contentToApply && plan.allowDailyTemplateFallback && isEmpty) {
-        const templateContent = await fetchQuantaContentForScopedUserOnly({
-          userId,
-          quantaId: DAILY_TEMPLATE_QUANTA_ID,
-          timeoutMs: 8000,
-        });
-        contentToApply = templateContent
-          ? stripLegacyDailyFallbackNotice(templateContent)
-          : getDailyScheduleTemplate();
+      if (!contentToApply && plan.fallbackTemplate && isEmpty) {
+        if (plan.fallbackTemplate === 'daily') {
+          const templateContent = await fetchQuantaContentWithLegacyFallback({
+            userId,
+            quantaId: DAILY_TEMPLATE_QUANTA_ID,
+            timeoutMs: 8000,
+          });
+          contentToApply = templateContent
+            ? stripLegacyDailyFallbackNotice(templateContent)
+            : getDailyScheduleTemplate();
+        } else if (plan.fallbackTemplate === 'weekly') {
+          const templateContent = await fetchQuantaContentWithLegacyFallback({
+            userId,
+            quantaId: WEEKLY_TEMPLATE_QUANTA_ID,
+            timeoutMs: 8000,
+          });
+          contentToApply = templateContent || getWeeklyScheduleTemplate();
+        }
       }
 
       if (!contentToApply) {
@@ -1323,7 +1366,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         return;
       }
 
-      if (isDailyTarget) {
+      if (supportsMergeIntoExisting) {
         const existingContent = (editor as Editor).getJSON() as JSONContent;
         const mergeResult = mergeTemporalMaterializationIntoExistingDoc(existingContent, contentToApply);
         if (mergeResult.addedCount > 0) {
@@ -1802,6 +1845,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // if the editor is empty. This prevents duplication from Y.js merging.
   const weeklyPageInitChecked = React.useRef(false);
   React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
+    if (temporalMaterializationMode) return;
+
     const pendingSchedulesStr = localStorage.getItem('newWeeklySchedules');
     const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
     const urlId = window.location.pathname.split('/').pop();
