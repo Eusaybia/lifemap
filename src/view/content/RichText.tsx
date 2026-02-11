@@ -111,6 +111,162 @@ const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules'
 const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
 const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
+const TEMPORAL_MATERIALIZATION_PARAM = 'temporalMaterialization'
+const LONG_TERM_TEMPORAL_MATERIALIZATION_MODE = 'long-term-v1'
+const LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION = '2026-02-11'
+const TEMPORAL_MATERIALIZATION_META_KEY_PREFIX = 'temporalMaterializationMeta'
+
+interface TemporalMaterializationPlan {
+  sourceQuantaIds: string[]
+  resolveTokensForDate?: Date
+  allowDailyTemplateFallback?: boolean
+}
+
+interface TemporalMaterializationMeta {
+  version: string
+  mode: string
+  status: 'seeded' | 'existing'
+  updatedAt: string
+  sourceQuantaIds: string[]
+}
+
+const DAILY_SLUG_REGEX = /^daily-(\d{4})-(\d{2})-(\d{2})$/
+
+const buildTemporalMaterializationMetaKey = (params: { mode: string; userId?: string | null; quantaId: string }): string => {
+  const scope = params.userId?.trim() || 'legacy'
+  return `${TEMPORAL_MATERIALIZATION_META_KEY_PREFIX}:${params.mode}:${scope}:${params.quantaId}`
+}
+
+const readTemporalMaterializationMeta = (key: string): TemporalMaterializationMeta | null => {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as TemporalMaterializationMeta
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+const writeTemporalMaterializationMeta = (key: string, meta: TemporalMaterializationMeta) => {
+  localStorage.setItem(key, JSON.stringify(meta))
+}
+
+const parseDailySlugDate = (slug: string): Date | null => {
+  const match = slug.match(DAILY_SLUG_REGEX)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null
+
+  const date = new Date(year, month - 1, day)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+  return date
+}
+
+const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalMaterializationPlan | null => {
+  const dailyDate = parseDailySlugDate(quantaId)
+  if (!dailyDate) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isToday =
+    dailyDate.getFullYear() === today.getFullYear() &&
+    dailyDate.getMonth() === today.getMonth() &&
+    dailyDate.getDate() === today.getDate()
+  if (!isToday) return null
+
+  return {
+    sourceQuantaIds: ['period-daily'],
+    resolveTokensForDate: dailyDate,
+    allowDailyTemplateFallback: true,
+  }
+}
+
+const cloneJsonContent = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+
+const mergeTemporalMaterializationSources = (
+  sources: Array<{ sourceQuantaId: string; content: JSONContent }>,
+): JSONContent | null => {
+  const mergedContent: JSONContent[] = []
+  const seenOriginKeys = new Set<string>()
+
+  for (const source of sources) {
+    const normalized = source.content.type === 'doc'
+      ? cloneJsonContent(source.content)
+      : ({ type: 'doc', content: [cloneJsonContent(source.content)] } as JSONContent)
+    const topLevelNodes = Array.isArray(normalized.content) ? normalized.content : []
+
+    topLevelNodes.forEach((node, index) => {
+      const originKey = `${source.sourceQuantaId}:top:${index}`
+      if (seenOriginKeys.has(originKey)) return
+      seenOriginKeys.add(originKey)
+
+      const clonedNode = cloneJsonContent(node)
+      const attrs =
+        clonedNode.attrs && typeof clonedNode.attrs === 'object'
+          ? { ...(clonedNode.attrs as Record<string, unknown>) }
+          : {}
+      attrs['data-temporal-origin'] = attrs['data-temporal-origin'] ?? originKey
+      attrs['data-temporal-source'] = source.sourceQuantaId
+      clonedNode.attrs = attrs
+      mergedContent.push(clonedNode)
+    })
+  }
+
+  if (mergedContent.length === 0) return null
+  return { type: 'doc', content: mergedContent }
+}
+
+const mergeTemporalMaterializationIntoExistingDoc = (
+  existingContent: JSONContent,
+  materializedContent: JSONContent,
+): { content: JSONContent; addedCount: number } => {
+  const existingDoc = existingContent.type === 'doc'
+    ? cloneJsonContent(existingContent)
+    : ({ type: 'doc', content: [cloneJsonContent(existingContent)] } as JSONContent)
+  const materializedDoc = materializedContent.type === 'doc'
+    ? cloneJsonContent(materializedContent)
+    : ({ type: 'doc', content: [cloneJsonContent(materializedContent)] } as JSONContent)
+
+  const existingTopLevel = Array.isArray(existingDoc.content) ? existingDoc.content : []
+  const materializedTopLevel = Array.isArray(materializedDoc.content) ? materializedDoc.content : []
+  const existingOrigins = new Set<string>()
+
+  existingTopLevel.forEach((node) => {
+    const attrs = node.attrs as Record<string, unknown> | undefined
+    const origin = attrs?.['data-temporal-origin']
+    if (typeof origin === 'string' && origin.length > 0) {
+      existingOrigins.add(origin)
+    }
+  })
+
+  const additions: JSONContent[] = []
+  materializedTopLevel.forEach((node, index) => {
+    const attrs = node.attrs as Record<string, unknown> | undefined
+    const origin = typeof attrs?.['data-temporal-origin'] === 'string'
+      ? (attrs?.['data-temporal-origin'] as string)
+      : `temporal:auto:${index}`
+    if (existingOrigins.has(origin)) return
+    existingOrigins.add(origin)
+    additions.push(cloneJsonContent(node))
+  })
+
+  if (additions.length === 0) {
+    return { content: existingDoc, addedCount: 0 }
+  }
+
+  existingDoc.content = [...additions, ...existingTopLevel]
+  return { content: existingDoc, addedCount: additions.length }
+}
 
 // ============================================================================
 // Period Quanta Templates
@@ -548,6 +704,18 @@ const fetchQuantaContentWithLegacyFallback = async (params: {
     if (scopedContent) return scopedContent
   }
 
+  return fetchQuantaContentFromIndexedDB(params.quantaId, params.timeoutMs)
+}
+
+const fetchQuantaContentForScopedUserOnly = async (params: {
+  userId?: string | null
+  quantaId: string
+  timeoutMs?: number
+}): Promise<JSONContent | null> => {
+  const trimmedUserId = params.userId?.trim()
+  if (trimmedUserId) {
+    return fetchQuantaContentFromIndexedDB(`${trimmedUserId}/${params.quantaId}`, params.timeoutMs)
+  }
   return fetchQuantaContentFromIndexedDB(params.quantaId, params.timeoutMs)
 }
 import { EmptyNodeCleanupExtension } from '../../extensions/EmptyNodeCleanupExtension'
@@ -1036,6 +1204,175 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
   }, [props.quanta?.id, editor]);
 
+  // Materialize abstract period quantas into concrete long-term-calendar panes.
+  // This path is opt-in via `temporalMaterialization=long-term-v1` and only
+  // seeds empty docs, so user-authored content is never overwritten on refresh.
+  const temporalMaterializationChecked = React.useRef(false);
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
+    if (temporalMaterializationMode !== LONG_TERM_TEMPORAL_MATERIALIZATION_MODE) return;
+    if (!props.quanta?.information || !editor || templateApplied.current || temporalMaterializationChecked.current) return;
+
+    const templateKey = searchParams.get('templateKey');
+    if (templateKey) return;
+
+    const forceTemporalMaterialization = searchParams.get('forceTemporalMaterialization') === 'true';
+    const userId = searchParams.get('userId');
+    const urlId = window.location.pathname.split('/').pop();
+    if (!urlId) return;
+
+    const plan = resolveLongTermTemporalMaterializationPlan(urlId);
+    if (!plan) return;
+
+    const metaKey = buildTemporalMaterializationMetaKey({
+      mode: temporalMaterializationMode,
+      userId,
+      quantaId: urlId,
+    });
+    const existingMeta = readTemporalMaterializationMeta(metaKey);
+
+    const yDoc = props.quanta.information;
+    let stabilizationTimeout: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
+
+    const persistMeta = (status: TemporalMaterializationMeta['status'], sourceQuantaIds: string[]) => {
+      writeTemporalMaterializationMeta(metaKey, {
+        version: LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION,
+        mode: temporalMaterializationMode,
+        status,
+        updatedAt: new Date().toISOString(),
+        sourceQuantaIds,
+      });
+    };
+
+    const checkAndMaterialize = async () => {
+      if (temporalMaterializationChecked.current || templateApplied.current) return;
+      temporalMaterializationChecked.current = true;
+
+      const yFragment = yDoc.getXmlFragment('default');
+      let yDocHasMeaningfulContent: boolean | null = null;
+      try {
+        const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
+        yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
+      } catch {
+        yDocHasMeaningfulContent = null;
+      }
+
+      const editorContent = (editor as Editor).getJSON() as JSONContent
+      const editorHasMeaningfulContent = hasMeaningfulContent(editorContent)
+      const isEmpty =
+        yDocHasMeaningfulContent === null
+          ? !editorHasMeaningfulContent
+          : !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
+      const isDailyTarget = parseDailySlugDate(urlId) !== null;
+
+      const sourceContents: Array<{ sourceQuantaId: string; content: JSONContent }> = [];
+      for (const sourceQuantaId of plan.sourceQuantaIds) {
+        const sourceContent = await fetchQuantaContentForScopedUserOnly({
+          userId,
+          quantaId: sourceQuantaId,
+          timeoutMs: 8000,
+        });
+        if (!sourceContent) continue;
+        sourceContents.push({
+          sourceQuantaId,
+          content: stripLegacyDailyFallbackNotice(sourceContent),
+        });
+      }
+
+      let contentToApply = mergeTemporalMaterializationSources(sourceContents);
+      if (!contentToApply && plan.allowDailyTemplateFallback && isEmpty) {
+        const templateContent = await fetchQuantaContentForScopedUserOnly({
+          userId,
+          quantaId: DAILY_TEMPLATE_QUANTA_ID,
+          timeoutMs: 8000,
+        });
+        contentToApply = templateContent
+          ? stripLegacyDailyFallbackNotice(templateContent)
+          : getDailyScheduleTemplate();
+      }
+
+      if (!contentToApply) {
+        if (!isEmpty) {
+          if (!existingMeta || existingMeta.version !== LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION || forceTemporalMaterialization) {
+            persistMeta('existing', plan.sourceQuantaIds);
+          }
+        }
+        return;
+      }
+
+      if (plan.resolveTokensForDate) {
+        contentToApply = resolveDailyTemplateTokensForDate(contentToApply, plan.resolveTokensForDate);
+      }
+
+      if (isEmpty) {
+        yDoc.transact(() => {
+          yFragment.delete(0, yFragment.length);
+        });
+
+        ;(editor as Editor)!.commands.setContent(contentToApply);
+        templateApplied.current = true;
+        persistMeta(
+          'seeded',
+          sourceContents.length > 0 ? sourceContents.map((entry) => entry.sourceQuantaId) : plan.sourceQuantaIds,
+        );
+        console.log(`[RichText] Materialized ${urlId} from ${plan.sourceQuantaIds.join(', ')}`);
+        return;
+      }
+
+      if (isDailyTarget) {
+        const existingContent = (editor as Editor).getJSON() as JSONContent;
+        const mergeResult = mergeTemporalMaterializationIntoExistingDoc(existingContent, contentToApply);
+        if (mergeResult.addedCount > 0) {
+          yDoc.transact(() => {
+            yFragment.delete(0, yFragment.length);
+          });
+          ;(editor as Editor)!.commands.setContent(mergeResult.content);
+          templateApplied.current = true;
+          persistMeta(
+            'seeded',
+            sourceContents.length > 0 ? sourceContents.map((entry) => entry.sourceQuantaId) : plan.sourceQuantaIds,
+          );
+          console.log(`[RichText] Merged ${mergeResult.addedCount} temporal blocks into ${urlId}`);
+          return;
+        }
+      }
+
+      if (!existingMeta || existingMeta.version !== LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION || forceTemporalMaterialization) {
+        persistMeta('existing', plan.sourceQuantaIds);
+      }
+    };
+
+    const resetStabilizationTimer = () => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      stabilizationTimeout = setTimeout(() => {
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
+        void checkAndMaterialize();
+      }, STABILIZATION_DELAY);
+    };
+
+    const handleUpdate = () => {
+      resetStabilizationTimer();
+    };
+
+    yDoc.on('update', handleUpdate);
+    resetStabilizationTimer();
+
+    fallbackTimeout = setTimeout(() => {
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      void checkAndMaterialize();
+    }, FALLBACK_TIMEOUT);
+
+    return () => {
+      yDoc.off('update', handleUpdate);
+      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
+  }, [props.quanta?.information, editor]);
+
   // Check for new daily schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
   // For today/tomorrow daily pages, first tries /q/period-daily as source-of-truth.
@@ -1049,6 +1386,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const dailyPageInitChecked = React.useRef(false);
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
+    const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
+    if (temporalMaterializationMode) return;
     const userId = searchParams.get('userId');
     const urlId = window.location.pathname.split('/').pop();
     const templateKey = searchParams.get('templateKey');
