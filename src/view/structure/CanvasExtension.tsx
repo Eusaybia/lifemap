@@ -29,12 +29,9 @@ import { ExternalPortalExtension } from './ExternalPortalExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from './LifemapCardExtension'
 import { GroupExtension } from './GroupTipTapExtension'
 import { ConcentricRingsExtension } from './ConcentricRingsExtension'
-import Details from '@tiptap-pro/extension-details'
-import DetailsSummary from '@tiptap-pro/extension-details-summary'
-import DetailsContent from '@tiptap-pro/extension-details-content'
+import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import Image from '@tiptap/extension-image'
-import TaskItem from '@tiptap/extension-task-item'
-import TaskList from '@tiptap/extension-task-list'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { NodeOverlay } from '../components/NodeOverlay'
 import { NodeConnectionManager } from '../content/NodeConnectionManager'
 
@@ -497,7 +494,7 @@ const MiniEditor: React.FC<{
   const miniEditorExtensions = useMemo(() => ([
     StarterKit.configure({
       // Disable history to avoid conflicts
-      history: false,
+      undoRedo: false,
     }),
     TaskList,
     TaskItem.configure({ nested: true }),

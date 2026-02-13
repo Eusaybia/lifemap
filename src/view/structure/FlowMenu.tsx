@@ -1,5 +1,5 @@
 import { Editor, isNodeSelection, getAttributes } from "@tiptap/core"
-import { BubbleMenu } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
 import { motion, AnimatePresence } from "framer-motion"
 import IconButton from '@mui/joy/IconButton';
@@ -1816,7 +1816,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     return (
         <BubbleMenu
             editor={props.editor}
-            tippyOptions={{
+            options={{
                 placement: "top",
                 // Keep the bubble menu open when interacting with FlowSwitch
                 // hideOnClick: false, // May need adjustment based on FlowSwitch behavior

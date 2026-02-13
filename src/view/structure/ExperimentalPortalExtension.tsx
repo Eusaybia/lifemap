@@ -57,7 +57,10 @@ export const ExperimentalPortalExtension = Node.create({
     
           // Re-render the node when its id changes
           editor.on('transaction', () => {
-            const updatedNode = editor.state.doc.nodeAt(getPos())
+            const pos = getPos()
+            if (typeof pos !== 'number') return
+
+            const updatedNode = editor.state.doc.nodeAt(pos)
             if (updatedNode && updatedNode.attrs.id !== node.attrs.id) {
               // Find the new referenced node
               let newReferencedNode: ProseMirrorNode | null = null
