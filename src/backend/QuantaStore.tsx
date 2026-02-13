@@ -67,17 +67,54 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
 
   // Immediately generate a jwt token via Firebase Cloud Function
   React.useEffect(() => {
-    const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
-    generateAuthenticationToken()
-      .then((result) => {
-        const data: any = result.data;
-        const token = data.token;
-        setJwt(token);
-      })
-      .catch((error) => {
-        console.error('[QuantaStore] Failed to generate JWT token:', error);
-      });
-  }, []);
+    let isCancelled = false;
+
+    const fetchJwtToken = async () => {
+      const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
+
+      try {
+        const result = await generateAuthenticationToken();
+        const data = result.data as { token?: string } | undefined;
+        const token = data?.token;
+
+        if (!token) {
+          throw new Error('Cloud Function returned no token');
+        }
+
+        if (!isCancelled) {
+          setJwt(token);
+        }
+        return;
+      } catch (firebaseError) {
+        // Firebase callable may fail for local/dev users; fall back to Next API token route.
+        console.warn('[QuantaStore] Firebase callable token fetch failed, falling back to /api/getCollabToken', firebaseError);
+      }
+
+      try {
+        const response = await fetch(`/api/getCollabToken?documentName=${encodeURIComponent(roomName)}`);
+        if (!response.ok) {
+          throw new Error(`Fallback token request failed with status ${response.status}`);
+        }
+
+        const payload = await response.json() as { token?: string };
+        if (!payload.token) {
+          throw new Error('Fallback token response missing token');
+        }
+
+        if (!isCancelled) {
+          setJwt(payload.token);
+        }
+      } catch (fallbackError) {
+        console.warn('[QuantaStore] Failed to generate JWT token via Firebase and fallback API. Running without cloud sync.', fallbackError);
+      }
+    };
+
+    fetchJwtToken();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [roomName]);
 
   // Once the jwt token is generated, create the TiptapCollabProvider for cloud sync
   React.useEffect(() => {
@@ -91,7 +128,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
       
       // Add error listener for authentication failures
       newProvider.on('authenticationFailed', (data: any) => {
-        console.error(`[QuantaStore] Authentication failed for ${roomName}:`, data);
+        console.warn(`[QuantaStore] Authentication failed for ${roomName}. Running without cloud sync.`, data);
       });
       
       setProvider(newProvider);
