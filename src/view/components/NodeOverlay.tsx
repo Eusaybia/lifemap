@@ -195,7 +195,8 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
       // We don't preventDefault or stopPropagation to allow native drag to work
       const pos = nodeProps.getPos()
       if (typeof pos === 'number') {
-        nodeProps.editor.commands.setNodeSelection(pos)
+        // Ensure keyboard shortcuts (cut/copy/paste) target the editor after grip clicks.
+        nodeProps.editor.chain().focus().setNodeSelection(pos).run()
       }
     }
   }
