@@ -175,7 +175,7 @@ const PortalExtension = Node.create({
           const pos = props.getPos();
 
           // Currently shouldn't support references to text, nor references to other portals
-          if (!pos || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
+          if (typeof pos !== 'number' || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
 
           // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
           const initialSelection = props.editor.state.selection;

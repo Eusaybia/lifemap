@@ -2,18 +2,12 @@
 
 import './styles.scss'
 import React from 'react'
-import Placeholder from '@tiptap/extension-placeholder'
 import { Color } from '@tiptap/extension-color'
 import { Highlight } from '@tiptap/extension-highlight'
 import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content, Extension } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import TaskItem from '@tiptap/extension-task-item'
-import TaskList from '@tiptap/extension-task-list'
 import FontFamily from '@tiptap/extension-font-family'
-import Focus from '@tiptap/extension-focus'
-import TextStyle from '@tiptap/extension-text-style'
-import Gapcursor from '@tiptap/extension-gapcursor'
-import Underline from '@tiptap/extension-underline'
+import { TextStyle } from '@tiptap/extension-text-style'
 import Image from '@/components/tiptap-node/image-node/image-node-extension'
 import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
@@ -21,10 +15,8 @@ import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
 import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
 import { watchPreviewContent } from '@tiptap-pro/extension-collaboration-history'
-import Details from '@tiptap-pro/extension-details'
-import DetailsSummary from '@tiptap-pro/extension-details-summary'
-import DetailsContent from '@tiptap-pro/extension-details-content'
-import UniqueID from '@tiptap-pro/extension-unique-id'
+import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
+import UniqueID from '@tiptap/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { throttle } from 'lodash'
@@ -39,7 +31,6 @@ import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
 import { mentionSuggestionOptions } from './TagTipTapExtension'
-import BubbleMenu from '@tiptap/extension-bubble-menu'
 import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
@@ -84,10 +75,9 @@ import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
 import { NodeConnectionManager } from './NodeConnectionManager'
-import Table from '@tiptap/extension-table'
-import TableCell from '@tiptap/extension-table-cell'
-import TableHeader from '@tiptap/extension-table-header'
-import TableRow from '@tiptap/extension-table-row'
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
+import { Focus, Gapcursor, Placeholder } from '@tiptap/extensions'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
 import { SpotlightOverlay } from '../components/SpotlightOverlay'
@@ -747,10 +737,6 @@ export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid"
 
 export const officialExtensions = (quantaId: string) => {return [
   // Add official extensions
-  BubbleMenu.configure({
-    pluginKey: `bubbleMenu${quantaId}`,
-    updateDelay: 100,
-  }),
   CodeBlockLowlight.configure({
     lowlight,
   }),
@@ -803,9 +789,10 @@ export const officialExtensions = (quantaId: string) => {return [
     // TODO: Problem, it looks like when setting this to false
     // collaboration history doesn't take over...
     // history: isYDoc ? false : undefined
-    history: false,
+    undoRedo: false,
     // Disable provided extensions so they don't load twice
     heading: false,
+    link: false,
     codeBlock: false,
     gapcursor: false,
     // document: false, // Re-enable default document
@@ -816,9 +803,7 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   TableRow,
   TableHeader,
-  TableCell.configure({
-    content: 'block+',
-  }),
+  TableCell,
   TaskItem.configure({
     nested: true,
   }),
@@ -827,7 +812,6 @@ export const officialExtensions = (quantaId: string) => {return [
     types: ['heading', 'paragraph'],
   }),
   TextStyle,
-  Underline,
   UniqueID.configure({
     // All block nodes that can participate in connections
     types: [

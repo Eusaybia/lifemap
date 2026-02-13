@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "prosemirror-model";
+import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "@tiptap/pm/model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
-import { Plugin, PluginKey, Transaction, EditorState } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
+import { Plugin, PluginKey, Transaction, EditorState } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
