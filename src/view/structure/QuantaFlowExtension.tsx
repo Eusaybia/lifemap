@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect, useRef, memo, Component, ErrorInfo, ReactNode } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
 import { Node as TiptapNode, NodeViewProps, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { NodeOverlay } from "../components/NodeOverlay";
@@ -15,9 +15,7 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
-import ReactFlow, {
-  Controls,
-  Background,
+import {
   applyEdgeChanges,
   applyNodeChanges,
   NodeChange,
@@ -29,7 +27,6 @@ import ReactFlow, {
   Position,
   ReactFlowInstance,
   Connection,
-  BackgroundVariant,
   EdgeProps,
   getBezierPath,
   NodeResizer,
@@ -39,73 +36,8 @@ import ReactFlow, {
 } from 'reactflow'
 import { motion } from 'framer-motion'
 import rough from 'roughjs'
-
-// Import ReactFlow styles
-import 'reactflow/dist/style.css';
-
-// ============================================================================
-// Error Boundary to suppress ReactFlow errors
-// ============================================================================
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class ReactFlowErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  private originalConsoleError: typeof console.error | null = null;
-
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
-    return { hasError: false }; // Don't show error state, just suppress
-  }
-
-  componentDidMount() {
-    // Suppress console errors from ReactFlow
-    this.originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
-      // Filter out ReactFlow-related errors
-      const errorString = args.join(' ');
-      if (
-        errorString.includes('ReactFlow') ||
-        errorString.includes('react-flow') ||
-        errorString.includes('NodeResizer') ||
-        errorString.includes('NodeResizeControl') ||
-        errorString.includes('applyNodeChanges') ||
-        errorString.includes('unhandledError')
-      ) {
-        return; // Suppress these errors
-      }
-      if (this.originalConsoleError) {
-        this.originalConsoleError.apply(console, args);
-      }
-    };
-  }
-
-  componentWillUnmount() {
-    // Restore original console.error
-    if (this.originalConsoleError) {
-      console.error = this.originalConsoleError;
-    }
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Silently catch errors from ReactFlow - don't log to console
-    // These are often benign resize/interaction errors
-  }
-
-  render() {
-    return this.props.children;
-  }
-}
+import { ReferenceReactFlowCanvas } from './ReferenceReactFlowCanvas'
+import { QuantaCanvasNode } from './QuantaCanvasNode'
 
 // ============================================================================
 // HandDrawnEdge Component - Custom edge using rough.js
@@ -728,7 +660,7 @@ const QuantaFlowNodeView = (props: NodeViewProps) => {
   }
 
   // Register custom node types
-  const nodeTypes = useMemo(() => ({ quantaNode: QuantaNode }), [])
+  const nodeTypes = useMemo(() => ({ quantaNode: QuantaCanvasNode }), [])
   
   // Register custom edge types
   const edgeTypes = useMemo(() => ({ handDrawn: HandDrawnEdge }), [])
@@ -1411,40 +1343,33 @@ const QuantaFlowNodeView = (props: NodeViewProps) => {
 
           {/* Graph */}
           <Box sx={{ height: graphHeight, position: 'relative' }}>
-            <ReactFlowErrorBoundary>
-              <ReactFlow
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                nodes={nodes}
-                edges={edgesWithCallbacks}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onConnectStart={onConnectStart}
-                onConnectEnd={onConnectEnd}
-                onInit={setReactFlowInstance}
-                fitView
-                fitViewOptions={{ padding: 0.2 }}
-                minZoom={0.1}
-                maxZoom={4}
-                defaultEdgeOptions={{
-                  type: 'handDrawn',
-                  zIndex: 1000,
-                }}
-                style={{ background: '#f8fafc' }}
-              >
-                <Background
-                  variant={BackgroundVariant.Dots}
-                  gap={20}
-                  size={1}
-                  color="#cbd5e1"
-                />
-                {/* Ghost node preview when dragging from a handle */}
-                {isConnecting && connectDragPos && (
-                  <GhostNodePreview position={connectDragPos} />
-                )}
-              </ReactFlow>
-            </ReactFlowErrorBoundary>
+            <ReferenceReactFlowCanvas
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              nodes={nodes}
+              edges={edgesWithCallbacks}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onConnectStart={onConnectStart}
+              onConnectEnd={onConnectEnd}
+              onInit={setReactFlowInstance}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              minZoom={0.1}
+              maxZoom={4}
+              defaultEdgeOptions={{
+                type: 'handDrawn',
+                zIndex: 1000,
+              }}
+              showControls={false}
+              showBackground
+            >
+              {/* Ghost node preview when dragging from a handle */}
+              {isConnecting && connectDragPos && (
+                <GhostNodePreview position={connectDragPos} />
+              )}
+            </ReferenceReactFlowCanvas>
           </Box>
         </Box>
       </NodeOverlay>

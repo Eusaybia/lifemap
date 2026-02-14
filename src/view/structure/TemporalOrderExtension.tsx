@@ -5,9 +5,12 @@ import { Plugin, PluginKey, Transaction, EditorState } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Node, ReactFlowInstance } from 'reactflow';
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
+import { ReferenceReactFlowCanvas } from "./ReferenceReactFlowCanvas";
+import { TemporalEventCanvasNode, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
 import './styles.scss';
 
 // ============================================================================
@@ -360,6 +363,7 @@ interface DropZoneProps {
   onDragEnter: () => DraggedNodeInfo | null;
   onPaste: (payload: ClipboardPayload) => void;
   isCollapsed: boolean;
+  compact?: boolean;
 }
 
 /**
@@ -374,7 +378,13 @@ interface DropZoneProps {
  * IMPORTANT: We use isProcessingRef to prevent double-processing which can
  * happen if both our handler and ProseMirror's native drop handler run.
  */
-const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, onPaste, isCollapsed }) => {
+const DropZone: React.FC<DropZoneProps> = ({
+  onDrop,
+  onDragEnter,
+  onPaste,
+  isCollapsed,
+  compact = false,
+}) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const draggedNodeRef = useRef<DraggedNodeInfo | null>(null);
@@ -507,13 +517,13 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, onPaste, isCol
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        padding: '28px 16px',
-        marginBottom: 12,
+        padding: compact ? '10px 12px' : '28px 16px',
+        marginBottom: compact ? 8 : 12,
         borderRadius: 10,
         border: '2px dashed',
         cursor: 'pointer',
         userSelect: 'none',
-        minHeight: 72,
+        minHeight: compact ? 44 : 72,
         outline: 'none',
       }}
     >
@@ -538,11 +548,11 @@ const DropZone: React.FC<DropZoneProps> = ({ onDrop, onDragEnter, onPaste, isCol
         }}
         transition={{ duration: 0.15 }}
         style={{
-          fontSize: 13,
+          fontSize: compact ? 12 : 13,
           fontWeight: 500,
         }}
       >
-        {isDragOver ? 'Release to move here' : 'Drop or paste to add to timeline'}
+        {isDragOver ? 'Release to move here' : compact ? 'Drop or paste into timeline' : 'Drop or paste to add to timeline'}
       </motion.span>
     </motion.div>
   );
@@ -556,21 +566,130 @@ interface TemporalOrderContentProps {
   children: React.ReactNode;
   isCollapsed: boolean;
   backgroundColor?: string;
+  timeMode: TimeMode;
+  eventSources: NonLinearEventSource[];
+  onTimeModeChange: (mode: TimeMode) => void;
   onDropZoneDrop: (draggedNode: DraggedNodeInfo | null) => void;
   onDropZoneDragEnter: () => DraggedNodeInfo | null;
   onDropZonePaste: (payload: ClipboardPayload) => void;
 }
 
+type TimeMode = 'linear' | 'nonLinear';
+
+interface NonLinearEventSource {
+  key: string;
+  label: string;
+  content: JSONContent;
+  hasMap: boolean;
+}
+
+interface NonLinearEventPreview {
+  key: string;
+  label: string;
+  content: JSONContent;
+  hasMap: boolean;
+  position: { x: number; y: number };
+}
+
+const buildAtemporalPositions = (count: number, radius: number): { x: number; y: number }[] => {
+  if (!count) return [];
+
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const positions: { x: number; y: number }[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const spread = Math.sqrt(i + 1) * radius;
+    const theta = goldenAngle * i;
+    const x = Math.cos(theta) * spread;
+    const y = Math.sin(theta) * spread * 0.72;
+    positions.push({ x, y });
+  }
+
+  return positions;
+};
+
+const temporalOrderFlowNodeTypes = {
+  temporalOrderEvent: TemporalEventCanvasNode,
+};
+
+const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ items }) => {
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+
+  const nodes = useMemo<Node<TemporalEventCanvasNodeData>[]>(() => {
+    return items.map((item, index) => ({
+      id: `${item.key}-${index}`,
+      type: 'temporalOrderEvent',
+      position: item.position,
+      data: {
+        nodeId: `${item.key}-${index}`,
+        label: item.label,
+        content: item.content,
+      },
+      draggable: true,
+      selectable: true,
+      dragHandle: '.custom-drag-handle',
+      style: { width: 640, height: item.hasMap ? 420 : 280 },
+    }));
+  }, [items]);
+
+  useEffect(() => {
+    if (!reactFlowInstance || !nodes.length) return;
+    const rafId = window.requestAnimationFrame(() => {
+      reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [reactFlowInstance, nodes]);
+
+  return (
+    <div className="temporal-order-flow-canvas">
+      <ReferenceReactFlowCanvas
+        nodes={nodes}
+        edges={[]}
+        nodeTypes={temporalOrderFlowNodeTypes}
+        onInit={setReactFlowInstance}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.1}
+        maxZoom={4}
+        nodesConnectable={false}
+        panOnDrag
+        zoomOnScroll
+        zoomOnPinch
+        zoomOnDoubleClick={false}
+        showControls={false}
+        showBackground
+      >
+        {/* No edges for atemporal preview, only repositionable event nodes. */}
+      </ReferenceReactFlowCanvas>
+    </div>
+  );
+};
+
 const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   children,
   isCollapsed,
-  backgroundColor = '#FFFFFF',
+  timeMode,
+  eventSources,
+  onTimeModeChange,
   onDropZoneDrop,
   onDropZoneDragEnter,
   onDropZonePaste,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(200);
+  const isNonLinear = timeMode === 'nonLinear';
+  const eventPreviews = useMemo<NonLinearEventPreview[]>(() => {
+    const radius = 165 + Math.min(eventSources.length, 24) * 6;
+    const positions = buildAtemporalPositions(eventSources.length, radius);
+
+    return eventSources.map((source, index) => ({
+      key: source.key || `${index}`,
+      label: source.label,
+      content: source.content,
+      hasMap: source.hasMap,
+      position: positions[index] || { x: 0, y: 0 },
+    }));
+  }, [eventSources]);
 
   // Track content height for the arrow
   useEffect(() => {
@@ -590,12 +709,33 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       ref={containerRef}
       style={{
         position: 'relative',
-        minHeight: isCollapsed ? 48 : 100,
+        minHeight: isCollapsed ? 48 : isNonLinear ? 520 : 100,
         paddingLeft: 8, // Space for the arrow
       }}
     >
+      {/* Time mode toggle */}
+      {!isCollapsed && (
+        <div className="temporal-order-time-mode-toggle">
+          {(['linear', 'nonLinear'] as TimeMode[]).map((mode) => {
+            const label = mode === 'linear' ? 'Linear' : 'Non-linear';
+            const isActive = timeMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onTimeModeChange(mode)}
+                className={`temporal-order-time-mode-option ${isActive ? 'is-active' : ''}`}
+              >
+                {isActive && <motion.span layoutId="temporal-order-mode-active-pill" className="temporal-order-time-mode-pill" />}
+                <span className="temporal-order-time-mode-label">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Temporal Arrow */}
-      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed} />
+      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || isNonLinear} />
 
       {/* Drop Zone at the top */}
       <DropZone
@@ -603,6 +743,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
         onDragEnter={onDropZoneDragEnter}
         onPaste={onDropZonePaste}
         isCollapsed={isCollapsed}
+        compact={isNonLinear}
       />
 
       {/* Content */}
@@ -612,17 +753,32 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.28 }}
+            layoutId="temporal-order-events-shell"
             style={{
-              // ARCHITECTURE: Children are sorted DESCENDING (newest first) in the
-              // ProseMirror document, so normal column display shows future at top.
-              // We don't use column-reverse because NodeViewContent renders as a single block.
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
+              position: 'relative',
             }}
           >
-            {children}
+            <div
+              className={`temporal-order-content-host ${isNonLinear ? 'is-non-linear-source' : 'is-linear'}`}
+            >
+              {children}
+            </div>
+
+            <AnimatePresence>
+              {isNonLinear && (
+                <motion.div
+                  key="temporal-order-flow-field"
+                  initial={{ opacity: 0, scale: 0.985 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.985 }}
+                  transition={{ duration: 0.28 }}
+                  className="temporal-order-flow-layer"
+                >
+                  <AtemporalEventField items={eventPreviews} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -671,6 +827,7 @@ export const TemporalOrderExtension = TipTapNode.create({
     return {
       collapsed: { default: false },
       backgroundColor: { default: offWhite },
+      timeMode: { default: 'linear' },
     };
   },
 
@@ -860,6 +1017,61 @@ export const TemporalOrderExtension = TipTapNode.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const isCollapsed = props.node.attrs.collapsed;
       const backgroundColor = props.node.attrs.backgroundColor || '#FFFFFF';
+      const timeMode: TimeMode = props.node.attrs.timeMode === 'nonLinear' ? 'nonLinear' : 'linear';
+      const { updateAttributes } = props;
+      const nonLinearEventSources = useMemo<NonLinearEventSource[]>(() => {
+        const sources: NonLinearEventSource[] = [];
+        let index = 0;
+
+        props.node.forEach((childNode) => {
+          // Non-linear mode should represent event containers, not incidental
+          // top-level blocks (e.g., empty paragraphs between events).
+          if (childNode.type.name !== 'temporalSpace') {
+            return;
+          }
+
+          const nodeQuantaId = (childNode.attrs as any)?.quantaId;
+          const key =
+            typeof nodeQuantaId === 'string' && nodeQuantaId.trim()
+              ? nodeQuantaId
+              : `${childNode.type.name}-${index}`;
+
+          const label =
+            childNode.textContent?.replace(/\s+/g, ' ').trim().slice(0, 90) || childNode.type.name || 'Event';
+
+          let hasMap = false;
+          let hasMeaningfulContent = false;
+          childNode.descendants((descendant) => {
+            if (descendant.type.name === 'mapboxMap') {
+              hasMap = true;
+            }
+            if (descendant.isText && descendant.text?.trim()) {
+              hasMeaningfulContent = true;
+            }
+            if (descendant.type.name !== 'paragraph' && descendant.type.name !== 'hardBreak') {
+              hasMeaningfulContent = true;
+            }
+            return true;
+          });
+
+          // Skip fully empty temporal spaces so they don't appear as blank
+          // floating cards in non-linear mode.
+          if (!hasMeaningfulContent) {
+            return;
+          }
+
+          sources.push({
+            key,
+            label,
+            content: childNode.toJSON() as JSONContent,
+            hasMap,
+          });
+
+          index += 1;
+        });
+
+        return sources;
+      }, [props.node]);
 
       /**
        * ARCHITECTURE: Capture dragged node on dragenter
@@ -993,6 +1205,11 @@ export const TemporalOrderExtension = TipTapNode.create({
         view.dispatch(tr.scrollIntoView());
       }, [props.editor, props.getPos]);
 
+      const handleTimeModeChange = useCallback((mode: TimeMode) => {
+        if (mode === timeMode) return;
+        updateAttributes({ timeMode: mode });
+      }, [timeMode, updateAttributes]);
+
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
@@ -1022,11 +1239,14 @@ export const TemporalOrderExtension = TipTapNode.create({
             <TemporalOrderContent
               isCollapsed={isCollapsed}
               backgroundColor={backgroundColor}
+              timeMode={timeMode}
+              eventSources={nonLinearEventSources}
+              onTimeModeChange={handleTimeModeChange}
               onDropZoneDrop={handleDropZoneDrop}
               onDropZoneDragEnter={handleDropZoneDragEnter}
               onDropZonePaste={handleDropZonePaste}
             >
-              <NodeViewContent />
+              <NodeViewContent className="temporal-order-node-view-content" />
             </TemporalOrderContent>
           </NodeOverlay>
         </NodeViewWrapper>

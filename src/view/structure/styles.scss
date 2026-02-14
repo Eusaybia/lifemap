@@ -15,3 +15,86 @@
 .glow-orange {
   box-shadow: 0 0 5px #ff7f00, 0 0 20px #ff7f00, 0 0 30px #ff7f00, 0 0 40px #ff7f00;
 }
+
+.temporal-order-time-mode-toggle {
+  position: absolute;
+  top: -12px;
+  right: 38px;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.temporal-order-time-mode-option {
+  position: relative;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: rgba(45, 45, 45, 0.75);
+  cursor: pointer;
+}
+
+.temporal-order-time-mode-option .temporal-order-time-mode-label {
+  position: relative;
+  z-index: 1;
+}
+
+.temporal-order-time-mode-option.is-active .temporal-order-time-mode-label {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.temporal-order-time-mode-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(84, 116, 255, 0.2);
+  border: 1px solid rgba(84, 116, 255, 0.35);
+}
+
+.temporal-order-content-host.is-linear .temporal-order-node-view-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.temporal-order-content-host.is-non-linear-source {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  inset: 0;
+  overflow: hidden;
+}
+
+.temporal-order-content-host.is-non-linear-source .temporal-order-node-view-content {
+  display: block;
+}
+
+.temporal-order-flow-layer {
+  position: relative;
+  width: 100%;
+  min-height: 460px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.temporal-order-flow-canvas {
+  width: 100%;
+  height: 460px;
+}
+
+.temporal-order-flow-canvas .react-flow__renderer,
+.temporal-order-flow-canvas .react-flow__pane {
+  background: transparent;
+}
