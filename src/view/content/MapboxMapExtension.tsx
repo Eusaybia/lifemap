@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import mapboxgl from 'mapbox-gl'
-import { NodeOverlay } from "../components/NodeOverlay"
 
 // Mapbox access token (must be provided by environment variable)
 const MAPBOX_ACCESS_TOKEN =
@@ -45,25 +44,6 @@ interface TemporalLocationCandidate {
 interface TemporalSpaceContext {
   insideTemporalSpace: boolean
   locations: TemporalLocationCandidate[]
-}
-
-interface MapDebugState {
-  contextStatus: string
-  position: string
-  candidateCount: number
-  candidateWithCoords: number
-  candidateWithoutCoords: number
-  geocodeAttempts: number
-  geocodeResolved: number
-  geocodeFailed: number
-  temporalMarkers: number
-  manualMarkers: number
-  activeMarkers: number
-  renderedMarkers: number
-  domMarkerCount: number
-  firstMarkerTransform: string
-  firstMarkerOpacity: string
-  mapLoaded: boolean
 }
 
 interface AnchorPoint {
@@ -162,7 +142,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const autoFitSignatureRef = useRef('')
   const geocodeCacheRef = useRef(new Map<string, [number, number] | null>())
   const temporalContextSignatureRef = useRef('')
-  const debugEnabledRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -171,25 +150,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [isInsideTemporalSpace, setIsInsideTemporalSpace] = useState(false)
   const [temporalLocationCandidates, setTemporalLocationCandidates] = useState<TemporalLocationCandidate[]>([])
   const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
-  const [debugEnabled, setDebugEnabled] = useState(false)
-  const [debugState, setDebugState] = useState<MapDebugState>({
-    contextStatus: 'init',
-    position: 'n/a',
-    candidateCount: 0,
-    candidateWithCoords: 0,
-    candidateWithoutCoords: 0,
-    geocodeAttempts: 0,
-    geocodeResolved: 0,
-    geocodeFailed: 0,
-    temporalMarkers: 0,
-    manualMarkers: 0,
-    activeMarkers: 0,
-    renderedMarkers: 0,
-    domMarkerCount: 0,
-    firstMarkerTransform: 'n/a',
-    firstMarkerOpacity: 'n/a',
-    mapLoaded: false,
-  })
 
   // Cast attrs to our custom type for type-safe access
   const attrs = node.attrs as unknown as MapboxMapAttrs
@@ -225,39 +185,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     ).map((point) => ({ lng: point.lng, lat: point.lat }))
   }, [temporalLocationCandidates, markers])
 
-  const patchDebugState = useCallback((patch: Partial<MapDebugState>) => {
-    if (!debugEnabledRef.current) return
-    setDebugState((prev) => ({ ...prev, ...patch }))
-  }, [])
-
-  const debugLog = useCallback((stage: string, details: Record<string, unknown>) => {
-    if (!debugEnabledRef.current) return
-    console.info(`[MapboxMapDebug] ${stage}`, details)
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const params = new URLSearchParams(window.location.search)
-    const enabled = params.get('debugMap') === '1' || window.localStorage.getItem('mapboxDebug') === '1'
-    debugEnabledRef.current = enabled
-    setDebugEnabled(enabled)
-
-    if (enabled) {
-      console.info('[MapboxMapDebug] enabled', {
-        hint: 'Use ?debugMap=1 or localStorage.mapboxDebug=1',
-      })
-    }
-  }, [])
-
-  useEffect(() => {
-    patchDebugState({
-      manualMarkers: markers.length,
-      activeMarkers: activeMarkers.length,
-      mapLoaded,
-    })
-  }, [markers.length, activeMarkers.length, mapLoaded, patchDebugState])
-
   const findTemporalSpaceContext = useCallback((): TemporalSpaceContext | null => {
     const emptyContext: TemporalSpaceContext = {
       insideTemporalSpace: false,
@@ -265,29 +192,21 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     }
 
     if (props.editor.isDestroyed) {
-      patchDebugState({ contextStatus: 'editor-destroyed' })
-      debugLog('context', { status: 'editor-destroyed' })
       return null
     }
 
     try {
       const rawPosition = props.getPos()
       if (typeof rawPosition !== 'number' || !Number.isFinite(rawPosition)) {
-        patchDebugState({ contextStatus: 'invalid-position', position: String(rawPosition) })
-        debugLog('context', { status: 'invalid-position', rawPosition })
         return null
       }
 
       const position = Math.trunc(rawPosition)
       const doc = props.editor.state?.doc
       if (!doc) {
-        patchDebugState({ contextStatus: 'missing-doc', position: String(position) })
-        debugLog('context', { status: 'missing-doc', position })
         return null
       }
       if (position < 0 || position > doc.content.size) {
-        patchDebugState({ contextStatus: 'position-out-of-range', position: String(position) })
-        debugLog('context', { status: 'position-out-of-range', position, max: doc.content.size })
         return null
       }
 
@@ -295,8 +214,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       try {
         $pos = doc.resolve(position)
       } catch (error) {
-        patchDebugState({ contextStatus: 'resolve-failed', position: String(position) })
-        debugLog('context', { status: 'resolve-failed', position })
         return null
       }
       let temporalNode: any | null = null
@@ -310,13 +227,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       }
 
       if (!temporalNode) {
-        patchDebugState({
-          contextStatus: 'outside-temporalSpace',
-          position: String(position),
-          candidateCount: 0,
-          candidateWithCoords: 0,
-          candidateWithoutCoords: 0,
-        })
         return emptyContext
       }
 
@@ -338,32 +248,14 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         })
       })
 
-      const withCoords = locations.filter((location) => !!location.coords).length
-      patchDebugState({
-        contextStatus: 'inside-temporalSpace',
-        position: String(position),
-        candidateCount: locations.length,
-        candidateWithCoords: withCoords,
-        candidateWithoutCoords: locations.length - withCoords,
-      })
-      debugLog('context', {
-        status: 'inside-temporalSpace',
-        position,
-        candidateCount: locations.length,
-        withCoords,
-        withoutCoords: locations.length - withCoords,
-      })
-
       return {
         insideTemporalSpace: true,
         locations,
       }
     } catch (error) {
-      patchDebugState({ contextStatus: 'context-error' })
-      debugLog('context', { status: 'context-error' })
       return null
     }
-  }, [props.editor, props.getPos, patchDebugState, debugLog])
+  }, [props.editor, props.getPos])
 
   const geocodeLocationCandidate = useCallback(async (
     candidate: TemporalLocationCandidate,
@@ -403,21 +295,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         if (nearestAnchorDistance > maxAllowedDistanceKm) {
           const fallbackCoords = resolveFallbackCoords(query)
           if (fallbackCoords) {
-            debugLog('geocode-fallback', {
-              query,
-              fallbackCoords,
-              reason: 'rejected-outlier',
-            })
             geocodeCacheRef.current.set(cacheKey, fallbackCoords)
             return fallbackCoords
           }
 
-          debugLog('geocode-rejected', {
-            query,
-            coords,
-            nearestAnchorDistance: Math.round(nearestAnchorDistance),
-            maxAllowedDistanceKm: Math.round(maxAllowedDistanceKm),
-          })
           geocodeCacheRef.current.set(cacheKey, null)
           return null
         }
@@ -428,11 +309,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     } catch (error) {
       const fallbackCoords = resolveFallbackCoords(query)
       if (fallbackCoords) {
-        debugLog('geocode-fallback', {
-          query,
-          fallbackCoords,
-          reason: 'network-or-parse-error',
-        })
         geocodeCacheRef.current.set(cacheKey, fallbackCoords)
         return fallbackCoords
       }
@@ -441,7 +317,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       geocodeCacheRef.current.set(cacheKey, null)
       return null
     }
-  }, [debugLog])
+  }, [])
 
   // Load Mapbox CSS once globally so marker styling stays stable even when
   // multiple map nodes mount/unmount in the editor.
@@ -523,26 +399,14 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     const resolveTemporalMarkers = async () => {
       if (!isInsideTemporalSpace || temporalLocationCandidates.length === 0) {
         setTemporalSpaceMarkers([])
-        patchDebugState({
-          geocodeAttempts: 0,
-          geocodeResolved: 0,
-          geocodeFailed: 0,
-          temporalMarkers: 0,
-        })
         return
       }
 
       const resolvedMarkers: MapMarker[] = []
-      let geocodeAttempts = 0
-      let geocodeResolved = 0
-      let geocodeFailed = 0
       for (const candidate of temporalLocationCandidates) {
         let coords = candidate.coords
         if (!coords) {
-          geocodeAttempts += 1
           coords = await geocodeLocationCandidate(candidate, anchorPoints)
-          if (coords) geocodeResolved += 1
-          else geocodeFailed += 1
         }
         if (!coords) continue
 
@@ -556,19 +420,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       if (!cancelled) {
         const dedupedMarkers = dedupeMarkers(resolvedMarkers)
         setTemporalSpaceMarkers(dedupedMarkers)
-        patchDebugState({
-          geocodeAttempts,
-          geocodeResolved,
-          geocodeFailed,
-          temporalMarkers: dedupedMarkers.length,
-        })
-        debugLog('resolveTemporalMarkers', {
-          candidateCount: temporalLocationCandidates.length,
-          geocodeAttempts,
-          geocodeResolved,
-          geocodeFailed,
-          temporalMarkers: dedupedMarkers.length,
-        })
       }
     }
 
@@ -577,7 +428,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return () => {
       cancelled = true
     }
-  }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, patchDebugState, debugLog, anchorPoints])
+  }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, anchorPoints])
 
   // Initialize map
   useEffect(() => {
@@ -641,23 +492,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           markersRef.current.push(marker)
         }
       })
-      const domMarkers = mapContainer.current?.querySelectorAll('.mapboxgl-marker')
-      const firstDomMarker = domMarkers?.[0] as HTMLElement | undefined
-      patchDebugState({
-        renderedMarkers: markersRef.current.length,
-        domMarkerCount: domMarkers?.length || 0,
-        firstMarkerTransform: firstDomMarker?.style.transform || 'none',
-        firstMarkerOpacity: firstDomMarker ? getComputedStyle(firstDomMarker).opacity : 'n/a',
-      })
-      debugLog('syncMarkers', {
-        activeMarkers: activeMarkers.length,
-        renderedMarkers: markersRef.current.length,
-        domMarkerCount: domMarkers?.length || 0,
-        firstMarkerTransform: firstDomMarker?.style.transform || 'none',
-        firstMarkerOpacity: firstDomMarker ? getComputedStyle(firstDomMarker).opacity : 'n/a',
-        hasTemporalPins,
-        mapLoaded: map.current?.loaded() || false,
-      })
 
       if (!hasTemporalPins || activeMarkers.length === 0 || !map.current) {
         autoFitSignatureRef.current = ''
@@ -698,7 +532,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     } else {
       map.current.once('load', syncMarkers)
     }
-  }, [activeMarkers, hasTemporalPins, mapLoaded, addMarkerToMap, patchDebugState, debugLog])
+  }, [activeMarkers, hasTemporalPins, mapLoaded, addMarkerToMap])
 
   // Search for locations using Mapbox Geocoding API
   const searchLocation = useCallback(async (query: string) => {
@@ -779,14 +613,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
   return (
     <NodeViewWrapper style={{ margin: '16px 0' }}>
-      <NodeOverlay
-        nodeProps={props}
-        nodeType="mapboxMap"
-        // ARCHITECTURE: Mapbox tiles already provide depth/shading.
-        // Removing the overlay shadow keeps the map clean and avoids
-        // a "double shadow" effect in the slash-menu inserted node.
-        boxShadow="none"
-      >
         <div
           style={{
             borderRadius: 8,
@@ -945,48 +771,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             )}
           </div>
 
-          {debugEnabled && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 12,
-                left: 12,
-                zIndex: 6,
-                width: 310,
-                maxWidth: 'calc(100% - 24px)',
-                padding: '10px 12px',
-                borderRadius: 8,
-                backgroundColor: 'rgba(15, 23, 42, 0.88)',
-                color: '#e5e7eb',
-                fontSize: 11,
-                fontFamily: "'Menlo', 'Monaco', monospace",
-                lineHeight: 1.35,
-                border: '1px solid rgba(148, 163, 184, 0.4)',
-                boxShadow: '0 10px 24px -18px rgba(0, 0, 0, 0.7)',
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>Map Debug</div>
-              <div>context: {debugState.contextStatus}</div>
-              <div>pos: {debugState.position}</div>
-              <div>map loaded: {debugState.mapLoaded ? 'yes' : 'no'}</div>
-              <div>inside temporal: {isInsideTemporalSpace ? 'yes' : 'no'}</div>
-              <div>location tags: {debugState.candidateCount}</div>
-              <div>coords present: {debugState.candidateWithCoords}</div>
-              <div>coords missing: {debugState.candidateWithoutCoords}</div>
-              <div>geocode attempts: {debugState.geocodeAttempts}</div>
-              <div>geocode resolved: {debugState.geocodeResolved}</div>
-              <div>geocode failed: {debugState.geocodeFailed}</div>
-              <div>temporal markers: {debugState.temporalMarkers}</div>
-              <div>manual markers: {debugState.manualMarkers}</div>
-              <div>active markers: {debugState.activeMarkers}</div>
-              <div>rendered markers: {debugState.renderedMarkers}</div>
-              <div>dom markers: {debugState.domMarkerCount}</div>
-              <div>first transform: {debugState.firstMarkerTransform}</div>
-              <div>first opacity: {debugState.firstMarkerOpacity}</div>
-            </div>
-          )}
-
           <div
             ref={mapContainer}
             style={{
@@ -1025,7 +809,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           to { transform: rotate(360deg); }
         }
       `}</style>
-      </NodeOverlay>
     </NodeViewWrapper>
   )
 }
