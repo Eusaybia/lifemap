@@ -245,14 +245,14 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           }}
         >
         {/* Map Container */}
-        {/* ARCHITECTURE: Height halved from 400→200 so the embedded map
+        {/* ARCHITECTURE: Height increased to 280px so the embedded map
             doesn't dominate the timeline card — keeps the location context
             visible without pushing surrounding content too far apart. */}
         <div
           style={{
             position: 'relative',
             width: '100%',
-            height: 200,
+            height: 280,
           }}
         >
           {/* ARCHITECTURE: Keep the search UI as a floating overlay so the
