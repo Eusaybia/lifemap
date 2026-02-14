@@ -135,7 +135,7 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
 }
 
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
-  const { node, updateAttributes, selected } = props
+  const { node, updateAttributes } = props
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -442,19 +442,24 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       style: style || 'mapbox://styles/mapbox/streets-v12',
       center: center,
       zoom: zoom,
+      attributionControl: false,
     })
-
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     // Set map as loaded when ready - also check if already loaded
     if (map.current.loaded()) {
       setMapLoaded(true)
+      map.current.resize()
     } else {
       map.current.on('load', () => {
         setMapLoaded(true)
+        map.current?.resize()
       })
     }
+
+    // In node views, layout can settle after initial mount.
+    // Force follow-up resizes so the map fills the card on first render.
+    const frameId = requestAnimationFrame(() => map.current?.resize())
+    const timeoutId = window.setTimeout(() => map.current?.resize(), 120)
 
     // Update attributes when map moves
     map.current.on('moveend', () => {
@@ -469,9 +474,26 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     })
 
     return () => {
+      cancelAnimationFrame(frameId)
+      window.clearTimeout(timeoutId)
       map.current?.remove()
       map.current = null
       setMapLoaded(false)
+    }
+  }, [])
+
+  // Keep map dimensions in sync with container changes.
+  useEffect(() => {
+    if (!map.current || !mapContainer.current) return
+
+    const resizeMap = () => map.current?.resize()
+    const observer = new ResizeObserver(resizeMap)
+    observer.observe(mapContainer.current)
+    window.addEventListener('resize', resizeMap)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', resizeMap)
     }
   }, [])
 
@@ -617,8 +639,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           style={{
             borderRadius: 8,
             overflow: 'hidden',
-            outline: selected ? '3px solid #6366f1' : 'none',
-            outlineOffset: 2,
+            outline: 'none',
           }}
         >
         {/* Map Container */}
@@ -807,6 +828,13 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+
+        .mapboxgl-ctrl-bottom-right,
+        .mapboxgl-ctrl-bottom-left,
+        .mapboxgl-ctrl-logo,
+        .mapboxgl-ctrl-attrib {
+          display: none !important;
         }
       `}</style>
     </NodeViewWrapper>
