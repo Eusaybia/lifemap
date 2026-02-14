@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Node as ProseMirrorNode, Fragment } from "prosemirror-model"
+import { Node as ProseMirrorNode, Fragment } from "@tiptap/pm/model"
 import { Editor, Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
-import { Plugin, PluginKey } from "prosemirror-state";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { GroupLenses } from "./Group";
 import './styles.scss';
@@ -447,4 +447,3 @@ export const TemporalSpaceExtension = TipTapNode.create({
 });
 
 export default TemporalSpaceExtension;
-
