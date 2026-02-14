@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import mapboxgl from 'mapbox-gl'
-import { NodeOverlay } from "../components/NodeOverlay"
 
 // Mapbox access token (must be provided by environment variable)
 const MAPBOX_ACCESS_TOKEN =
@@ -26,20 +25,299 @@ interface MapboxMapAttrs {
   style: string
 }
 
+interface LocationNodeAttrs {
+  id?: string
+  label?: string
+  'data-name'?: string
+  'data-country'?: string
+  'data-coords'?: string | [number, number] | null
+}
+
+interface TemporalLocationCandidate {
+  id?: string
+  name: string
+  label: string
+  country?: string
+  coords: [number, number] | null
+}
+
+interface TemporalSpaceContext {
+  insideTemporalSpace: boolean
+  locations: TemporalLocationCandidate[]
+}
+
+interface AnchorPoint {
+  lng: number
+  lat: number
+}
+
+const parseCoords = (rawCoords: unknown): [number, number] | null => {
+  if (Array.isArray(rawCoords) && rawCoords.length === 2) {
+    const lng = Number(rawCoords[0])
+    const lat = Number(rawCoords[1])
+    if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat]
+    return null
+  }
+
+  if (typeof rawCoords !== 'string' || !rawCoords.trim()) return null
+
+  try {
+    const parsed = JSON.parse(rawCoords)
+    if (Array.isArray(parsed) && parsed.length === 2) {
+      const lng = Number(parsed[0])
+      const lat = Number(parsed[1])
+      if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat]
+    }
+  } catch (error) {
+    return null
+  }
+
+  return null
+}
+
+const dedupeMarkers = (inputMarkers: MapMarker[]): MapMarker[] => {
+  const seen = new Set<string>()
+  const deduped: MapMarker[] = []
+
+  inputMarkers.forEach((marker) => {
+    const key = `${marker.lng.toFixed(6)},${marker.lat.toFixed(6)}`
+    if (seen.has(key)) return
+    seen.add(key)
+    deduped.push(marker)
+  })
+
+  return deduped
+}
+
+const toRad = (value: number): number => value * (Math.PI / 180)
+
+const distanceKm = (a: AnchorPoint, b: AnchorPoint): number => {
+  const earthRadiusKm = 6371
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2)
+  return 2 * earthRadiusKm * Math.asin(Math.sqrt(h))
+}
+
+const computeAnchorSpanKm = (anchors: AnchorPoint[]): number => {
+  if (anchors.length < 2) return 0
+  let maxDistance = 0
+  for (let i = 0; i < anchors.length; i += 1) {
+    for (let j = i + 1; j < anchors.length; j += 1) {
+      const dist = distanceKm(anchors[i], anchors[j])
+      if (dist > maxDistance) maxDistance = dist
+    }
+  }
+  return maxDistance
+}
+
+const resolveFallbackCoords = (query: string): [number, number] | null => {
+  const normalized = query.toLowerCase()
+  const fallbackRules: Array<{ pattern: RegExp; coords: [number, number] }> = [
+    // Everest Base Camp region (Khumbu, Nepal)
+    { pattern: /(mount\s+)?everest|base\s*camp\s*trek/i, coords: [86.8578, 27.9881] },
+    // Annapurna Base Camp / Circuit region (Gandaki, Nepal)
+    { pattern: /annapurna(\s+circuit)?/i, coords: [83.8781, 28.5307] },
+  ]
+
+  for (const rule of fallbackRules) {
+    if (rule.pattern.test(normalized)) {
+      return rule.coords
+    }
+  }
+
+  return null
+}
+
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
-  const { node, updateAttributes, selected } = props
+  const { node, updateAttributes } = props
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+  const autoFitSignatureRef = useRef('')
+  const geocodeCacheRef = useRef(new Map<string, [number, number] | null>())
+  const temporalContextSignatureRef = useRef('')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [isInsideTemporalSpace, setIsInsideTemporalSpace] = useState(false)
+  const [temporalLocationCandidates, setTemporalLocationCandidates] = useState<TemporalLocationCandidate[]>([])
+  const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
 
   // Cast attrs to our custom type for type-safe access
   const attrs = node.attrs as unknown as MapboxMapAttrs
   const { center, zoom, markers, style } = attrs
+  const activeMarkers = useMemo(() => {
+    // Inside a temporalSpace card, treat location tags as the source of truth.
+    // This prevents stale persisted map attrs.markers (e.g. old Shanghai pin)
+    // from lingering after the corresponding tag is removed.
+    if (isInsideTemporalSpace) {
+      return dedupeMarkers([...temporalSpaceMarkers])
+    }
+    return dedupeMarkers([...markers])
+  }, [isInsideTemporalSpace, temporalSpaceMarkers, markers])
+  const hasTemporalPins = temporalSpaceMarkers.length > 0
+  const anchorPoints = useMemo<AnchorPoint[]>(() => {
+    const anchorsFromLocations = temporalLocationCandidates
+      .filter((candidate) => !!candidate.coords)
+      .map((candidate) => ({
+        lng: candidate.coords![0],
+        lat: candidate.coords![1],
+      }))
+
+    const anchorsFromManual = markers.map((marker) => ({
+      lng: marker.lng,
+      lat: marker.lat,
+    }))
+
+    return dedupeMarkers(
+      [...anchorsFromLocations, ...anchorsFromManual].map((point) => ({
+        lng: point.lng,
+        lat: point.lat,
+      })),
+    ).map((point) => ({ lng: point.lng, lat: point.lat }))
+  }, [temporalLocationCandidates, markers])
+
+  const findTemporalSpaceContext = useCallback((): TemporalSpaceContext | null => {
+    const emptyContext: TemporalSpaceContext = {
+      insideTemporalSpace: false,
+      locations: [],
+    }
+
+    if (props.editor.isDestroyed) {
+      return null
+    }
+
+    try {
+      const rawPosition = props.getPos()
+      if (typeof rawPosition !== 'number' || !Number.isFinite(rawPosition)) {
+        return null
+      }
+
+      const position = Math.trunc(rawPosition)
+      const doc = props.editor.state?.doc
+      if (!doc) {
+        return null
+      }
+      if (position < 0 || position > doc.content.size) {
+        return null
+      }
+
+      let $pos
+      try {
+        $pos = doc.resolve(position)
+      } catch (error) {
+        return null
+      }
+      let temporalNode: any | null = null
+
+      for (let depth = $pos.depth; depth >= 0; depth -= 1) {
+        const ancestor = $pos.node(depth)
+        if (ancestor.type.name === 'temporalSpace') {
+          temporalNode = ancestor
+          break
+        }
+      }
+
+      if (!temporalNode) {
+        return emptyContext
+      }
+
+      const locations: TemporalLocationCandidate[] = []
+      temporalNode.descendants((childNode: any) => {
+        if (childNode.type.name !== 'location') return
+
+        const locationAttrs = (childNode.attrs || {}) as LocationNodeAttrs
+        const name = locationAttrs['data-name'] || locationAttrs.label || ''
+        if (!name) return
+
+        const label = locationAttrs.label?.replace(/^📍\s*/, '') || name
+        locations.push({
+          id: locationAttrs.id,
+          name,
+          label,
+          country: locationAttrs['data-country'] || undefined,
+          coords: parseCoords(locationAttrs['data-coords']),
+        })
+      })
+
+      return {
+        insideTemporalSpace: true,
+        locations,
+      }
+    } catch (error) {
+      return null
+    }
+  }, [props.editor, props.getPos])
+
+  const geocodeLocationCandidate = useCallback(async (
+    candidate: TemporalLocationCandidate,
+    anchors: AnchorPoint[],
+  ): Promise<[number, number] | null> => {
+    if (!MAPBOX_ACCESS_TOKEN) return null
+
+    const query = [candidate.name, candidate.country].filter(Boolean).join(', ')
+    if (!query.trim()) return null
+
+    const cacheKey = query.toLowerCase()
+    if (geocodeCacheRef.current.has(cacheKey)) {
+      return geocodeCacheRef.current.get(cacheKey) || null
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
+      )
+      const data = await response.json()
+      const center = data?.features?.[0]?.center
+      const coords = Array.isArray(center) && center.length === 2
+        ? [Number(center[0]), Number(center[1])] as [number, number]
+        : null
+
+      if (coords && anchors.length > 0) {
+        const nearestAnchorDistance = anchors.reduce((nearest, anchor) => {
+          const dist = distanceKm(anchor, { lng: coords[0], lat: coords[1] })
+          return Math.min(nearest, dist)
+        }, Number.POSITIVE_INFINITY)
+
+        const anchorSpanKm = computeAnchorSpanKm(anchors)
+        const maxAllowedDistanceKm = anchors.length === 1
+          ? 1500
+          : Math.min(8000, Math.max(1500, anchorSpanKm * 1.5 + 500))
+
+        if (nearestAnchorDistance > maxAllowedDistanceKm) {
+          const fallbackCoords = resolveFallbackCoords(query)
+          if (fallbackCoords) {
+            geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+            return fallbackCoords
+          }
+
+          geocodeCacheRef.current.set(cacheKey, null)
+          return null
+        }
+      }
+
+      geocodeCacheRef.current.set(cacheKey, coords)
+      return coords
+    } catch (error) {
+      const fallbackCoords = resolveFallbackCoords(query)
+      if (fallbackCoords) {
+        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+        return fallbackCoords
+      }
+
+      console.error('[MapboxMap] Temporal location geocoding error:', error)
+      geocodeCacheRef.current.set(cacheKey, null)
+      return null
+    }
+  }, [])
 
   // Load Mapbox CSS once globally so marker styling stays stable even when
   // multiple map nodes mount/unmount in the editor.
@@ -49,7 +327,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     const link = document.createElement('link')
     link.rel = 'stylesheet'
-    link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css'
+    link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
     link.setAttribute('data-mapbox-gl-css', 'true')
     document.head.appendChild(link)
   }, [])
@@ -57,26 +335,100 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   // Helper function to add a marker to the map
   const addMarkerToMap = useCallback((markerData: MapMarker) => {
     if (!map.current) return null
-    
-    const marker = new mapboxgl.Marker({ 
+
+    const marker = new mapboxgl.Marker({
       color: '#e11d48',
-      scale: 1.2 
+      scale: 1.1,
     })
       .setLngLat([markerData.lng, markerData.lat])
       .addTo(map.current)
 
-    if (markerData.label) {
-      const popup = new mapboxgl.Popup({ 
-        offset: 25,
-        closeButton: false,
-      })
-        .setHTML(`<div style="font-family: Inter, sans-serif; font-size: 14px; padding: 4px 8px; max-width: 200px;">${markerData.label}</div>`)
-      marker.setPopup(popup)
-      marker.togglePopup()
-    }
-
     return marker
   }, [])
+
+  // Track location tags inside the same containing temporalSpace node.
+  useEffect(() => {
+    const syncTemporalSpaceLocations = (): boolean => {
+      if (props.editor.isDestroyed) return false
+
+      const temporalContext = findTemporalSpaceContext()
+      if (!temporalContext) return false
+
+      const nextSignature = `${temporalContext.insideTemporalSpace}:${temporalContext.locations
+        .map((location) => {
+          const coords = location.coords ? `${location.coords[0].toFixed(6)},${location.coords[1].toFixed(6)}` : 'null'
+          return `${location.id || ''}:${location.name}:${location.country || ''}:${coords}`
+        })
+        .join('|')}`
+
+      if (nextSignature === temporalContextSignatureRef.current) return true
+      temporalContextSignatureRef.current = nextSignature
+
+      setIsInsideTemporalSpace(temporalContext.insideTemporalSpace)
+      setTemporalLocationCandidates(temporalContext.locations)
+      return true
+    }
+
+    const hydrated = syncTemporalSpaceLocations()
+    let retries = 0
+    let retryTimeoutId: number | null = null
+    if (!hydrated) {
+      const tryHydrate = () => {
+        if (syncTemporalSpaceLocations()) return
+        retries += 1
+        if (retries >= 8) return
+        retryTimeoutId = window.setTimeout(tryHydrate, 40)
+      }
+      retryTimeoutId = window.setTimeout(tryHydrate, 40)
+    }
+    props.editor.on('transaction', syncTemporalSpaceLocations)
+
+    return () => {
+      if (retryTimeoutId !== null) {
+        window.clearTimeout(retryTimeoutId)
+      }
+      props.editor.off('transaction', syncTemporalSpaceLocations)
+    }
+  }, [findTemporalSpaceContext, props.editor])
+
+  // Resolve coordinates for temporalSpace location tags (including custom tags
+  // without saved coordinates yet) and convert them into map markers.
+  useEffect(() => {
+    let cancelled = false
+
+    const resolveTemporalMarkers = async () => {
+      if (!isInsideTemporalSpace || temporalLocationCandidates.length === 0) {
+        setTemporalSpaceMarkers([])
+        return
+      }
+
+      const resolvedMarkers: MapMarker[] = []
+      for (const candidate of temporalLocationCandidates) {
+        let coords = candidate.coords
+        if (!coords) {
+          coords = await geocodeLocationCandidate(candidate, anchorPoints)
+        }
+        if (!coords) continue
+
+        resolvedMarkers.push({
+          lng: coords[0],
+          lat: coords[1],
+          label: candidate.label || candidate.name,
+        })
+      }
+
+      if (!cancelled) {
+        const dedupedMarkers = dedupeMarkers(resolvedMarkers)
+        setTemporalSpaceMarkers(dedupedMarkers)
+      }
+    }
+
+    resolveTemporalMarkers()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, anchorPoints])
 
   // Initialize map
   useEffect(() => {
@@ -90,19 +442,24 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       style: style || 'mapbox://styles/mapbox/streets-v12',
       center: center,
       zoom: zoom,
+      attributionControl: false,
     })
-
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     // Set map as loaded when ready - also check if already loaded
     if (map.current.loaded()) {
       setMapLoaded(true)
+      map.current.resize()
     } else {
       map.current.on('load', () => {
         setMapLoaded(true)
+        map.current?.resize()
       })
     }
+
+    // In node views, layout can settle after initial mount.
+    // Force follow-up resizes so the map fills the card on first render.
+    const frameId = requestAnimationFrame(() => map.current?.resize())
+    const timeoutId = window.setTimeout(() => map.current?.resize(), 120)
 
     // Update attributes when map moves
     map.current.on('moveend', () => {
@@ -117,9 +474,26 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     })
 
     return () => {
+      cancelAnimationFrame(frameId)
+      window.clearTimeout(timeoutId)
       map.current?.remove()
       map.current = null
       setMapLoaded(false)
+    }
+  }, [])
+
+  // Keep map dimensions in sync with container changes.
+  useEffect(() => {
+    if (!map.current || !mapContainer.current) return
+
+    const resizeMap = () => map.current?.resize()
+    const observer = new ResizeObserver(resizeMap)
+    observer.observe(mapContainer.current)
+    window.addEventListener('resize', resizeMap)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', resizeMap)
     }
   }, [])
 
@@ -133,12 +507,45 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       markersRef.current.forEach(marker => marker.remove())
       markersRef.current = []
 
-      // Add all markers from the node attributes
-      markers.forEach((markerData: MapMarker) => {
+      // Add all markers from node attrs + sibling location tags in temporalSpace.
+      activeMarkers.forEach((markerData: MapMarker) => {
         const marker = addMarkerToMap(markerData)
         if (marker) {
           markersRef.current.push(marker)
         }
+      })
+
+      if (!hasTemporalPins || activeMarkers.length === 0 || !map.current) {
+        autoFitSignatureRef.current = ''
+        return
+      }
+
+      const nextSignature = activeMarkers
+        .map((markerData) => `${markerData.lng.toFixed(4)},${markerData.lat.toFixed(4)}`)
+        .sort()
+        .join('|')
+
+      if (autoFitSignatureRef.current === nextSignature) return
+      autoFitSignatureRef.current = nextSignature
+
+      if (activeMarkers.length === 1) {
+        const onlyMarker = activeMarkers[0]
+        map.current.easeTo({
+          center: [onlyMarker.lng, onlyMarker.lat],
+          zoom: Math.max(map.current.getZoom(), 11),
+          duration: 600,
+        })
+        return
+      }
+
+      const bounds = new mapboxgl.LngLatBounds()
+      activeMarkers.forEach((markerData) => {
+        bounds.extend([markerData.lng, markerData.lat])
+      })
+      map.current.fitBounds(bounds, {
+        padding: 60,
+        maxZoom: 11,
+        duration: 700,
       })
     }
 
@@ -147,7 +554,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     } else {
       map.current.once('load', syncMarkers)
     }
-  }, [markers, mapLoaded, addMarkerToMap])
+  }, [activeMarkers, hasTemporalPins, mapLoaded, addMarkerToMap])
 
   // Search for locations using Mapbox Geocoding API
   const searchLocation = useCallback(async (query: string) => {
@@ -228,20 +635,11 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
   return (
     <NodeViewWrapper style={{ margin: '16px 0' }}>
-      <NodeOverlay
-        nodeProps={props}
-        nodeType="mapboxMap"
-        // ARCHITECTURE: Mapbox tiles already provide depth/shading.
-        // Removing the overlay shadow keeps the map clean and avoids
-        // a "double shadow" effect in the slash-menu inserted node.
-        boxShadow="none"
-      >
         <div
           style={{
             borderRadius: 8,
             overflow: 'hidden',
-            outline: selected ? '3px solid #6366f1' : 'none',
-            outlineOffset: 2,
+            outline: 'none',
           }}
         >
         {/* Map Container */}
@@ -404,7 +802,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
           {/* Keep a visible center pin in the map viewport so the selected
               location is clearly shown on-map. */}
-          {markers.length > 0 && (
+          {!hasTemporalPins && markers.length > 0 && (
             <div
               aria-hidden="true"
               style={{
@@ -431,8 +829,14 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
+
+        .mapboxgl-ctrl-bottom-right,
+        .mapboxgl-ctrl-bottom-left,
+        .mapboxgl-ctrl-logo,
+        .mapboxgl-ctrl-attrib {
+          display: none !important;
+        }
       `}</style>
-      </NodeOverlay>
     </NodeViewWrapper>
   )
 }
