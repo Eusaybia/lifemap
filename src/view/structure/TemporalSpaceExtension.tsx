@@ -367,8 +367,6 @@ export const TemporalSpaceExtension = TipTapNode.create({
           data-temporal-space-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          {/* Debug: Log node attrs on every render */}
-          {console.log('[TemporalSpaceNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
           <motion.div
             style={{
               borderRadius: 12,
@@ -499,4 +497,3 @@ export const TemporalSpaceExtension = TipTapNode.create({
 });
 
 export default TemporalSpaceExtension;
-

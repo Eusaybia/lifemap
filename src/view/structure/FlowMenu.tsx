@@ -65,7 +65,6 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
         const quantaId: string = selectedNode.attrs.quantaId
         const quantaIdWithoutQuotes = JSON.stringify(quantaId).slice(1, -1)
         navigator.clipboard.writeText(quantaIdWithoutQuotes).then(() => {
-            console.log('Copying to clipboard was successful!');
             return true
         }, (err) => {
             console.error('Could not copy text: ', err);
@@ -81,23 +80,17 @@ const handleCopyQuantaIdAction: Action = (editor: Editor) => {
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 
 const handleAddImage = (editor: Editor) => {
-    console.log('[FlowMenu] handleAddImage called')
-    
     // Create a hidden file input
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     
     input.onchange = async (e) => {
-        console.log('[FlowMenu] File input changed')
         const file = (e.target as HTMLInputElement).files?.[0]
         if (!file) {
-            console.log('[FlowMenu] No file selected')
             return
         }
-        
-        console.log('[FlowMenu] File selected:', file.name, file.size)
-        
+
         // Validate file size
         if (file.size > MAX_IMAGE_SIZE) {
             alert(`File size exceeds maximum allowed (${MAX_IMAGE_SIZE / (1024 * 1024)}MB)`)
@@ -105,8 +98,6 @@ const handleAddImage = (editor: Editor) => {
         }
         
         try {
-            console.log('[FlowMenu] Starting upload...')
-            
             // Upload to Vercel Blob via API route
             const response = await fetch(
                 `/api/upload?filename=${encodeURIComponent(file.name)}`,
@@ -115,24 +106,16 @@ const handleAddImage = (editor: Editor) => {
                     body: file,
                 }
             )
-            
-            console.log('[FlowMenu] Upload response status:', response.status)
-            
+
             if (!response.ok) {
                 const error = await response.json()
                 throw new Error(error.error || 'Upload failed')
             }
             
             const blob = await response.json()
-            
-            console.log('[FlowMenu] Image uploaded successfully:', blob.url)
-            console.log('[FlowMenu] Editor state:', editor ? 'exists' : 'null')
-            console.log('[FlowMenu] Editor editable:', editor?.isEditable)
-            
+
             // Use setImage command which is simpler
-            const result = editor.chain().focus().setImage({ src: blob.url }).run()
-            
-            console.log('[FlowMenu] setImage result:', result)
+            editor.chain().focus().setImage({ src: blob.url }).run()
         } catch (error) {
             console.error('[FlowMenu] Image upload failed:', error)
             alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -154,7 +137,6 @@ const setDisplayLensNatural = (editor: Editor) => {
 }
 
 const setEvaluationLens = (editor: Editor, mathLens: MathLens) => {
-    console.log("setting evaluation lens:", mathLens)
     editor!.chain().focus().updateAttributes("math", { lensEvaluation: mathLens }).run();
 }
 
@@ -404,8 +386,6 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                         const lastValidContent = backup.getLastValidContent();
                         if (lastValidContent) {
                             props.editor.commands.setContent(lastValidContent);
-                        } else {
-                            console.warn('No valid backup content found');
                         }
                     }}
                 >
@@ -422,7 +402,6 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     const json = props.editor.getJSON();
                     const jsonString = JSON.stringify(json, null, 2);
                     navigator.clipboard.writeText(jsonString).then(() => {
-                        console.log('Document JSON copied to clipboard!');
                         alert('Document JSON copied to clipboard!');
                     }, (err) => {
                         console.error('Could not copy JSON: ', err);
@@ -674,11 +653,8 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
 
 // Memoize GroupLoupe
 const GroupLoupe = React.memo((props: { editor: Editor }) => {
-    console.log('[GroupLoupe] Rendering GroupLoupe component');
-
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
-    console.log('[GroupLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
 
     return (
         <div
@@ -708,7 +684,6 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"lightBlue"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked lightBlue option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
                     }}
                 >
@@ -721,7 +696,6 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"purple"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked purple option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: purple })
                     }}
                 >
@@ -1301,8 +1275,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
-                {/* Debug: Log what node type is detected */}
-                {console.log('[FlowMenu] getSelectedNodeType:', getSelectedNodeType(props.editor))}
                 <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
                 {
                     {
