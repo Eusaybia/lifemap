@@ -1,6 +1,6 @@
 import { Node, wrappingInputRule, } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { Attrs, DOMSerializer, Node as ProseMirrorNode } from 'prosemirror-model'
+import { Attrs, DOMSerializer, Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 const REGEX_BLOCK_COLON = /:[^:]+:/;
 

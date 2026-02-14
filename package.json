@@ -150,5 +150,10 @@
     "yarn": "1.22.19"
   },
   "overrides": {},
-  "resolutions": {}
+  "resolutions": {
+    "prosemirror-model": "1.25.4",
+    "prosemirror-view": "1.41.6",
+    "prosemirror-state": "1.4.3",
+    "prosemirror-transform": "1.10.3"
+  }
 }
