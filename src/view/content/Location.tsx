@@ -4,7 +4,10 @@ import mapboxgl from 'mapbox-gl';
 import Map from 'react-map-gl';
 import { SearchBox } from '@mapbox/search-js-react';
 
-export const mapboxAccessToken = 'MAPBOX_TOKEN_REMOVED';
+export const mapboxAccessToken =
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
+  '';
 
 mapboxgl.accessToken = mapboxAccessToken
 

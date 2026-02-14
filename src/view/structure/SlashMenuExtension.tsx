@@ -213,7 +213,7 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     },
     {
       id: 'mapbox-map',
-      title: 'Mapbox Map',
+      title: 'Map',
       description: 'Insert an interactive map',
       emoji: '🗺️',
       keywords: ['map', 'mapbox', 'location', 'geography'],

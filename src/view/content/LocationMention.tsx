@@ -14,8 +14,11 @@ import mapboxgl from 'mapbox-gl'
 // Unique plugin key to avoid conflicts with other extensions
 const LocationPluginKey = new PluginKey('location-suggestion')
 
-// Mapbox access token
-const MAPBOX_ACCESS_TOKEN = 'MAPBOX_TOKEN_REMOVED'
+// Mapbox access token (must be provided by environment variable)
+const MAPBOX_ACCESS_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
+  ''
 
 // ============================================================================
 // Types
@@ -237,7 +240,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
   // Geocode location if no coords (memoized function ref)
   const geocodeLocationRef = useRef<() => Promise<[number, number] | null>>()
   geocodeLocationRef.current = async () => {
-    if (coords || !name) return null
+    if (coords || !name || !MAPBOX_ACCESS_TOKEN) return null
     try {
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(name)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
@@ -277,7 +280,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
 
   // Initialize map when expanded - use requestAnimationFrame to wait for DOM
   useEffect(() => {
-    if (!isExpanded || !cssLoaded) return
+    if (!isExpanded || !cssLoaded || !MAPBOX_ACCESS_TOKEN) return
 
     let cancelled = false
     let mapInstance: mapboxgl.Map | null = null
@@ -753,4 +756,3 @@ export const LocationMention = Extension.create<LocationOptions>({
 })
 
 export default LocationMention
-

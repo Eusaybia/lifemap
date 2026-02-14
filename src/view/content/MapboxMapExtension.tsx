@@ -6,8 +6,11 @@ import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/r
 import mapboxgl from 'mapbox-gl'
 import { NodeOverlay } from "../components/NodeOverlay"
 
-// Mapbox access token
-const MAPBOX_ACCESS_TOKEN = 'MAPBOX_TOKEN_REMOVED'
+// Mapbox access token (must be provided by environment variable)
+const MAPBOX_ACCESS_TOKEN =
+  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
+  process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
+  ''
 
 interface MapMarker {
   lng: number
@@ -38,16 +41,17 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const attrs = node.attrs as unknown as MapboxMapAttrs
   const { center, zoom, markers, style } = attrs
 
-  // Load Mapbox CSS
+  // Load Mapbox CSS once globally so marker styling stays stable even when
+  // multiple map nodes mount/unmount in the editor.
   useEffect(() => {
+    const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
+    if (existingLink) return
+
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css'
+    link.setAttribute('data-mapbox-gl-css', 'true')
     document.head.appendChild(link)
-
-    return () => {
-      document.head.removeChild(link)
-    }
   }, [])
 
   // Helper function to add a marker to the map
@@ -77,6 +81,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   // Initialize map
   useEffect(() => {
     if (map.current || !mapContainer.current) return
+    if (!MAPBOX_ACCESS_TOKEN) return
 
     mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
 
@@ -150,6 +155,11 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       setSearchResults([])
       return
     }
+    if (!MAPBOX_ACCESS_TOKEN) {
+      setSearchResults([])
+      setShowResults(false)
+      return
+    }
 
     setIsSearching(true)
     try {
@@ -216,12 +226,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     setShowResults(false)
   }
 
-  // Remove a marker
-  const removeMarker = (index: number) => {
-    const newMarkers = markers.filter((_: MapMarker, i: number) => i !== index)
-    updateAttributes({ markers: newMarkers })
-  }
-
   return (
     <NodeViewWrapper style={{ margin: '16px 0' }}>
       <NodeOverlay
@@ -240,90 +244,15 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             outlineOffset: 2,
           }}
         >
-        {/* Pinned Locations List */}
-        {markers.length > 0 && (
-          <div
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#f9fafb',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            {markers.map((marker: MapMarker, index: number) => (
-              <div
-                key={index}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 16,
-                  padding: '4px 10px',
-                  fontSize: 12,
-                  fontFamily: "'Inter', sans-serif",
-                  color: '#374151',
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="#e11d48"
-                  stroke="none"
-                >
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                </svg>
-                <span style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {marker.label || `${marker.lat.toFixed(4)}, ${marker.lng.toFixed(4)}`}
-                </span>
-                <button
-                  onClick={() => removeMarker(index)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: '#9ca3af',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Map Container */}
-        {/* ARCHITECTURE: Height halved from 400→200 so the embedded map
+        {/* ARCHITECTURE: Height increased to 280px so the embedded map
             doesn't dominate the timeline card — keeps the location context
             visible without pushing surrounding content too far apart. */}
         <div
           style={{
             position: 'relative',
             width: '100%',
-            height: 200,
+            height: 280,
           }}
         >
           {/* ARCHITECTURE: Keep the search UI as a floating overlay so the
@@ -335,21 +264,21 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               top: 12,
               right: 12,
               zIndex: 5,
-              width: 280,
+              width: 240,
               maxWidth: 'calc(100% - 24px)',
               backgroundColor: '#ffffff',
-              borderRadius: 10,
+              borderRadius: 8,
               border: '1px solid #e5e7eb',
               boxShadow: '0 8px 20px -12px rgba(0, 0, 0, 0.35)',
               overflow: 'hidden',
             }}
           >
-            <div style={{ padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: '8px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="#6b7280"
@@ -371,7 +300,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
                     flex: 1,
                     border: 'none',
                     outline: 'none',
-                    fontSize: 14,
+                    fontSize: 12,
                     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
                     color: '#374151',
                     backgroundColor: 'transparent',
@@ -380,8 +309,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
                 {isSearching && (
                   <div
                     style={{
-                      width: 16,
-                      height: 16,
+                      width: 14,
+                      height: 14,
                       border: '2px solid #e5e7eb',
                       borderTopColor: '#6366f1',
                       borderRadius: '50%',
@@ -472,6 +401,28 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               height: '100%',
             }}
           />
+
+          {/* Keep a visible center pin in the map viewport so the selected
+              location is clearly shown on-map. */}
+          {markers.length > 0 && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -100%)',
+                pointerEvents: 'none',
+                zIndex: 4,
+                filter: 'drop-shadow(0 4px 4px rgba(0, 0, 0, 0.35))',
+              }}
+            >
+              <svg width="36" height="48" viewBox="0 0 36 48" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 0C8.059 0 0 8.059 0 18c0 13.5 18 30 18 30s18-16.5 18-30C36 8.059 27.941 0 18 0z" fill="#e11d48" />
+                <circle cx="18" cy="18" r="7" fill="white" />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
@@ -544,4 +495,3 @@ export const MapboxMapExtension = Node.create({
     }
   },
 })
-
