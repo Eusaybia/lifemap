@@ -99,7 +99,8 @@ export const isActualUrl = (url: string) => {
 export const determineIrrelevance = (groupNode: ProseMirrorNode, selectedEventType: string) => {
   let isIrrelevant = false;
 
-  console.log("Selected event type from perspective of group: ", selectedEventType)
+  // Debug log removed for performance
+  // console.log("Selected event type from perspective of group: ", selectedEventType)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
@@ -206,6 +207,16 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "scrollview"
       case "portal":
         return "portal"
+      case "externalPortal":
+        return "externalPortal"
+      case "canvas3D":
+        return "canvas3D"
+      case "weekly":
+        return "weekly"
+      // ARCHITECTURE: Pomodoro is an inline atom node that supports selection.
+      // We return a dedicated type so FlowMenu can show a simple loupe for it.
+      case "pomodoro":
+        return "pomodoro"
       default:
         console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
         return "invalid"

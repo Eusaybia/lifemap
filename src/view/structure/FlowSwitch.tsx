@@ -14,6 +14,8 @@ interface FlowSwitchProps {
     onChange?: (selectedIndex: number) => void
     isLens?: boolean
     disableAutoScroll?: boolean
+    /** When true, scrolling to an option will automatically trigger its onClick */
+    scrollToSelect?: boolean
 }
 
 export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((props, ref) => {
@@ -66,11 +68,14 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                     // Clone the audio to allow rapid successive plays for a mechanical tick effect
                     const soundClone = tickSound.cloneNode() as HTMLAudioElement;
                     soundClone.volume = 0.15;
-                    soundClone.play().catch((error) => {
-                        console.log("Chrome cannot play sound without user interaction first")
-                    });
-                }   
+                    soundClone.play().catch(() => {});
+                }
                 setSelectedIndex(index)
+                
+                // If scrollToSelect is enabled and user is scrolling, trigger the option's onClick
+                if (props.scrollToSelect && isUserScrolling && child?.props?.onClick) {
+                    child.props.onClick();
+                }
             }}
             key={index}
         >
@@ -114,8 +119,6 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                 isProgrammaticScroll.current = false;
             }, 500);
 
-        } else {
-            console.warn(`Flow switch element with props value: ${props.value} not found in the entire switch array.`)
         }
 
     }, [props.value, props.disableAutoScroll])
@@ -212,9 +215,7 @@ export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children })
 
     const handleClick = () => {
         if (clickSound) {
-            clickSound.play().catch((error) => {
-                console.log('Chrome cannot play sound without user interaction first. Click on the webpage in order to play the sound effects.');
-            });
+            clickSound.play().catch(() => {});
         }
         onClick();
     };

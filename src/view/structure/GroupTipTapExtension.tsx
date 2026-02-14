@@ -5,12 +5,36 @@ import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import './styles.scss';
-import { motion, useMotionTemplate, useTransform } from "framer-motion";
+import { motion, useMotionTemplate, useTransform, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
 import { getSelectedNodeType } from "../../utils/utils";
 import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttributesExtension";
 import { throttle } from 'lodash';
 import { DragGrip } from "../components/DragGrip";
+import { NodeOverlay } from "../components/NodeOverlay";
+
+// ============================================================================
+// GROUP ARCHITECTURE
+// ============================================================================
+// Groups are a fundamental unit for organizing content in the editor.
+// There are two variants:
+//
+// 1. BLOCK GROUP (this file - GroupTipTapExtension)
+//    - A TipTap Node that wraps block-level content
+//    - Rendered as a card with a DragGrip component
+//    - Identified by: data-group-node-view="true" and data-group-id="<uuid>"
+//
+// 2. INLINE SPAN GROUP (SpanGroupMark.ts)
+//    - A TipTap Mark that wraps inline text
+//    - Rendered as a highlighted span with a CSS pseudo-element grip
+//    - Identified by: class="span-group" and data-span-group-id="<uuid>"
+//
+// Both types can participate in the connection system (GroupConnectionManager)
+// which allows drawing arrows/relationships between any Group elements.
+// ============================================================================
+
+// Helper to generate unique group IDs (shared format with SpanGroupMark)
+const generateGroupId = () => Math.random().toString(36).substring(2, 8);
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -19,6 +43,9 @@ declare module '@tiptap/core' {
         backgroundColor: string
       }) => ReturnType;
       setLens: (options: {
+        lens: string;
+      }) => ReturnType;
+      setGroupLens: (options: {
         lens: string;
       }) => ReturnType;
     }
@@ -38,8 +65,9 @@ export const shouldHideGroup = (
   let isLearningGroup = false;
   let hasRelevantEventType = false; // Track if we find a relevant event type
 
-  console.log("Selected event type from perspective of group: ", selectedEventType)
-  console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
+  // Debug logs removed for performance - these were firing on every NodeView re-render
+  // console.log("Selected event type from perspective of group: ", selectedEventType)
+  // console.log("Selected focus lens from perspective of group: ", selectedFocusLens)
 
   type EventTypes = DocumentAttributes['selectedEventLens'];
   const eventTypes: EventTypes[] = ['wedding', 'birthday', 'corporate'];
@@ -177,14 +205,23 @@ export const GroupExtension = TipTapNode.create({
         return false
       },
       setLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
-
         const { selection } = state;
-
         const nodeType = getSelectedNodeType(editor)
 
         if (nodeType === "group" && dispatch) {
           dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
-          return true; // Indicate that the command ran successfully
+          return true;
+        }
+        return false
+      },
+      // Unique command name for Group to avoid conflicts with Portal's setLens
+      setGroupLens: (attributes: { lens: string }) => ({ editor, state, dispatch }) => {
+        const { selection } = state;
+        const nodeType = getSelectedNodeType(editor)
+
+        if (nodeType === "group" && dispatch) {
+          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "lens", attributes.lens));
+          return true;
         }
         return false
       },
@@ -208,10 +245,20 @@ export const GroupExtension = TipTapNode.create({
   },
   addAttributes() {
     return {
+      // Unique identifier for this group, used for connections between groups
+      // Format matches SpanGroupMark.groupId for consistency across Group types
+      groupId: { 
+        default: null,
+        parseHTML: element => element.getAttribute('data-group-id'),
+        renderHTML: attributes => {
+          if (!attributes.groupId) return {};
+          return { 'data-group-id': attributes.groupId };
+        },
+      },
       pathos: { default: 0 }, // the emotional content of the group and children - basically a colour mixture of all emotions within
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
-      backgroundColor: { default: offWhite },
+      backgroundColor: { default: '#FFFFFF' },
       lens: { default: "identity" as GroupLenses },
       collapsed: { default: false },
     }
@@ -282,11 +329,31 @@ export const GroupExtension = TipTapNode.create({
         };
       }, [props.editor]);
 
-      // State for document attributes
-      // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // Initialize with defaults to avoid command calls during render.
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes);
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
+      const [isCentered, setIsCentered] = useState(false);
+
+      // Fetch actual document attributes after mount.
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          try {
+            // @ts-ignore - getDocumentAttributes may not exist in all editor contexts
+            if (typeof props.editor.commands.getDocumentAttributes === 'function') {
+              // @ts-ignore
+              const attrs = props.editor.commands.getDocumentAttributes();
+              if (attrs) {
+                setDocAttributes(attrs);
+                setIsCentered(attrs.selectedFocusLens === 'call-mode');
+              }
+            }
+          } catch (e) {
+            // Ignore errors if editor is not ready.
+          }
+        }, 0);
+
+        return () => clearTimeout(timer);
+      }, [props.editor]);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -355,27 +422,9 @@ export const GroupExtension = TipTapNode.create({
         };
       }, [docAttributes.selectedFocusLens]);
 
-      let glowStyles: string[] = [`0px 0px 0px 0px rgba(0, 0, 0, 0)`];
-      // Right-side only glow - using large X offset and inset to keep glow on right edge
-      const orangeGlow = `80px 0 60px -20px hsla(30, 100%, 50%, 0.4)`;
-      const greenGlow = `80px 0 60px -20px hsl(104, 64%, 45%, 0.5)`;
-      let containsUncheckedTodo = false;
-      let containsCheckItem = false;
-
-      props.node.descendants((childNode) => {
-        if (childNode.type.name === 'mention' && (childNode.attrs.label as string)?.includes('✅ complete')) {
-          glowStyles.push(greenGlow);
-        }
-        if (childNode.type.name === 'taskItem') {
-          containsCheckItem = true;
-          if (!childNode.attrs.checked) {
-            containsUncheckedTodo = true;
-          }
-        }
-      });
-      if (glowStyles.length > 1) glowStyles.splice(0, 1);
-      if (containsUncheckedTodo) glowStyles.push(orangeGlow);
-      else if (containsCheckItem) glowStyles.push(greenGlow);
+      // Note: Glow effects (orange for unchecked todos, green for completed tasks)
+      // are now handled by the Aura component which wraps all NodeOverlay children.
+      // The Aura component scans node content for tags and applies appropriate glows.
 
       // Determine if the group should be hidden (display: none)
       const isHidden = shouldHideGroup(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
@@ -383,76 +432,279 @@ export const GroupExtension = TipTapNode.create({
       // Determine overlay opacity for dimming
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
+      // Extract title from first heading or first text content for chip lens
+      const getGroupTitle = () => {
+        let title = '';
+        props.node.content.forEach((child: any) => {
+          if (title) return; // Already found a title
+          if (child.type.name === 'heading') {
+            child.content?.forEach((textNode: any) => {
+              if (textNode.text) title += textNode.text;
+            });
+          } else if (child.type.name === 'paragraph' && !title) {
+            child.content?.forEach((textNode: any) => {
+              if (textNode.text && !title) title = textNode.text;
+            });
+          }
+        });
+        return title || 'Untitled';
+      };
+
+      const currentLens = props.node.attrs.lens;
+      
+      // State and refs for chip preview - must be declared at top level (not conditionally)
+      const [showChipPreview, setShowChipPreview] = useState(false);
+      const chipRef = useRef<HTMLSpanElement>(null);
+      const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
+
+      // Chip lens - render as compact inline element matching .hashtag-mention style
+      if (currentLens === 'chip') {
+        const title = getGroupTitle();
+        
+        // Calculate position when showing preview - diagonal offset (down-right)
+        const handleShowPreview = () => {
+          if (chipRef.current) {
+            const rect = chipRef.current.getBoundingClientRect();
+            setPreviewPosition({
+              top: rect.bottom + 12,
+              left: rect.left + 24, // Offset to the right for diagonal effect
+            });
+          }
+          setShowChipPreview(true);
+        };
+        
+        const chipLayoutId = `chip-${props.node.attrs.quantaId}`;
+        
+        return (
+          <NodeViewWrapper
+            ref={nodeViewRef}
+            data-group-node-view="true"
+            style={{ 
+              display: 'inline',
+            }}
+          >
+            <AnimatePresence mode="wait">
+              {!showChipPreview ? (
+                <motion.span
+                  ref={chipRef}
+                  layoutId={chipLayoutId}
+                  className="hashtag-mention"
+                  style={{ paddingRight: 4 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                >
+                  <span
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleShowPreview();
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {title}
+                  </span>
+                  {/* Mini grip for FlowMenu - click to toggle */}
+                  <span
+                    data-drag-handle
+                    contentEditable={false}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const pos = props.getPos();
+                      if (typeof pos === 'number') {
+                        const { selection } = props.editor.state;
+                        const isSelected = selection.$from.pos === pos;
+                        if (isSelected) {
+                          props.editor.commands.blur();
+                        } else {
+                          props.editor.commands.setNodeSelection(pos);
+                        }
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      flexDirection: 'column',
+                      gap: 1.5,
+                      marginLeft: 4,
+                      padding: '2px 3px',
+                      cursor: 'pointer',
+                      borderRadius: 3,
+                      verticalAlign: 'middle',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                    title="Toggle menu"
+                  >
+                    {[0, 1, 2].map((row) => (
+                      <span key={row} style={{ display: 'flex', gap: 1.5 }}>
+                        {[0, 1].map((col) => (
+                          <span
+                            key={col}
+                            style={{
+                              width: 2.5,
+                              height: 2.5,
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                            }}
+                          />
+                        ))}
+                      </span>
+                    ))}
+                  </span>
+                </motion.span>
+              ) : (
+                // Placeholder to maintain inline flow
+                <span style={{ display: 'inline-block', width: 0, height: 0 }} />
+              )}
+            </AnimatePresence>
+            
+            {/* Fixed position preview overlay with shared element transition */}
+            <AnimatePresence>
+              {showChipPreview && (
+                <>
+                  {/* Click-away area (transparent) */}
+                  <div
+                    onClick={() => setShowChipPreview(false)}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 999,
+                    }}
+                  />
+                  {/* Preview panel */}
+                  <motion.div
+                    layoutId={chipLayoutId}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    style={{
+                      position: 'fixed',
+                      top: previewPosition.top,
+                      left: previewPosition.left,
+                      zIndex: 1000,
+                      minWidth: 320,
+                      maxWidth: 500,
+                      maxHeight: '70vh',
+                      overflow: 'visible',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Render group with proper styling */}
+                    <Group
+                      lens="identity"
+                      quantaId={props.node.attrs.quantaId}
+                      backgroundColor={props.node.attrs.backgroundColor}
+                    >
+                      {/* Close button inside the group */}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowChipPreview(false);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          width: 24,
+                          height: 24,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          color: '#666',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          transition: 'background 0.15s',
+                          zIndex: 10,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(0,0,0,0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        ✕
+                      </div>
+                      <NodeViewContent />
+                    </Group>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </NodeViewWrapper>
+        );
+      }
+
       return (
         <NodeViewWrapper
           ref={nodeViewRef}
           data-group-node-view="true"
           style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
         >
-          <motion.div
-            style={{
-              borderRadius: 10,
-              position: 'relative',
-              display: isHidden ? 'none' : 'block',
-              overflow: 'visible',
-            }}
-            animate={{
-              boxShadow: glowStyles.join(','),
-            }}
-            transition={{ duration: 0.5, ease: "circOut" }}
+          {/* NodeOverlay provides the grip, shadow, and connection support */}
+          <NodeOverlay
+            nodeProps={props}
+            nodeType="group"
+            style={{ display: isHidden ? 'none' : 'block' }}
+            isPrivate={props.node.attrs.lens === 'private'}
           >
-            {/* Debug: Log node attrs on every render */}
-            {console.log('[GroupNodeView] Rendering with backgroundColor:', props.node.attrs.backgroundColor, 'all attrs:', props.node.attrs)}
-            <Group
-              lens={props.node.attrs.lens}
-              quantaId={props.node.attrs.quantaId}
-              backgroundColor={props.node.attrs.backgroundColor}
-              isCollapsed={props.node.attrs.collapsed}
-              onToggleCollapse={() => {
-                props.updateAttributes({ collapsed: !props.node.attrs.collapsed });
+            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
+            <div
+              style={{
+                borderRadius: 10,
+                position: 'relative',
+                overflow: 'visible',
               }}
             >
-              {(() => {
-                switch (props.node.attrs.lens) {
-                  case "identity":
-                    return <NodeViewContent />;
-                  case "hideUnimportantNodes":
-                    return <div>Important Nodes Only (Pending)</div>;
-                  default:
-                    return <NodeViewContent />;
-                }
-              })()}
-            </Group>
-            
-            {/* 6-dot grip handle - clicking selects the node to show FlowMenu */}
-            <DragGrip
-              position="absolute-top-right"
-              dotColor="#999"
-              hoverBackground="rgba(0, 0, 0, 0.08)"
-              onClick={() => {
-                const pos = props.getPos();
-                if (typeof pos === 'number') {
-                  props.editor.commands.setNodeSelection(pos);
-                }
-              }}
-            />
+              <Group
+                lens={props.node.attrs.lens}
+                quantaId={props.node.attrs.quantaId}
+                backgroundColor={props.node.attrs.backgroundColor}
+              >
+                {(() => {
+                  switch (props.node.attrs.lens) {
+                    case "identity":
+                      return <NodeViewContent />;
+                    case "hideUnimportantNodes":
+                      return <div>Important Nodes Only (Pending)</div>;
+                    case "private":
+                      // Content still renders but overlay covers it in Group component
+                      return <NodeViewContent />;
+                    case "collapsed":
+                      // Content is hidden by Group component when collapsed
+                      return <NodeViewContent />;
+                    default:
+                      return <NodeViewContent />;
+                  }
+                })()}
+              </Group>
 
-            <motion.div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
-                borderRadius: 10,
-                pointerEvents: 'none',
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </motion.div>
+              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+              {/* This is separate from the Aura focus system which uses focus tags */}
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 10,
+                  pointerEvents: 'none',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

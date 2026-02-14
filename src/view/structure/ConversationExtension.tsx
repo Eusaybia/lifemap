@@ -5,6 +5,7 @@ import { Group } from "./Group";
 import { Quanta } from "../../core/Quanta";
 import { group } from "console";
 import { Message } from "../content/Message";
+import { NodeOverlay } from "../components/NodeOverlay";
 
 export const tildeInputRegex = /~>$/
 
@@ -40,19 +41,21 @@ export const ConversationExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <>
-          </>
-          <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
-            Group Chat
-          </div>
-          <Group
-            quantaId={props.node.attrs.qid}
-            lens={"identity"}
-            // @ts-ignore - Suppressing prop mismatch for isIrrelevant
-            isIrrelevant={false}
-          >
-            <NodeViewContent/>
-          </Group>
+          <NodeOverlay nodeProps={props} nodeType="conversation">
+            <>
+            </>
+            <div style={{fontFamily: "EB Garamond", fontSize: 30}}>
+              Group Chat
+            </div>
+            <Group
+              quantaId={props.node.attrs.qid}
+              lens={"identity"}
+              // @ts-ignore - Suppressing prop mismatch for isIrrelevant
+              isIrrelevant={false}
+            >
+              <NodeViewContent/>
+            </Group>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

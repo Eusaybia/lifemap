@@ -3,6 +3,7 @@ import { Node, mergeAttributes, wrappingInputRule } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Math } from "../content/Math"
 import { NodeViewProps } from '@tiptap/core'
+import { NodeOverlay } from "../components/NodeOverlay"
 
 const REGEX_INLINE_MATH_DOLLARS: RegExp = /\$(.+)\$/; //new RegExp("\$(.+)\$", "i");
 
@@ -57,13 +58,15 @@ export const MathExtension = Node.create({
 
       return (
         <NodeViewWrapper>
-          <Math
-            style={"flat"}
-            equationString={props.node.attrs.equationValue}
-            lensEvaluation={props.node.attrs.lensEvaluation}
-            lensDisplay={props.node.attrs.lensDisplay}
-            updateContent={updateContent}
-          />
+          <NodeOverlay nodeProps={props} nodeType="math">
+            <Math
+              style={"flat"}
+              equationString={props.node.attrs.equationValue}
+              lensEvaluation={props.node.attrs.lensEvaluation}
+              lensDisplay={props.node.attrs.lensDisplay}
+              updateContent={updateContent}
+            />
+          </NodeOverlay>
         </NodeViewWrapper>
       )
     })

@@ -17,7 +17,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { Fragment, Node as ProseMirrorNode, Slice } from "prosemirror-model";
 import { debounce } from "lodash";
-import { Grip } from "../content/Grip";
+import { NodeOverlay } from "../components/NodeOverlay";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { GroupLenses, Group } from "./Group";
 import { getSelectedNodeType, logCurrentLens } from "../../utils/utils";
@@ -76,6 +76,8 @@ const PortalExtension = Node.create({
   group: "block",
   content: "block*",
   atom: true,
+  selectable: true,
+  draggable: true,
   addAttributes() {
     return {
       id: {
@@ -173,7 +175,7 @@ const PortalExtension = Node.create({
           const pos = props.getPos();
 
           // Currently shouldn't support references to text, nor references to other portals
-          if (!pos || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
+          if (typeof pos !== 'number' || referencedQuantaJSON.text || referencedQuantaJSON.type === "portal") return;
 
           // Get the current selection before updating the portal content, so we can restore it after the portal has been updated
           const initialSelection = props.editor.state.selection;
@@ -323,9 +325,23 @@ const PortalExtension = Node.create({
           return hasImportantMention;
         };
 
+        // Get the current lens from node attributes
+        const currentLens = props.node.attrs.lens as PortalLenses;
+        const isPrivate = currentLens === 'private';
+        const isPreview = currentLens === 'preview';
+
+        // Handler to open the quanta in a new tab
+        // This allows users to quickly navigate to the full quanta page for detailed editing
+        const handleOpenQuantaInNewTab = () => {
+          if (referencedQuantaId) {
+            window.open(`/q/${referencedQuantaId}`, '_blank', 'noopener,noreferrer');
+          }
+        };
+
         return (
           <NodeViewWrapper>
-            <div contentEditable={false}>
+            <NodeOverlay nodeProps={props} nodeType="portal" isPrivate={isPrivate}>
+              <div contentEditable={false} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <input
                 type="text"
                 value={referencedQuantaId}
@@ -346,21 +362,83 @@ const PortalExtension = Node.create({
                   zIndex: 1,
                 }}
               />
+              {/* Link out icon - opens the quanta in a new tab for full editing/viewing */}
+              <button
+                onClick={handleOpenQuantaInNewTab}
+                title={`Open ${referencedQuantaId} in new tab`}
+                style={{
+                  position: "absolute",
+                  left: "88px",
+                  zIndex: 1,
+                  background: "transparent",
+                  border: "none",
+                  cursor: referencedQuantaId ? "pointer" : "not-allowed",
+                  padding: "4px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: referencedQuantaId ? 0.6 : 0.3,
+                  transition: "opacity 0.2s ease, background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (referencedQuantaId) {
+                    e.currentTarget.style.opacity = "1";
+                    e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = referencedQuantaId ? "0.6" : "0.3";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+                disabled={!referencedQuantaId}
+              >
+                {/* External link icon SVG - used instead of lucide-react to avoid React types mismatch */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#666"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </button>
             </div>
             <div
               style={{
                 borderRadius: sharedBorderRadius,
-                background: `#e0e0e0`,
+                background: `#FFFFFF`,
                 position: "relative",
-                boxShadow: `inset 10px 10px 10px #bebebe,
-                    inset -10px -10px 10px #FFFFFF99`,
                 minHeight: 20,
-                padding: `11px 15px 11px 15px`,
+                maxHeight: (isPreview || isPrivate) ? 100 : undefined,
+                overflow: isPrivate ? 'hidden' : (isPreview ? 'auto' : undefined),
+                padding: 20,
                 marginBottom: 10,
               }}
               contentEditable={false}
             >
-              <Grip />
+              {/* Private lens overlay is now handled by NodeOverlay for full coverage */}
+              {/* Preview lens fade gradient at bottom */}
+              {isPreview && !isPrivate && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 40,
+                    background: 'linear-gradient(to bottom, transparent, #FFFFFF)',
+                    borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
               <select
                 value={showMode}
                 onChange={(e) => setShowMode(e.target.value as 'all' | 'important')}
@@ -398,6 +476,7 @@ const PortalExtension = Node.create({
                 </Group>
               )}
             </div>
+            </NodeOverlay>
           </NodeViewWrapper>
         );
       },

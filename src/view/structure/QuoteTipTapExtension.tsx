@@ -6,6 +6,7 @@ import { purple } from "../Theme";
 import { DocumentAttributes } from "./DocumentAttributesExtension";
 import { JSONContent } from "@tiptap/core";
 import { defaultDocumentAttributes } from "./DocumentAttributesExtension";
+import { NodeOverlay } from "../components/NodeOverlay";
 
 export const doubleDoubleQuoteInputRegex = /""([^""]*)""/
 
@@ -123,11 +124,28 @@ export const QuoteExtension = Node.create({
 
       const nodeViewRef = useRef<HTMLDivElement>(null);
 
-      // State for document attributes
-      // @ts-ignore
-      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(() => props.editor.commands.getDocumentAttributes());
+      // Initialize with defaults to avoid command calls during render.
+      const [docAttributes, setDocAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes);
       // State to track if the node is centered
-      const [isCentered, setIsCentered] = useState(docAttributes.selectedFocusLens === 'call-mode');
+      const [isCentered, setIsCentered] = useState(false);
+
+      // Fetch actual document attributes after mount.
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          try {
+            // @ts-ignore
+            const attrs = props.editor.commands.getDocumentAttributes();
+            if (attrs) {
+              setDocAttributes(attrs);
+              setIsCentered(attrs.selectedFocusLens === 'call-mode');
+            }
+          } catch (e) {
+            // Ignore errors if editor is not ready.
+          }
+        }, 0);
+
+        return () => clearTimeout(timer);
+      }, [props.editor]);
 
       // Effect to update docAttributes from localStorage changes
       useEffect(() => {
@@ -207,36 +225,38 @@ export const QuoteExtension = Node.create({
           ref={nodeViewRef}
           style={{ scrollSnapAlign: 'start' }}
         >
-          <motion.div style={{
-            position: 'relative',
-            display: isHidden ? 'none' : 'block', // Hide the node if it's irrelevant
-            boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 5px 5px -3px rgba(0, 0, 0, 0.2)`,
-            backgroundColor: "#F3DFAB", 
-            borderRadius: 5, 
-            padding: `20px 20px 20px 20px`, 
-            color: "#222222", 
-            fontSize: 16
-          }}>
-            <div style={{fontFamily: "Georgia", fontSize: 100, height: 70}}>
-              {'"'}
-            </div>
-            <NodeViewContent />
-            <motion.div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'black',
-                borderRadius: 5,
-                pointerEvents: 'none',
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: dimmingOpacity }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-            />
-          </motion.div>
+          <NodeOverlay nodeProps={props} nodeType="quote">
+            <motion.div style={{
+              position: 'relative',
+              display: isHidden ? 'none' : 'block', // Hide the node if it's irrelevant
+              boxShadow: `0px 0.6021873017743928px 2.0474368260329356px -1px rgba(0, 0, 0, 0.29), 0px 2.288533303243457px 7.781013231027754px -2px rgba(0, 0, 0, 0.27711), 0px 5px 5px -3px rgba(0, 0, 0, 0.2)`,
+              backgroundColor: "#F3DFAB", 
+              borderRadius: 5, 
+              padding: `20px 20px 20px 20px`, 
+              color: "#222222", 
+              fontSize: 16
+            }}>
+              <div style={{fontFamily: "Georgia", fontSize: 100, height: 70}}>
+                {'"'}
+              </div>
+              <NodeViewContent />
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'black',
+                  borderRadius: 5,
+                  pointerEvents: 'none',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: dimmingOpacity }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              />
+            </motion.div>
+          </NodeOverlay>
         </NodeViewWrapper>
       );
     });

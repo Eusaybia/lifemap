@@ -1,6 +1,6 @@
 import { Node, wrappingInputRule, } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { Attrs, DOMSerializer, Node as ProseMirrorNode } from 'prosemirror-model'
+import { Attrs, DOMSerializer, Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 const REGEX_BLOCK_COLON = /:[^:]+:/;
 
@@ -57,7 +57,10 @@ export const ExperimentalPortalExtension = Node.create({
     
           // Re-render the node when its id changes
           editor.on('transaction', () => {
-            const updatedNode = editor.state.doc.nodeAt(getPos())
+            const pos = getPos()
+            if (typeof pos !== 'number') return
+
+            const updatedNode = editor.state.doc.nodeAt(pos)
             if (updatedNode && updatedNode.attrs.id !== node.attrs.id) {
               // Find the new referenced node
               let newReferencedNode: ProseMirrorNode | null = null

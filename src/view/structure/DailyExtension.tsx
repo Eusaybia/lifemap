@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // Date Helpers
@@ -77,15 +78,14 @@ const resetQuantaToTemplate = async (quantaSlug: string): Promise<boolean> => {
   })
 }
 
-// Set flag for today's and tomorrow's schedules - RichText.tsx will apply template if empty
+// Set flag for today's schedule - RichText.tsx will apply template if empty
 // Uses localStorage because sessionStorage is NOT shared between iframes and parent
 // This function is called synchronously to ensure flag is set before iframes load
 // IMPORTANT: Only sets the flag ONCE per day - not on every page refresh
+// NOTE: Tomorrow uses click-to-load pattern to avoid y-indexeddb contention on initial load
 const checkAndInitializeDaily = () => {
   const today = formatDateSlug(new Date())
-  const tomorrow = formatDateSlug(getTomorrowDate())
   const todaySlug = `daily-${today}`
-  const tomorrowSlug = `daily-${tomorrow}`
   
   // Check if we've already initialized these days
   const initializedDaysStr = localStorage.getItem(INITIALIZED_DAYS_KEY)
@@ -102,12 +102,8 @@ const checkAndInitializeDaily = () => {
     console.log(`[DailyExtension] Flagged ${todaySlug} for template initialization`)
   }
   
-  // Check and add tomorrow if not already initialized
-  if (!initializedDays.includes(tomorrowSlug) && !pendingSchedules.includes(tomorrowSlug)) {
-    pendingSchedules.push(tomorrowSlug)
-    initializedDays.push(tomorrowSlug)
-    console.log(`[DailyExtension] Flagged ${tomorrowSlug} for template initialization`)
-  }
+  // Tomorrow initialization disabled - causes y-indexeddb contention and 50+ second blocks
+  // when multiple iframes compete for IndexedDB access simultaneously
   
   // Save pending schedules
   if (pendingSchedules.length > 0) {
@@ -124,6 +120,101 @@ const checkAndInitializeDaily = () => {
 // Call immediately when module loads to ensure flag is set before iframes render
 if (typeof window !== 'undefined') {
   checkAndInitializeDaily()
+}
+
+// ============================================================================
+// Lazy Iframe Component - Only loads when visible in viewport
+// ============================================================================
+
+interface LazyIframeProps {
+  src: string
+  title: string
+  iframeRef?: React.RefObject<HTMLIFrameElement | null>
+  eager?: boolean // If true, load immediately without waiting for visibility
+  spill?: boolean // If true, allow iframe to overflow its card bounds
+}
+
+const LazyIframe: React.FC<LazyIframeProps> = ({ src, title, iframeRef, eager = false, spill = false }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isVisible, setIsVisible] = useState(eager)
+  const [hasLoaded, setHasLoaded] = useState(eager)
+
+  useEffect(() => {
+    // If eager, skip intersection observer
+    if (eager) {
+      setIsVisible(true)
+      setHasLoaded(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasLoaded) {
+            console.log(`[LazyIframe] Loading: ${title}`)
+            setIsVisible(true)
+            setHasLoaded(true)
+            // Once loaded, we don't need to observe anymore
+            observer.disconnect()
+          }
+        })
+      },
+      {
+        // Load when iframe is within 200px of viewport (preload slightly before visible)
+        rootMargin: '200px',
+        threshold: 0,
+      }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [eager, hasLoaded, title])
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        flex: 1,
+        position: 'relative',
+        height: '100%',
+        overflow: spill ? 'visible' : 'hidden',
+      }}
+    >
+      {isVisible ? (
+        <iframe
+          ref={iframeRef}
+          src={src}
+          title={title}
+          style={{
+            position: spill ? 'absolute' : 'relative',
+            top: spill ? '-6%' : 0,
+            left: spill ? '-6%' : 0,
+            width: spill ? '112%' : '100%',
+            height: spill ? '112%' : '100%',
+            border: 'none',
+            display: 'block',
+          }}
+        />
+      ) : (
+        // Placeholder while not yet visible
+        <div style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9f9f9',
+          color: '#999',
+          fontSize: '14px',
+        }}>
+          Scroll to load...
+        </div>
+      )}
+    </div>
+  )
 }
 
 // Simple chevron icons
@@ -153,6 +244,7 @@ interface DayCardProps {
 
 const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, iframeRef }) => {
   const isTemplate = label === 'Template'
+  const isYesterday = label === 'Yesterday'
   const [isRefreshing, setIsRefreshing] = useState(false)
   
   const handleRefresh = async () => {
@@ -176,14 +268,17 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
     }
   }
   
+  // Yesterday is dimmer (0.45), other non-today cards are 0.7, today is fully opaque
+  const cardOpacity = isToday ? 1 : isYesterday ? 0.45 : 0.7
+  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: isToday ? 1 : 0.7, scale: 1 }}
+      animate={{ opacity: cardOpacity, scale: 1 }}
       transition={{ duration: 0.3 }}
+      className="daily-card"
       style={{
-        flex: '0 0 550px',
-        width: '550px',
+        // Base styles - responsive width handled by CSS class
         minHeight: '900px',
         display: 'flex',
         flexDirection: 'column',
@@ -294,14 +389,34 @@ const DayCard: React.FC<DayCardProps> = ({ label, isToday, slug, children, ifram
 const TOTAL_CARDS = 4 // Template, Yesterday, Today, Tomorrow
 const TODAY_INDEX = 2 // Today is at index 2 (0: Template, 1: Yesterday, 2: Today, 3: Tomorrow)
 
-const DailyNodeView: React.FC<NodeViewProps> = () => {
+// Stagger delays for sequential loading to avoid y-indexeddb contention
+// Today loads immediately, then Yesterday after YESTERDAY_DELAY, then Template after TEMPLATE_DELAY
+const YESTERDAY_LOAD_DELAY = 1500 // 1.5 seconds after mount
+const TEMPLATE_LOAD_DELAY = 3000 // 3 seconds after mount
+
+const DailyNodeView: React.FC<NodeViewProps> = (props) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(TODAY_INDEX) // Start at "Today"
+  const activeIndexRef = useRef(TODAY_INDEX)
+  const scrollEndTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   
   // Iframe refs for refreshing
   const yesterdayIframeRef = useRef<HTMLIFrameElement>(null)
   const todayIframeRef = useRef<HTMLIFrameElement>(null)
   const tomorrowIframeRef = useRef<HTMLIFrameElement>(null)
+  
+  // Track if each pane has been instantiated (click-to-load to reduce memory pressure)
+  const [templateInstantiated, setTemplateInstantiated] = useState(false)
+  const [yesterdayInstantiated, setYesterdayInstantiated] = useState(false)
+  const [todayInstantiated, setTodayInstantiated] = useState(false)
+  const [tomorrowInstantiated, setTomorrowInstantiated] = useState(false)
+  
+  // Staggered loading removed - panes now require explicit click to initialize
+  
+  // Track if initial scroll to Today has completed - prevents staggered loading from
+  // triggering unwanted scroll position changes
+  const initialScrollDoneRef = useRef(false)
   
   // Calculate date slugs for each pane
   const todaySlug = `daily-${formatDateSlug(new Date())}`
@@ -313,34 +428,74 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
     checkAndInitializeDaily()
   }, [])
   
-  // Scroll to today on mount - with multiple attempts to ensure it works
-  const scrollToToday = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
-      const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
-      container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
-      setActiveIndex(TODAY_INDEX)
+  // Staggered loading removed - panes initialize on click
+  
+  // Helper to get responsive card width + gap based on viewport
+  // Matches the CSS breakpoints: mobile (<=768px), tablet (769-1024px), desktop (>1024px)
+  const getCardWidthWithGap = useCallback(() => {
+    if (typeof window === 'undefined') return 562 // Default desktop: 550 + 12 gap
+    const width = window.innerWidth
+    if (width <= 768) {
+      // Mobile: 100vw, no gap
+      return width
+    } else if (width <= 1024) {
+      // Tablet: 480px + 12 gap
+      return 492
     }
+    // Desktop: 550px + 12 gap
+    return 562
   }, [])
   
+  // Scroll to today on mount - runs only once with multiple attempts to ensure it works
+  // Uses empty dependency array to prevent re-running when staggered loading causes re-renders
   useEffect(() => {
+    const scrollToTodayPosition = () => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current
+        const cardWidth = getCardWidthWithGap()
+        const scrollPosition = (TODAY_INDEX * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
+        container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
+        setActiveIndex(TODAY_INDEX)
+      }
+    }
+    
     // Multiple attempts to ensure scrolling works after layout is complete
     const attempts = [0, 100, 300, 500]
-    attempts.forEach(delay => {
-      setTimeout(scrollToToday, delay)
-    })
-  }, [scrollToToday])
+    const timeoutIds = attempts.map(delay => 
+      setTimeout(scrollToTodayPosition, delay)
+    )
+    
+    // Mark initial scroll as done after the last attempt
+    const doneTimeout = setTimeout(() => {
+      initialScrollDoneRef.current = true
+    }, 600) // After last scroll attempt (500ms) + buffer
+    
+    return () => {
+      timeoutIds.forEach(id => clearTimeout(id))
+      clearTimeout(doneTimeout)
+    }
+  }, []) // Empty deps - only run on mount
+
+  // Track viewport size to avoid mounting multiple iframes on mobile
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === 'undefined') return
+      setIsMobileViewport(window.innerWidth <= 768)
+    }
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [])
   
   const scrollToCard = useCallback((index: number) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
+      const cardWidth = getCardWidthWithGap()
       const scrollPosition = (index * cardWidth) - (container.clientWidth / 2) + (cardWidth / 2)
       container.scrollTo({ left: Math.max(0, scrollPosition), behavior: 'smooth' })
       setActiveIndex(index)
     }
-  }, [])
+  }, [getCardWidthWithGap])
   
   const navigatePrevious = useCallback(() => {
     scrollToCard(Math.max(0, activeIndex - 1))
@@ -351,167 +506,374 @@ const DailyNodeView: React.FC<NodeViewProps> = () => {
   }, [activeIndex, scrollToCard])
   
   const handleScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
-      const cardWidth = 550 + 12
+    // Ignore scroll events during initial loading period to prevent staggered
+    // iframe loading from accidentally changing the active card
+    if (!initialScrollDoneRef.current) {
+      return
+    }
+
+    if (!scrollContainerRef.current) return
+    const container = scrollContainerRef.current
+    const updateActiveIndex = () => {
+      const cardWidth = getCardWidthWithGap()
       const scrollCenter = container.scrollLeft + (container.clientWidth / 2)
       const newIndex = Math.round((scrollCenter - cardWidth / 2) / cardWidth)
       const clampedIndex = Math.max(0, Math.min(TOTAL_CARDS - 1, newIndex))
-      if (clampedIndex !== activeIndex) {
+      if (clampedIndex !== activeIndexRef.current) {
+        activeIndexRef.current = clampedIndex
         setActiveIndex(clampedIndex)
       }
     }
+
+    // Debounce updates to avoid re-rendering on every scroll event
+    if (scrollEndTimeoutRef.current) {
+      clearTimeout(scrollEndTimeoutRef.current)
+    }
+    scrollEndTimeoutRef.current = setTimeout(updateActiveIndex, 120)
+  }, [getCardWidthWithGap])
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
   }, [activeIndex])
+
+  const shouldRenderIframe = (index: number, instantiated: boolean) => {
+    if (!instantiated) return false
+    if (!isMobileViewport) return true
+    return index === activeIndexRef.current
+  }
 
   return (
     <NodeViewWrapper 
       data-daily-node-view="true"
       style={{ margin: '0', overflow: 'visible', position: 'relative', zIndex: 50 }}
     >
-      <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
-        {/* Navigation Arrows */}
-        <button
-          onClick={navigatePrevious}
-          disabled={activeIndex === 0}
-          style={{
-            position: 'absolute',
-            left: '0px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 10,
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            border: '1px solid #e5e5e5',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
-            opacity: activeIndex === 0 ? 0.4 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ChevronLeft size={18} color="#666" />
-        </button>
-        
-        <button
-          onClick={navigateNext}
-          disabled={activeIndex === TOTAL_CARDS - 1}
-          style={{
-            position: 'absolute',
-            right: '0px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 10,
-            width: '36px',
-            height: '36px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            border: '1px solid #e5e5e5',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: activeIndex === TOTAL_CARDS - 1 ? 'not-allowed' : 'pointer',
-            opacity: activeIndex === TOTAL_CARDS - 1 ? 0.4 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ChevronRight size={18} color="#666" />
-        </button>
+      {/* NodeOverlay provides the grip, connection ID, and standard card styling */}
+      {/* padding={0} and margin: 0 for mobile responsiveness - cards handle their own spacing */}
+      <NodeOverlay 
+        nodeProps={props} 
+        nodeType="daily"
+        gripTop={8}
+        gripRight={8}
+        padding={0}
+        backgroundColor="transparent"
+        boxShadow="none"
+        borderRadius={0}
+        style={{ margin: 0, overflow: 'visible' }}
+      >
+        <div style={{ position: 'relative', overflow: 'visible', zIndex: 50 }}>
+          {/* Navigation Arrows - hidden on mobile via CSS */}
+          <button
+            onClick={navigatePrevious}
+            disabled={activeIndex === 0}
+            className="daily-nav-arrow"
+            style={{
+              position: 'absolute',
+              left: '0px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e5e5',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              cursor: activeIndex === 0 ? 'not-allowed' : 'pointer',
+              opacity: activeIndex === 0 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronLeft size={18} color="#666" />
+          </button>
+          
+          <button
+            onClick={navigateNext}
+            disabled={activeIndex === TOTAL_CARDS - 1}
+            className="daily-nav-arrow"
+            style={{
+              position: 'absolute',
+              right: '0px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e5e5',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              cursor: activeIndex === TOTAL_CARDS - 1 ? 'not-allowed' : 'pointer',
+              opacity: activeIndex === TOTAL_CARDS - 1 ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronRight size={18} color="#666" />
+          </button>
         
         {/* Horizontal Scroll Container */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
+          className="daily-carousel-scroll"
           style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: '12px',
             overflowX: 'auto',
             overflowY: 'visible',
             scrollSnapType: 'x mandatory',
             scrollBehavior: 'smooth',
-            padding: '8px 50px',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
-          className="daily-carousel-scroll"
         >
+          {/* Responsive styles for mobile vs desktop */}
           <style>{`
             .daily-carousel-scroll::-webkit-scrollbar {
               display: none;
             }
+            
+            /* Desktop styles - fixed width cards with gap and padding */
+            .daily-carousel-scroll {
+              gap: 12px;
+              padding: 0;
+            }
+            
+            .daily-card {
+              flex: 0 0 550px;
+              width: 550px;
+            }
+            
+            /* Mobile styles - full width cards, minimal padding */
+            @media (max-width: 768px) {
+              .daily-carousel-scroll {
+                gap: 0px;
+                padding: 0;
+              }
+              
+              .daily-card {
+                flex: 0 0 100vw;
+                width: 100vw;
+                border-radius: 0px;
+                border-left: none;
+                border-right: none;
+              }
+              
+              /* Hide navigation arrows on mobile - use swipe instead */
+              .daily-nav-arrow {
+                display: none !important;
+              }
+            }
+            
+            /* Tablet styles - slightly smaller cards */
+            @media (min-width: 769px) and (max-width: 1024px) {
+              .daily-card {
+                flex: 0 0 480px;
+                width: 480px;
+              }
+              
+              .daily-carousel-scroll {
+                padding: 0;
+              }
+            }
           `}</style>
           
-          {/* Template Card */}
+          {/* Template Card - click to initialize */}
           <DayCard label="Template" isToday={false} slug={TEMPLATE_QUANTA_SLUG}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
+            {shouldRenderIframe(0, templateInstantiated) ? (
+              <LazyIframe
                 src={`/q/${TEMPLATE_QUANTA_SLUG}?mode=graph`}
                 title="Daily Schedule Template"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
+                eager={true}
+                spill={true}
               />
-            </div>
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                <motion.button
+                  onClick={() => setTemplateInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load template
+                </motion.button>
+              </div>
+            )}
           </DayCard>
           
-          {/* Yesterday Card - loads yesterday's date-based quanta */}
+          {/* Yesterday Card - click to initialize */}
           <DayCard label="Yesterday" isToday={false} slug={yesterdaySlug} iframeRef={yesterdayIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={yesterdayIframeRef}
+            {shouldRenderIframe(1, yesterdayInstantiated) ? (
+              <LazyIframe
                 src={`/q/${yesterdaySlug}?mode=graph`}
                 title="Yesterday's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
+                iframeRef={yesterdayIframeRef}
+                eager={true}
+                spill={true}
               />
-            </div>
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                <motion.button
+                  onClick={() => setYesterdayInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load yesterday
+                </motion.button>
+              </div>
+            )}
           </DayCard>
           
-          {/* Today Card - loads today's date-based quanta */}
+          {/* Today Card - click to initialize */}
           <DayCard label="Today" isToday={true} slug={todaySlug} iframeRef={todayIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={todayIframeRef}
+            {shouldRenderIframe(2, todayInstantiated) ? (
+              <LazyIframe
                 src={`/q/${todaySlug}?mode=graph`}
                 title="Today's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
+                iframeRef={todayIframeRef}
+                eager={true}
+                spill={true}
               />
-            </div>
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#f9f9f9',
+                color: '#999',
+                fontSize: '14px',
+              }}>
+                <motion.button
+                  onClick={() => setTodayInstantiated(true)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: '999px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: '#666',
+                  }}
+                  whileHover={{ backgroundColor: '#f0f0f0' }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Click to load today
+                </motion.button>
+              </div>
+            )}
           </DayCard>
           
-          {/* Tomorrow Card - loads tomorrow's date-based quanta */}
+          {/* Tomorrow Card - Click to instantiate (prevents y-indexeddb contention on page load) */}
           <DayCard label="Tomorrow" isToday={false} slug={tomorrowSlug} iframeRef={tomorrowIframeRef}>
-            <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-              <iframe
-                ref={tomorrowIframeRef}
+            {shouldRenderIframe(3, tomorrowInstantiated) ? (
+              <LazyIframe
                 src={`/q/${tomorrowSlug}?mode=graph`}
                 title="Tomorrow's Schedule"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  display: 'block',
-                }}
+                iframeRef={tomorrowIframeRef}
+                eager={true}
+                spill={true}
               />
-            </div>
+            ) : (
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: '400px',
+                backgroundColor: '#fafafa',
+                borderRadius: '8px',
+                margin: '16px',
+                gap: '16px',
+              }}>
+                <motion.button
+                  onClick={() => {
+                    // Flag tomorrow for template initialization before loading
+                    const pendingStr = localStorage.getItem(NEW_DAILY_SCHEDULES_KEY)
+                    const pendingSchedules: string[] = pendingStr ? JSON.parse(pendingStr) : []
+                    if (!pendingSchedules.includes(tomorrowSlug)) {
+                      pendingSchedules.push(tomorrowSlug)
+                      localStorage.setItem(NEW_DAILY_SCHEDULES_KEY, JSON.stringify(pendingSchedules))
+                    }
+                    setTomorrowInstantiated(true)
+                  }}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    border: '2px dashed #ccc',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '36px',
+                    color: '#999',
+                  }}
+                  whileHover={{ 
+                    scale: 1.1, 
+                    borderColor: '#888',
+                    backgroundColor: 'rgba(0,0,0,0.02)',
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  +
+                </motion.button>
+                <div style={{
+                  textAlign: 'center',
+                  color: '#888',
+                  fontSize: '14px',
+                  lineHeight: '1.5',
+                }}>
+                  <div style={{ fontWeight: 500 }}>Click + to load tomorrow</div>
+                  <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px' }}>
+                    Loads schedule from template
+                  </div>
+                </div>
+              </div>
+            )}
           </DayCard>
         </div>
       </div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }
@@ -535,6 +897,10 @@ export const DailyExtension = TipTapNode.create({
   inline: false,
   selectable: true,
   draggable: true,
+
+  // Note: No need to add quantaId attribute here - it's automatically added by
+  // TipTap's UniqueID extension. Make sure 'daily' is in the types array:
+  // RichText.tsx → UniqueID.configure({ types: [..., 'daily'] })
   
   parseHTML() {
     return [{ tag: 'div[data-type="daily"]' }]

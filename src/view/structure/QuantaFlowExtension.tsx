@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef, memo, Component, ErrorInfo, ReactNode } from "react";
 import { Node as TiptapNode, NodeViewProps, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { NodeOverlay } from "../components/NodeOverlay";
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -626,7 +627,8 @@ const generateNodeId = () => `quanta-node-${Date.now()}-${Math.random().toString
 // QuantaFlowNodeView - TipTap NodeView wrapper
 // ============================================================================
 
-const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps) => {
+const QuantaFlowNodeView = (props: NodeViewProps) => {
+  const { node, updateAttributes, selected } = props;
   const { graphId, height, nodes: nodesJson, edges: edgesJson } = node.attrs;
   // Use a fixed height of 700px for the graph
   const [graphHeight, setGraphHeight] = useState(700);
@@ -639,86 +641,88 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
   if (!isInstantiated) {
     return (
       <NodeViewWrapper>
-        <Box
-          onClick={() => setIsInstantiated(true)}
-          sx={{
-            border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            my: 2,
-            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              borderColor: '#6366f1',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
-              transform: 'translateY(-1px)',
-            },
-          }}
-        >
+        <NodeOverlay nodeProps={props} nodeType="quantaFlow">
           <Box
+            onClick={() => setIsInstantiated(true)}
             sx={{
-              p: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: 200,
-              gap: 2,
+              border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              my: 2,
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                borderColor: '#6366f1',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
+                transform: 'translateY(-1px)',
+              },
             }}
           >
             <Box
               sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                p: 4,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                minHeight: 200,
+                gap: 2,
               }}
             >
-              <Typography sx={{ fontSize: 32 }}>📊</Typography>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                }}
+              >
+                <Typography sx={{ fontSize: 32 }}>📊</Typography>
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: '#1f2937',
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                }}
+              >
+                2D Temporal Graph
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: '#6b7280',
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                }}
+              >
+                Click to instantiate the graph
+              </Typography>
+              <Button
+                variant="contained"
+                size="small"
+                sx={{
+                  mt: 1,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                  },
+                }}
+              >
+                Create Graph
+              </Button>
             </Box>
-            <Typography
-              sx={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: '#1f2937',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-              }}
-            >
-              2D Temporal Graph
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: '#6b7280',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-              }}
-            >
-              Click to instantiate the graph
-            </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              sx={{
-                mt: 1,
-                textTransform: 'none',
-                fontWeight: 500,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                },
-              }}
-            >
-              Create Graph
-            </Button>
           </Box>
-        </Box>
+        </NodeOverlay>
       </NodeViewWrapper>
     );
   }
@@ -1252,196 +1256,198 @@ const QuantaFlowNodeView = ({ node, updateAttributes, selected }: NodeViewProps)
 
   return (
     <NodeViewWrapper>
-      <Box
-        sx={{
-          border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          my: 2,
-          background: 'white',
-        }}
-      >
-        {/* Header */}
+      <NodeOverlay nodeProps={props} nodeType="quantaFlow">
         <Box
           sx={{
-            p: 1.5,
-            background: '#f9fafb',
-            borderBottom: '1px solid #e5e7eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
+            border: selected ? '2px solid #6366f1' : '1px solid #e5e7eb',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            my: 2,
+            background: 'white',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Add Quanta Button */}
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => addNode()}
-              sx={{ 
-                textTransform: 'none',
-                fontSize: '13px',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                height: 32,
-                px: 1.5,
-                borderColor: '#d1d5db',
-                color: '#374151',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-                '&:hover': {
-                  backgroundColor: '#f3f4f6',
-                  borderColor: '#9ca3af',
-                },
-              }}
-            >
-              Add Quanta
-            </Button>
-            
-            {/* Undo/Redo Controls */}
-            <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
-              <IconButton 
-                size="small" 
-                onClick={undo} 
-                disabled={!canUndo}
-                title="Undo"
+          {/* Header */}
+          <Box
+            sx={{
+              p: 1.5,
+              background: '#f9fafb',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* Add Quanta Button */}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => addNode()}
                 sx={{ 
-                  width: 32, 
-                  height: 32,
-                  borderRadius: '4px 0 0 4px',
-                  border: '1px solid #d1d5db',
-                  '&:hover': { backgroundColor: '#f3f4f6' },
-                }}
-              >
-                <UndoIcon fontSize="small" />
-              </IconButton>
-              <IconButton 
-                size="small" 
-                onClick={redo} 
-                disabled={!canRedo}
-                title="Redo"
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  borderRadius: '0 4px 4px 0',
-                  border: '1px solid #d1d5db',
-                  borderLeft: 'none',
-                  '&:hover': { backgroundColor: '#f3f4f6' },
-                }}
-              >
-                <RedoIcon fontSize="small" />
-              </IconButton>
-            </ButtonGroup>
-            
-            {/* Zoom Controls */}
-            <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
-              <IconButton 
-                size="small" 
-                onClick={zoomOut} 
-                title="Zoom Out"
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  borderRadius: '4px 0 0 4px',
-                  border: '1px solid #d1d5db',
-                  '&:hover': { backgroundColor: '#f3f4f6' },
-                }}
-              >
-                <ZoomOutIcon fontSize="small" />
-              </IconButton>
-              <Button 
-                size="small" 
-                onClick={zoomTo100} 
-                title="Reset to 100%"
-                sx={{ 
-                  minWidth: 48,
-                  height: 32,
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  border: '1px solid #d1d5db',
-                  borderLeft: 'none',
-                  borderRight: 'none',
-                  borderRadius: 0,
-                  color: '#374151',
                   textTransform: 'none',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  height: 32,
+                  px: 1.5,
+                  borderColor: '#d1d5db',
+                  color: '#374151',
                   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
-                  '&:hover': { backgroundColor: '#f3f4f6' },
+                  '&:hover': {
+                    backgroundColor: '#f3f4f6',
+                    borderColor: '#9ca3af',
+                  },
                 }}
               >
-                100%
+                Add Quanta
               </Button>
+              
+              {/* Undo/Redo Controls */}
+              <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
+                <IconButton 
+                  size="small" 
+                  onClick={undo} 
+                  disabled={!canUndo}
+                  title="Undo"
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    borderRadius: '4px 0 0 4px',
+                    border: '1px solid #d1d5db',
+                    '&:hover': { backgroundColor: '#f3f4f6' },
+                  }}
+                >
+                  <UndoIcon fontSize="small" />
+                </IconButton>
+                <IconButton 
+                  size="small" 
+                  onClick={redo} 
+                  disabled={!canRedo}
+                  title="Redo"
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    borderRadius: '0 4px 4px 0',
+                    border: '1px solid #d1d5db',
+                    borderLeft: 'none',
+                    '&:hover': { backgroundColor: '#f3f4f6' },
+                  }}
+                >
+                  <RedoIcon fontSize="small" />
+                </IconButton>
+              </ButtonGroup>
+              
+              {/* Zoom Controls */}
+              <ButtonGroup size="small" variant="outlined" sx={{ height: 32 }}>
+                <IconButton 
+                  size="small" 
+                  onClick={zoomOut} 
+                  title="Zoom Out"
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    borderRadius: '4px 0 0 4px',
+                    border: '1px solid #d1d5db',
+                    '&:hover': { backgroundColor: '#f3f4f6' },
+                  }}
+                >
+                  <ZoomOutIcon fontSize="small" />
+                </IconButton>
+                <Button 
+                  size="small" 
+                  onClick={zoomTo100} 
+                  title="Reset to 100%"
+                  sx={{ 
+                    minWidth: 48,
+                    height: 32,
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    border: '1px solid #d1d5db',
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    borderRadius: 0,
+                    color: '#374151',
+                    textTransform: 'none',
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+                    '&:hover': { backgroundColor: '#f3f4f6' },
+                  }}
+                >
+                  100%
+                </Button>
+                <IconButton 
+                  size="small" 
+                  onClick={zoomIn} 
+                  title="Zoom In"
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    borderRadius: '0 4px 4px 0',
+                    border: '1px solid #d1d5db',
+                    '&:hover': { backgroundColor: '#f3f4f6' },
+                  }}
+                >
+                  <ZoomInIcon fontSize="small" />
+                </IconButton>
+              </ButtonGroup>
+              
+              {/* Fit View */}
               <IconButton 
                 size="small" 
-                onClick={zoomIn} 
-                title="Zoom In"
+                onClick={fitView} 
+                title="Fit to View"
                 sx={{ 
                   width: 32, 
                   height: 32,
-                  borderRadius: '0 4px 4px 0',
                   border: '1px solid #d1d5db',
+                  borderRadius: '4px',
                   '&:hover': { backgroundColor: '#f3f4f6' },
                 }}
               >
-                <ZoomInIcon fontSize="small" />
+                <CenterFocusStrongIcon fontSize="small" />
               </IconButton>
-            </ButtonGroup>
-            
-            {/* Fit View */}
-            <IconButton 
-              size="small" 
-              onClick={fitView} 
-              title="Fit to View"
-              sx={{ 
-                width: 32, 
-                height: 32,
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                '&:hover': { backgroundColor: '#f3f4f6' },
-              }}
-            >
-              <CenterFocusStrongIcon fontSize="small" />
-            </IconButton>
+            </Box>
+          </Box>
+
+          {/* Graph */}
+          <Box sx={{ height: graphHeight, position: 'relative' }}>
+            <ReactFlowErrorBoundary>
+              <ReactFlow
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                nodes={nodes}
+                edges={edgesWithCallbacks}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onConnectStart={onConnectStart}
+                onConnectEnd={onConnectEnd}
+                onInit={setReactFlowInstance}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.1}
+                maxZoom={4}
+                defaultEdgeOptions={{
+                  type: 'handDrawn',
+                  zIndex: 1000,
+                }}
+                style={{ background: '#f8fafc' }}
+              >
+                <Background
+                  variant={BackgroundVariant.Dots}
+                  gap={20}
+                  size={1}
+                  color="#cbd5e1"
+                />
+                {/* Ghost node preview when dragging from a handle */}
+                {isConnecting && connectDragPos && (
+                  <GhostNodePreview position={connectDragPos} />
+                )}
+              </ReactFlow>
+            </ReactFlowErrorBoundary>
           </Box>
         </Box>
-
-        {/* Graph */}
-        <Box sx={{ height: graphHeight, position: 'relative' }}>
-          <ReactFlowErrorBoundary>
-            <ReactFlow
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              nodes={nodes}
-              edges={edgesWithCallbacks}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onConnectStart={onConnectStart}
-              onConnectEnd={onConnectEnd}
-              onInit={setReactFlowInstance}
-              fitView
-              fitViewOptions={{ padding: 0.2 }}
-              minZoom={0.1}
-              maxZoom={4}
-              defaultEdgeOptions={{
-                type: 'handDrawn',
-                zIndex: 1000,
-              }}
-              style={{ background: '#f8fafc' }}
-            >
-              <Background
-                variant={BackgroundVariant.Dots}
-                gap={20}
-                size={1}
-                color="#cbd5e1"
-              />
-              {/* Ghost node preview when dragging from a handle */}
-              {isConnecting && connectDragPos && (
-                <GhostNodePreview position={connectDragPos} />
-              )}
-            </ReactFlow>
-          </ReactFlowErrorBoundary>
-        </Box>
-      </Box>
+      </NodeOverlay>
     </NodeViewWrapper>
   );
 };

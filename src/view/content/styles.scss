@@ -45,7 +45,7 @@
     margin: 0.5em 0;
 
     > li {
-      display: flex;
+      display: flex !important; // !important to override task list's nested list-item rule
       flex-direction: row;
       align-items: flex-start;
       margin: 0.25em 0;
@@ -57,9 +57,16 @@
         color: #333;
       }
 
+      // Direct paragraph child gets flex: 1 to stay on same line as dash
       > p {
         margin: 0;
         flex: 1;
+      }
+
+      // Also handle divs that might wrap content (from TipTap structure)
+      > div {
+        flex: 1;
+        min-width: 0; // Prevent overflow issues
       }
     }
 
@@ -118,14 +125,18 @@
         flex: 1 1 auto;
       }
 
-      ul li,
+      // Ordered lists nested in task lists use list-item display
       ol li {
         display: list-item;
       }
 
+      // Nested task lists should still use flex
       ul[data-type="taskList"]>li {
         display: flex;
       }
+
+      // Bullet lists nested in task lists should use flex with dash styling
+      // (don't override to list-item, let the main ul:not([data-type="taskList"]) > li rule apply)
     }
   }
 
@@ -482,4 +493,80 @@ body.call-mode-dimmed::before {
   pointer-events: none;
   z-index: -2; /* Behind everything, including the ProseMirror overlay */
   transition: opacity 0.2s ease-in-out;
+}
+
+/* =====================
+   HORIZONTAL RULE
+   ===================== */
+.ProseMirror hr {
+  border: none !important;
+  border-top: none !important;
+  border-color: transparent !important;
+  height: 2px !important;
+  background-color: #333333 !important;
+  margin: 1.5em 0 !important;
+}
+
+[data-type="horizontalRule"] {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  
+  hr {
+    border: none !important;
+    border-top: none !important;
+    border-color: transparent !important;
+    height: 2px !important;
+    background-color: #333333 !important;
+  }
+}
+
+/* =====================
+   SPAN GROUP MARK (Inline Group Variant)
+   ===================== */
+/* 
+   GROUP ARCHITECTURE:
+   Groups are a fundamental organizational unit in the editor with two variants:
+   
+   1. BLOCK GROUP (GroupTipTapExtension.tsx)
+      - A TipTap Node wrapping block content (cards, sections)
+      - Identified by: [data-group-node-view="true"][data-group-id="<uuid>"]
+      - Has a DragGrip React component positioned on the right side
+   
+   2. INLINE SPAN GROUP (SpanGroupMark.ts) - styled below
+      - A TipTap Mark wrapping inline text
+      - Identified by: .span-group[data-span-group-id="<uuid>"]
+      - Has a CSS pseudo-element grip (::after) on the right side
+   
+   Both variants share:
+   - A 6-dot grip pattern for visual identification and drag affordance
+   - Unique IDs for targeting by the connection system
+   - Participation in GroupConnectionManager for drawing arrows between groups
+   
+   SpanGroups are conceptually a type of Group - they're the inline variant
+   that flows with text, while block Groups are card-like containers.
+*/
+.span-group {
+  background-color: #ffffff;
+  border: 1px solid #BBBBBB;
+  border-radius: 3px;
+  padding: 1px 3px;
+  box-shadow: 0px 0.36px 1.8px -1.67px rgba(0, 0, 0, 0.23), 0px 1.37px 6.87px -3.33px rgba(0, 0, 0, 0.19);
+  /* Makes the styling consistent across line breaks */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+}
+
+/* 6-dot grip (3x2) shown after the span for visual indicator */
+.span-group::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  display: inline-block;
+  margin-left: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.span-group:hover {
+  background-color: #f8f8f8;
 }

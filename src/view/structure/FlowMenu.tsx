@@ -1,7 +1,7 @@
 import { Editor, isNodeSelection, getAttributes } from "@tiptap/core"
-import { BubbleMenu } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import IconButton from '@mui/joy/IconButton';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -19,9 +19,10 @@ import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
 import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
-import { DocumentAttributes } from "./DocumentAttributesExtension";
+import { defaultDocumentAttributes, DocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
-import { backup } from "../../backend/backup";
+import { backup, quantaBackup, QuantaBackupEntry } from "../../backend/backup";
+import { useAutoBackup, AutoBackupStatus } from "../../backend/useAutoBackup";
 import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
 
@@ -51,6 +52,53 @@ export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties 
 }
 
 type Action = (editor: Editor) => boolean
+
+const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
+
+const readDocumentAttributesFromStorage = (): DocumentAttributes => {
+    if (typeof window === 'undefined') {
+        return defaultDocumentAttributes
+    }
+
+    try {
+        const stored = window.localStorage.getItem(DOC_ATTRIBUTES_STORAGE_KEY)
+        if (stored) {
+            return { ...defaultDocumentAttributes, ...JSON.parse(stored) }
+        }
+    } catch (error) {
+        console.error('[FlowMenu] Error reading document attributes from localStorage:', error)
+    }
+
+    return defaultDocumentAttributes
+}
+
+const useDocumentAttributes = (): DocumentAttributes => {
+    const [documentAttributes, setDocumentAttributes] = useState<DocumentAttributes>(defaultDocumentAttributes)
+
+    useEffect(() => {
+        setDocumentAttributes(readDocumentAttributesFromStorage())
+
+        const handleUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent<DocumentAttributes>
+            if (customEvent.detail) {
+                setDocumentAttributes({
+                    ...defaultDocumentAttributes,
+                    ...customEvent.detail,
+                })
+                return
+            }
+
+            setDocumentAttributes(readDocumentAttributesFromStorage())
+        }
+
+        window.addEventListener('doc-attributes-updated', handleUpdate)
+        return () => {
+            window.removeEventListener('doc-attributes-updated', handleUpdate)
+        }
+    }, [])
+
+    return documentAttributes
+}
 
 const handleCopyNodeJSONContentToClipboardAction: Action = (editor: Editor) => {
     copySelectedNodeToClipboard(editor)
@@ -167,18 +215,203 @@ const setMathsLens = (editor: Editor, mathLens: MathLens) => {
 
  };
 
+// Simple toast notification component
+const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
+    React.useEffect(() => {
+        const timer = setTimeout(onClose, 3000); // Auto-dismiss after 3 seconds
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            style={{
+                position: 'fixed',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: '#333',
+                color: '#fff',
+                padding: '10px 20px',
+                borderRadius: 8,
+                fontSize: 14,
+                fontFamily: 'Inter, sans-serif',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 10000,
+                pointerEvents: 'auto',
+            }}
+        >
+            {message}
+        </motion.div>
+    );
+};
+
+/**
+ * AutoSaveIndicator - Shows the current auto-save status
+ * Mimics Google Docs' "All changes saved" indicator
+ * 
+ * States:
+ * - idle: No recent activity, shows last saved time
+ * - saving: Currently saving (shows spinner)
+ * - saved: Just saved (shows checkmark, then fades to idle)
+ * - error: Save failed (shows error message)
+ */
+const AutoSaveIndicator = ({ 
+    status, 
+    lastSavedAt 
+}: { 
+    status: AutoBackupStatus; 
+    lastSavedAt: number | null;
+}) => {
+    const [displayStatus, setDisplayStatus] = React.useState<'idle' | 'saving' | 'saved' | 'error'>(status);
+    
+    // Transition from 'saved' back to 'idle' after a brief display
+    React.useEffect(() => {
+        if (status === 'saved') {
+            setDisplayStatus('saved');
+            const timer = setTimeout(() => {
+                setDisplayStatus('idle');
+            }, 2000); // Show "Saved" for 2 seconds
+            return () => clearTimeout(timer);
+        } else {
+            setDisplayStatus(status);
+        }
+    }, [status]);
+    
+    const formatLastSaved = (timestamp: number | null): string => {
+        if (!timestamp) return '';
+        
+        const now = Date.now();
+        const diff = now - timestamp;
+        
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-GB', { 
+            day: 'numeric', 
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+    
+    const getStatusContent = () => {
+        switch (displayStatus) {
+            case 'saving':
+                return (
+                    <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                        <motion.span
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                            style={{ display: 'inline-block' }}
+                        >
+                            ⟳
+                        </motion.span>
+                        Saving...
+                    </motion.span>
+                );
+            case 'saved':
+                return (
+                    <motion.span
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#4CAF50' }}
+                    >
+                        ✓ Saved
+                    </motion.span>
+                );
+            case 'error':
+                return (
+                    <motion.span style={{ color: '#f44336' }}>
+                        ⚠ Save failed
+                    </motion.span>
+                );
+            case 'idle':
+            default:
+                return lastSavedAt ? (
+                    <span style={{ color: '#999' }}>
+                        Saved {formatLastSaved(lastSavedAt)}
+                    </span>
+                ) : (
+                    <span style={{ color: '#999' }}>
+                        Auto-save enabled
+                    </span>
+                );
+        }
+    };
+    
+    return (
+        <motion.div
+            style={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 12,
+                padding: '4px 10px',
+                borderRadius: 6,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                minWidth: 100,
+                justifyContent: 'center',
+            }}
+        >
+            {getStatusContent()}
+        </motion.div>
+    );
+};
+
 // Memoize ActionSwitch to prevent re-renders if props haven't changed
-const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor | null }) => {
+const ActionSwitch = React.memo((props: { 
+    selectedAction: string, 
+    editor: Editor | null, 
+    nodeType?: string,
+    // Auto-backup props
+    autoBackupStatus?: AutoBackupStatus,
+    autoBackupLastSavedAt?: number | null,
+    onTriggerBackup?: () => void
+}) => {
     // Return null if editor is not available yet
     if (!props.editor) {
         return null;
     }
     
-    // @ts-ignore - getDocumentAttributes exists via the extension
-    const documentAttributes: DocumentAttributes = props.editor.commands.getDocumentAttributes();
+    // State for quanta backups
+    const [quantaBackups, setQuantaBackups] = React.useState<QuantaBackupEntry[]>([]);
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null);
+    
+    // Toast notification state
+    const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+    
+    // Load backups on mount and when quantaId changes
+    React.useEffect(() => {
+        const quantaId = quantaBackup.getCurrentQuantaId();
+        setCurrentQuantaId(quantaId);
+        if (quantaId) {
+            setQuantaBackups(quantaBackup.getBackupsForDisplay(quantaId));
+        }
+    }, []);
+    
+    // Refresh backups when auto-backup creates a new one
+    React.useEffect(() => {
+        if (props.autoBackupStatus === 'saved' && currentQuantaId) {
+            setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
+        }
+    }, [props.autoBackupStatus, currentQuantaId]);
+    
+    const documentAttributes = readDocumentAttributesFromStorage();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
 
     return (
+        <>
         <FlowSwitch value={props.selectedAction} isLens>
             {isDevMode && (
                 <Option
@@ -464,7 +697,124 @@ const ActionSwitch = React.memo((props: { selectedAction: string, editor: Editor
                     </span>
                 </motion.div>
             </Option>
+            {/* 
+              Auto-Save Status Indicator (Google Docs-like)
+              Shows current save status: saving, saved, or last saved time
+              Replaces the manual "Create backup" button with automatic saving
+            */}
+            {currentQuantaId && props.autoBackupStatus && (
+                <Option
+                    value={"auto-save-status"}
+                    onClick={() => {
+                        // Clicking triggers a manual backup (like Google Docs' manual save)
+                        if (props.onTriggerBackup) {
+                            props.onTriggerBackup();
+                            setToastMessage('Manual backup created');
+                        }
+                    }}
+                >
+                    <AutoSaveIndicator 
+                        status={props.autoBackupStatus} 
+                        lastSavedAt={props.autoBackupLastSavedAt ?? null}
+                    />
+                </Option>
+            )}
+            {/* Manual backup option - creates a named backup (not auto-backup) */}
+            {currentQuantaId && (
+                <Option
+                    value={"Create backup"}
+                    onClick={() => {
+                        if (!currentQuantaId) {
+                            console.warn('[FlowMenu] Cannot create backup: no quanta ID found');
+                            return;
+                        }
+                        try {
+                            const content = props.editor.getJSON();
+                            const newBackup = quantaBackup.createBackup(currentQuantaId, content);
+                            // Refresh the backups list
+                            setQuantaBackups(quantaBackup.getBackupsForDisplay(currentQuantaId));
+                            setToastMessage(`Backup created: ${newBackup.label}`);
+                        } catch (e) {
+                            console.error('[FlowMenu] Failed to create backup:', e);
+                            setToastMessage('Failed to create backup');
+                        }
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            📸 Create backup
+                        </span>
+                    </motion.div>
+                </Option>
+            )}
         </FlowSwitch>
+        
+        {/* Version History FlowSwitch - shows backups for current quanta (newest to oldest) */}
+        {/* Hidden for group nodes */}
+        {/* Shows both auto-backups (⟳) and manual named versions (📌) */}
+        {currentQuantaId && props.nodeType !== 'group' && (
+            <FlowSwitch value={"restore"} isLens>
+                {quantaBackups.length > 0 ? (
+                    quantaBackups.map((backup, index) => {
+                        const date = new Date(backup.timestamp);
+                        // Format time with AM/PM (e.g., "10:51AM")
+                        const timeStr = date.toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true
+                        }).replace(' ', ''); // Remove space between time and AM/PM
+                        // Format date with year (e.g., "25 Jan, 2026")
+                        const dateStr = date.toLocaleDateString('en-GB', { 
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                        const isLatest = index === 0; // First in display order = most recent
+                        const isAutoBackup = backup.isAutoBackup;
+                        const icon = isAutoBackup ? '⟳' : '📌'; // Auto vs manual indicator
+                        
+                        return (
+                            <Option
+                                key={backup.timestamp}
+                                value={backup.label}
+                                onClick={() => {
+                                    // Restore directly without confirmation dialog
+                                    props.editor.commands.setContent(backup.content);
+                                    console.log(`[FlowMenu] Restored to backup ${backup.label}`);
+                                    setToastMessage(`Restored to ${backup.label}`);
+                                }}
+                            >
+                                <motion.div>
+                                    <span style={{ 
+                                        fontFamily: 'Inter', 
+                                        fontSize: '13px',
+                                        color: isAutoBackup ? '#666' : '#333'
+                                    }}>
+                                        {icon} {timeStr} - {dateStr}
+                                        {isLatest ? ' (Latest)' : ''}
+                                    </span>
+                                </motion.div>
+                            </Option>
+                        );
+                    })
+                ) : (
+                    [<Option key="no-backups" value={"no-backups"} onClick={() => {}}>
+                        <motion.div>
+                            <span style={{ fontFamily: 'Inter', fontSize: '13px', color: '#999' }}>
+                                No version history yet
+                            </span>
+                        </motion.div>
+                    </Option>]
+                )}
+            </FlowSwitch>
+        )}
+        {/* Toast notification for backup feedback */}
+        <AnimatePresence>
+            {toastMessage && (
+                <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+            )}
+        </AnimatePresence>
+        </>
     )
 })
 
@@ -511,12 +861,33 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     const editor = contextEditor || props.editor
     
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
-
-    const [selectedFocusLens, setSelectedFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>("admin-editing")
-    const [selectedEventType, setSelectedEventType] = React.useState<DocumentAttributes['selectedEventLens']>("wedding")
-
-    const [irrelevantEventNodesDisplayLens, setIrrelevantEventNodesDisplayLens] = React.useState<DocumentAttributes['irrelevantEventNodesDisplayLens']>("dim")
-    const [unimportantNodesDisplayLens, setUnimportantNodesDisplayLens] = React.useState<DocumentAttributes['unimportantNodesDisplayLens']>("hide")
+    
+    // Get current quanta ID from URL
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
+    React.useEffect(() => {
+        setCurrentQuantaId(quantaBackup.getCurrentQuantaId())
+    }, [])
+    
+    // Auto-backup hook - implements Google Docs-like auto-save strategy
+    // Saves 2s after typing stops, creates snapshots every 5 minutes,
+    // and saves on page events (blur, visibility change, beforeunload)
+    const { 
+        status: autoBackupStatus, 
+        lastSavedAt: autoBackupLastSavedAt,
+        triggerBackup 
+    } = useAutoBackup(editor, currentQuantaId, {
+        enabled: true,
+        onBackupCreated: (timestamp) => {
+            console.log('[DocumentFlowMenu] Auto-backup created at', new Date(timestamp).toLocaleTimeString())
+        },
+        onError: (error) => {
+            console.error('[DocumentFlowMenu] Auto-backup error:', error)
+        }
+    })
+    
+    // Get current editor mode from document attributes
+    const documentAttributes = useDocumentAttributes();
+    const editorMode = documentAttributes.editorMode || 'editing';
 
     let documentMenuStyle: CSSProperties = flowMenuStyle(false)
     documentMenuStyle.width = "fit-content"
@@ -526,189 +897,122 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     documentMenuStyle.left = 'auto';
     documentMenuStyle.zIndex = 10001; // Higher than minimap's z-index of 10000
 
-    React.useEffect(() => {
-        if (!editor) return;
-
-        const loadAttributes = () => {
-            // @ts-ignore - getDocumentAttributes exists via the extension
-            const currentAttributes: DocumentAttributes = editor.commands.getDocumentAttributes();
-            setSelectedFocusLens(currentAttributes.selectedFocusLens);
-            setSelectedEventType(currentAttributes.selectedEventLens);
-            setIrrelevantEventNodesDisplayLens(currentAttributes.irrelevantEventNodesDisplayLens);
-            setUnimportantNodesDisplayLens(currentAttributes.unimportantNodesDisplayLens);
-        };
-
-        loadAttributes();
-
-        const handleAttributeUpdate = (event: CustomEvent<DocumentAttributes>) => {
-            setSelectedFocusLens(event.detail.selectedFocusLens);
-            setSelectedEventType(event.detail.selectedEventLens);
-            setIrrelevantEventNodesDisplayLens(event.detail.irrelevantEventNodesDisplayLens);
-            setUnimportantNodesDisplayLens(event.detail.unimportantNodesDisplayLens);
-        };
-
-        window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
-
-        return () => {
-            window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener);
-        };
-
-    }, [editor]);
-
     // Don't render if no editor is available
     if (!editor) {
         return null
     }
 
     return (
-        <motion.div style={documentMenuStyle}>
-            <ActionSwitch editor={editor} selectedAction={selectedAction} />
-            <FlowSwitch value={selectedFocusLens} isLens>
-                <Option
-                    value={"admin-editing" as DocumentAttributes['selectedFocusLens']}
+        <>
+            {/* Responsive styles for DocumentFlowMenu - full width on mobile */}
+            <style>{`
+                .document-flow-menu {
+                    /* Desktop defaults are in inline styles */
+                }
+                
+                @media (max-width: 768px) {
+                    .document-flow-menu {
+                        left: 0 !important;
+                        right: 0 !important;
+                        width: 100% !important;
+                        border-radius: 0 !important;
+                        padding: 5px 10px !important;
+                    }
+                }
+            `}</style>
+            <motion.div style={documentMenuStyle} className="document-flow-menu">
+                {/* Editor Mode Toggle - Editing vs Connection mode */}
+                <FlowSwitch value={editorMode} isLens>
+                <Option 
+                    value="editing" 
                     onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'admin-editing' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
+                        console.log('[DocumentFlowMenu] Switching to Editing mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'editing' });
                     }}
                 >
                     <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🛠️ Admin Editing
-                        </span>
+                        <span>✏️ Editing</span>
                     </motion.div>
                 </Option>
-                <Option
-                    value={"call-mode" as DocumentAttributes['selectedFocusLens']}
+                <Option 
+                    value="connection" 
                     onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'call-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
+                        console.log('[DocumentFlowMenu] Switching to Connection mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'connection' });
                     }}
                 >
                     <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            📞 Call Mode
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"learning-mode" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'learning-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🎓 Learning Mode
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"dev-mode" as DocumentAttributes['selectedFocusLens']}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedFocusLens: 'dev-mode' as DocumentAttributes['selectedFocusLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🔧 Dev Mode
-                        </span>
+                        <span>🔗 Connection</span>
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            <FlowSwitch value={selectedEventType} isLens>
-                <Option
-                    value={"wedding"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'wedding' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            💍 Wedding
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"corporate"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'corporate' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            💼 Corporate
-                        </span>
-                    </motion.div>
-                </Option>
-                <Option
-                    value={"birthday"}
-                    onClick={() => {
-                        editor.chain().focus().setDocumentAttribute({ selectedEventLens: 'birthday' as DocumentAttributes['selectedEventLens'] }).run();
-                        // Refresh page after a short delay to allow the attribute to be set
-                        setTimeout(() => window.location.reload(), 100);
-                    }}
-                >
-                    <motion.div>
-                        <span style={{ fontFamily: 'Inter' }}>
-                            🎂 Birthday
-                        </span>
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
-
-
-
+            <ActionSwitch 
+                editor={editor} 
+                selectedAction={selectedAction}
+                autoBackupStatus={autoBackupStatus}
+                autoBackupLastSavedAt={autoBackupLastSavedAt}
+                onTriggerBackup={triggerBackup}
+            />
         </motion.div>
+        </>
     )
 }
 
 // Memoize GroupLoupe
 const GroupLoupe = React.memo((props: { editor: Editor }) => {
-    console.log('[GroupLoupe] Rendering GroupLoupe component');
-
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
-    console.log('[GroupLoupe] selectedNode:', selectedNode?.type?.name, 'backgroundColor:', backgroundColor);
+    let lens = selectedNode.attrs.lens
 
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-            <Tag>
-                Group
-            </Tag>
-            {/* Lenses */}
-            <FlowSwitch value={backgroundColor} isLens>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "identity" })
+                    props.editor.commands.setGroupLens({ lens: "identity" })
                 }}>
                     <motion.div>
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
+                <Option value={"chip"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "chip" })
                 }}>
                     <motion.div>
-                        Only show important nodes
+                        🏷️ Chip
+                    </motion.div>
+                </Option>
+                <Option value={"preview"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "preview" })
+                }}>
+                    <motion.div>
+                        👁️ Preview
+                    </motion.div>
+                </Option>
+                <Option value={"collapsed"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "collapsed" })
+                }}>
+                    <motion.div>
+                        📦 Collapsed
+                    </motion.div>
+                </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
                     </motion.div>
                 </Option>
             </FlowSwitch>
-            {/* Actions */}
+            <Tag>
+                Group
+            </Tag>
+            {/* Background color options */}
             <FlowSwitch value={backgroundColor} isLens>
                 <Option
                     value={"lightBlue"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked lightBlue option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: lightBlue })
                     }}
                 >
@@ -721,7 +1025,6 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 <Option
                     value={"purple"}
                     onClick={() => {
-                        console.log('[GroupLoupe] Clicked purple option');
                         props.editor.commands.setBackgroundColor({ backgroundColor: purple })
                     }}
                 >
@@ -768,6 +1071,98 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
             </FlowSwitch>
+        </div>
+    )
+})
+
+// Memoize Canvas3DLoupe
+const Canvas3DLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setCanvas3DLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setCanvas3DLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Canvas
+            </Tag>
+        </div>
+    )
+})
+
+// Memoize TemporalSpaceLoupe - similar to GroupLoupe but with "Temporal Space" tag
+const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setTemporalSpaceLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"collapsed"} onClick={() => {
+                    props.editor.commands.setTemporalSpaceLens({ lens: "collapsed" })
+                }}>
+                    <motion.div>
+                        📦 Collapsed
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Temporal Space
+            </Tag>
+        </div>
+    )
+})
+
+// Architectural choice: keep the Weekly loupe tag-only because the
+// weekly node's interactions live inside the embedded day cards,
+// and the flow menu should stay lightweight while scanning schedules.
+const WeeklyLoupe = React.memo((_props: { editor: Editor }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Weekly Schedule
+            </Tag>
+        </div>
+    )
+})
+
+// ARCHITECTURE: Pomodoro is an inline atom node representing a timer/focus block.
+// The loupe is minimal - just a tag identifier. Interactions (play, pause, notes)
+// are handled directly on the node view itself, not via the FlowMenu.
+const PomodoroLoupe = React.memo((_props: { editor: Editor }) => {
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                ⏳ Pomodoro
+            </Tag>
         </div>
     )
 })
@@ -889,6 +1284,41 @@ const MathLoupe = React.memo((props: { editor: Editor }) => {
 // Need to add additional state variables that currently have a placeholder using justification
 // Memoize RichTextLoupe
 const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
+    const [formatState, setFormatState] = React.useState(() => ({
+        bold: props.editor.isActive('bold'),
+        italic: props.editor.isActive('italic'),
+        underline: props.editor.isActive('underline'),
+        strike: props.editor.isActive('strike'),
+        alignLeft: props.editor.isActive({ textAlign: 'left' }),
+        alignCenter: props.editor.isActive({ textAlign: 'center' }),
+        alignRight: props.editor.isActive({ textAlign: 'right' }),
+        alignJustify: props.editor.isActive({ textAlign: 'justify' }),
+    }))
+
+    React.useEffect(() => {
+        const syncFormattingState = () => {
+            setFormatState({
+                bold: props.editor.isActive('bold'),
+                italic: props.editor.isActive('italic'),
+                underline: props.editor.isActive('underline'),
+                strike: props.editor.isActive('strike'),
+                alignLeft: props.editor.isActive({ textAlign: 'left' }),
+                alignCenter: props.editor.isActive({ textAlign: 'center' }),
+                alignRight: props.editor.isActive({ textAlign: 'right' }),
+                alignJustify: props.editor.isActive({ textAlign: 'justify' }),
+            })
+        }
+
+        syncFormattingState()
+        props.editor.on('selectionUpdate', syncFormattingState)
+        props.editor.on('transaction', syncFormattingState)
+
+        return () => {
+            props.editor.off('selectionUpdate', syncFormattingState)
+            props.editor.off('transaction', syncFormattingState)
+        }
+    }, [props.editor])
+
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
@@ -993,8 +1423,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant={props.editor!.isActive({ textAlign: 'left' }) ? "solid" : "plain"}>
+                        className={formatState.alignLeft ? 'is-active' : ''}
+                        variant={formatState.alignLeft ? "solid" : "plain"}>
                         <FormatAlignLeft />
                     </IconButton>
                 </Option>
@@ -1003,8 +1433,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignCenter ? 'is-active' : ''}
+                        variant={formatState.alignCenter ? "solid" : "plain"}>
                         <FormatAlignCentre />
                     </IconButton>
                 </Option>
@@ -1013,8 +1443,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignRight ? 'is-active' : ''}
+                        variant={formatState.alignRight ? "solid" : "plain"}>
                         <FormatAlignRight />
                     </IconButton>
                 </Option>
@@ -1023,42 +1453,42 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                 >
                     <IconButton
                         size="sm"
-                        className={props.editor.isActive('bold') ? 'is-active' : ''}
-                        variant="plain">
+                        className={formatState.alignJustify ? 'is-active' : ''}
+                        variant={formatState.alignJustify ? "solid" : "plain"}>
                         <FormatAlignJustify />
                     </IconButton>
                 </Option>
             </FlowSwitch>
             <Tag isLens>
                 <IconButton
-                    style={{ color: props.editor!.isActive('bold') ? offWhite : black }}
+                    style={{ color: formatState.bold ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleBold should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleBold().run()}
-                    variant={props.editor!.isActive('bold') ? "solid" : "plain"}>
+                    variant={formatState.bold ? "solid" : "plain"}>
                     <FormatBoldIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('italic') ? offWhite : black }}
+                    style={{ color: formatState.italic ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleItalic should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleItalic().run()}
-                    variant={props.editor!.isActive('italic') ? "solid" : "plain"}>
+                    variant={formatState.italic ? "solid" : "plain"}>
                     <FormatItalicIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('underline') ? offWhite : black }}
+                    style={{ color: formatState.underline ? offWhite : black }}
                     size="sm"
                     onClick={() => props.editor!.chain().focus().toggleUnderline().run()}
-                    variant={props.editor!.isActive('underline') ? "solid" : "plain"}>
+                    variant={formatState.underline ? "solid" : "plain"}>
                     <FormatUnderlinedIcon />
                 </IconButton>
                 <IconButton
-                    style={{ color: props.editor!.isActive('strike') ? offWhite : black }}
+                    style={{ color: formatState.strike ? offWhite : black }}
                     size="sm"
                     // @ts-ignore - toggleStrike should exist via StarterKit
                     onClick={() => props.editor!.chain().focus().toggleStrike().run()}
-                    variant={props.editor!.isActive('strike') ? "solid" : "plain"}>
+                    variant={formatState.strike ? "solid" : "plain"}>
                     <FormatStrikethrough />
                 </IconButton>
             </Tag>
@@ -1216,6 +1646,33 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                     </IconButton>
                 </Option>
             </FlowSwitch>
+            {/* Span Group - wrap selected text with a unique ID for future connections */}
+            <FlowSwitch value={"Span Group"} isLens>
+                <Option
+                    value={"Create Span Group"}
+                    onClick={() => {
+                        props.editor.commands.setSpanGroup()
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            🔗 Create Span Group
+                        </span>
+                    </motion.div>
+                </Option>
+                <Option
+                    value={"Remove Span Group"}
+                    onClick={() => {
+                        props.editor.commands.unsetSpanGroup()
+                    }}
+                >
+                    <motion.div>
+                        <span>
+                            ✕ Remove Span Group
+                        </span>
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
         </div>
     )
 })
@@ -1229,11 +1686,8 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-            <Tag>
-                Portal
-            </Tag>
-            {/* Lenses */}
-            <FlowSwitch value={lens} isLens>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
                     props.editor.commands.setLens({ lens: "identity" })
                 }}>
@@ -1241,15 +1695,56 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
                         Identity
                     </motion.div>
                 </Option>
-                <Option value={"hideUnimportantNodes"} onClick={() => {
-                    props.editor.commands.setLens({ lens: "hideUnimportantNodes" })
-                    logCurrentLens(props.editor)
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "private" })
                 }}>
                     <motion.div>
-                        Only show important nodes
+                        🔒 Private
                     </motion.div>
                 </Option>
             </FlowSwitch>
+            <Tag>
+                Portal
+            </Tag>
+        </div>
+    )
+})
+
+// ExternalPortalLoupe - for iframe-embedded external quanta
+const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    let lens = selectedNode.attrs.lens
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            {/* Lenses - leftmost */}
+            <FlowSwitch value={lens} isLens scrollToSelect>
+                <Option value={"identity"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "identity" })
+                }}>
+                    <motion.div>
+                        Identity
+                    </motion.div>
+                </Option>
+                <Option value={"preview"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "preview" })
+                }}>
+                    <motion.div>
+                        👁️ Preview
+                    </motion.div>
+                </Option>
+                <Option value={"private"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "private" })
+                }}>
+                    <motion.div>
+                        🔒 Private
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                External Portal
+            </Tag>
         </div>
     )
 })
@@ -1263,8 +1758,39 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
 
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
+    
+    // Track selection type changes to force re-render when switching between text and node selections
+    const [currentNodeType, setCurrentNodeType] = React.useState<string>(() => getSelectedNodeType(props.editor))
+    
+    // Get current quanta ID for auto-backup
+    const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
+    React.useEffect(() => {
+        setCurrentQuantaId(quantaBackup.getCurrentQuantaId())
+    }, [])
+    
+    // Auto-backup hook for BubbleMenu context
+    const { 
+        status: autoBackupStatus, 
+        lastSavedAt: autoBackupLastSavedAt,
+        triggerBackup 
+    } = useAutoBackup(props.editor, currentQuantaId, { enabled: true })
 
     const selection = props.editor!.view.state.selection
+
+    // Listen for selection updates and re-render when node type changes
+    React.useEffect(() => {
+        const handleSelectionUpdate = () => {
+            const newNodeType = getSelectedNodeType(props.editor);
+            if (newNodeType !== currentNodeType) {
+                setCurrentNodeType(newNodeType);
+            }
+        };
+        
+        props.editor.on('selectionUpdate', handleSelectionUpdate);
+        return () => {
+            props.editor.off('selectionUpdate', handleSelectionUpdate);
+        };
+    }, [props.editor, currentNodeType]);
 
     React.useEffect(() => {
         // Check if it's a NodeSelection before accessing .node
@@ -1290,32 +1816,58 @@ export const FlowMenu = (props: { editor: Editor }) => {
     return (
         <BubbleMenu
             editor={props.editor}
-            tippyOptions={{
+            options={{
                 placement: "top",
                 // Keep the bubble menu open when interacting with FlowSwitch
                 // hideOnClick: false, // May need adjustment based on FlowSwitch behavior
                 // appendTo: () => document.body, // Helps with positioning issues sometimes
+            }}
+            // Show for both text selections AND node selections (portal, externalPortal, group, etc.)
+            shouldShow={({ editor, state }) => {
+                const { selection } = state;
+                const hasSelection = !selection.empty || isNodeSelection(selection)
+                if (!hasSelection) return false
+
+                // Architectural choice: only show the flow menu for the active
+                // editor (or when interacting with the menu itself) so multiple
+                // embedded Quanta don't leave overlapping menus behind.
+                const editorHasFocus = editor.isFocused || editor.view.hasFocus()
+                const activeElement = typeof document === 'undefined' ? null : document.activeElement
+                const menuHasFocus = !!activeElement && !!elementRef.current?.contains(activeElement)
+
+                return editorHasFocus || menuHasFocus
             }}>
             <motion.div
-                // ref={elementRef} // ref might not be needed if positioning is handled by Tippy
+                ref={elementRef}
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
-                {/* Debug: Log what node type is detected */}
-                {console.log('[FlowMenu] getSelectedNodeType:', getSelectedNodeType(props.editor))}
-                <ActionSwitch editor={props.editor} selectedAction={selectedAction} />
+                {/* Loupe component first (leftmost) - contains Lens, Tag, and node-specific options */}
                 {
                     {
                         'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
-                        'temporalSpace': <GroupLoupe editor={props.editor} />,
+                        'canvas3D': <Canvas3DLoupe editor={props.editor} />,
+                        'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
+                        'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
+                        'weekly': <WeeklyLoupe editor={props.editor} />,
                         'math': <MathLoupe editor={props.editor} />,
+                        'pomodoro': <PomodoroLoupe editor={props.editor} />,
                         'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
-                    }[getSelectedNodeType(props.editor)] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
+                    }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
                 }
+                {/* ActionSwitch (Copy, timestamp) comes after the Loupe */}
+                <ActionSwitch 
+                    editor={props.editor} 
+                    selectedAction={selectedAction} 
+                    nodeType={currentNodeType}
+                    autoBackupStatus={autoBackupStatus}
+                    autoBackupLastSavedAt={autoBackupLastSavedAt}
+                    onTriggerBackup={triggerBackup}
+                />
             </motion.div>
         </BubbleMenu>
     )

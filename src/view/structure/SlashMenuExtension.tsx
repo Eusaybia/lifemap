@@ -23,6 +23,20 @@ export interface SlashMenuItem {
   action: (editor: Editor) => void
 }
 
+export type Canvas3DSlashMenuInsertPayload = {
+  type: '3d-photo'
+  imageUrl: string
+}
+
+export interface Canvas3DSlashMenuItem {
+  id: string
+  title: string
+  description: string
+  emoji: string
+  keywords: string[]
+  action: (onInsert: (payload: Canvas3DSlashMenuInsertPayload) => void) => void
+}
+
 interface SlashMenuListProps extends SuggestionProps {
   items: SlashMenuItem[]
 }
@@ -37,6 +51,69 @@ const SlashMenuPluginKey = new PluginKey('slash-menu')
 // ============================================================================
 // Slash Menu Items
 // ============================================================================
+
+function insertFirstAvailableNode(editor: Editor, nodeTypeCandidates: string[]): boolean {
+  const nodeType = nodeTypeCandidates.find((candidate) => editor.schema.nodes[candidate])
+  if (!nodeType) return false
+  return editor.chain().focus().insertContent({ type: nodeType }).run()
+}
+
+function insertCanvasNode(editor: Editor): boolean {
+  // Prefer the React Flow canvas node; support both name variants to avoid
+  // case-related schema naming drift across environments.
+  if (insertFirstAvailableNode(editor, ['canvas3D', 'canvas3d'])) {
+    return true
+  }
+
+  // Fallback to parseHTML rule for Canvas3D (`div[data-type="canvas-3d"]`).
+  return editor.chain().focus().insertContent('<div data-type="canvas-3d"></div>').run()
+}
+
+// Shared upload mechanism used by both the editor slash menu and the 3D canvas slash menu.
+// Keep this flow identical to existing slash image upload behavior.
+export function uploadImageThroughSlashMenu(onUploaded: (imageUrl: string) => void): void {
+  // Create file input for image upload
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) return
+
+    try {
+      const response = await fetch(
+        `/api/upload?filename=${encodeURIComponent(file.name)}`,
+        { method: 'POST', body: file }
+      )
+      if (!response.ok) throw new Error('Upload failed')
+      const blob = await response.json()
+      onUploaded(blob.url)
+    } catch (error) {
+      console.error('Image upload failed:', error)
+    }
+  }
+  input.click()
+}
+
+export const getCanvas3DSlashMenuItems = (): Canvas3DSlashMenuItem[] => {
+  return [
+    {
+      id: 'canvas-3d-photo',
+      title: '3D Photo',
+      description: 'Upload an image as a 3D photo plane',
+      emoji: '🖼️',
+      keywords: ['3d', 'photo', 'image', 'picture', 'plane', 'upload'],
+      action: (onInsert) => {
+        uploadImageThroughSlashMenu((imageUrl) => {
+          onInsert({
+            type: '3d-photo',
+            imageUrl,
+          })
+        })
+      },
+    },
+  ]
+}
 
 const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
   return [
@@ -86,27 +163,9 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       emoji: '🌁',
       keywords: ['image', 'picture', 'photo', 'upload'],
       action: (editor) => {
-        // Create file input for image upload
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.accept = 'image/*'
-        input.onchange = async (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0]
-          if (!file) return
-          
-          try {
-            const response = await fetch(
-              `/api/upload?filename=${encodeURIComponent(file.name)}`,
-              { method: 'POST', body: file }
-            )
-            if (!response.ok) throw new Error('Upload failed')
-            const blob = await response.json()
-            editor.chain().focus().setImage({ src: blob.url }).run()
-          } catch (error) {
-            console.error('Image upload failed:', error)
-          }
-        }
-        input.click()
+        uploadImageThroughSlashMenu((imageUrl) => {
+          editor.chain().focus().setImage({ src: imageUrl }).run()
+        })
       },
     },
     {
@@ -154,7 +213,7 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     },
     {
       id: 'mapbox-map',
-      title: 'Mapbox Map',
+      title: 'Map',
       description: 'Insert an interactive map',
       emoji: '🗺️',
       keywords: ['map', 'mapbox', 'location', 'geography'],
@@ -197,6 +256,50 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'weekly-schedule-quanta',
+      title: 'Weekly Schedule (Quanta)',
+      description: 'Insert a weekly schedule view powered by Quanta',
+      emoji: '📆',
+      keywords: ['weekly', 'schedule', 'week', 'planner', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertWeeklyQuanta()
+      },
+    },
+    {
+      id: 'lunar-schedule',
+      title: 'Lunar Schedule',
+      description: 'Insert a lunar phase schedule powered by Quanta',
+      emoji: '🌒',
+      keywords: ['lunar', 'moon', 'schedule', 'phase', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertLunarSchedule()
+      },
+    },
+    {
+      id: 'seasonal-schedule',
+      title: 'Seasonal Schedule',
+      description: 'Insert a seasonal schedule powered by Quanta',
+      emoji: '🍁',
+      keywords: ['seasonal', 'season', 'spring', 'summer', 'autumn', 'winter', 'schedule', 'calendar', 'quanta'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertSeasonalSchedule()
+      },
+    },
+    {
+      id: 'lunar-month',
+      title: 'Lunar Month',
+      description: 'Monthly calendar based on lunar phases (New Moon = Day 1)',
+      emoji: '🌑',
+      keywords: ['lunar', 'moon', 'month', 'calendar', 'phase', 'natural', 'cycle'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertLunarMonth()
+      },
+    },
+    {
       id: 'day-header',
       title: 'Day Header',
       description: 'Insert a day header with tasks',
@@ -216,6 +319,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertTemporalSpace()
+      },
+    },
+    {
+      id: 'temporal-order',
+      title: 'Temporal Order',
+      description: 'Auto-sorts children by date (past→future)',
+      emoji: '↑',
+      keywords: ['temporal', 'order', 'chronological', 'sort', 'date', 'time', 'arrow', 'past', 'future', 'timeline'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertTemporalOrder()
       },
     },
     // Text formatting
@@ -332,6 +446,28 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
           type: 'externalPortal',
           attrs: { externalQuantaId: '' },
         }).run()
+      },
+    },
+    {
+      id: 'weather',
+      title: 'Weather',
+      description: 'Display a sunny weather card',
+      emoji: '☀️',
+      keywords: ['weather', 'sun', 'sunny', 'sky', 'cloud', 'temperature'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertWeatherCard?.() ||
+          editor.chain().focus().insertContent({ type: 'weatherCard' }).run()
+      },
+    },
+    {
+      id: 'canvas-3d',
+      title: 'Canvas',
+      description: 'React Flow canvas for node-based layouts',
+      emoji: '🎨',
+      keywords: ['react flow', 'canvas', 'nodes', 'graph', 'diagram', 'flow'],
+      action: (editor) => {
+        insertCanvasNode(editor)
       },
     },
   ]
@@ -595,5 +731,3 @@ export const SlashMenuExtension = Extension.create({
 })
 
 export default SlashMenuExtension
-
-

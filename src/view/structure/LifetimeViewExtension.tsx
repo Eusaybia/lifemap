@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
-import { DragGrip } from "../components/DragGrip"
+import { NodeOverlay } from "../components/NodeOverlay"
 
 // ============================================================================
 // Constants
@@ -299,12 +299,13 @@ const DatePicker: React.FC<DatePickerProps> = ({ dateOfBirth, onChange }) => {
 // LifetimeView Node View Component
 // ============================================================================
 
-const LifetimeViewNodeView: React.FC<NodeViewProps> = ({
-  node,
-  updateAttributes,
-  selected,
-  deleteNode,
-}) => {
+const LifetimeViewNodeView: React.FC<NodeViewProps> = (props) => {
+  const {
+    node,
+    updateAttributes,
+    selected,
+    deleteNode,
+  } = props
   const [dateOfBirth, setDateOfBirth] = useState<Date>(() => {
     const stored = node.attrs.dateOfBirth
     if (stored) {
@@ -329,28 +330,20 @@ const LifetimeViewNodeView: React.FC<NodeViewProps> = ({
       data-lifetime-view="true"
       style={{ margin: '24px 0' }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{
-          position: 'relative',
-          background: COLORS.background,
-          borderRadius: '16px',
-          overflow: 'visible',
-          border: selected ? '2px solid rgba(255, 255, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: selected 
-            ? '0 8px 32px rgba(255, 255, 255, 0.15)' 
-            : '0 4px 24px rgba(0, 0, 0, 0.3)',
-        }}
-      >
-        {/* 6-dot Grip Handle - positioned like Group/TemporalSpace */}
-        <DragGrip
-          position="absolute-top-right"
-          dotColor="rgba(255, 255, 255, 0.5)"
-          hoverBackground="rgba(255, 255, 255, 0.1)"
-        />
-        {/* Header Controls */}
+      <NodeOverlay nodeProps={props} nodeType="lifetimeView">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          style={{
+            position: 'relative',
+            background: COLORS.background,
+            borderRadius: '16px',
+            overflow: 'visible',
+            border: selected ? '2px solid rgba(255, 255, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          {/* Header Controls */}
         <div
           style={{
             padding: '16px 20px',
@@ -494,6 +487,7 @@ const LifetimeViewNodeView: React.FC<NodeViewProps> = ({
           </div>
         </div>
       </motion.div>
+      </NodeOverlay>
     </NodeViewWrapper>
   )
 }

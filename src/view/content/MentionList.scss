@@ -32,6 +32,13 @@
   box-shadow: 0 0 5px #33cc00, 0 0 10px #33cc00, 0 0 15px #33cc00, 0 0 20px #33cc00;
 }
 
+// Focus tag glow - warm yellow/orange for focused content
+// When a node has this tag, Aura component highlights it and dims other nodes
+.focus-glow {
+  box-shadow: 0 0 5px #ffb700, 0 0 10px #ffc933, 0 0 15px #ffd966, 0 0 20px #ffe699;
+  background-color: rgba(255, 183, 0, 0.15);
+}
+
 // ============================================================================
 // TimePoint Mention Styles (@ date insertion)
 // ============================================================================
@@ -43,10 +50,23 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0px 10px 20px rgba(0, 0, 0, 0.1);
   color: rgba(0, 0, 0, 0.8);
   font-size: 0.9rem;
-  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
   padding: 0.4rem;
   position: relative;
   min-width: 240px;
+}
+
+// Section label for grouped timepoint dropdown
+.timepoint-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 0.35rem 0.6rem 0.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  margin-bottom: 0.35rem;
 }
 
 // Individual timepoint item in dropdown
@@ -153,6 +173,40 @@
   }
 }
 
+// Inline merit/demerit mention styling (in editor) - matches hashtag-mention style
+// Triggered by * for pros/cons, advantages/disadvantages
+.merit-demerit-mention {
+  display: inline-flex;
+  width: max-content;
+  height: fit-content;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  background-color: #ffffff;
+  color: #111111;
+  border: 1px solid #BBBBBB;
+  border-radius: 5px;
+  padding: 2px 8px 2px 6px;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0px 0.36px 1.8px -1.67px rgba(0, 0, 0, 0.23), 
+              0px 1.37px 6.87px -3.33px rgba(0, 0, 0, 0.19), 
+              0px 6px 30px -5px rgba(0, 0, 0, 0);
+  cursor: pointer;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  overflow: hidden;
+  
+  &:hover {
+    background-color: #f5f5f5;
+    border-color: #999999;
+  }
+}
+
 // ============================================================================
 // Duration Dropdown Styles (~ duration insertion)
 // ============================================================================
@@ -227,20 +281,23 @@
 
 // Unrealized state: slightly opaque to indicate these are unrealized time estimates
 // (plans that haven't been started yet, hence visually "faded")
+// Unrealized state: slightly opaque to indicate these are unrealized time estimates
+// (plans that haven't been started yet, hence visually "faded")
 .pomodoro-unrealized {
   background-color: #ffffff;
   border: 1px solid #d1d5db;
   color: #111827;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  opacity: 0.6; // Indicates unrealized/planned duration
+  opacity: 0.35; // Indicates unrealized/planned duration
 
   &:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-    opacity: 0.8; // Slightly more visible on hover
+    opacity: 0.55; // Slightly more visible on hover
   }
 }
 
+// Active state: fully opaque (timer is running)
 // Active state: fully opaque (timer is running)
 .pomodoro-active {
   background-color: #ffffff;
@@ -255,6 +312,8 @@
   }
 }
 
+// Completed state: same style as unrealized but fully opaque
+// Transitions from 0.6 opacity (unrealized) → 1.0 opacity (completed)
 // Completed state: same style as unrealized but fully opaque
 // Transitions from 0.6 opacity (unrealized) → 1.0 opacity (completed)
 .pomodoro-completed {
@@ -281,6 +340,18 @@
 
 .pomodoro-label {
   font-weight: 500;
+}
+
+// ARCHITECTURE: Notes are attached to the time-range badge (specific session),
+// so the badge is the interactive element instead of the duration label.
+.pomodoro-notes-trigger {
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
 }
 
 .pomodoro-play-btn,
@@ -344,6 +415,8 @@
 }
 
 // Joined time range badge (for completed state) - single container with both times
+// ARCHITECTURE: Nested time badge inside the main pomodoro tag
+// This creates a "tag within tag" appearance showing the duration contains timing data
 .pomodoro-time-range-badge {
   display: inline-flex;
   align-items: center;
@@ -357,7 +430,7 @@
   font-size: 0.85em;
   line-height: 1.2;
   white-space: nowrap;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  margin-left: 0.25rem;
 
   .nested-time-icon {
     font-size: 0.85rem;
@@ -365,11 +438,33 @@
 
   .nested-time-value {
     font-weight: 500;
+    
+    // Editable time values - show hover effect
+    &.editable {
+      padding: 1px 4px;
+      border-radius: 3px;
+      transition: background-color 0.15s ease;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.08);
+      }
+    }
   }
 
   .pomodoro-time-dash {
     margin: 0 0.1rem;
     color: #6b7280;
+  }
+  
+  // Time input field styling
+  .pomodoro-time-input {
+    background: white;
+    color: inherit;
+    
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
   }
 }
 
@@ -410,13 +505,13 @@
   border: 1px solid #d1d5db;
   color: #111827;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  opacity: 0.6; // Indicates unrealized/planned duration estimate
+  opacity: 0.35; // Indicates unrealized/planned duration estimate
   transition: all 0.15s ease;
 
   &:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-    opacity: 0.8;
+    opacity: 0.55;
   }
 
   &.selected {
@@ -460,6 +555,377 @@
     .layer-ui__wrapper {
       border-radius: 6px;
     }
+  }
+}
+
+// ============================================================================
+// Todo Mention Styles ([] todo insertion)
+// ============================================================================
+// Inline checkbox todo that looks like a Mention but with editable content.
+// Triggered by typing [] in the editor.
+// 
+// ARCHITECTURE: Uses atomic node with text stored as attribute, edited via
+// inline input field. This avoids TipTap v2's inline node cursor issues.
+
+.todo-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827; /* Black text as per user requirement */
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+
+  // When checked, add subtle visual feedback
+  &.todo-checked {
+    background-color: #f0fdf4; /* Very light green */
+    border-color: #86efac;
+    
+    &:hover {
+      background-color: #dcfce7;
+      border-color: #4ade80;
+    }
+  }
+}
+
+.todo-checkbox {
+  cursor: pointer;
+  user-select: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+  
+  &:hover {
+    color: #374151;
+  }
+
+  // Checked state styling
+  .todo-checked & {
+    color: #22c55e; /* Green when checked */
+  }
+}
+
+// Inline input for editing todo text
+.todo-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+  
+  &:focus {
+    outline: none;
+  }
+}
+
+// Display text (non-editing state)
+.todo-text {
+  color: #111827;
+  cursor: text;
+  
+  // Placeholder styling when empty
+  &.todo-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+  
+  // Strikethrough when checked
+  &.todo-text-checked {
+    text-decoration: line-through;
+    color: #6b7280;
+  }
+}
+
+// 6-dot grip for connections (matches SpanGroup grip style)
+// This enables todo mentions to participate in the connection system
+.todo-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
+  }
+}
+
+// ============================================================================
+// Question Mention Styles ([?] question insertion)
+// ============================================================================
+// Inline question mention with boxed icon:
+// - unchecked: question mark in a checkbox-like square
+// - checked: light bulb
+
+.question-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+
+  &.question-checked {
+    background-color: #fffbeb;
+    border-color: #fcd34d;
+
+    &:hover {
+      background-color: #fef3c7;
+      border-color: #f59e0b;
+    }
+  }
+}
+
+.question-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1.5px solid #9ca3af;
+  border-radius: 0.2rem;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #4b5563;
+    background: #f9fafb;
+  }
+
+  .question-checked & {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+}
+
+.question-checkbox-icon {
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #4b5563;
+
+  .question-checked & {
+    font-size: 0.85rem;
+    color: #d97706;
+  }
+}
+
+.question-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.question-text {
+  color: #111827;
+  cursor: text;
+
+  &.question-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &.question-text-checked {
+    color: #6b7280;
+  }
+}
+
+.question-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
+  }
+}
+
+// ============================================================================
+// Motivations Mention Styles (!! motivation insertion)
+// ============================================================================
+
+.motivations-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.9em;
+  line-height: 1.25;
+  white-space: nowrap;
+  // Warm luminous aura so the glow is visible on light backgrounds
+  box-shadow:
+    0 0 0 1px rgba(255, 224, 130, 0.55),
+    0 0 10px rgba(255, 224, 130, 0.65),
+    0 0 24px rgba(255, 224, 130, 0.4),
+    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: default;
+  vertical-align: middle;
+  margin: 0 0.125rem;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    opacity: 1;
+    box-shadow:
+      0 0 0 1px rgba(255, 224, 130, 0.75),
+      0 0 14px rgba(255, 224, 130, 0.8),
+      0 0 30px rgba(255, 224, 130, 0.55),
+      0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+}
+
+.motivations-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #111827;
+  min-width: 80px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.motivations-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 0.95em;
+  flex-shrink: 0;
+  user-select: none;
+  filter: drop-shadow(0 0 3px rgba(255, 225, 140, 0.9));
+}
+
+.motivations-text {
+  color: #111827;
+  cursor: text;
+
+  &.motivations-text-empty {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+}
+
+.motivations-grip {
+  display: inline-block;
+  width: 8px;
+  height: 12px;
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.35)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='2' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='6' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='2' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3Ccircle cx='6' cy='10' r='1.2' fill='rgba(0,0,0,0.6)'/%3E%3C/svg%3E");
   }
 }
 
