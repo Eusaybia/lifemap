@@ -36,6 +36,7 @@ export interface DocumentAttributes {
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
+  focusedNodeIds?: string[];
 }
 
 // Define default attributes
@@ -44,6 +45,7 @@ export const defaultDocumentAttributes: DocumentAttributes = {
   selectedEventLens: 'wedding' as const,
   irrelevantEventNodesDisplayLens: 'dim' as const,
   unimportantNodesDisplayLens: 'hide' as const,
+  focusedNodeIds: [],
 };
 
 // Key for localStorage

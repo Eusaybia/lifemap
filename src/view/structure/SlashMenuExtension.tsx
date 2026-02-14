@@ -218,6 +218,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         editor.commands.insertTemporalSpace()
       },
     },
+    {
+      id: 'temporal-order',
+      title: 'Temporal Order',
+      description: 'Insert a temporal order timeline',
+      emoji: '🕰️',
+      keywords: ['time', 'temporal', 'order', 'timeline', 'chronological'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertTemporalOrder()
+      },
+    },
     // Text formatting
     {
       id: 'heading-1',
@@ -595,5 +606,4 @@ export const SlashMenuExtension = Extension.create({
 })
 
 export default SlashMenuExtension
-
 

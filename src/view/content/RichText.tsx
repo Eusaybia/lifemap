@@ -70,6 +70,7 @@ import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../st
 import { WeeklyExtension } from '../structure/WeeklyExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
+import { TemporalOrderExtension } from '../structure/TemporalOrderExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import Table from '@tiptap/extension-table'
@@ -233,8 +234,8 @@ export const officialExtensions = (quantaId: string) => {return [
   TextStyle,
   Underline,
   UniqueID.configure({
-    // TODO: Add more nodes
-    types: ['paragraph', 'mention', 'group', 'scrollview', 'daily'],
+    // Keep temporal containers addressable for node actions and overlays.
+    types: ['paragraph', 'mention', 'group', 'scrollview', 'daily', 'temporalSpace', 'temporalOrder'],
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -309,6 +310,7 @@ export const customExtensions: Extensions = [
   DayHeaderObservations,
   DayHeaderExtension,
   TemporalSpaceExtension,
+  TemporalOrderExtension,
   LifetimeViewExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
