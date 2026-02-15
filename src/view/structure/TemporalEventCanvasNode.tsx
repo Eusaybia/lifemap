@@ -7,6 +7,7 @@ import { customExtensions, officialExtensions } from '../content/RichText'
 
 export interface TemporalEventCanvasNodeData {
   nodeId: string
+  positionKey?: string
   label?: string
   content: JSONContent
 }

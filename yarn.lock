@@ -2877,15 +2877,15 @@
   resolved "https://registry.npmjs.org/@testing-library/user-event/-/user-event-14.6.1.tgz"
   integrity sha512-vq7fv0rnt+QTXgPxr5Hjc210p6YKq2kmdziLgnsZGgLJ9e6VAShx1pACLuRjd/AS/sr7phAR58OIIpf0LlmQNw==
 
-"@tiptap-pro/extension-collaboration-history@2.21.6":
-  version "2.21.6"
-  resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-collaboration-history/-/extension-collaboration-history-2.21.6.tgz#798baa81edd14ec01e62130041d5b1778cd94948"
-  integrity sha512-wFw6/k/SzM2OUkLsH7SC6N/rgJhAcEKM3dRqRgFMqcQ2aWXtJ1EQj3p0nShT9CeorBmeVDZDd6RyhzQdFvjOfQ==
-
 "@tiptap-pro/extension-mathematics@2.21.5":
   version "2.21.5"
   resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-mathematics/-/extension-mathematics-2.21.5.tgz#91183dee75e7d3415cc84bec3cda28b65dbd9c94"
   integrity sha512-YQvaJViVpfCrUqtpt3XmSmDV0K1pwqkm3fN36R2EiUbvXk9z25AAfQ/T/69P6CSPNYIe8CV1SKx5UZnSysOqTw==
+
+"@tiptap-pro/extension-snapshot@^3.3.0":
+  version "3.4.1"
+  resolved "https://registry.tiptap.dev/@tiptap-pro%2fextension-snapshot/-/extension-snapshot-3.4.1.tgz#b28c19039a9534199b36cf9e5c78fba670c9c3b5"
+  integrity sha512-tuQiiPR72xywGpZYbdw9ama6RGxtP0u8fPB1r6wFwUtKNddm8hDQ22C/CM57OvyjvksrZeUX3KzebKePeJpp7w==
 
 "@tiptap-pro/provider@^3.3.0":
   version "3.4.1"

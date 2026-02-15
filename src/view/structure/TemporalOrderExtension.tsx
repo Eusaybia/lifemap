@@ -205,7 +205,7 @@ const parseClipboardPayloadToNodes = (
 };
 
 /**
- * ARCHITECTURE: Normalize pasted content into TemporalSpace blocks so the
+ * ARCHITECTURE: Normalize pasted content into timeline container blocks so the
  * timeline remains visually consistent and the sorter can reorder items
  * just like drag-and-drop inserts.
  */
@@ -214,6 +214,7 @@ const normalizeClipboardNodesForTemporalOrder = (
   schema: Schema
 ): ProseMirrorNode[] => {
   const temporalSpaceType = schema.nodes.temporalSpace;
+  const trendsType = schema.nodes.trends;
   const temporalOrderType = schema.nodes.temporalOrder;
   const paragraphType = schema.nodes.paragraph;
 
@@ -246,7 +247,7 @@ const normalizeClipboardNodesForTemporalOrder = (
     if (temporalOrderType && node.type === temporalOrderType) {
       return;
     }
-    if (node.type === temporalSpaceType) {
+    if (node.type === temporalSpaceType || (trendsType && node.type === trendsType)) {
       flushPending();
       normalized.push(node);
       return;
@@ -568,6 +569,8 @@ interface TemporalOrderContentProps {
   backgroundColor?: string;
   timeMode: TimeMode;
   eventSources: NonLinearEventSource[];
+  nonLinearPositions?: Record<string, { x: number; y: number }>;
+  onNonLinearPositionsChange: (positions: Record<string, { x: number; y: number }>) => void;
   onTimeModeChange: (mode: TimeMode) => void;
   onDropZoneDrop: (draggedNode: DraggedNodeInfo | null) => void;
   onDropZoneDragEnter: () => DraggedNodeInfo | null;
@@ -612,18 +615,17 @@ const temporalOrderFlowNodeTypes = {
   temporalOrderEvent: TemporalEventCanvasNode,
 };
 
-const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ items }) => {
+const AtemporalEventField: React.FC<{
+  items: NonLinearEventPreview[];
+  onPositionsChange: (positions: Record<string, { x: number; y: number }>) => void;
+}> = ({ items, onPositionsChange }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes] = useState<Node<TemporalEventCanvasNodeData>[]>([]);
+  const lastEmittedPositionsRef = useRef<string>('');
 
   const baseNodes = useMemo<Node<TemporalEventCanvasNodeData>[]>(() => {
-    const idCounts = new Map<string, number>();
-
     return items.map((item, index) => {
-      const keyBase = (item.key || `item-${index}`).trim();
-      const seenCount = idCounts.get(keyBase) ?? 0;
-      idCounts.set(keyBase, seenCount + 1);
-      const stableId = seenCount === 0 ? keyBase : `${keyBase}-${seenCount}`;
+      const stableId = (item.key || `item-${index}`).trim();
 
       return {
         id: `temporal-order-${stableId}`,
@@ -631,6 +633,7 @@ const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ ite
         position: item.position,
         data: {
           nodeId: `temporal-order-${stableId}`,
+          positionKey: item.key,
           label: item.label,
           content: item.content,
         },
@@ -667,12 +670,39 @@ const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ ite
   }, []);
 
   useEffect(() => {
+    if (!nodes.length) return;
+
+    const positions: Record<string, { x: number; y: number }> = {};
+    nodes.forEach((node) => {
+      const positionKey = node.data?.positionKey;
+      if (!positionKey) return;
+      positions[positionKey] = {
+        x: node.position.x,
+        y: node.position.y,
+      };
+    });
+
+    const serialized = JSON.stringify(positions);
+    if (serialized === lastEmittedPositionsRef.current) {
+      return;
+    }
+
+    lastEmittedPositionsRef.current = serialized;
+    onPositionsChange(positions);
+  }, [nodes, onPositionsChange]);
+
+  const nodeIdsSignature = useMemo(
+    () => baseNodes.map((node) => node.id).join('|'),
+    [baseNodes]
+  );
+
+  useEffect(() => {
     if (!reactFlowInstance || !baseNodes.length) return;
     const rafId = window.requestAnimationFrame(() => {
       reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
     });
     return () => window.cancelAnimationFrame(rafId);
-  }, [reactFlowInstance, baseNodes]);
+  }, [reactFlowInstance, nodeIdsSignature, baseNodes.length]);
 
   return (
     <div className="temporal-order-flow-canvas">
@@ -705,6 +735,8 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   isCollapsed,
   timeMode,
   eventSources,
+  nonLinearPositions,
+  onNonLinearPositionsChange,
   onTimeModeChange,
   onDropZoneDrop,
   onDropZoneDragEnter,
@@ -722,9 +754,14 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       label: source.label,
       content: source.content,
       hasMap: source.hasMap,
-      position: positions[index] || { x: 0, y: 0 },
+      position:
+        nonLinearPositions?.[source.key] &&
+        Number.isFinite(nonLinearPositions[source.key].x) &&
+        Number.isFinite(nonLinearPositions[source.key].y)
+          ? nonLinearPositions[source.key]
+          : positions[index] || { x: 0, y: 0 },
     }));
-  }, [eventSources]);
+  }, [eventSources, nonLinearPositions]);
 
   // Track content height for the arrow
   useEffect(() => {
@@ -772,13 +809,13 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       {/* Temporal Arrow */}
       <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || isNonLinear} />
 
-      {/* Drop Zone at the top */}
+      {/* Shared drop zone for both linear and non-linear modes */}
       <DropZone
         onDrop={onDropZoneDrop}
         onDragEnter={onDropZoneDragEnter}
         onPaste={onDropZonePaste}
         isCollapsed={isCollapsed}
-        compact={isNonLinear}
+        compact={false}
       />
 
       {/* Content */}
@@ -810,7 +847,10 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                   transition={{ duration: 0.28 }}
                   className="temporal-order-flow-layer"
                 >
-                  <AtemporalEventField items={eventPreviews} />
+                  <AtemporalEventField
+                    items={eventPreviews}
+                    onPositionsChange={onNonLinearPositionsChange}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -863,6 +903,7 @@ export const TemporalOrderExtension = TipTapNode.create({
       collapsed: { default: false },
       backgroundColor: { default: offWhite },
       timeMode: { default: 'linear' },
+      nonLinearPositions: { default: {}, rendered: false },
     };
   },
 
@@ -1054,6 +1095,8 @@ export const TemporalOrderExtension = TipTapNode.create({
       const backgroundColor = props.node.attrs.backgroundColor || '#FFFFFF';
       const timeMode: TimeMode = props.node.attrs.timeMode === 'nonLinear' ? 'nonLinear' : 'linear';
       const { updateAttributes } = props;
+      const persistPositionsTimerRef = useRef<number | null>(null);
+      const nonLinearPositions = (props.node.attrs.nonLinearPositions || {}) as Record<string, { x: number; y: number }>;
       const nonLinearEventSources = useMemo<NonLinearEventSource[]>(() => {
         const sources: NonLinearEventSource[] = [];
         let index = 0;
@@ -1061,7 +1104,8 @@ export const TemporalOrderExtension = TipTapNode.create({
         props.node.forEach((childNode) => {
           // Non-linear mode should represent event containers, not incidental
           // top-level blocks (e.g., empty paragraphs between events).
-          if (childNode.type.name !== 'temporalSpace') {
+          // Include both temporalSpace and trends containers.
+          if (childNode.type.name !== 'temporalSpace' && childNode.type.name !== 'trends') {
             return;
           }
 
@@ -1180,9 +1224,10 @@ export const TemporalOrderExtension = TipTapNode.create({
             return;
           }
 
-          // Wrap non-temporalSpace nodes in a temporalSpace for consistency
+          // Keep timeline containers as top-level children; wrap other
+          // dropped nodes in temporalSpace for consistency.
           let contentToInsert: any;
-          if (nodeTypeName === 'temporalSpace') {
+          if (nodeTypeName === 'temporalSpace' || nodeTypeName === 'trends') {
             contentToInsert = nodeJson;
           } else {
             // Wrap in temporalSpace
@@ -1245,6 +1290,28 @@ export const TemporalOrderExtension = TipTapNode.create({
         updateAttributes({ timeMode: mode });
       }, [timeMode, updateAttributes]);
 
+      const handleNonLinearPositionsChange = useCallback((positions: Record<string, { x: number; y: number }>) => {
+        const current = JSON.stringify(nonLinearPositions || {});
+        const next = JSON.stringify(positions || {});
+        if (current === next) return;
+
+        if (persistPositionsTimerRef.current !== null) {
+          window.clearTimeout(persistPositionsTimerRef.current);
+        }
+
+        persistPositionsTimerRef.current = window.setTimeout(() => {
+          updateAttributes({ nonLinearPositions: positions });
+        }, 120);
+      }, [nonLinearPositions, updateAttributes]);
+
+      useEffect(() => {
+        return () => {
+          if (persistPositionsTimerRef.current !== null) {
+            window.clearTimeout(persistPositionsTimerRef.current);
+          }
+        };
+      }, []);
+
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
@@ -1276,6 +1343,8 @@ export const TemporalOrderExtension = TipTapNode.create({
               backgroundColor={backgroundColor}
               timeMode={timeMode}
               eventSources={nonLinearEventSources}
+              nonLinearPositions={nonLinearPositions}
+              onNonLinearPositionsChange={handleNonLinearPositionsChange}
               onTimeModeChange={handleTimeModeChange}
               onDropZoneDrop={handleDropZoneDrop}
               onDropZoneDragEnter={handleDropZoneDragEnter}

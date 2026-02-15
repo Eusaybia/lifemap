@@ -13,8 +13,7 @@ import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
-import CollaborationHistory, { CollabHistoryVersion } from '@tiptap-pro/extension-collaboration-history'
-import { watchPreviewContent } from '@tiptap-pro/extension-collaboration-history'
+import Snapshot, { SnapshotVersion } from '@tiptap-pro/extension-snapshot'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import UniqueID from '@tiptap/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -68,6 +67,7 @@ import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { TemporalOrderExtension } from '../structure/TemporalOrderExtension'
+import { TrendsExtension } from '../structure/TrendsExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
 import { Canvas3DExtension } from '../structure/Canvas3DExtension'
@@ -818,7 +818,7 @@ export const officialExtensions = (quantaId: string) => {return [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'temporalOrder', 'externalPortal', 'portal', 'lifetimeView',
+      'temporalSpace', 'temporalOrder', 'trends', 'externalPortal', 'portal', 'lifetimeView',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
       'excalidraw', 'mapboxMap', 'warning', 'quote',
@@ -920,6 +920,7 @@ export const customExtensions: Extensions = [
   DayHeaderExtension,
   TemporalSpaceExtension,
   TemporalOrderExtension,
+  TrendsExtension,
   LifetimeViewExtension,
   WeatherExtension,
   Canvas3DExtension,
@@ -977,8 +978,12 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       })
     )
     generatedOfficialExtensions.push(
-      CollaborationHistory.configure({
-        provider,
+      Snapshot.configure({
+        // Snapshot provider can initialize after mount; keep extension mounted consistently.
+        provider: provider as any,
+        onUpdate: () => {
+          // Snapshot storage is read directly from editor.storage.snapshot by menus.
+        },
       })
     )
   } 
@@ -1090,6 +1095,18 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
   })
 
+  React.useEffect(() => {
+    if (!editor || informationType !== "yDoc" || !provider) return
+
+    const snapshotStorage = (editor.storage as any)?.snapshot
+    const toggleVersioning = (editor.commands as any)?.toggleVersioning
+    if (typeof toggleVersioning !== 'function') return
+
+    if (!snapshotStorage?.versioningEnabled) {
+      toggleVersioning()
+    }
+  }, [editor, informationType, provider])
+
   // Effect to manage scroll-snap based on currentFocusLens
   React.useEffect(() => {
     // Target the main scrolling element (usually documentElement for window scrolling)
@@ -1168,18 +1185,18 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }, [editor])
   
   // These functions are memoised for performance reasons
-  const handleRevert = React.useCallback((version: number, versionData: CollabHistoryVersion) => {
+  const handleRevert = React.useCallback((version: number, versionData: SnapshotVersion) => {
     const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
 
   // @ts-ignore
     editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
   }, [editor])
   // @ts-ignore
-  const reversedVersions = React.useMemo(() => editor?.storage.collabHistory.versions.slice().reverse(), [editor?.storage.collabHistory.versions])
+  const reversedVersions = React.useMemo(() => editor?.storage.snapshot.versions.slice().reverse(), [editor?.storage.snapshot.versions])
   // console.log("reversed versions", reversedVersions)
 
   // @ts-ignore
-  const autoversioningEnabled = editor?.storage.collabHistory.autoVersioning
+  const autoversioningEnabled = editor?.storage.snapshot.versioningEnabled
 
   // Add a ref to track template application
   const templateApplied = React.useRef(false);

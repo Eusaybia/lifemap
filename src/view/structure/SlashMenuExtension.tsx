@@ -332,6 +332,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         editor.commands.insertTemporalOrder()
       },
     },
+    {
+      id: 'trends',
+      title: 'Trends',
+      description: 'Temporal-space style container with a left-to-right trend arrow',
+      emoji: '↗',
+      keywords: ['trend', 'trends', 'trajectory', 'direction', 'signal', 'pattern'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertTrends()
+      },
+    },
     // Text formatting
     {
       id: 'heading-1',
