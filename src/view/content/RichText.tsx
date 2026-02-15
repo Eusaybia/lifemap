@@ -640,38 +640,23 @@ const fetchQuantaContentFromIndexedDB = async (
   quantaId: string,
   timeoutMs = 3000,
 ): Promise<JSONContent | null> => {
-  const perfStart = performance.now()
-  console.log(`[fetchQuanta PERF] Starting for ${quantaId}`)
-  
   return new Promise((resolve) => {
-    console.log(`[fetchQuanta PERF] ${quantaId} Creating Y.Doc...`)
-    const yDocStart = performance.now()
     const yDoc = new Y.Doc()
-    console.log(`[fetchQuanta PERF] ${quantaId} Y.Doc created in ${(performance.now() - yDocStart).toFixed(0)}ms`)
-    
-    console.log(`[fetchQuanta PERF] ${quantaId} Creating IndexeddbPersistence...`)
-    const persistStart = performance.now()
     const persistence = new IndexeddbPersistence(quantaId, yDoc)
-    console.log(`[fetchQuanta PERF] ${quantaId} IndexeddbPersistence created in ${(performance.now() - persistStart).toFixed(0)}ms`)
     
     persistence.on('synced', () => {
-      console.log(`[fetchQuanta PERF] ${quantaId} synced event fired after ${(performance.now() - perfStart).toFixed(0)}ms from start`)
       try {
         // Convert yDoc to TipTap JSON content
         // The 'default' field is where TipTap Collaboration stores the document
-        const transformStart = performance.now()
         const content = TiptapTransformer.fromYdoc(yDoc, 'default')
-        console.log(`[fetchQuanta PERF] ${quantaId} TiptapTransformer.fromYdoc took ${(performance.now() - transformStart).toFixed(0)}ms`)
         
         const hasContent = hasMeaningfulContent(content)
         
         persistence.destroy()
         
         if (hasContent) {
-          console.log(`[fetchQuanta PERF] ${quantaId} total time: ${(performance.now() - perfStart).toFixed(0)}ms (has content)`)
           resolve(content)
         } else {
-          console.log(`[fetchQuanta PERF] ${quantaId} total time: ${(performance.now() - perfStart).toFixed(0)}ms (empty)`)
           resolve(null)
         }
       } catch (error) {
@@ -683,9 +668,6 @@ const fetchQuantaContentFromIndexedDB = async (
     
     // Timeout to avoid hanging forever if IndexedDB sync stalls
     setTimeout(() => {
-      console.warn(
-        `[fetchQuanta PERF] ${quantaId} TIMEOUT after ${timeoutMs}ms (total: ${(performance.now() - perfStart).toFixed(0)}ms)`,
-      )
       persistence.destroy()
       resolve(null)
     }, timeoutMs)
@@ -1983,10 +1965,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       const editorHasMeaningfulContent = hasMeaningfulContent((editor as Editor).getJSON() as JSONContent);
       const isEmpty = !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
 
-      console.log(
-        `[RichText] ${urlId} period checkAndApply, yDocHasMeaningfulContent=${yDocHasMeaningfulContent}, editorHasMeaningfulContent=${editorHasMeaningfulContent}, isEmpty=${isEmpty}`
-      );
-
       if (isEmpty) {
         // Guard against late Yjs sync races: if IndexedDB already has content,
         // skip initialization so we don't merge duplicate period mentions.
@@ -1997,7 +1975,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         });
         if (isCancelled) return;
         if (persistedPeriodContent) {
-          console.log(`[RichText] Found persisted ${urlId} content; waiting for sync before enforcing period tag invariant`);
           return;
         }
 
@@ -2008,7 +1985,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
         (editor as Editor)!.commands.setContent(getPeriodTemplate(mapping));
         templateApplied.current = true;
-        console.log(`[RichText] Applied period template to ${urlId} (timepoint: ${mapping.timepointId})`);
         return;
       }
 
@@ -2017,7 +1993,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       periodInitChecked.current = true;
 
       if (!invariantResult.changed) {
-        console.log(`[RichText] ${urlId} period tag invariant already satisfied`);
         return;
       }
 
@@ -2026,9 +2001,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       });
 
       (editor as Editor)!.commands.setContent(invariantResult.normalizedContent);
-      console.log(
-        `[RichText] Enforced period tag invariant for ${urlId} (removed=${invariantResult.removedCount}, added=${invariantResult.addedCanonicalTag})`,
-      );
     };
 
     const resetStabilizationTimer = () => {
