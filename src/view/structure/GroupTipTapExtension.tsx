@@ -35,6 +35,7 @@ import { NodeOverlay } from "../components/NodeOverlay";
 
 // Helper to generate unique group IDs (shared format with SpanGroupMark)
 const generateGroupId = () => Math.random().toString(36).substring(2, 8);
+const GROUP_NODE_BOX_SHADOW = `-1px 1px 3px -1px rgba(0, 0, 0, 0.24), -2px 2px 6px -2px rgba(0, 0, 0, 0.17), -3px 4px 10px -3px rgba(0, 0, 0, 0.11)`;
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -652,6 +653,7 @@ export const GroupExtension = TipTapNode.create({
           <NodeOverlay
             nodeProps={props}
             nodeType="group"
+            boxShadow={GROUP_NODE_BOX_SHADOW}
             style={{ display: isHidden ? 'none' : 'block' }}
             isPrivate={props.node.attrs.lens === 'private'}
           >
