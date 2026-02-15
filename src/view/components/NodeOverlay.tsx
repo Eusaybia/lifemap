@@ -227,6 +227,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
       {showGrip && (
         <div
           onMouseDown={handleGripMouseDown}
+          className="node-overlay-grip-handle"
           style={{
             position: 'absolute',
             top: gripTop,

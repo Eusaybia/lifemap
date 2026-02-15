@@ -5,7 +5,7 @@ import { Plugin, PluginKey, Transaction, EditorState } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Node, ReactFlowInstance } from 'reactflow';
+import { applyNodeChanges, type Node, type NodeChange, type ReactFlowInstance } from 'reactflow';
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
@@ -614,31 +614,65 @@ const temporalOrderFlowNodeTypes = {
 
 const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ items }) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [nodes, setNodes] = useState<Node<TemporalEventCanvasNodeData>[]>([]);
 
-  const nodes = useMemo<Node<TemporalEventCanvasNodeData>[]>(() => {
-    return items.map((item, index) => ({
-      id: `${item.key}-${index}`,
-      type: 'temporalOrderEvent',
-      position: item.position,
-      data: {
-        nodeId: `${item.key}-${index}`,
-        label: item.label,
-        content: item.content,
-      },
-      draggable: true,
-      selectable: true,
-      dragHandle: '.custom-drag-handle',
-      style: { width: 640, height: item.hasMap ? 420 : 280 },
-    }));
+  const baseNodes = useMemo<Node<TemporalEventCanvasNodeData>[]>(() => {
+    const idCounts = new Map<string, number>();
+
+    return items.map((item, index) => {
+      const keyBase = (item.key || `item-${index}`).trim();
+      const seenCount = idCounts.get(keyBase) ?? 0;
+      idCounts.set(keyBase, seenCount + 1);
+      const stableId = seenCount === 0 ? keyBase : `${keyBase}-${seenCount}`;
+
+      return {
+        id: `temporal-order-${stableId}`,
+        type: 'temporalOrderEvent',
+        position: item.position,
+        data: {
+          nodeId: `temporal-order-${stableId}`,
+          label: item.label,
+          content: item.content,
+        },
+        draggable: true,
+        selectable: true,
+        dragHandle: '.node-overlay-grip-handle',
+        style: { width: 640, height: item.hasMap ? 420 : 280 },
+      };
+    });
   }, [items]);
 
   useEffect(() => {
-    if (!reactFlowInstance || !nodes.length) return;
+    setNodes((currentNodes) => {
+      const currentById = new Map(currentNodes.map((node) => [node.id, node]));
+
+      return baseNodes.map((baseNode) => {
+        const previousNode = currentById.get(baseNode.id);
+        if (!previousNode) {
+          return baseNode;
+        }
+
+        return {
+          ...baseNode,
+          position: previousNode.position ?? baseNode.position,
+          selected: previousNode.selected,
+          dragging: previousNode.dragging,
+        };
+      });
+    });
+  }, [baseNodes]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((currentNodes) => applyNodeChanges(changes, currentNodes));
+  }, []);
+
+  useEffect(() => {
+    if (!reactFlowInstance || !baseNodes.length) return;
     const rafId = window.requestAnimationFrame(() => {
       reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
     });
     return () => window.cancelAnimationFrame(rafId);
-  }, [reactFlowInstance, nodes]);
+  }, [reactFlowInstance, baseNodes]);
 
   return (
     <div className="temporal-order-flow-canvas">
@@ -646,6 +680,7 @@ const AtemporalEventField: React.FC<{ items: NonLinearEventPreview[] }> = ({ ite
         nodes={nodes}
         edges={[]}
         nodeTypes={temporalOrderFlowNodeTypes}
+        onNodesChange={onNodesChange}
         onInit={setReactFlowInstance}
         fitView
         fitViewOptions={{ padding: 0.2 }}
@@ -1119,7 +1154,7 @@ export const TemporalOrderExtension = TipTapNode.create({
 
         if (draggedNode) {
           const { from: draggedFrom, to: draggedTo, nodeJson, nodeTypeName } = draggedNode;
-          
+
           // Don't allow dropping a TemporalOrder inside itself
           if (nodeTypeName === 'temporalOrder') {
             console.log('[TemporalOrder] Cannot drop TemporalOrder into itself');

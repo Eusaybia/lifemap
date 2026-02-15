@@ -60,16 +60,6 @@ export const TemporalEventCanvasNode = memo(({ data }: NodeProps<TemporalEventCa
 
   return (
     <div className="temporal-order-flow-rich-node">
-      <div className="custom-drag-handle temporal-order-flow-rich-node-grip" aria-hidden="true">
-        <svg width="10" height="14" viewBox="0 0 10 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="2.5" cy="3" r="1.5" fill="#9ca3af" />
-          <circle cx="2.5" cy="7" r="1.5" fill="#9ca3af" />
-          <circle cx="2.5" cy="11" r="1.5" fill="#9ca3af" />
-          <circle cx="7.5" cy="3" r="1.5" fill="#9ca3af" />
-          <circle cx="7.5" cy="7" r="1.5" fill="#9ca3af" />
-          <circle cx="7.5" cy="11" r="1.5" fill="#9ca3af" />
-        </svg>
-      </div>
       <div className="temporal-order-flow-rich-node-body">
         {editor ? <EditorContent editor={editor} /> : <div className="temporal-order-flow-loading">Loading...</div>}
       </div>
@@ -78,4 +68,3 @@ export const TemporalEventCanvasNode = memo(({ data }: NodeProps<TemporalEventCa
 })
 
 TemporalEventCanvasNode.displayName = 'TemporalEventCanvasNode'
-

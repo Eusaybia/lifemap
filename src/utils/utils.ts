@@ -203,6 +203,8 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "group"
       case "temporalSpace":
         return "temporalSpace"
+      case "temporalOrder":
+        return "temporalOrder"
       case "scrollview":
         return "scrollview"
       case "portal":
