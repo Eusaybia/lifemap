@@ -204,7 +204,7 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
-        {checked ? '☑' : '☐'}
+        <span className="todo-checkbox-icon">{checked ? '✓' : ''}</span>
       </motion.span>
       
       {/* Text display or input */}

@@ -488,11 +488,14 @@
 // Slightly opaque to indicate unrealized time estimates
 // ============================================================================
 
-.duration-badge {
+%inline-badge-base {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   padding: 0.125rem 0.375rem;
+  // Keep all badge variants (duration/todo/etc.) at the same outer height.
+  min-height: calc(1.25em + 0.25rem + 2px);
+  box-sizing: border-box;
   border-radius: 0.375rem;
   font-size: 0.9em;
   font-weight: 500;
@@ -505,13 +508,11 @@
   border: 1px solid #d1d5db;
   color: #111827;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  opacity: 0.35; // Indicates unrealized/planned duration estimate
   transition: all 0.15s ease;
 
   &:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-    opacity: 0.55;
   }
 
   &.selected {
@@ -520,8 +521,20 @@
   }
 }
 
+.duration-badge {
+  @extend %inline-badge-base;
+  opacity: 0.35; // Indicates unrealized/planned duration estimate
+
+  &:hover {
+    opacity: 0.55;
+  }
+}
+
 .duration-badge-emoji {
+  display: inline-flex;
+  align-items: center;
   font-size: 1rem;
+  line-height: 1;
 }
 
 .duration-badge-label {
@@ -568,33 +581,7 @@
 // inline input field. This avoids TipTap v2's inline node cursor issues.
 
 .todo-mention {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background-color: #ffffff;
-  color: #111827; /* Black text as per user requirement */
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.125rem 0.375rem;
-  font-weight: 500;
-  font-size: 0.9em;
-  line-height: 1.25;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  cursor: default;
-  vertical-align: middle;
-  margin: 0 0.125rem;
-  transition: all 0.15s ease;
-  
-  &:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
-  }
-
-  &.selected {
-    outline: 2px solid #6366f1;
-    outline-offset: 1px;
-  }
+  @extend %inline-badge-base;
 
   // When checked, add subtle visual feedback
   &.todo-checked {
@@ -609,21 +596,40 @@
 }
 
 .todo-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1.5px solid #9ca3af;
+  border-radius: 0.2rem;
+  background: #fff;
   cursor: pointer;
   user-select: none;
-  font-size: 1.1rem;
-  line-height: 1;
-  color: #6b7280;
   flex-shrink: 0;
-  transition: color 0.15s ease;
+  transition: all 0.15s ease;
   
   &:hover {
-    color: #374151;
+    border-color: #4b5563;
+    background: #f9fafb;
   }
 
   // Checked state styling
   .todo-checked & {
-    color: #22c55e; /* Green when checked */
+    border-color: #22c55e;
+    background: #f0fdf4;
+  }
+}
+
+.todo-checkbox-icon {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  transition: color 0.15s ease;
+
+  .todo-checked & {
+    color: #16a34a;
   }
 }
 
