@@ -5,10 +5,11 @@ import {
   nodeInputRule,
 } from "@tiptap/react";
 import { Node } from "@tiptap/react";
-import { mergeAttributes, isNodeSelection } from "@tiptap/core";
-import React, { useEffect, useState } from "react";
-import { DragGrip } from "../components/DragGrip";
-import { motion } from "framer-motion";
+import { mergeAttributes } from "@tiptap/core";
+import React, { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { NodeOverlay } from "../components/NodeOverlay";
+import { Group, GroupLenses } from "./Group";
 
 // Lens types for ExternalPortal - controls visibility/display
 type ExternalPortalLenses = "identity" | "preview" | "private" | "tag";
@@ -37,6 +38,10 @@ const REGEX_BLOCK_AT_SLASH = /(^@\/(.+?)@)/;
 
 // Shared border radius matching PortalExtension style
 const sharedBorderRadius = 15;
+const DEFAULT_IFRAME_HEIGHT = 220;
+const MIN_IFRAME_HEIGHT = 96;
+const MAX_INITIAL_HEIGHT = 420;
+const MAX_IFRAME_HEIGHT = 420;
 
 // Declare the setExternalPortalLens command for TypeScript
 declare module '@tiptap/core' {
@@ -66,8 +71,8 @@ const ExternalPortalExtension = Node.create({
         },
       },
       height: {
-        // Start with tall height to prevent content from being cut off during initial load
-        default: 2000,
+        // Keep a modest default; runtime resize logic grows/shrinks to content.
+        default: DEFAULT_IFRAME_HEIGHT,
       },
       lens: {
         default: "identity" as ExternalPortalLenses,
@@ -112,70 +117,85 @@ const ExternalPortalExtension = Node.create({
   addNodeView() {
     return ReactNodeViewRenderer(
       (props: NodeViewProps) => {
-        const [externalQuantaId, setExternalQuantaId] = useState(props.node.attrs.externalQuantaId);
-        // Start with tall height to prevent content from being cut off during initial load
-        const [iframeHeight, setIframeHeight] = useState(props.node.attrs.height || 2000);
+        const externalQuantaId = String(props.node.attrs.externalQuantaId || "");
+        const [iframeHeight, setIframeHeight] = useState(() => {
+          const raw = Number(props.node.attrs.height);
+          if (Number.isFinite(raw) && raw > 0) {
+            return Math.min(raw, MAX_INITIAL_HEIGHT);
+          }
+          return DEFAULT_IFRAME_HEIGHT;
+        });
+        const [isTagExpanded, setIsTagExpanded] = useState(false);
 
         // Get the current lens from node attributes
         const currentLens = props.node.attrs.lens as ExternalPortalLenses;
         const isTag = currentLens === 'tag';
         const isPrivate = currentLens === 'private';
         const isPreview = currentLens === 'preview';
+        const resolvedQuantaId = String(props.node.attrs.quantaId || externalQuantaId || "external-portal");
+        const handleQuantaIdChange = (newQuantaId: string) => {
+          props.updateAttributes({ externalQuantaId: newQuantaId });
+        };
+        const applyIframeHeight = useCallback((value: number) => {
+          const nextHeight = Math.min(
+            Math.max(Math.round(value), MIN_IFRAME_HEIGHT),
+            MAX_IFRAME_HEIGHT,
+          );
+          setIframeHeight((previousHeight) => previousHeight === nextHeight ? previousHeight : nextHeight);
+          if (props.node.attrs.height !== nextHeight) {
+            props.updateAttributes({ height: nextHeight });
+          }
+        }, [props.node.attrs.height, props.updateAttributes]);
+        const handleIframeLoad = useCallback((event: React.SyntheticEvent<HTMLIFrameElement>) => {
+          try {
+            const iframe = event.currentTarget;
+            const doc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (!doc) return;
+
+            const measuredHeight = Math.max(
+              doc.body?.scrollHeight || 0,
+              doc.documentElement?.scrollHeight || 0,
+              doc.body?.offsetHeight || 0,
+              doc.documentElement?.offsetHeight || 0,
+            );
+
+            if (measuredHeight > 0) {
+              applyIframeHeight(measuredHeight);
+            }
+          } catch {
+            // Ignore cross-context access issues; postMessage resize will still apply.
+          }
+        }, [applyIframeHeight]);
 
         // Keep hook order stable across lens switches (including "tag").
         useEffect(() => {
-          if (isTag) return;
-
           const handleMessage = (event: MessageEvent) => {
             if (
               event.data?.type === 'resize-iframe' &&
               event.data.noteId === externalQuantaId &&
               typeof event.data.height === 'number'
             ) {
-              // Enforce minimum height to prevent content collapse
-              const newHeight = Math.max(event.data.height, 800);
-              setIframeHeight(newHeight);
-              props.updateAttributes({ height: newHeight });
+              applyIframeHeight(event.data.height);
             }
           };
 
           window.addEventListener('message', handleMessage);
           return () => window.removeEventListener('message', handleMessage);
-        }, [externalQuantaId, isTag, props.updateAttributes]);
+        }, [applyIframeHeight, externalQuantaId]);
 
-        if (isTag) {
-          const tagLabel = externalQuantaId?.trim() || 'External Portal';
+        useEffect(() => {
+          if (!props.selected) {
+            setIsTagExpanded(false);
+          }
+        }, [props.selected]);
 
-          return (
-            <NodeViewWrapper
-              data-external-portal-lens="tag"
-              style={{
-                display: 'inline-block',
-                width: 'fit-content',
-                verticalAlign: 'middle',
-              }}
-            >
-              <span
-                className={`duration-badge ${props.selected ? 'selected' : ''}`}
-                contentEditable={false}
-              >
-                <span className="duration-badge-emoji">📡</span>
-                <span className="duration-badge-label">{tagLabel}</span>
-              </span>
-            </NodeViewWrapper>
-          );
-        }
-
-        // Handle input change for quanta ID
-        const handleQuantaIdChange = (newQuantaId: string) => {
-          setExternalQuantaId(newQuantaId);
-          props.updateAttributes({ externalQuantaId: newQuantaId });
-        };
-
-        return (
-          <NodeViewWrapper>
-            {/* Editable input positioned at top-left for easy editing */}
-            <div contentEditable={false}>
+        const renderExternalPortalFrame = (lens: GroupLenses) => (
+          <NodeOverlay
+            nodeProps={props}
+            nodeType="externalPortal"
+            isPrivate={lens === "private"}
+          >
+            <div contentEditable={false} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
               <input
                 type="text"
                 value={externalQuantaId}
@@ -190,127 +210,109 @@ const ExternalPortalExtension = Node.create({
                   padding: '2px 8px',
                   fontSize: '12px',
                   fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', monospace",
-                  position: "absolute",
-                  zIndex: 1,
                 }}
               />
             </div>
-            
-            {/* Neumorphic portal container - matching PortalExtension style */}
-            <div
-              style={{
-                borderRadius: sharedBorderRadius,
-                background: `#e0e0e0`,
-                position: "relative",
-                boxShadow: `inset 10px 10px 10px #bebebe,
-                    inset -10px -10px 10px #FFFFFF99`,
-                minHeight: 60,
-                maxHeight: isPreview ? 100 : undefined,
-                overflow: isPreview ? 'hidden' : undefined,
-                padding: `11px 15px 11px 15px`,
-                marginBottom: 10,
-              }}
-              contentEditable={false}
+            <Group
+              lens={lens}
+              quantaId={resolvedQuantaId}
             >
-              {/* DragGrip with onClick to select the node */}
-              <div
-                onMouseDown={(e) => {
-                  // Prevent default to stop the editor from losing focus/selection
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  const pos = props.getPos();
-                  if (typeof pos === 'number') {
-                    props.editor.commands.setNodeSelection(pos);
-                  }
-                }}
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  right: -4,
-                  zIndex: 10,
-                  cursor: 'pointer',
-                  width: 40,
-                  height: 40,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  touchAction: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <DragGrip
-                  position="inline"
-                  dotColor="#999"
-                  hoverBackground="rgba(0, 0, 0, 0.08)"
-                />
+              <div contentEditable={false}>
+                {externalQuantaId ? (
+                  <iframe
+                    src={`/q/${externalQuantaId}`}
+                    loading="lazy"
+                    onLoad={handleIframeLoad}
+                    style={{
+                      width: '100%',
+                      height: `${iframeHeight}px`,
+                      border: 'none',
+                      borderRadius: 10,
+                      background: 'white',
+                    }}
+                    title={`Embedded Quanta: ${externalQuantaId}`}
+                  />
+                ) : (
+                  <div style={{
+                    padding: 20,
+                    textAlign: 'center',
+                    color: '#888',
+                    fontSize: 14,
+                  }}>
+                    No external quanta reference set
+                  </div>
+                )}
               </div>
+            </Group>
+          </NodeOverlay>
+        );
 
-              {/* Private lens overlay - completely black with grey text */}
-              {isPrivate && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: '#000000',
-                    borderRadius: sharedBorderRadius,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 20,
-                    userSelect: 'none',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <span style={{ color: '#666', fontSize: 14 }}>Private</span>
-                </motion.div>
-              )}
-              
-              {externalQuantaId ? (
-                <iframe
-                  src={`/q/${externalQuantaId}`}
-                  loading="lazy"
-                  style={{
-                    width: '100%',
-                    height: `${iframeHeight}px`,
-                    border: 'none',
-                    borderRadius: 10,
-                    background: 'white',
-                  }}
-                  title={`Embedded Quanta: ${externalQuantaId}`}
-                />
-              ) : (
-                <div style={{
-                  padding: 20,
-                  textAlign: 'center',
-                  color: '#888',
-                  fontSize: 14,
-                }}>
-                  Enter a quanta ID above to embed content
-                </div>
-              )}
-              
-              {/* Preview fade gradient at bottom */}
-              {isPreview && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 40,
-                    background: 'linear-gradient(to bottom, transparent, #e0e0e0)',
-                    borderRadius: `0 0 ${sharedBorderRadius}px ${sharedBorderRadius}px`,
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
-            </div>
+        if (isTag) {
+          const tagLabel = externalQuantaId?.trim() || 'External Portal';
+          const sharedLayoutId = `external-portal-tag-preview-${props.node.attrs.quantaId ?? externalQuantaId ?? 'default'}`;
+          const sharedTransition = { type: 'spring', stiffness: 420, damping: 34, mass: 0.75 } as const;
+          const handleTagMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsTagExpanded(true);
+
+            const pos = props.getPos();
+            if (typeof pos === 'number') {
+              props.editor.chain().focus().setNodeSelection(pos).run();
+            }
+          };
+          const shouldShowExpanded = props.selected && isTagExpanded;
+
+          return (
+            <NodeViewWrapper
+              as="span"
+              data-external-portal-lens="tag"
+              style={{
+                display: 'inline-block',
+                position: 'relative',
+                verticalAlign: 'middle',
+              }}
+            >
+              <AnimatePresence initial={false} mode="popLayout">
+                {!shouldShowExpanded ? (
+                  <motion.span
+                    key="external-portal-tag"
+                    layoutId={sharedLayoutId}
+                    transition={sharedTransition}
+                    className={`duration-badge ${props.selected ? 'selected' : ''}`}
+                    contentEditable={false}
+                    onMouseDown={handleTagMouseDown}
+                    style={{ cursor: 'pointer', opacity: 1 }}
+                  >
+                    <span className="duration-badge-label">{tagLabel}</span>
+                  </motion.span>
+                ) : (
+                  <motion.div
+                    key="external-portal-preview"
+                    layoutId={sharedLayoutId}
+                    transition={sharedTransition}
+                    contentEditable={false}
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      left: 0,
+                      zIndex: 1000,
+                      width: 'min(760px, 92vw)',
+                    }}
+                  >
+                    {renderExternalPortalFrame("identity")}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </NodeViewWrapper>
+          );
+        }
+
+        const groupLens: GroupLenses = isPrivate ? "private" : (isPreview ? "preview" : "identity");
+
+        return (
+          <NodeViewWrapper>
+            {renderExternalPortalFrame(groupLens)}
           </NodeViewWrapper>
         );
       },

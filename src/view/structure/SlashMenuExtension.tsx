@@ -333,6 +333,17 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'temporal-daily',
+      title: 'Temporal Daily',
+      description: 'Auto-sorts children by date for daily schedules (early→late)',
+      emoji: '📅',
+      keywords: ['temporal', 'daily', 'schedule', 'chronological', 'date', 'time', 'order', 'planner'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertTemporalDaily()
+      },
+    },
+    {
       id: 'trends',
       title: 'Trends',
       description: 'Temporal-space style container with a left-to-right trend arrow',

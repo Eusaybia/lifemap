@@ -12,7 +12,7 @@ export interface TemporalEventCanvasNodeData {
   content: JSONContent
 }
 
-const EXCLUDED_EXTENSION_NAMES = ['canvas3D', 'canvas', 'bubbleMenu', 'temporalOrder']
+const EXCLUDED_EXTENSION_NAMES = ['canvas3D', 'canvas', 'bubbleMenu', 'temporalOrder', 'temporalDaily']
 
 const normalizeContentToDoc = (content: JSONContent): JSONContent => {
   if (content?.type === 'doc') {
