@@ -1,7 +1,7 @@
 import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
-import { useScrollEnd } from '../../utils/utils';
+import { playUiSound, useScrollEnd } from '../../utils/utils';
 
 interface OptionButtonProps {
     onClick: () => void;
@@ -39,7 +39,6 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [isUserScrolling, setIsUserScrolling] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
-    const [tickSound, setTickSound] = React.useState<HTMLAudioElement | null>(null);
     const isProgrammaticScroll = React.useRef(false);
     const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -64,11 +63,8 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                 // TODO: Maybe it would be better to use Motion.js and its scroll functions
                 // The activation box is a thin line in the middle of the flow switch
                 // and activates when a child element enters this thin line.
-                if (isUserScrolling && tickSound) {
-                    // Clone the audio to allow rapid successive plays for a mechanical tick effect
-                    const soundClone = tickSound.cloneNode() as HTMLAudioElement;
-                    soundClone.volume = 0.15;
-                    soundClone.play().catch(() => {});
+                if (isUserScrolling) {
+                    playUiSound('/click.mp3', 0.15)
                 }
                 setSelectedIndex(index)
                 
@@ -132,13 +128,8 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
     }, 2000)
 
-    // Initialize audio on client side only - use click.mp3 for mechanical device feel
+    // Cleanup timeout on unmount
     React.useEffect(() => {
-        const audio = new Audio("/click.mp3");
-        audio.volume = 0.15;
-        setTickSound(audio);
-        
-        // Cleanup timeout on unmount
         return () => {
             if (scrollTimeoutRef.current) {
                 clearTimeout(scrollTimeoutRef.current);
@@ -206,17 +197,8 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 FlowSwitch.displayName = 'FlowSwitch'
 
 export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children }) => {
-    const [clickSound, setClickSound] = React.useState<HTMLAudioElement | null>(null);
-
-    React.useEffect(() => {
-        const audio = new Audio('/click.mp3');
-        setClickSound(audio);
-    }, []);
-
     const handleClick = () => {
-        if (clickSound) {
-            clickSound.play().catch(() => {});
-        }
+        playUiSound('/click.mp3', 0.15)
         onClick();
     };
 

@@ -9,6 +9,7 @@ import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/core'
 import { FlowSwitch, Option } from './FlowSwitch'
+import { playUiSound } from '../../utils/utils'
 
 // ============================================================================
 // Types
@@ -516,14 +517,6 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
   const [selectedIndex, setSelectedIndex] = useState(0)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([])
-  const [tickSound, setTickSound] = useState<HTMLAudioElement | null>(null)
-
-  // Initialize tick sound
-  useEffect(() => {
-    const audio = new Audio('/click.mp3')
-    audio.volume = 0.12
-    setTickSound(audio)
-  }, [])
 
   // Scroll to selected item
   const scrollToIndex = (index: number) => {
@@ -537,11 +530,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
     if (index >= props.items.length) return
     const item = props.items[index]
     // Play click sound
-    if (tickSound) {
-      const soundClone = tickSound.cloneNode() as HTMLAudioElement
-      soundClone.volume = 0.15
-      soundClone.play().catch(() => {})
-    }
+    playUiSound('/click.mp3', 0.15)
     props.command(item)
   }
 
@@ -549,11 +538,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
     const newIndex = (selectedIndex + props.items.length - 1) % props.items.length
     setSelectedIndex(newIndex)
     // Play tick sound
-    if (tickSound) {
-      const soundClone = tickSound.cloneNode() as HTMLAudioElement
-      soundClone.volume = 0.1
-      soundClone.play().catch(() => {})
-    }
+    playUiSound('/click.mp3', 0.1)
     scrollToIndex(newIndex)
   }
 
@@ -561,11 +546,7 @@ const SlashMenuList = forwardRef<SlashMenuListRef, SlashMenuListProps>((props, r
     const newIndex = (selectedIndex + 1) % props.items.length
     setSelectedIndex(newIndex)
     // Play tick sound
-    if (tickSound) {
-      const soundClone = tickSound.cloneNode() as HTMLAudioElement
-      soundClone.volume = 0.1
-      soundClone.play().catch(() => {})
-    }
+    playUiSound('/click.mp3', 0.1)
     scrollToIndex(newIndex)
   }
 

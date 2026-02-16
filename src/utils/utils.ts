@@ -152,6 +152,44 @@ export const useScrollEnd = (callback: () => void, delay: number) => {
   }, [callback, delay]);
 };
 
+const uiAudioElements = new Map<string, HTMLAudioElement>()
+
+const shouldMuteUiSounds = (): boolean => {
+  if (typeof window === 'undefined') return true
+
+  try {
+    if (window.self !== window.top) return true
+  } catch {
+    return true
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  return params.get('muteUiSounds') === 'true'
+}
+
+export const playUiSound = (src: string, volume = 0.15) => {
+  if (shouldMuteUiSounds()) return
+
+  let audio = uiAudioElements.get(src)
+  if (!audio) {
+    audio = new Audio(src)
+    audio.preload = 'auto'
+    uiAudioElements.set(src, audio)
+  }
+
+  audio.volume = volume
+
+  try {
+    audio.currentTime = 0
+  } catch {
+    // Ignore seek errors for streams that aren't seekable.
+  }
+
+  void audio.play().catch(() => {
+    // Ignore autoplay and transient playback failures.
+  })
+}
+
 export const logCurrentLens = (editor: Editor) => {
   const selectedNode = getSelectedNode(editor);
   if (selectedNode) {
