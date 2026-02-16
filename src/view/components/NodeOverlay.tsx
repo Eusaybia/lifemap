@@ -95,6 +95,8 @@ export interface NodeOverlayProps {
 
 // Spotlight glow - very wide, bright yellow bloom like sun rays when node is spotlit
 const SPOTLIGHT_GLOW = `0 0 25px 8px hsla(55, 100%, 50%, 0.5), 0 0 100px 30px hsla(55, 100%, 50%, 0.25), 0 0 200px 50px hsla(55, 100%, 50%, 0.12), 0 0 300px 70px hsla(55, 100%, 50%, 0.06)`
+const GRIP_HIT_TARGET = 40
+const GRIP_HIT_EXPANSION = 6
 
 export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   nodeProps,
@@ -228,12 +230,20 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
         <div
           onMouseDown={handleGripMouseDown}
           className="node-overlay-grip-handle"
+          data-drag-handle
           style={{
             position: 'absolute',
-            top: gripTop,
-            [gripPosition === 'top-right' ? 'right' : 'left']: gripRight,
+            top: Math.max(0, gripTop - GRIP_HIT_EXPANSION),
+            [gripPosition === 'top-right' ? 'right' : 'left']: Math.max(0, gripRight - GRIP_HIT_EXPANSION),
             zIndex: 10,
             cursor: 'pointer',
+            width: GRIP_HIT_TARGET,
+            height: GRIP_HIT_TARGET,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            touchAction: 'none',
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           <DragGrip

@@ -27,6 +27,8 @@ export interface AuraEnergyLevel {
   id: string
   label: string
   emoji: string
+  level: number
+  aliases?: string[]
 }
 
 interface AuraListProps extends SuggestionProps {
@@ -42,30 +44,33 @@ type AuraListRef = {
 // ============================================================================
 
 const AURA_ITEMS: AuraEnergyLevel[] = [
-  { 
-    id: 'aura:higher-energy', 
-    label: 'Higher Energy (Strong Yang) ⚌', 
-    emoji: '☀️',
-  },
-  { 
-    id: 'aura:semi-higher-energy', 
-    label: 'Semi-Higher Energy (Lesser Yang) ⚎', 
-    emoji: '☁️',
-  },
-  { 
-    id: 'aura:semi-lower-energy', 
-    label: 'Semi-Lower Energy (Lesser Yin) ⚍', 
-    emoji: '🌍',
-  },
-  { 
-    id: 'aura:lower-energy', 
-    label: 'Lower Energy (Strong Yin) ⚏', 
-    emoji: '🌙',
+  {
+    id: 'aura:energy-level-1',
+    label: 'Willpower (Level 1)',
+    emoji: '⚫',
+    level: 1,
+    aliases: ['willpower', 'level 1'],
   },
   {
-    id: 'aura:blockage',
-    label: 'Blockage',
-    emoji: '🪨',
+    id: 'aura:respect-level-2',
+    label: 'Respect (Level 2)',
+    emoji: '⚪',
+    level: 2,
+    aliases: ['respect', 'level 2'],
+  },
+  {
+    id: 'aura:gratitude-level-3',
+    label: 'Gratitude (Level 3)',
+    emoji: '○',
+    level: 3,
+    aliases: ['gratitude', 'level 3'],
+  },
+  {
+    id: 'aura:humility-level-4',
+    label: 'Humility (Level 4)',
+    emoji: '☀️',
+    level: 4,
+    aliases: ['humility', 'level 4'],
   },
 ]
 
@@ -80,9 +85,11 @@ const fetchAuraItems = (query: string): AuraEnergyLevel[] => {
   
   const lowerQuery = query.toLowerCase().replace(/^\^/, '') // Remove leading ^ if present
   
-  return AURA_ITEMS.filter((item) =>
-    item.label.toLowerCase().includes(lowerQuery)
-  )
+  return AURA_ITEMS.filter((item) => {
+    if (item.label.toLowerCase().includes(lowerQuery)) return true
+    if (item.aliases?.some((alias) => alias.toLowerCase().includes(lowerQuery))) return true
+    return false
+  })
 }
 
 // ============================================================================
@@ -175,14 +182,17 @@ export const AuraNode = Node.create({
     
     // Determine glow based on energy level
     let glowStyle = ''
-    if (auraId?.includes('higher-energy')) {
+    if (auraId?.includes('humility-level-4') || auraId?.includes('higher-energy')) {
       // Strong Yang - bright yellow sun glow
       glowStyle = '0 0 12px 3px rgba(255, 240, 50, 0.6), 0 0 25px 6px rgba(255, 250, 100, 0.35)'
-    } else if (auraId?.includes('semi-higher-energy')) {
-      // Lesser Yang - dull pale yellow glow (closer to white)
+    } else if (auraId?.includes('gratitude-level-3') || auraId?.includes('semi-higher-energy')) {
+      // Gratitude / Lesser Yang - pale white-yellow glow
       glowStyle = '0 0 10px 3px rgba(255, 252, 230, 0.6), 0 0 20px 5px rgba(250, 248, 220, 0.35)'
-    } else if (auraId?.includes('semi-lower-energy')) {
-      // Lesser Yin - soft dark shadow
+    } else if (auraId?.includes('respect-level-2')) {
+      // Respect - soft white ring aura
+      glowStyle = '0 0 8px 2px rgba(255, 255, 255, 0.8), 0 0 18px 4px rgba(245, 245, 245, 0.5)'
+    } else if (auraId?.includes('energy-level-1') || auraId?.includes('semi-lower-energy')) {
+      // Level 1 / Lesser Yin - soft dark shadow
       glowStyle = '0 0 10px 3px rgba(0, 0, 0, 0.2), 0 0 20px 5px rgba(0, 0, 0, 0.12)'
     } else if (auraId?.includes('lower-energy')) {
       // Strong Yin - deeper dark shadow

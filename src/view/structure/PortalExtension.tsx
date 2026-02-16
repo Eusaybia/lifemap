@@ -36,8 +36,8 @@ declare module '@tiptap/core' {
 const REGEX_BLOCK_TILDE = /(^~(.+?)~)/;
 const sharedBorderRadius = 15;
 
-// Currently they are the same but in future they will diverge
-type PortalLenses = GroupLenses
+// Currently they are mostly the same, but portal has an additional compact tag lens.
+type PortalLenses = GroupLenses | "tag"
 
 /**
  * Get JSON representation of a Quanta referenced by ID
@@ -327,8 +327,32 @@ const PortalExtension = Node.create({
 
         // Get the current lens from node attributes
         const currentLens = props.node.attrs.lens as PortalLenses;
+        const isTag = currentLens === 'tag';
         const isPrivate = currentLens === 'private';
         const isPreview = currentLens === 'preview';
+
+        if (isTag) {
+          const tagLabel = referencedQuantaId?.trim() || 'Portal';
+
+          return (
+            <NodeViewWrapper
+              data-portal-lens="tag"
+              style={{
+                display: 'inline-block',
+                width: 'fit-content',
+                verticalAlign: 'middle',
+              }}
+            >
+              <span
+                className={`duration-badge ${props.selected ? 'selected' : ''}`}
+                contentEditable={false}
+              >
+                <span className="duration-badge-emoji">🔗</span>
+                <span className="duration-badge-label">{tagLabel}</span>
+              </span>
+            </NodeViewWrapper>
+          );
+        }
 
         // Handler to open the quanta in a new tab
         // This allows users to quickly navigate to the full quanta page for detailed editing

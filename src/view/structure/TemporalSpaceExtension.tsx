@@ -25,16 +25,19 @@ export const getAuraGlow = (node: ProseMirrorNode): string | null => {
   node.descendants((childNode) => {
     if (childNode.type.name === AURA_MENTION_NODE_NAME) {
       const auraId = childNode.attrs.id as string;
-      if (auraId?.includes('higher-energy')) {
+      if (auraId?.includes('humility-level-4') || auraId?.includes('higher-energy')) {
         // Strong Yang - bright yellow sun glow surrounding all sides
         glowStyle = '0 0 35px 10px rgba(255, 240, 50, 0.55), 0 0 70px 20px rgba(255, 250, 100, 0.3), 0 0 100px 30px rgba(255, 255, 150, 0.18)';
-      } else if (auraId?.includes('semi-higher-energy') && !glowStyle?.includes('255, 240')) {
-        // Lesser Yang - soft white-grey glow
+      } else if ((auraId?.includes('gratitude-level-3') || auraId?.includes('semi-higher-energy')) && !glowStyle?.includes('255, 240')) {
+        // Gratitude / Lesser Yang - soft white glow
         glowStyle = '0 0 20px 5px rgba(240, 240, 245, 0.5), 0 0 40px 10px rgba(230, 230, 235, 0.3)';
+      } else if (auraId?.includes('respect-level-2') && !glowStyle?.includes('255, 240')) {
+        // Respect - white ring-like glow
+        glowStyle = '0 0 16px 4px rgba(255, 255, 255, 0.55), 0 0 34px 8px rgba(245, 245, 245, 0.35)';
       } else if (auraId?.includes('semi-lower-energy') && !glowStyle) {
         // Lesser Yin - soft dark shadow
         glowStyle = '0 0 20px 5px rgba(0, 0, 0, 0.15), 0 0 40px 10px rgba(0, 0, 0, 0.1)';
-      } else if (auraId?.includes('lower-energy')) {
+      } else if (auraId?.includes('energy-level-1') || auraId?.includes('lower-energy')) {
         // Strong Yin - deeper dark shadow surrounding all sides
         glowStyle = '0 0 30px 8px rgba(0, 0, 0, 0.25), 0 0 60px 15px rgba(0, 0, 0, 0.15)';
       } else if (auraId?.includes('blockage')) {

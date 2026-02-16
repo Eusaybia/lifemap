@@ -11,7 +11,7 @@ import { DragGrip } from "../components/DragGrip";
 import { motion } from "framer-motion";
 
 // Lens types for ExternalPortal - controls visibility/display
-type ExternalPortalLenses = "identity" | "preview" | "private";
+type ExternalPortalLenses = "identity" | "preview" | "private" | "tag";
 
 /**
  * ExternalPortalExtension - A portal that embeds an external Quanta as an iframe.
@@ -118,21 +118,18 @@ const ExternalPortalExtension = Node.create({
 
         // Get the current lens from node attributes
         const currentLens = props.node.attrs.lens as ExternalPortalLenses;
+        const isTag = currentLens === 'tag';
         const isPrivate = currentLens === 'private';
         const isPreview = currentLens === 'preview';
 
-        // Handle input change for quanta ID
-        const handleQuantaIdChange = (newQuantaId: string) => {
-          setExternalQuantaId(newQuantaId);
-          props.updateAttributes({ externalQuantaId: newQuantaId });
-        };
-
-        // Listen for height updates from the embedded Quanta (postMessage pattern from /life-mapping-old)
+        // Keep hook order stable across lens switches (including "tag").
         useEffect(() => {
+          if (isTag) return;
+
           const handleMessage = (event: MessageEvent) => {
             if (
-              event.data?.type === 'resize-iframe' && 
-              event.data.noteId === externalQuantaId && 
+              event.data?.type === 'resize-iframe' &&
+              event.data.noteId === externalQuantaId &&
               typeof event.data.height === 'number'
             ) {
               // Enforce minimum height to prevent content collapse
@@ -144,7 +141,36 @@ const ExternalPortalExtension = Node.create({
 
           window.addEventListener('message', handleMessage);
           return () => window.removeEventListener('message', handleMessage);
-        }, [externalQuantaId]);
+        }, [externalQuantaId, isTag, props.updateAttributes]);
+
+        if (isTag) {
+          const tagLabel = externalQuantaId?.trim() || 'External Portal';
+
+          return (
+            <NodeViewWrapper
+              data-external-portal-lens="tag"
+              style={{
+                display: 'inline-block',
+                width: 'fit-content',
+                verticalAlign: 'middle',
+              }}
+            >
+              <span
+                className={`duration-badge ${props.selected ? 'selected' : ''}`}
+                contentEditable={false}
+              >
+                <span className="duration-badge-emoji">📡</span>
+                <span className="duration-badge-label">{tagLabel}</span>
+              </span>
+            </NodeViewWrapper>
+          );
+        }
+
+        // Handle input change for quanta ID
+        const handleQuantaIdChange = (newQuantaId: string) => {
+          setExternalQuantaId(newQuantaId);
+          props.updateAttributes({ externalQuantaId: newQuantaId });
+        };
 
         return (
           <NodeViewWrapper>
@@ -200,10 +226,17 @@ const ExternalPortalExtension = Node.create({
                 }}
                 style={{
                   position: 'absolute',
-                  top: 10,
-                  right: 0,
+                  top: 4,
+                  right: -4,
                   zIndex: 10,
                   cursor: 'pointer',
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  touchAction: 'none',
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <DragGrip

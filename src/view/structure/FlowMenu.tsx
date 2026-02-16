@@ -1105,6 +1105,39 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+const TemporalDailyLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getSelectedNode(props.editor)
+    const isCollapsed = !!selectedNode?.attrs?.collapsed
+    const flowValue = isCollapsed ? "collapsed" : "expanded"
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <FlowSwitch value={flowValue} isLens scrollToSelect>
+                <Option value={"expanded"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalDailyExtension
+                    props.editor.commands.setTemporalDailyCollapsed({ collapsed: false })
+                }}>
+                    <motion.div>
+                        Expanded
+                    </motion.div>
+                </Option>
+                <Option value={"collapsed"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalDailyExtension
+                    props.editor.commands.setTemporalDailyCollapsed({ collapsed: true })
+                }}>
+                    <motion.div>
+                        📦 Collapsed
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Temporal Daily
+            </Tag>
+        </div>
+    )
+})
+
 // Architectural choice: keep the Weekly loupe tag-only because the
 // weekly node's interactions live inside the embedded day cards,
 // and the flow menu should stay lightweight while scanning schedules.
@@ -1661,6 +1694,13 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
                         Identity
                     </motion.div>
                 </Option>
+                <Option value={"tag"} onClick={() => {
+                    props.editor.commands.setLens({ lens: "tag" })
+                }}>
+                    <motion.div>
+                        🏷 Tag
+                    </motion.div>
+                </Option>
                 <Option value={"private"} onClick={() => {
                     props.editor.commands.setLens({ lens: "private" })
                 }}>
@@ -1691,6 +1731,13 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Identity
+                    </motion.div>
+                </Option>
+                <Option value={"tag"} onClick={() => {
+                    props.editor.commands.setExternalPortalLens({ lens: "tag" })
+                }}>
+                    <motion.div>
+                        🏷 Tag
                     </motion.div>
                 </Option>
                 <Option value={"preview"} onClick={() => {
@@ -1790,7 +1837,14 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 // Architectural choice: only show the flow menu for the active
                 // editor (or when interacting with the menu itself) so multiple
                 // embedded Quanta don't leave overlapping menus behind.
-                const editorHasFocus = editor.isFocused || editor.view.hasFocus()
+                let editorHasFocus = editor.isFocused
+                if (!editorHasFocus) {
+                    try {
+                        editorHasFocus = editor.view.hasFocus()
+                    } catch {
+                        editorHasFocus = false
+                    }
+                }
                 const activeElement = typeof document === 'undefined' ? null : document.activeElement
                 const menuHasFocus = !!activeElement && !!elementRef.current?.contains(activeElement)
 
@@ -1810,6 +1864,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'canvas3D': <Canvas3DLoupe editor={props.editor} />,
                         'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
+                        'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
                         'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
