@@ -194,6 +194,9 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
     <NodeViewWrapper 
       as="span" 
       className={`todo-mention ${checked ? 'todo-checked' : ''} ${selected ? 'selected' : ''}`}
+      data-type="todo-mention"
+      data-checked={checked ? 'true' : 'false'}
+      data-text={text}
       data-todo-id={todoId ?? undefined}
     >
       {/* Checkbox button */}
@@ -281,7 +284,10 @@ export const TodoMentionNode = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: 'span[data-type="todo-mention"]' }]
+    return [
+      { tag: 'span[data-type="todo-mention"]' },
+      { tag: 'span.todo-mention[data-checked]' },
+    ]
   },
 
   renderHTML({ node, HTMLAttributes }) {
