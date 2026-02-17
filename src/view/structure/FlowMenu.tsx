@@ -375,6 +375,30 @@ const ActionSwitch = React.memo((props: {
             ;(snapshotProvider as any).unwatchVersions?.(handleVersionsChanged)
         }
     }, [snapshotProvider, syncSnapshotVersions])
+
+    const applyVersionWithoutCreatingBackup = React.useCallback((targetVersion: number, labelForRevert: string) => {
+        try {
+            if (snapshotProvider && typeof snapshotProvider.sendStateless === 'function') {
+                snapshotProvider.sendStateless(JSON.stringify({
+                    action: 'document.revert',
+                    version: targetVersion,
+                    currentVersionName: false,
+                    newVersionName: false,
+                }))
+                setToastMessage(`Switched to ${labelForRevert}`)
+                return
+            }
+        } catch (error) {
+            console.warn('[FlowMenu] Non-versioning revert failed, falling back to editor command', error)
+        }
+
+        props.editor.commands.revertToVersion(
+            targetVersion,
+            `Revert to ${labelForRevert}`,
+            `Unsaved changes before revert to ${labelForRevert}`,
+        )
+        setToastMessage(`Restored to ${labelForRevert}`)
+    }, [props.editor, snapshotProvider])
     
     const documentAttributes = readDocumentAttributesFromStorage();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
@@ -697,7 +721,7 @@ const ActionSwitch = React.memo((props: {
         {/* Hidden for group nodes */}
         {/* Shows both auto snapshots (⟳) and manual named snapshots (📌) */}
         {currentQuantaId && props.nodeType !== 'group' ? (
-            <FlowSwitch value={"restore"} isLens>
+            <FlowSwitch value={"restore"} isLens scrollToSelect>
                 {snapshotVersions.length > 0 ? (
                     snapshotVersions.map((version, index) => {
                         const date = new Date(version.date);
@@ -724,13 +748,8 @@ const ActionSwitch = React.memo((props: {
                                 value={label}
                                 onClick={() => {
                                     const labelForRevert = label || `Version ${version.version}`;
-                                    props.editor.commands.revertToVersion(
-                                        version.version,
-                                        `Revert to ${labelForRevert}`,
-                                        `Unsaved changes before revert to ${labelForRevert}`,
-                                    );
-                                    console.log(`[FlowMenu] Restored to ${labelForRevert}`);
-                                    setToastMessage(`Restored to ${labelForRevert}`);
+                                    applyVersionWithoutCreatingBackup(version.version, labelForRevert)
+                                    console.log(`[FlowMenu] Switched to ${labelForRevert}`);
                                 }}
                             >
                                 <motion.div>

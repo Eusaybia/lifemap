@@ -13,6 +13,7 @@ import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
+import Snapshot from '@tiptap-pro/extension-snapshot'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import UniqueID from '@tiptap/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -969,6 +970,15 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         field: 'default',
       })
     )
+    generatedOfficialExtensions.push(
+      Snapshot.configure({
+        // Snapshot provider can initialize after mount; keep extension mounted consistently.
+        provider: provider as any,
+        onUpdate: () => {
+          // Snapshot storage is read directly from editor.storage.snapshot by menus.
+        },
+      })
+    )
   } 
 
   // Create memoized throttled backup function (3 minutes = 180000ms)
@@ -1077,6 +1087,18 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     onTransaction: ({ editor, transaction }) => {
     },
   })
+
+  React.useEffect(() => {
+    if (!editor || informationType !== "yDoc" || !provider) return
+
+    const snapshotStorage = (editor.storage as any)?.snapshot
+    const toggleVersioning = (editor.commands as any)?.toggleVersioning
+    if (typeof toggleVersioning !== 'function') return
+
+    if (!snapshotStorage?.versioningEnabled) {
+      toggleVersioning()
+    }
+  }, [editor, informationType, provider])
 
   // Effect to manage scroll-snap based on currentFocusLens
   React.useEffect(() => {
