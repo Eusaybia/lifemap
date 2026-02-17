@@ -190,6 +190,16 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
     setEditValue(e.target.value)
   }, [])
 
+  const handleGripMouseDown = useCallback(() => {
+    try {
+      const pos = getPos()
+      if (typeof pos !== 'number') return
+      editor.chain().focus().setNodeSelection(pos).run()
+    } catch {
+      // Ignore stale positions when the node is being removed.
+    }
+  }, [editor, getPos])
+
   return (
     <NodeViewWrapper 
       as="span" 
@@ -233,7 +243,13 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
       )}
       
       {/* 6-dot grip for connections (like SpanGroup) */}
-      <span className="todo-grip" contentEditable={false} />
+      <span
+        className="todo-grip"
+        contentEditable={false}
+        data-drag-handle
+        onMouseDown={handleGripMouseDown}
+        title="Drag to move"
+      />
     </NodeViewWrapper>
   )
 }
@@ -250,6 +266,7 @@ export const TodoMentionNode = Node.create({
   // This avoids TipTap v2's inline node cursor issues entirely
   atom: true,
   selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
