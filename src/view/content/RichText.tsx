@@ -13,14 +13,13 @@ import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
-import Snapshot, { SnapshotVersion } from '@tiptap-pro/extension-snapshot'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import UniqueID from '@tiptap/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { throttle } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
-import { lowlight } from 'lowlight'
+import * as Lowlight from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import { Indent } from '../../utils/Indent'
@@ -47,13 +46,12 @@ import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
 import { QuoteExtension } from '../structure/QuoteTipTapExtension'
 import { MessageExtension } from './MessageExtension'
-import { SophiaAI } from '../../agents/Sophia'
 import { ConversationExtension } from '../structure/ConversationExtension'
 // LocationExtension removed - using LocationNode from LocationMention.tsx instead (supports pin emoji)
 import { CommentExtension } from '../structure/CommentTipTapExtension'
 import { PortalExtension } from '../structure/PortalExtension'
 import { ScrollViewExtension } from '../structure/ScrollViewExtension'
-import { generateUniqueID, renderDate } from '../../utils/utils'
+import { generateUniqueID } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { ExternalPortalExtension } from '../structure/ExternalPortalExtension'
@@ -85,7 +83,6 @@ import { SpotlightOverlay } from '../components/SpotlightOverlay'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
-import { getWeeklyScheduleTemplate } from './WeeklyScheduleTemplate'
 import { getLifeMappingMainTemplate } from './LifeMappingMainTemplate'
 import { Plugin, Transaction } from 'prosemirror-state'
 import { IndexeddbPersistence } from 'y-indexeddb'
@@ -99,8 +96,6 @@ const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 const PERIOD_DAILY_QUANTA_ID = 'period-daily'
 const PERIOD_WEEKLY_QUANTA_ID = 'period-weekly'
 const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules'
-// Template quanta ID - this is the editable template in the Weekly carousel
-const WEEKLY_TEMPLATE_QUANTA_ID = 'weekly-schedule-template'
 const LONG_TERM_THIS_WEEK_QUANTA_ID = 'long-term-this-week'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
 const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
@@ -112,7 +107,7 @@ const TEMPORAL_MATERIALIZATION_META_KEY_PREFIX = 'temporalMaterializationMeta'
 interface TemporalMaterializationPlan {
   sourceQuantaIds: string[]
   resolveTokensForDate?: Date
-  fallbackTemplate?: 'daily' | 'weekly'
+  fallbackTemplate?: 'daily'
 }
 
 interface TemporalMaterializationMeta {
@@ -169,7 +164,6 @@ const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalM
   if (quantaId === LONG_TERM_THIS_WEEK_QUANTA_ID) {
     return {
       sourceQuantaIds: [PERIOD_WEEKLY_QUANTA_ID],
-      fallbackTemplate: 'weekly',
     }
   }
 
@@ -713,7 +707,22 @@ import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { useEditorContext } from '../../contexts/EditorContext'
 
-lowlight.registerLanguage('js', js)
+const lowlight = (() => {
+  const createLowlight = (Lowlight as any).createLowlight
+  if (typeof createLowlight === 'function') {
+    const instance = createLowlight()
+    instance.register('javascript', js)
+    instance.register('js', js)
+    return instance
+  }
+
+  const legacyLowlight = (Lowlight as any).lowlight
+  if (legacyLowlight && typeof legacyLowlight.registerLanguage === 'function') {
+    legacyLowlight.registerLanguage('javascript', js)
+    legacyLowlight.registerLanguage('js', js)
+  }
+  return legacyLowlight
+})()
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
@@ -913,8 +922,7 @@ export const customExtensions: Extensions = [
 ]
 
 export const agents: Extensions = [
-  SophiaAI,
-  // Finesse,
+  // AI agents temporarily disabled.
 ]
 
 // This TransclusionEditor merely needs to display a copy of the node being synced in the main editor
@@ -959,15 +967,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
       Collaboration.configure({
         document: quanta.information,
         field: 'default',
-      })
-    )
-    generatedOfficialExtensions.push(
-      Snapshot.configure({
-        // Snapshot provider can initialize after mount; keep extension mounted consistently.
-        provider: provider as any,
-        onUpdate: () => {
-          // Snapshot storage is read directly from editor.storage.snapshot by menus.
-        },
       })
     )
   } 
@@ -1079,18 +1078,6 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
   })
 
-  React.useEffect(() => {
-    if (!editor || informationType !== "yDoc" || !provider) return
-
-    const snapshotStorage = (editor.storage as any)?.snapshot
-    const toggleVersioning = (editor.commands as any)?.toggleVersioning
-    if (typeof toggleVersioning !== 'function') return
-
-    if (!snapshotStorage?.versioningEnabled) {
-      toggleVersioning()
-    }
-  }, [editor, informationType, provider])
-
   // Effect to manage scroll-snap based on currentFocusLens
   React.useEffect(() => {
     // Target the main scrolling element (usually documentElement for window scrolling)
@@ -1168,20 +1155,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     return () => window.removeEventListener('message', handleMessage);
   }, [editor])
   
-  // These functions are memoised for performance reasons
-  const handleRevert = React.useCallback((version: number, versionData: SnapshotVersion) => {
-    const versionTitle = versionData ? versionData.name || renderDate(versionData.date) : version
-
-  // @ts-ignore
-    editor?.commands.revertToVersion(version, `Revert to ${versionTitle}`, `Unsaved changes before revert to ${versionTitle}`)
-  }, [editor])
-  // @ts-ignore
-  const reversedVersions = React.useMemo(() => editor?.storage.snapshot.versions.slice().reverse(), [editor?.storage.snapshot.versions])
-  // console.log("reversed versions", reversedVersions)
-
-  // @ts-ignore
-  const autoversioningEnabled = editor?.storage.snapshot.versioningEnabled
-
   // Add a ref to track template application
   const templateApplied = React.useRef(false);
 
@@ -1271,12 +1244,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           ? !editorHasMeaningfulContent
           : !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
       const isDailyTarget = parseDailySlugDate(urlId) !== null;
-      const isLongTermThisWeekTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID;
-      const supportsMergeIntoExisting = isDailyTarget || isLongTermThisWeekTarget;
-      const shouldBypassMetaShortCircuit = isLongTermThisWeekTarget;
+      const supportsMergeIntoExisting = isDailyTarget;
 
       if (
-        !shouldBypassMetaShortCircuit &&
         existingMeta &&
         existingMeta.version === LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION &&
         !forceTemporalMaterialization
@@ -1304,23 +1274,14 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
       let contentToApply = mergeTemporalMaterializationSources(sourceContents);
       if (!contentToApply && plan.fallbackTemplate && isEmpty) {
-        if (plan.fallbackTemplate === 'daily') {
-          const templateContent = await fetchQuantaContentWithLegacyFallback({
-            userId,
-            quantaId: DAILY_TEMPLATE_QUANTA_ID,
-            timeoutMs: 8000,
-          });
-          contentToApply = templateContent
-            ? stripLegacyDailyFallbackNotice(templateContent)
-            : getDailyScheduleTemplate();
-        } else if (plan.fallbackTemplate === 'weekly') {
-          const templateContent = await fetchQuantaContentWithLegacyFallback({
-            userId,
-            quantaId: WEEKLY_TEMPLATE_QUANTA_ID,
-            timeoutMs: 8000,
-          });
-          contentToApply = templateContent || getWeeklyScheduleTemplate();
-        }
+        const templateContent = await fetchQuantaContentWithLegacyFallback({
+          userId,
+          quantaId: DAILY_TEMPLATE_QUANTA_ID,
+          timeoutMs: 8000,
+        });
+        contentToApply = templateContent
+          ? stripLegacyDailyFallbackNotice(templateContent)
+          : getDailyScheduleTemplate();
       }
 
       if (!contentToApply) {
@@ -1821,109 +1782,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     };
   }, [props.quanta?.information, editor]);
 
-  // Check for new weekly schedule template flag
-  // Uses localStorage because sessionStorage is NOT shared between iframes and parent
-  // Now fetches the editable template from IndexedDB instead of using hardcoded template
-  // Supports initializing both this week and next week's schedules
-  //
-  // IMPORTANT: Uses Y.Doc event-based approach to wait for IndexedDB to sync before checking
-  // if the editor is empty. This prevents duplication from Y.js merging.
-  const weeklyPageInitChecked = React.useRef(false);
-  React.useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
-    if (temporalMaterializationMode) return;
-
-    const pendingSchedulesStr = localStorage.getItem('newWeeklySchedules');
-    const pendingSchedules: string[] = pendingSchedulesStr ? JSON.parse(pendingSchedulesStr) : [];
-    const urlId = window.location.pathname.split('/').pop();
-    
-    const isInPending = urlId && pendingSchedules.includes(urlId);
-    
-    // Only apply template if URL ID is in the pending schedules array
-    if (!isInPending) return;
-    if (!props.quanta?.information || !editor || templateApplied.current || weeklyPageInitChecked.current) return;
-    
-    const yDoc = props.quanta.information;
-    let stabilizationTimeout: NodeJS.Timeout | null = null;
-    let fallbackTimeout: NodeJS.Timeout | null = null;
-    const STABILIZATION_DELAY = 800;
-    const FALLBACK_TIMEOUT = 2000;
-    
-    const removeFromPendingList = () => {
-      const currentPendingStr = localStorage.getItem('newWeeklySchedules');
-      const currentPending: string[] = currentPendingStr ? JSON.parse(currentPendingStr) : [];
-      const updatedPending = currentPending.filter(id => id !== urlId);
-      if (updatedPending.length > 0) {
-        localStorage.setItem('newWeeklySchedules', JSON.stringify(updatedPending));
-      } else {
-        localStorage.removeItem('newWeeklySchedules');
-      }
-    };
-    
-    const checkAndApplyTemplate = async () => {
-      // Guard: only run once
-      if (weeklyPageInitChecked.current || templateApplied.current) return;
-      weeklyPageInitChecked.current = true;
-      
-      // Check Y.Doc directly for emptiness (more reliable than editor state during sync)
-      const yFragment = yDoc.getXmlFragment('default');
-      const yDocIsEmpty = yFragment.length === 0;
-      const editorIsEmpty = editor.isEmpty || editor.state.doc.textContent.trim() === '';
-      
-      // Only consider empty if BOTH Y.Doc and editor agree it's empty
-      const isEmpty = yDocIsEmpty && editorIsEmpty;
-      
-      console.log(`[RichText] ${urlId} weekly checkAndApplyTemplate, yDocIsEmpty=${yDocIsEmpty}, editorIsEmpty=${editorIsEmpty}, isEmpty=${isEmpty}`)
-      
-      if (isEmpty) {
-        // Fetch the editable template from IndexedDB, fall back to hardcoded if not found
-        const templateContent = await fetchQuantaContentFromIndexedDB(WEEKLY_TEMPLATE_QUANTA_ID);
-        const contentToApply = templateContent || getWeeklyScheduleTemplate();
-        
-        // Clear Y.Doc first to prevent Y.js from merging (which causes duplication)
-        yDoc.transact(() => {
-          yFragment.delete(0, yFragment.length);
-        });
-        
-        (editor as Editor)!.commands.setContent(contentToApply);
-        templateApplied.current = true;
-        console.log(`[RichText] Applied weekly template to ${urlId}`);
-      } else {
-        console.log(`[RichText] ${urlId} already has content, skipping weekly template application`);
-      }
-      
-      // Remove from pending list regardless
-      removeFromPendingList();
-    };
-    
-    const resetStabilizationTimer = () => {
-      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
-      stabilizationTimeout = setTimeout(() => {
-        if (fallbackTimeout) clearTimeout(fallbackTimeout);
-        checkAndApplyTemplate();
-      }, STABILIZATION_DELAY);
-    };
-    
-    const handleUpdate = () => {
-      resetStabilizationTimer();
-    };
-    
-    yDoc.on('update', handleUpdate);
-    resetStabilizationTimer();
-    
-    fallbackTimeout = setTimeout(() => {
-      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
-      checkAndApplyTemplate();
-    }, FALLBACK_TIMEOUT);
-    
-    return () => {
-      yDoc.off('update', handleUpdate);
-      if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
-      if (fallbackTimeout) clearTimeout(fallbackTimeout);
-    };
-  }, [props.quanta?.information, editor]);
-
   // ============================================================================
   // Initialize Period Quanta with TimePoint Mention
   // ============================================================================
@@ -1931,7 +1789,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // first time and is empty, we insert the corresponding TimePoint mention at the
   // top of the document. This tags the Quanta with its period identity.
   //
-  // Uses the same Y.Doc stabilization pattern as daily/weekly templates to avoid
+  // Uses the same Y.Doc stabilization pattern as daily templates to avoid
   // race conditions with IndexedDB sync.
   const periodInitChecked = React.useRef(false);
   React.useEffect(() => {
