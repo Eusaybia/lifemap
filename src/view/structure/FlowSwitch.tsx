@@ -4,7 +4,8 @@ import React from "react"
 import { playUiSound, useScrollEnd } from '../../utils/utils';
 
 interface OptionButtonProps {
-    onClick: () => void;
+    onClick: (event?: React.MouseEvent<HTMLDivElement>) => void;
+    onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
     children: React.ReactNode;
 }
 
@@ -16,6 +17,10 @@ interface FlowSwitchProps {
     disableAutoScroll?: boolean
     /** When true, scrolling to an option will automatically trigger its onClick */
     scrollToSelect?: boolean
+    /** Optional diagnostics tag for debug logging */
+    diagnosticsTag?: string
+    /** Enable verbose diagnostics for scroll/selection behavior */
+    diagnosticsEnabled?: boolean
 }
 
 export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((props, ref) => {
@@ -41,6 +46,14 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
     const isProgrammaticScroll = React.useRef(false);
     const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const lastValueRef = React.useRef<string>(props.value);
+
+    const logDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
+        if (!props.diagnosticsEnabled) return
+        const tag = props.diagnosticsTag || 'FlowSwitch'
+        const timestamp = new Date().toISOString()
+        console.log(`[${tag}] ${event}`, { timestamp, ...(details ?? {}) })
+    }, [props.diagnosticsEnabled, props.diagnosticsTag])
 
     let timer: NodeJS.Timeout | null = null;
 
@@ -67,9 +80,20 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                     playUiSound('/click.mp3', 0.15)
                 }
                 setSelectedIndex(index)
+                logDiagnostics('onViewportEnter', {
+                    index,
+                    optionValue: child?.props?.value,
+                    isUserScrolling,
+                    isProgrammaticScroll: isProgrammaticScroll.current,
+                    scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+                })
                 
                 // If scrollToSelect is enabled and user is scrolling, trigger the option's onClick
                 if (props.scrollToSelect && isUserScrolling && child?.props?.onClick) {
+                    logDiagnostics('scrollToSelect:onClick', {
+                        index,
+                        optionValue: child?.props?.value,
+                    })
                     child.props.onClick();
                 }
             }}
@@ -83,6 +107,14 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     React.useEffect(() => {
         // Skip auto-scroll if disabled (for keyboard-controlled navigation)
         if (props.disableAutoScroll) return;
+
+        if (lastValueRef.current !== props.value) {
+            logDiagnostics('valueChanged', {
+                previousValue: lastValueRef.current,
+                nextValue: props.value,
+            })
+            lastValueRef.current = props.value
+        }
 
         // Find the element in valid children
         const index = validChildren.findIndex(child => {
@@ -102,6 +134,14 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                 const elementRect = element.getBoundingClientRect();
 
                 const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - (containerRect.height / 2) + (elementRect.height / 2);
+                logDiagnostics('autoScroll:start', {
+                    selectedValue: props.value,
+                    index,
+                    fromScrollTop: container.scrollTop,
+                    toScrollTop: scrollTop,
+                    containerHeight: containerRect.height,
+                    elementTop: elementRect.top,
+                })
 
                 container.scrollTo({
                     top: scrollTop,
@@ -113,11 +153,16 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
             // Reset programmatic scroll flag after animation completes
             setTimeout(() => {
                 isProgrammaticScroll.current = false;
+                logDiagnostics('autoScroll:end', {
+                    selectedValue: props.value,
+                    index,
+                    currentScrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+                })
             }, 500);
 
         }
 
-    }, [props.value, props.disableAutoScroll])
+    }, [props.value, props.disableAutoScroll, logDiagnostics])
 
     useScrollEnd(() => {
         if (props.onChange) {
@@ -140,9 +185,17 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     // Handle scroll events - used as onScroll prop for reliability
     const handleScroll = React.useCallback(() => {
         // If this is a programmatic scroll, don't treat it as user scrolling
-        if (isProgrammaticScroll.current) return;
+        if (isProgrammaticScroll.current) {
+            logDiagnostics('handleScroll:programmatic', {
+                scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+            })
+            return;
+        }
         
         setIsUserScrolling(true);
+        logDiagnostics('handleScroll:user', {
+            scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+        })
         
         // Reset user scrolling state after scroll ends
         if (scrollTimeoutRef.current) {
@@ -150,8 +203,13 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
         }
         scrollTimeoutRef.current = setTimeout(() => {
             setIsUserScrolling(false);
+            logDiagnostics('handleScroll:user:end', {
+                selectedIndex,
+                selectedValue: validChildren[selectedIndex]?.props?.value ?? null,
+                scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+            })
         }, 150);
-    }, []);
+    }, [logDiagnostics, selectedIndex, validChildren]);
 
     return (
         <motion.div className="flow-menu"
@@ -196,23 +254,28 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
 FlowSwitch.displayName = 'FlowSwitch'
 
-export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, children }) => {
-    const handleClick = () => {
+export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, onPointerDown, children }) => {
+    const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
         playUiSound('/click.mp3', 0.15)
-        onClick();
+        onClick(event);
     };
 
     return (
-        <motion.div onClick={handleClick} whileTap={{ scale: 0.95 }}>
+        <motion.div onPointerDown={onPointerDown} onClick={handleClick} whileTap={{ scale: 0.95 }}>
             {children}
         </motion.div>
     );
 };
 
-export const Option = (props: { value: string, onClick?: () => void, children: React.ReactElement }) => {
+export const Option = (props: {
+    value: string,
+    onClick?: (event?: React.MouseEvent<HTMLDivElement>) => void,
+    onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void,
+    children: React.ReactElement
+}) => {
     return (
         <motion.div>
-            <OptionButton onClick={props.onClick || (() => {})}>
+            <OptionButton onClick={props.onClick || (() => {})} onPointerDown={props.onPointerDown}>
                 {props.children}
             </OptionButton>
         </motion.div>

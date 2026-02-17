@@ -283,6 +283,30 @@ const ActionSwitch = React.memo((props: {
         date: number;
         name?: string;
     }>).slice()).sort((a, b) => b.version - a.version))
+    const [snapshotCurrentVersion, setSnapshotCurrentVersion] = React.useState<number>(() => {
+        const value = (props.editor.storage as any)?.snapshot?.currentVersion
+        return typeof value === 'number' ? value : 0
+    })
+    const [versionHistoryDiagnosticsEnabled, setVersionHistoryDiagnosticsEnabled] = React.useState<boolean>(false)
+    const versionHistoryPointerArmedUntilRef = React.useRef<number>(0)
+
+    const armVersionHistorySelection = React.useCallback(() => {
+        // Require a recent pointer interaction to allow history reverts.
+        versionHistoryPointerArmedUntilRef.current = Date.now() + 1000
+    }, [])
+
+    const isVersionHistorySelectionArmed = React.useCallback(() => {
+        return Date.now() <= versionHistoryPointerArmedUntilRef.current
+    }, [])
+
+    const logVersionHistoryDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
+        if (!versionHistoryDiagnosticsEnabled) return
+        console.log('[VersionHistoryFlow]', {
+            timestamp: new Date().toISOString(),
+            event,
+            ...(details ?? {}),
+        })
+    }, [versionHistoryDiagnosticsEnabled])
     
     // Load backups on mount and when quantaId changes
     React.useEffect(() => {
@@ -290,11 +314,31 @@ const ActionSwitch = React.memo((props: {
         setCurrentQuantaId(quantaId);
     }, []);
 
+    React.useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search)
+            const queryEnabled = params.get('debugVersionHistoryFlow') === '1'
+            const storageEnabled = window.localStorage.getItem('debugVersionHistoryFlow') === '1'
+            const enabled = queryEnabled || storageEnabled
+            setVersionHistoryDiagnosticsEnabled(enabled)
+            if (enabled) {
+                console.log('[VersionHistoryFlow] Diagnostics enabled. Disable by removing ?debugVersionHistoryFlow=1 and localStorage.debugVersionHistoryFlow')
+            }
+        } catch {
+            setVersionHistoryDiagnosticsEnabled(false)
+        }
+    }, [])
+
     const readSnapshotVersions = React.useCallback(() => ((((props.editor.storage as any)?.snapshot?.versions ?? []) as Array<{
         version: number;
         date: number;
         name?: string;
     }>).slice()).sort((a, b) => b.version - a.version), [props.editor]);
+
+    const readSnapshotCurrentVersion = React.useCallback((): number => {
+        const value = (props.editor.storage as any)?.snapshot?.currentVersion
+        return typeof value === 'number' ? value : 0
+    }, [props.editor])
 
     const readProviderVersions = React.useCallback((): Array<{ version: number; date: number; name?: string }> => {
         const getVersions = (snapshotProvider as any)?.getVersions
@@ -318,6 +362,16 @@ const ActionSwitch = React.memo((props: {
         for (const version of fromProvider) mergedByVersion.set(version.version, version)
 
         const next = Array.from(mergedByVersion.values()).sort((a, b) => b.version - a.version)
+        const currentVersion = readSnapshotCurrentVersion()
+        logVersionHistoryDiagnostics('syncSnapshotVersions', {
+            fromStorageCount: fromStorage.length,
+            fromProviderCount: fromProvider.length,
+            nextCount: next.length,
+            nextTopVersion: next[0]?.version ?? null,
+            currentVersion,
+        })
+        setSnapshotCurrentVersion(prev => (prev === currentVersion ? prev : currentVersion))
+
         setSnapshotVersions(prev => {
             const prevTop = prev[0]
             const nextTop = next[0]
@@ -330,7 +384,7 @@ const ActionSwitch = React.memo((props: {
             }
             return next
         })
-    }, [readSnapshotVersions, readProviderVersions])
+    }, [logVersionHistoryDiagnostics, readProviderVersions, readSnapshotCurrentVersion, readSnapshotVersions])
 
     React.useEffect(() => {
         syncSnapshotVersions()
@@ -357,11 +411,15 @@ const ActionSwitch = React.memo((props: {
         }
 
         const handleSynced = (event: { state: boolean }) => {
+            logVersionHistoryDiagnostics('provider:synced', { state: event.state })
             if (event.state) {
                 syncSnapshotVersions()
             }
         }
-        const handleVersionsChanged = () => syncSnapshotVersions()
+        const handleVersionsChanged = () => {
+            logVersionHistoryDiagnostics('provider:versionsChanged')
+            syncSnapshotVersions()
+        }
 
         snapshotProvider.on('synced', handleSynced)
         snapshotProvider.on('synced', handleVersionsChanged)
@@ -374,9 +432,17 @@ const ActionSwitch = React.memo((props: {
             snapshotProvider.off('stateless', handleVersionsChanged)
             ;(snapshotProvider as any).unwatchVersions?.(handleVersionsChanged)
         }
-    }, [snapshotProvider, syncSnapshotVersions])
+    }, [logVersionHistoryDiagnostics, snapshotProvider, syncSnapshotVersions])
 
+    // Revert helper intentionally retained for quick rollback to click-to-revert behavior.
+    // Re-enable by calling this helper in the version history Option onClick handlers.
     const applyVersionWithoutCreatingBackup = React.useCallback((targetVersion: number, labelForRevert: string) => {
+        logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:start', {
+            targetVersion,
+            labelForRevert,
+            snapshotCurrentVersion,
+            topVersion: snapshotVersions[0]?.version ?? null,
+        })
         try {
             if (snapshotProvider && typeof snapshotProvider.sendStateless === 'function') {
                 snapshotProvider.sendStateless(JSON.stringify({
@@ -385,11 +451,17 @@ const ActionSwitch = React.memo((props: {
                     currentVersionName: false,
                     newVersionName: false,
                 }))
-                setToastMessage(`Switched to ${labelForRevert}`)
+                logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:providerStatelessSent', {
+                    targetVersion,
+                })
                 return
             }
         } catch (error) {
             console.warn('[FlowMenu] Non-versioning revert failed, falling back to editor command', error)
+            logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:providerError', {
+                targetVersion,
+                error: String(error),
+            })
         }
 
         props.editor.commands.revertToVersion(
@@ -397,9 +469,105 @@ const ActionSwitch = React.memo((props: {
             `Revert to ${labelForRevert}`,
             `Unsaved changes before revert to ${labelForRevert}`,
         )
-        setToastMessage(`Restored to ${labelForRevert}`)
-    }, [props.editor, snapshotProvider])
-    
+        logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:editorCommandSent', {
+            targetVersion,
+        })
+    }, [logVersionHistoryDiagnostics, props.editor, snapshotCurrentVersion, snapshotProvider, snapshotVersions])
+
+    const selectedVersionHistoryValue = React.useMemo(() => {
+        const latestVersion = snapshotVersions[0]?.version
+        if (typeof latestVersion === 'number' && snapshotCurrentVersion === latestVersion) {
+            return 'Current state (Live)'
+        }
+
+        const currentEntry = snapshotVersions.find((version) => version.version === snapshotCurrentVersion)
+        if (currentEntry) {
+            return currentEntry.name || `Version ${currentEntry.version}`
+        }
+
+        return 'Current state (Live)'
+    }, [snapshotCurrentVersion, snapshotVersions])
+
+    React.useEffect(() => {
+        logVersionHistoryDiagnostics('selectedVersionHistoryValue', {
+            selectedVersionHistoryValue,
+            snapshotCurrentVersion,
+            topVersion: snapshotVersions[0]?.version ?? null,
+        })
+    }, [logVersionHistoryDiagnostics, selectedVersionHistoryValue, snapshotCurrentVersion, snapshotVersions])
+
+    const renderedHistoryVersionOptions = snapshotVersions.length > 0 ? (
+        snapshotVersions.map((version, index) => {
+            const date = new Date(version.date);
+            // Format time with AM/PM (e.g., "10:51AM")
+            const timeStr = date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true
+            }).replace(' ', ''); // Remove space between time and AM/PM
+            // Format date with year (e.g., "25 Jan, 2026")
+            const dateStr = date.toLocaleDateString('en-GB', { 
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+            const isLatest = index === 0; // First in display order = most recent
+            const isAutoBackup = version.name?.startsWith('Auto ') ?? false;
+            const icon = isAutoBackup ? '⟳' : '📌'; // Auto vs manual indicator
+            const label = version.name || `Version ${version.version}`;
+            
+            return (
+                <Option
+                    key={version.version}
+                    value={label}
+                    onPointerDown={() => {
+                        armVersionHistorySelection()
+                    }}
+                    onClick={() => {
+                        if (!isVersionHistorySelectionArmed()) {
+                            logVersionHistoryDiagnostics('historyOption:onClick:ignored:notPointerArmed', {
+                                targetVersion: version.version,
+                                snapshotCurrentVersion,
+                            })
+                            return
+                        }
+                        versionHistoryPointerArmedUntilRef.current = 0
+                        const labelForRevert = label || `Version ${version.version}`;
+                        logVersionHistoryDiagnostics('historyOption:onClick', {
+                            targetVersion: version.version,
+                            labelForRevert,
+                            snapshotCurrentVersion,
+                            topVersion: snapshotVersions[0]?.version ?? null,
+                        })
+                        applyVersionWithoutCreatingBackup(version.version, labelForRevert)
+                    }}
+                >
+                    <motion.div>
+                        <span style={{ 
+                            fontFamily: 'Inter', 
+                            fontSize: '13px',
+                            color: isAutoBackup ? '#666' : '#333',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                        }}>
+                            {icon} {timeStr} - {dateStr}
+                            {isLatest ? ' (Latest)' : ''}
+                            {!isAutoBackup && ` - ${label}`}
+                        </span>
+                    </motion.div>
+                </Option>
+            );
+        })
+    ) : ([
+        <Option key="no-backups" value={"no-backups"} onClick={() => {}}>
+            <motion.div>
+                <span style={{ fontFamily: 'Inter', fontSize: '13px', color: '#999', display: 'inline-flex', alignItems: 'center' }}>
+                    No version history yet
+                </span>
+            </motion.div>
+        </Option>
+    ])
+
     const documentAttributes = readDocumentAttributesFromStorage();
     const isDevMode = documentAttributes.selectedFocusLens === 'dev-mode';
 
@@ -721,62 +889,63 @@ const ActionSwitch = React.memo((props: {
         {/* Hidden for group nodes */}
         {/* Shows both auto snapshots (⟳) and manual named snapshots (📌) */}
         {currentQuantaId && props.nodeType !== 'group' ? (
-            <FlowSwitch value={"restore"} isLens scrollToSelect>
-                {snapshotVersions.length > 0 ? (
-                    snapshotVersions.map((version, index) => {
-                        const date = new Date(version.date);
-                        // Format time with AM/PM (e.g., "10:51AM")
-                        const timeStr = date.toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit',
-                            hour12: true
-                        }).replace(' ', ''); // Remove space between time and AM/PM
-                        // Format date with year (e.g., "25 Jan, 2026")
-                        const dateStr = date.toLocaleDateString('en-GB', { 
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                        });
-                        const isLatest = index === 0; // First in display order = most recent
-                        const isAutoBackup = version.name?.startsWith('Auto ') ?? false;
-                        const icon = isAutoBackup ? '⟳' : '📌'; // Auto vs manual indicator
-                        const label = version.name || `Version ${version.version}`;
-                        
-                        return (
-                            <Option
-                                key={version.version}
-                                value={label}
-                                onClick={() => {
-                                    const labelForRevert = label || `Version ${version.version}`;
-                                    applyVersionWithoutCreatingBackup(version.version, labelForRevert)
-                                    console.log(`[FlowMenu] Switched to ${labelForRevert}`);
-                                }}
-                            >
-                                <motion.div>
-                                    <span style={{ 
-                                        fontFamily: 'Inter', 
-                                        fontSize: '13px',
-                                        color: isAutoBackup ? '#666' : '#333',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                    }}>
-                                        {icon} {timeStr} - {dateStr}
-                                        {isLatest ? ' (Latest)' : ''}
-                                        {!isAutoBackup && ` - ${label}`}
-                                    </span>
-                                </motion.div>
-                            </Option>
-                        );
-                    })
-                ) : (
-                    [<Option key="no-backups" value={"no-backups"} onClick={() => {}}>
+            <FlowSwitch
+                value={selectedVersionHistoryValue}
+                isLens
+                diagnosticsEnabled={versionHistoryDiagnosticsEnabled}
+                diagnosticsTag="VersionHistoryFlowSwitch"
+            >
+                {[
+                    <Option
+                        key="current-live-state"
+                        value={"Current state (Live)"}
+                        onPointerDown={() => {
+                            armVersionHistorySelection()
+                        }}
+                        onClick={() => {
+                            if (!isVersionHistorySelectionArmed()) {
+                                logVersionHistoryDiagnostics('currentLive:onClick:ignored:notPointerArmed', {
+                                    snapshotCurrentVersion,
+                                    topVersion: snapshotVersions[0]?.version ?? null,
+                                })
+                                return
+                            }
+                            versionHistoryPointerArmedUntilRef.current = 0
+                            const liveVersion = snapshotVersions[0]?.version
+                            if (typeof liveVersion !== 'number') {
+                                setToastMessage('No version history yet')
+                                return
+                            }
+
+                            if (snapshotCurrentVersion === liveVersion) {
+                                logVersionHistoryDiagnostics('currentLive:onClick:alreadyCurrent', {
+                                    liveVersion,
+                                })
+                                setToastMessage('Already showing current live state')
+                                return
+                            }
+
+                            logVersionHistoryDiagnostics('currentLive:onClick:revert', {
+                                liveVersion,
+                                snapshotCurrentVersion,
+                            })
+                            applyVersionWithoutCreatingBackup(liveVersion, 'Current state (Live)')
+                        }}
+                    >
                         <motion.div>
-                            <span style={{ fontFamily: 'Inter', fontSize: '13px', color: '#999', display: 'inline-flex', alignItems: 'center' }}>
-                                No version history yet
+                            <span style={{ 
+                                fontFamily: 'Inter', 
+                                fontSize: '13px',
+                                color: '#333',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                            }}>
+                                Current state (Live)
                             </span>
                         </motion.div>
-                    </Option>]
-                )}
+                    </Option>,
+                    ...renderedHistoryVersionOptions,
+                ]}
             </FlowSwitch>
         ) : null}
         {/* Toast notification for backup feedback */}
