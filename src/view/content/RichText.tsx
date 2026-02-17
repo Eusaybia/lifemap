@@ -23,7 +23,6 @@ import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/
 import * as Lowlight from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
-import { Indent } from '../../utils/Indent'
 import TextAlign from '@tiptap/extension-text-align'
 import { DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
@@ -76,7 +75,7 @@ import { SpanGroupMark } from './SpanGroupMark'
 // NodeConnectionManager handles connections between all connectable elements using Rough.js for hand-drawn arrows
 import { NodeConnectionManager } from './NodeConnectionManager'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
-import { TaskItem, TaskList } from '@tiptap/extension-list'
+import { BulletList, ListItem, ListKeymap, OrderedList, TaskItem, TaskList } from '@tiptap/extension-list'
 import { Focus, Gapcursor, Placeholder } from '@tiptap/extensions'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
@@ -784,12 +783,21 @@ export const officialExtensions = (quantaId: string) => {return [
     // history: isYDoc ? false : undefined
     undoRedo: false,
     // Disable provided extensions so they don't load twice
+    bulletList: false,
     heading: false,
+    listItem: false,
+    listKeymap: false,
     link: false,
     codeBlock: false,
     gapcursor: false,
+    orderedList: false,
     // document: false, // Re-enable default document
   }),
+  BulletList,
+  OrderedList,
+  ListItem,
+  ListKeymap,
+  TaskList,
   Table.configure({
     resizable: true,
     cellMinWidth: 300
@@ -800,7 +808,6 @@ export const officialExtensions = (quantaId: string) => {return [
   TaskItem.configure({
     nested: true,
   }),
-  TaskList,
   TextAlign.configure({
     types: ['heading', 'paragraph'],
   }),
@@ -877,7 +884,6 @@ export const customExtensions: Extensions = [
   FocusModePlugin,
   GroupExtension,
   ScrollViewExtension,
-  Indent,
   KeyValuePairExtension,
   // LocationExtension removed - conflicts with LocationNode from LocationMention.tsx (both use name: "location")
   // LocationNode supports inline mentions with pin emoji via # trigger
@@ -942,7 +948,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+        class: 'tiptap focus:outline-none',
       },
     },
     content: (informationType === "yDoc") ? null : information,
@@ -1004,7 +1010,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     autofocus: true, // Auto-focus the editor on load
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+        class: 'tiptap focus:outline-none',
       },
     },
     content: (informationType === "yDoc") ? null : information,

@@ -6,6 +6,10 @@
 
 .ProseMirror {
 
+  :first-child {
+    margin-top: 0;
+  }
+
   >*+* {
     margin-top: 0em;
   }
@@ -37,69 +41,52 @@
     font-family: 'Inter';
   }
 
+  /* List styles (aligned with TipTap ListItem demo) */
+  ul,
+  ol {
+    padding: 0 1rem;
+    margin: 1.25rem 1rem 1.25rem 0.4rem;
+    list-style-position: outside;
 
-  // Regular bullet lists - use dashes as markers
-  ul:not([data-type="taskList"]) {
-    list-style: none;
-    padding-left: 1.5em;
-    margin: 0.5em 0;
-
-    > li {
-      display: flex !important; // !important to override task list's nested list-item rule
-      flex-direction: row;
-      align-items: flex-start;
-      margin: 0.25em 0;
-
-      &::before {
-        content: "–"; // En-dash as bullet marker
-        flex-shrink: 0;
-        margin-right: 0.5em;
-        color: #333;
-      }
-
-      // Direct paragraph child gets flex: 1 to stay on same line as dash
-      > p {
-        margin: 0;
-        flex: 1;
-      }
-
-      // Also handle divs that might wrap content (from TipTap structure)
-      > div {
-        flex: 1;
-        min-width: 0; // Prevent overflow issues
-      }
+    li p {
+      margin-top: 0;
+      margin-bottom: 0;
     }
 
-    // Nested bullet lists - also use dashes
-    ul {
-      margin: 0.25em 0;
-      padding-left: 1.5em;
+    // Nested lists should read like regular line spacing, not like a new block section.
+    ul,
+    ol {
+      margin: 0.15em 0 0.15em 0.2rem;
     }
   }
+  
+  ul {
+    list-style-type: disc;
+  }
 
-  // Ordered lists
   ol {
-    list-style: decimal;
-    padding-left: 1.5em;
-    margin: 0.5em 0;
+    list-style-type: decimal;
+  }
 
-    li {
-      display: list-item;
-      margin: 0.25em 0;
+  /*
+    Tailwind Typography (.prose) can replace native list markers with pseudo-elements
+    and split marker/text onto separate lines for <li><p>...</p></li>.
+    Force native marker rendering to match the TipTap ListItem demo.
+  */
+  ul > li,
+  ol > li {
+    padding-left: 0 !important;
+  }
 
-      p {
-        margin: 0;
-      }
-    }
+  ul > li::before,
+  ol > li::before {
+    content: none !important;
+    display: none !important;
+  }
 
-    // Nested ordered lists
-    ol {
-      list-style: lower-alpha;
-
-      ol {
-        list-style: lower-roman;
-      }
-    }
+  ul > li::marker,
+  ol > li::marker {
+    color: currentColor;
   }
 
   ul[data-type="taskList"] {
@@ -111,7 +98,7 @@
       margin: 0;
     }
 
-    li {
+    > li {
       display: flex;
       margin: 1.5px 0;
 
@@ -135,8 +122,7 @@
         display: flex;
       }
 
-      // Bullet lists nested in task lists should use flex with dash styling
-      // (don't override to list-item, let the main ul:not([data-type="taskList"]) > li rule apply)
+      // Keep bullet lists nested in task lists on default browser/list styles.
     }
   }
 
