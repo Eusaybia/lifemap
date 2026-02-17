@@ -194,6 +194,7 @@ const ExternalPortalExtension = Node.create({
             nodeProps={props}
             nodeType="externalPortal"
             isPrivate={lens === "private"}
+            backgroundColor="#ffffff"
           >
             <div contentEditable={false} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
               <input
