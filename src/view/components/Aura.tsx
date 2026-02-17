@@ -1,27 +1,19 @@
 "use client"
 
-import React, { useEffect, useState, useMemo } from "react"
+import React from "react"
 import { motion } from "framer-motion"
 import { Node as ProseMirrorNode } from "prosemirror-model"
-import { DocumentAttributes, defaultDocumentAttributes } from "../structure/DocumentAttributesExtension"
 
 // ============================================================================
 // AURA COMPONENT
 // ============================================================================
-// A visual effects wrapper that applies glows and focus dimming to nodes.
+// A visual effects wrapper that applies glows to nodes.
 // 
 // PURPOSE:
 // Provides consistent visual feedback across all nodes based on their content:
 // - Glow effects for task completion status (orange for pending, green for done)
-// - Focus mode: highlights nodes with "☀️ focus" tag, dims all others
-//
-// ARCHITECTURE:
-// The Aura component wraps node content and applies visual effects based on:
-// 1. Node content scanning (for tags like "☀️ focus", "✅ complete")
-// 2. Document-level state (focusedNodeIds from DocumentAttributes)
-//
-// When ANY node in the document has a focus tag, all nodes without focus
-// get dimmed, creating a spotlight effect on the focused content.
+// - Focus tags are intentionally handled at line-level (HighlightImportantLinePlugin),
+//   not at container level.
 //
 // USAGE:
 // Integrated into NodeOverlay - wraps children automatically.
@@ -37,7 +29,6 @@ import { DocumentAttributes, defaultDocumentAttributes } from "../structure/Docu
 // Multiple layers create a dramatic bloom from the edge outward
 export const ORANGE_GLOW = `0 0 20px 5px hsla(30, 100%, 50%, 0.35), 0 0 80px 20px hsla(30, 100%, 50%, 0.18), 0 0 160px 40px hsla(30, 100%, 50%, 0.08), 0 0 250px 60px hsla(30, 100%, 50%, 0.04)`
 export const GREEN_GLOW = `0 0 20px 5px hsl(104, 64%, 45%, 0.35), 0 0 80px 20px hsl(104, 64%, 45%, 0.18), 0 0 160px 40px hsl(104, 64%, 45%, 0.08), 0 0 250px 60px hsl(104, 64%, 45%, 0.04)`
-export const FOCUS_GLOW = `0 0 20px 5px hsla(55, 100%, 50%, 0.4), 0 0 80px 20px hsla(55, 100%, 50%, 0.2), 0 0 160px 40px hsla(55, 100%, 50%, 0.1), 0 0 250px 60px hsla(55, 100%, 50%, 0.05)`
 // Yellow glow for important tag - uses yellow hue (50°), reduced brightness for moderate emphasis
 export const IMPORTANT_GLOW = `0 0 15px 4px hsla(50, 100%, 50%, 0.25), 0 0 60px 15px hsla(50, 100%, 50%, 0.12), 0 0 120px 30px hsla(50, 100%, 50%, 0.06), 0 0 180px 45px hsla(50, 100%, 50%, 0.03)`
 // Very important glow - bright yellow for maximum attention
@@ -45,7 +36,6 @@ export const VERY_IMPORTANT_GLOW = `0 0 20px 5px hsla(50, 100%, 50%, 0.4), 0 0 8
 export const NO_GLOW = ``
 
 // Tag detection patterns
-const FOCUS_TAG = "☀️ focus"
 const COMPLETE_TAG = "✅ complete"
 const IMPORTANT_TAG = "⭐️ important"
 const VERY_IMPORTANT_TAG = "🌟 very important"
@@ -54,7 +44,7 @@ const UNIMPORTANT_TAG = "🌫️ unimportant"
 export interface AuraProps {
   /** The ProseMirror node to scan for tags */
   node: ProseMirrorNode | { attrs: Record<string, unknown> }
-  /** The quantaId of this node (for focus tracking) */
+  /** Deprecated no-op: retained for API compatibility */
   quantaId?: string
   /** Children to render inside the aura */
   children: React.ReactNode
@@ -62,7 +52,7 @@ export interface AuraProps {
   borderRadius?: number
   /** Whether to enable glow effects (unused - now handled by NodeOverlay) */
   enableGlow?: boolean
-  /** Whether to enable focus mode effects (default: true) */
+  /** Deprecated no-op: focus spotlighting is disabled in favor of line-level highlighting */
   enableFocus?: boolean
 }
 
@@ -83,6 +73,7 @@ export interface AuraProps {
  * EXPORTED so NodeOverlay can use this for glow calculations
  */
 export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, unknown> }) => {
+  // Retained in return shape for backward compatibility, but no longer set here.
   let hasFocusTag = false
   let hasCompleteTag = false
   let hasImportantTag = false
@@ -101,11 +92,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
     if (childNode.type.name === 'mention' || childNode.type.name === 'hashtag') {
       const label = childNode.attrs.label as string
       const dataTag = childNode.attrs['data-tag'] as string
-      
-      // Check for focus tag - either by label or data-tag attribute
-      if (label?.includes(FOCUS_TAG) || dataTag === 'focus') {
-        hasFocusTag = true
-      }
+
       // Check for complete tag
       if (label?.includes(COMPLETE_TAG) || dataTag === 'complete') {
         hasCompleteTag = true
@@ -163,11 +150,6 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
 export const calculateGlowStyles = (tags: ReturnType<typeof scanNodeForTags>): string[] => {
   const glowStyles: string[] = []
 
-  // Focus tag adds a warm yellow glow
-  if (tags.hasFocusTag) {
-    glowStyles.push(FOCUS_GLOW)
-  }
-
   // Complete tag adds green glow
   if (tags.hasCompleteTag) {
     glowStyles.push(GREEN_GLOW)
@@ -195,88 +177,13 @@ export const calculateGlowStyles = (tags: ReturnType<typeof scanNodeForTags>): s
 
 export const Aura: React.FC<AuraProps> = ({
   node,
-  quantaId,
   children,
-  enableFocus = true,
 }) => {
-  // Document-level state for focus mode
-  const [focusedNodeIds, setFocusedNodeIds] = useState<string[]>([])
-
-  // Scan node for tags (needed to track focus tag for updating focusedNodeIds)
-  const tags = useMemo(() => scanNodeForTags(node), [node])
-
-  // Note: Glow rendering is now handled by NodeOverlay on the outer wrapper
-  // Aura only handles focus mode tracking and scale animation
-
-  // Listen for document attribute updates (focus mode changes)
-  useEffect(() => {
-    const handleAttributeUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<DocumentAttributes>
-      const updatedAttributes = customEvent.detail
-      if (updatedAttributes?.focusedNodeIds) {
-        setFocusedNodeIds(updatedAttributes.focusedNodeIds)
-      }
-    }
-
-    window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener)
-
-    // Initialize from localStorage
-    try {
-      const stored = localStorage.getItem('tiptapDocumentAttributes')
-      if (stored) {
-        const attrs = JSON.parse(stored) as DocumentAttributes
-        if (attrs.focusedNodeIds) {
-          setFocusedNodeIds(attrs.focusedNodeIds)
-        }
-      }
-    } catch (e) {
-      // Ignore errors
-    }
-
-    return () => {
-      window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener)
-    }
-  }, [])
-
-  // Update focused node IDs when this node has focus tag
-  useEffect(() => {
-    if (!enableFocus || !quantaId) return
-
-    // Get current focused IDs from localStorage
-    let currentFocusedIds: string[] = []
-    try {
-      const stored = localStorage.getItem('tiptapDocumentAttributes')
-      if (stored) {
-        const attrs = JSON.parse(stored) as DocumentAttributes
-        currentFocusedIds = attrs.focusedNodeIds || []
-      }
-    } catch (e) {
-      // Ignore errors
-    }
-
-    const isCurrentlyFocused = currentFocusedIds.includes(quantaId)
-
-    if (tags.hasFocusTag && !isCurrentlyFocused) {
-      // Add this node to focused list
-      const newFocusedIds = [...currentFocusedIds, quantaId]
-      updateFocusedNodeIds(newFocusedIds)
-    } else if (!tags.hasFocusTag && isCurrentlyFocused) {
-      // Remove this node from focused list
-      const newFocusedIds = currentFocusedIds.filter(id => id !== quantaId)
-      updateFocusedNodeIds(newFocusedIds)
-    }
-  }, [tags.hasFocusTag, quantaId, enableFocus])
-
-  // Determine spotlight state
-  // When focus mode is active, the SpotlightOverlay darkens everything at z-index 100
-  // Focused nodes are elevated to z-index 200 to appear above the overlay
-  const isFocusModeActive = focusedNodeIds.length > 0
-  const thisNodeHasFocus = quantaId ? focusedNodeIds.includes(quantaId) : tags.hasFocusTag
-  const isSpotlit = enableFocus && isFocusModeActive && thisNodeHasFocus
+  // Node is intentionally accepted for API compatibility with existing NodeOverlay usage.
+  void node
 
   // Note: Glow effects are now applied by NodeOverlay on the outer wrapper
-  // Aura only handles spotlight elevation (z-index) for focus mode
-  // This ensures glows appear on the rim of the card alongside the drop shadow
+  // Aura now acts as a lightweight content wrapper only.
 
   return (
     <motion.div
@@ -285,8 +192,7 @@ export const Aura: React.FC<AuraProps> = ({
         overflow: 'visible',
       }}
       animate={{
-        // Scale up slightly when spotlit for emphasis
-        scale: isSpotlit ? 1.02 : 1,
+        scale: 1,
       }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
@@ -294,26 +200,6 @@ export const Aura: React.FC<AuraProps> = ({
       {children}
     </motion.div>
   )
-}
-
-/**
- * Helper function to update focused node IDs in localStorage and dispatch event
- */
-const updateFocusedNodeIds = (newFocusedIds: string[]) => {
-  try {
-    const stored = localStorage.getItem('tiptapDocumentAttributes')
-    const currentAttrs = stored 
-      ? { ...defaultDocumentAttributes, ...JSON.parse(stored) }
-      : { ...defaultDocumentAttributes }
-    
-    const updatedAttributes = { ...currentAttrs, focusedNodeIds: newFocusedIds }
-    localStorage.setItem('tiptapDocumentAttributes', JSON.stringify(updatedAttributes))
-    
-    // Dispatch event to notify all listeners
-    window.dispatchEvent(new CustomEvent('doc-attributes-updated', { detail: updatedAttributes }))
-  } catch (e) {
-    console.error('Error updating focused node IDs:', e)
-  }
 }
 
 export default Aura

@@ -1,12 +1,11 @@
 "use client"
 
-import React, { useRef, useMemo, useState, useEffect } from "react"
+import React, { useRef, useMemo } from "react"
 import { Editor } from "@tiptap/core"
 import { Node as ProseMirrorNode } from "prosemirror-model"
 import { motion } from "framer-motion"
 import { DragGrip } from "./DragGrip"
-import { Aura, scanNodeForTags, calculateGlowStyles, FOCUS_GLOW } from "./Aura"
-import { DocumentAttributes } from "../structure/DocumentAttributesExtension"
+import { Aura, scanNodeForTags, calculateGlowStyles } from "./Aura"
 
 // Minimal props interface - accepts any node view props that have the required fields
 // This allows custom node interfaces (e.g., MapboxMapNodeViewProps) to work with NodeOverlay
@@ -84,7 +83,7 @@ export interface NodeOverlayProps {
   padding?: string | number
   /** Whether to enable Aura glow effects (default: true) */
   enableAuraGlow?: boolean
-  /** Whether to enable Aura focus mode effects (default: true) */
+  /** Deprecated no-op: focus spotlighting is disabled in favor of line-level highlighting */
   enableAuraFocus?: boolean
   /** Whether this node is in private lens mode - shows full-coverage black overlay */
   isPrivate?: boolean
@@ -93,8 +92,6 @@ export interface NodeOverlayProps {
   onGripMouseDown?: (e: React.MouseEvent<HTMLDivElement>) => void
 }
 
-// Spotlight glow - very wide, bright yellow bloom like sun rays when node is spotlit
-const SPOTLIGHT_GLOW = `0 0 25px 8px hsla(55, 100%, 50%, 0.5), 0 0 100px 30px hsla(55, 100%, 50%, 0.25), 0 0 200px 50px hsla(55, 100%, 50%, 0.12), 0 0 300px 70px hsla(55, 100%, 50%, 0.06)`
 const GRIP_HIT_TARGET = 40
 const GRIP_HIT_EXPANSION = 6
 
@@ -117,7 +114,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   backgroundColor = 'transparent',
   padding = '20px',
   enableAuraGlow = true,
-  enableAuraFocus = true,
+  enableAuraFocus,
   isPrivate = false,
   onGripMouseDown,
 }) => {
@@ -136,35 +133,6 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
     return calculateGlowStyles(tags)
   }, [tags, enableAuraGlow])
 
-  // Track focus mode state for spotlight effect
-  const [focusedNodeIds, setFocusedNodeIds] = useState<string[]>([])
-  
-  useEffect(() => {
-    const handleAttributeUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<DocumentAttributes>
-      if (customEvent.detail?.focusedNodeIds !== undefined) {
-        setFocusedNodeIds(customEvent.detail.focusedNodeIds)
-      }
-    }
-    window.addEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener)
-    
-    // Initialize from localStorage
-    try {
-      const stored = localStorage.getItem('tiptapDocumentAttributes')
-      if (stored) {
-        const attrs = JSON.parse(stored) as DocumentAttributes
-        if (attrs.focusedNodeIds) setFocusedNodeIds(attrs.focusedNodeIds)
-      }
-    } catch (e) { /* ignore */ }
-    
-    return () => window.removeEventListener('doc-attributes-updated', handleAttributeUpdate as EventListener)
-  }, [])
-
-  // Determine if this node is spotlit
-  const isFocusModeActive = focusedNodeIds.length > 0
-  const thisNodeHasFocus = quantaId ? focusedNodeIds.includes(quantaId) : tags.hasFocusTag
-  const isSpotlit = enableAuraFocus && isFocusModeActive && thisNodeHasFocus
-
   // Combine drop shadow with glow effects
   // Glows appear on the rim alongside the drop shadow
   const combinedShadow = useMemo(() => {
@@ -174,14 +142,9 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
     if (glowStyles.length > 0) {
       shadows.push(...glowStyles.filter(g => g !== ''))
     }
-    
-    // Add spotlight glow when spotlit
-    if (isSpotlit) {
-      shadows.push(SPOTLIGHT_GLOW)
-    }
-    
+
     return shadows.filter(s => s).join(', ')
-  }, [boxShadow, glowStyles, isSpotlit])
+  }, [boxShadow, glowStyles])
 
   // Default grip handler - selects the node in the editor
   // Can be overridden via onGripMouseDown prop for custom behavior (e.g., dragging in canvas)
@@ -215,8 +178,6 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
         backgroundColor,
         padding,
         margin: '8px 0',
-        // Elevate above SpotlightOverlay (z-index 100) when spotlit
-        zIndex: isSpotlit ? 200 : 'auto',
         ...style,
       }}
       animate={{
@@ -254,7 +215,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
         </div>
       )}
       
-      {/* Aura wrapper for focus mode scale effect */}
+      {/* Aura wrapper for shared node visual behavior */}
       <Aura
         node={nodeProps.node as ProseMirrorNode}
         quantaId={quantaId}

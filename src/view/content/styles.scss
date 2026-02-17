@@ -421,11 +421,13 @@ input[type="checkbox"] {
   border-radius: 4px;
 }
 
-/* Highlight for important lines */
-.highlight-important-line {
+/* Highlight for tagged lines */
+.highlight-important-line,
+.highlight-focus-line {
   display: inline; /* Explicitly inline */
-  background-color: rgba(255, 215, 0, 0.15);
   border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
   /* Minimal vertical padding */
   padding-top: 1px;
   padding-bottom: 1px;
@@ -436,6 +438,29 @@ input[type="checkbox"] {
   border: none;
   box-shadow: none;
   vertical-align: baseline;
+}
+
+/* Important tag line highlight */
+.highlight-important-line {
+  background-color: rgba(255, 215, 0, 0.15);
+}
+
+/* Focus tag line highlight */
+.highlight-focus-line {
+  background-color: rgba(255, 196, 0, 0.22);
+}
+
+/* Node-level glow for atom node views in highlighted lines (todoMention, hashtag, etc.) */
+.highlight-important-line-node {
+  outline: 1px solid rgba(255, 215, 0, 0.35);
+  outline-offset: 1px;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.3));
+}
+
+.highlight-focus-line-node {
+  outline: 1px solid rgba(255, 196, 0, 0.55);
+  outline-offset: 1px;
+  filter: drop-shadow(0 0 8px rgba(255, 196, 0, 0.45));
 }
 
 /* REMOVED list override */

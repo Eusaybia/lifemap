@@ -8,8 +8,13 @@ export const HighlightImportantLinePluginKey = new PluginKey(
 );
 
 const MENTION_TYPE_NAME = 'mention'; // Assuming 'mention' is the registered name for your CustomMention node
+const HASHTAG_TYPE_NAME = 'hashtag';
 const IMPORTANT_LABEL_SUBSTRING = '⭐️ important';
+const FOCUS_LABEL_SUBSTRING = '☀️ focus';
 const HIGHLIGHT_CLASS = 'highlight-important-line';
+const FOCUS_HIGHLIGHT_CLASS = 'highlight-focus-line';
+const HIGHLIGHT_NODE_CLASS = 'highlight-important-line-node';
+const FOCUS_HIGHLIGHT_NODE_CLASS = 'highlight-focus-line-node';
 
 function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
   const decorations: Decoration[] = [];
@@ -19,43 +24,102 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
     if (node.type.name === 'paragraph') {
       let currentLineStartPos = pos + 1; // Start position inside the paragraph's content
       let currentLineHasImportantMention = false;
+      let currentLineHasFocusMention = false;
+      let currentLineChildren: Array<{
+        node: ProsemirrorNode
+        from: number
+        to: number
+        isHardBreak: boolean
+      }> = [];
 
       // Helper function to check a node and its descendants
-      const checkNodeRecursively = (n: ProsemirrorNode): boolean => {
-        if (n.type.name === MENTION_TYPE_NAME && (n.attrs.label as string)?.includes(IMPORTANT_LABEL_SUBSTRING)) {
-          return true;
-        }
-        for (let i = 0; i < n.childCount; i++) {
-          if (checkNodeRecursively(n.child(i))) {
-            return true;
+      const checkNodeRecursively = (n: ProsemirrorNode): { hasImportant: boolean; hasFocus: boolean } => {
+        let hasImportant = false;
+        let hasFocus = false;
+
+        if (n.type.name === MENTION_TYPE_NAME || n.type.name === HASHTAG_TYPE_NAME) {
+          const label = String(n.attrs.label ?? '');
+          const dataTag = String(n.attrs['data-tag'] ?? '').toLowerCase();
+          const id = String(n.attrs.id ?? '').toLowerCase();
+
+          if (
+            label.includes(IMPORTANT_LABEL_SUBSTRING) ||
+            dataTag === 'important' ||
+            id === 'tag:important' ||
+            label.toLowerCase() === 'important' ||
+            label.toLowerCase() === '#important'
+          ) {
+            hasImportant = true;
+          }
+
+          if (
+            label.includes(FOCUS_LABEL_SUBSTRING) ||
+            dataTag === 'focus' ||
+            id === 'tag:focus' ||
+            label.toLowerCase() === 'focus' ||
+            label.toLowerCase() === '#focus'
+          ) {
+            hasFocus = true;
           }
         }
-        return false;
+
+        for (let i = 0; i < n.childCount; i++) {
+          const childResult = checkNodeRecursively(n.child(i));
+          hasImportant = hasImportant || childResult.hasImportant;
+          hasFocus = hasFocus || childResult.hasFocus;
+          if (hasImportant && hasFocus) break;
+        }
+
+        return { hasImportant, hasFocus };
       };
 
       // Iterate through the direct children of the PARAGRAPH
-      node.content.forEach((childNode, offset) => {
+      node.content.forEach((childNode, offset, index) => {
         const childStartPos = pos + 1 + offset;
         const childEndPos = childStartPos + childNode.nodeSize;
 
         // Check if this child or its descendants contain the mention
-        if (!currentLineHasImportantMention) {
-            if (checkNodeRecursively(childNode)) {
-                currentLineHasImportantMention = true;
-                // console.log(`[HighlightPlugin] Mention found in child starting at ${childStartPos}`);
-            }
+        if (!currentLineHasImportantMention || !currentLineHasFocusMention) {
+          const tagResult = checkNodeRecursively(childNode);
+          currentLineHasImportantMention = currentLineHasImportantMention || tagResult.hasImportant;
+          currentLineHasFocusMention = currentLineHasFocusMention || tagResult.hasFocus;
         }
 
         // Determine if this is the end of a visual line
         const isHardBreak = childNode.type.name === 'hardBreak';
-        const isLastChild = offset === node.content.size - 1;
+        currentLineChildren.push({
+          node: childNode,
+          from: childStartPos,
+          to: childEndPos,
+          isHardBreak,
+        });
+        const isLastChild = index === node.childCount - 1;
         const isLineEnd = isHardBreak || isLastChild;
 
         if (isLineEnd) {
           // Calculate the end position for the decoration range
           const decorationEndPos = isHardBreak ? childStartPos : childEndPos;
 
-          if (currentLineHasImportantMention) {
+          if (currentLineHasFocusMention) {
+            // Focus takes priority over important if both are present on the same line.
+            if (currentLineStartPos < decorationEndPos) {
+              decorations.push(
+                Decoration.inline(currentLineStartPos, decorationEndPos, {
+                  class: FOCUS_HIGHLIGHT_CLASS,
+                })
+              );
+            }
+            // Inline decorations don't style atom node views (e.g., todoMention),
+            // so add node decorations to the non-text nodes on this line.
+            currentLineChildren.forEach(({ node: lineNode, from, to, isHardBreak: lineIsHardBreak }) => {
+              if (lineIsHardBreak || lineNode.isText || from >= to) return;
+              decorations.push(
+                Decoration.node(from, to, {
+                  class: FOCUS_HIGHLIGHT_NODE_CLASS,
+                })
+              );
+            });
+          } else if (currentLineHasImportantMention) {
             // Check if start/end positions are valid
             if (currentLineStartPos < decorationEndPos) {
                 decorations.push(
@@ -66,11 +130,21 @@ function findImportantMentions(doc: ProsemirrorNode): Decoration[] {
             } else {
                 // console.log(`[HighlightPlugin] Skipping decoration: startPos ${currentLineStartPos} >= endPos ${decorationEndPos}`);
             }
+            currentLineChildren.forEach(({ node: lineNode, from, to, isHardBreak: lineIsHardBreak }) => {
+              if (lineIsHardBreak || lineNode.isText || from >= to) return;
+              decorations.push(
+                Decoration.node(from, to, {
+                  class: HIGHLIGHT_NODE_CLASS,
+                })
+              );
+            });
           }
 
           // Reset for the next line, starting after the hardBreak or last child
           currentLineStartPos = childEndPos;
           currentLineHasImportantMention = false;
+          currentLineHasFocusMention = false;
+          currentLineChildren = [];
         }
       });
 

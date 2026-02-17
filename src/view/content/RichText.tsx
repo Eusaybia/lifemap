@@ -79,7 +79,6 @@ import { BulletList, ListItem, ListKeymap, OrderedList, TaskItem, TaskList } fro
 import { Focus, Gapcursor, Placeholder } from '@tiptap/extensions'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
-import { SpotlightOverlay } from '../components/SpotlightOverlay'
 import { motion } from 'framer-motion'
 import { SalesGuideTemplate } from './SalesGuideTemplate'
 import { getDailyScheduleTemplate } from './DailyScheduleTemplate'
@@ -2197,10 +2196,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           <div>
             <EditorContent editor={editor as Editor} />
           </div>
-          {/* SpotlightOverlay - creates a dark overlay when focus mode is active
-              (nodes with ☀️ focus tag). Focused nodes are elevated above the overlay
-              via the Aura component's z-index, creating a spotlight effect. */}
-          <SpotlightOverlay />
           {/* NodeConnectionManager - handles hand-drawn arrow connections between all connectable elements
               (block-level Groups, inline SpanGroups, and generic nodes with NodeOverlay). Uses Rough.js for sketchy style. */}
           <NodeConnectionManager />
