@@ -95,8 +95,10 @@ const DAILY_TEMPLATE_QUANTA_ID = 'daily-schedule-template'
 // Period source-of-truth quanta for daily recurring content
 const PERIOD_DAILY_QUANTA_ID = 'period-daily'
 const PERIOD_WEEKLY_QUANTA_ID = 'period-weekly'
+const PERIOD_MONTHLY_QUANTA_ID = 'period-monthly'
 const NEW_DAILY_SCHEDULES_KEY = 'newDailySchedules'
 const LONG_TERM_THIS_WEEK_QUANTA_ID = 'long-term-this-week'
+const LONG_TERM_THIS_MONTH_QUANTA_ID = 'long-term-this-month'
 // Life Mapping Main quanta ID - when empty, initialized with LifeMappingMainTemplate
 const LIFE_MAPPING_MAIN_QUANTA_ID = 'life-mapping-main'
 const TEMPORAL_MATERIALIZATION_PARAM = 'temporalMaterialization'
@@ -164,6 +166,12 @@ const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalM
   if (quantaId === LONG_TERM_THIS_WEEK_QUANTA_ID) {
     return {
       sourceQuantaIds: [PERIOD_WEEKLY_QUANTA_ID],
+    }
+  }
+
+  if (quantaId === LONG_TERM_THIS_MONTH_QUANTA_ID) {
+    return {
+      sourceQuantaIds: [PERIOD_MONTHLY_QUANTA_ID],
     }
   }
 
@@ -279,6 +287,44 @@ const mergeTemporalMaterializationIntoExistingDoc = (
 
   existingDoc.content = [...additions, ...existingTopLevel]
   return { content: existingDoc, addedCount: additions.length }
+}
+
+const dedupeTopLevelTemporalMaterializationBlocks = (
+  content: JSONContent,
+): { content: JSONContent; removedCount: number } => {
+  const normalizedDoc = content.type === 'doc'
+    ? cloneJsonContent(content)
+    : ({ type: 'doc', content: [cloneJsonContent(content)] } as JSONContent)
+  const topLevel = Array.isArray(normalizedDoc.content) ? normalizedDoc.content : []
+
+  const deduped: JSONContent[] = []
+  const seenTemporalKeys = new Set<string>()
+  let removedCount = 0
+
+  topLevel.forEach((node) => {
+    const attrs = node.attrs as Record<string, unknown> | undefined
+    const temporalOrigin = typeof attrs?.['data-temporal-origin'] === 'string'
+      ? (attrs['data-temporal-origin'] as string)
+      : ''
+
+    if (!temporalOrigin) {
+      deduped.push(node)
+      return
+    }
+
+    const signature = buildTemporalMergeSignature(node)
+    const dedupeKey = `${temporalOrigin}::${signature}`
+    if (seenTemporalKeys.has(dedupeKey)) {
+      removedCount += 1
+      return
+    }
+
+    seenTemporalKeys.add(dedupeKey)
+    deduped.push(node)
+  })
+
+  normalizedDoc.content = deduped
+  return { content: normalizedDoc, removedCount }
 }
 
 // ============================================================================
@@ -1238,9 +1284,8 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
-    const isFastMaterializationTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID;
-    const STABILIZATION_DELAY = isFastMaterializationTarget ? 150 : 800;
-    const FALLBACK_TIMEOUT = isFastMaterializationTarget ? 700 : 2000;
+    const STABILIZATION_DELAY = 800;
+    const FALLBACK_TIMEOUT = 2000;
 
     const persistMeta = (status: TemporalMaterializationMeta['status'], sourceQuantaIds: string[]) => {
       writeTemporalMaterializationMeta(metaKey, {
@@ -1257,22 +1302,37 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       temporalMaterializationChecked.current = true;
 
       const yFragment = yDoc.getXmlFragment('default');
-      let yDocHasMeaningfulContent: boolean | null = null;
+      let yDocHasMeaningfulContent = yFragment.length > 0;
       try {
         const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
         yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
       } catch {
-        yDocHasMeaningfulContent = null;
+        yDocHasMeaningfulContent = yFragment.length > 0;
       }
 
       const editorContent = (editor as Editor).getJSON() as JSONContent
       const editorHasMeaningfulContent = hasMeaningfulContent(editorContent)
-      const isEmpty =
-        yDocHasMeaningfulContent === null
-          ? !editorHasMeaningfulContent
-          : !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
+      const isEmpty = !yDocHasMeaningfulContent && !editorHasMeaningfulContent;
       const isDailyTarget = parseDailySlugDate(urlId) !== null;
-      const supportsMergeIntoExisting = isDailyTarget;
+      const isLongTermTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID || urlId === LONG_TERM_THIS_MONTH_QUANTA_ID;
+      const supportsMergeIntoExisting = isDailyTarget || isLongTermTarget;
+
+      if (!isEmpty) {
+        const dedupeResult = dedupeTopLevelTemporalMaterializationBlocks(editorContent);
+        if (dedupeResult.removedCount > 0) {
+          yDoc.transact(() => {
+            yFragment.delete(0, yFragment.length);
+          });
+          ;(editor as Editor)!.commands.setContent(dedupeResult.content);
+          templateApplied.current = true;
+          persistMeta(
+            'seeded',
+            existingMeta?.sourceQuantaIds?.length ? existingMeta.sourceQuantaIds : plan.sourceQuantaIds,
+          );
+          console.log(`[RichText] Removed ${dedupeResult.removedCount} duplicate temporal block(s) from ${urlId}`);
+          return;
+        }
+      }
 
       if (
         existingMeta &&
@@ -1326,6 +1386,18 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       }
 
       if (isEmpty) {
+        // Guard against late sync races: if the target already has persisted
+        // content, skip seeding so we don't duplicate by materializing too early.
+        const persistedTargetContent = await fetchQuantaContentWithLegacyFallback({
+          userId,
+          quantaId: urlId,
+          timeoutMs: 8000,
+        });
+        if (persistedTargetContent && hasMeaningfulContent(stripLegacyDailyFallbackNotice(persistedTargetContent))) {
+          persistMeta('existing', plan.sourceQuantaIds);
+          return;
+        }
+
         yDoc.transact(() => {
           yFragment.delete(0, yFragment.length);
         });
