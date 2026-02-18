@@ -261,6 +261,12 @@ export const getSelectedNodeType = (editor: Editor) => {
       // We return a dedicated type so FlowMenu can show a simple loupe for it.
       case "pomodoro":
         return "pomodoro"
+      // Inline mention atoms are selectable node views; map them so selection updates
+      // don't emit unsupported-node errors in FlowMenu.
+      case "todoMention":
+        return "todoMention"
+      case "motivationsMention":
+        return "motivationsMention"
       default:
         console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
         return "invalid"
