@@ -105,6 +105,12 @@ const TEMPORAL_MATERIALIZATION_PARAM = 'temporalMaterialization'
 const LONG_TERM_TEMPORAL_MATERIALIZATION_MODE = 'long-term-v1'
 const LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION = '2026-02-11'
 const TEMPORAL_MATERIALIZATION_META_KEY_PREFIX = 'temporalMaterializationMeta'
+const QUANTA_SCALE_MEASURE_INTERVAL_MS = 250
+const QUANTA_SCALE_CHANGE_EPSILON = 0.015
+const QUANTA_MIN_VISUAL_SCALE = 0.25
+const QUANTA_MAX_VISUAL_SCALE = 4
+const QUANTA_MAX_FONT_COMPENSATION = 3
+const QUANTA_FONT_COMPENSATION_EXPONENT = 0.65
 
 interface TemporalMaterializationPlan {
   sourceQuantaIds: string[]
@@ -1171,6 +1177,9 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 // TODO: Maybe merge this RichText and the editor component above, since they have virtually the same props
 export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT, lenses: [TextSectionLens], onChange?: (change: string | JSONContent) => void }) => {
   let content = props.text
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const [visualScale, setVisualScale] = React.useState(1)
+  const visualScaleRef = React.useRef(1)
 
   
 
@@ -1189,6 +1198,75 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }
 
   let editor = MainEditor(content, true, false)
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    let rafId: number | null = null
+    let intervalId: number | null = null
+
+    const measureVisualScale = () => {
+      const root = rootRef.current
+      if (!root) return
+
+      const layoutWidth = root.offsetWidth
+      if (!layoutWidth) return
+
+      const rect = root.getBoundingClientRect()
+      if (!Number.isFinite(rect.width) || rect.width <= 0) return
+
+      const measuredScale = rect.width / layoutWidth
+      const normalizedScale = Math.min(
+        QUANTA_MAX_VISUAL_SCALE,
+        Math.max(QUANTA_MIN_VISUAL_SCALE, measuredScale),
+      )
+
+      if (Math.abs(normalizedScale - visualScaleRef.current) < QUANTA_SCALE_CHANGE_EPSILON) {
+        return
+      }
+
+      visualScaleRef.current = normalizedScale
+      setVisualScale(normalizedScale)
+    }
+
+    const scheduleMeasure = () => {
+      if (rafId !== null) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        measureVisualScale()
+      })
+    }
+
+    scheduleMeasure()
+    intervalId = window.setInterval(scheduleMeasure, QUANTA_SCALE_MEASURE_INTERVAL_MS)
+    window.addEventListener('resize', scheduleMeasure)
+    window.addEventListener('orientationchange', scheduleMeasure)
+    document.addEventListener('visibilitychange', scheduleMeasure)
+
+    return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      if (intervalId !== null) {
+        window.clearInterval(intervalId)
+      }
+      window.removeEventListener('resize', scheduleMeasure)
+      window.removeEventListener('orientationchange', scheduleMeasure)
+      document.removeEventListener('visibilitychange', scheduleMeasure)
+    }
+  }, [])
+
+  const fontScaleCompensation = React.useMemo(() => {
+    if (!Number.isFinite(visualScale) || visualScale <= 0) return 1
+    if (visualScale >= 0.995) return 1
+    const moderatedCompensation = Math.pow(1 / visualScale, QUANTA_FONT_COMPENSATION_EXPONENT)
+    return Math.min(QUANTA_MAX_FONT_COMPENSATION, moderatedCompensation)
+  }, [visualScale])
+
+  const richTextRootStyle: React.CSSProperties & { '--quanta-font-scale': string } = {
+    width: '100%',
+    '--quanta-font-scale': `${fontScaleCompensation}`,
+  }
   
   // Share editor instance via context so DocumentFlowMenu can access it
   const { setEditor } = useEditorContext()
@@ -2177,7 +2255,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
 
     return (
-      <div key={props.quanta?.id} style={{width: '100%'}}>
+      <div
+        key={props.quanta?.id}
+        ref={rootRef}
+        style={richTextRootStyle}
+      >
         {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
         {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>

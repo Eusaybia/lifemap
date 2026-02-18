@@ -5,6 +5,7 @@
 }
 
 .ProseMirror {
+  font-size: calc(1rem * var(--quanta-font-scale, 1));
 
   :first-child {
     margin-top: 0;
