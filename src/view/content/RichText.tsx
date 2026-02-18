@@ -1256,16 +1256,24 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
   }, [])
 
-  const fontScaleCompensation = React.useMemo(() => {
+  const contentScaleCompensation = React.useMemo(() => {
     if (!Number.isFinite(visualScale) || visualScale <= 0) return 1
     if (visualScale >= 0.995) return 1
     const moderatedCompensation = Math.pow(1 / visualScale, QUANTA_FONT_COMPENSATION_EXPONENT)
     return Math.min(QUANTA_MAX_FONT_COMPENSATION, moderatedCompensation)
   }, [visualScale])
 
-  const richTextRootStyle: React.CSSProperties & { '--quanta-font-scale': string } = {
+  const inverseContentScaleCompensation = React.useMemo(() => {
+    return contentScaleCompensation <= 0 ? 1 : 1 / contentScaleCompensation
+  }, [contentScaleCompensation])
+
+  const richTextRootStyle: React.CSSProperties & {
+    '--quanta-content-scale': string
+    '--quanta-content-scale-inverse': string
+  } = {
     width: '100%',
-    '--quanta-font-scale': `${fontScaleCompensation}`,
+    '--quanta-content-scale': `${contentScaleCompensation}`,
+    '--quanta-content-scale-inverse': `${inverseContentScaleCompensation}`,
   }
   
   // Share editor instance via context so DocumentFlowMenu can access it

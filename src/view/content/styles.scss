@@ -5,7 +5,9 @@
 }
 
 .ProseMirror {
-  font-size: calc(1rem * var(--quanta-font-scale, 1));
+  // Scale the full editor surface (mentions/chips/widgets included), not text only.
+  zoom: var(--quanta-content-scale, 1);
+  width: calc(100% * var(--quanta-content-scale-inverse, 1));
 
   :first-child {
     margin-top: 0;
