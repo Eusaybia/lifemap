@@ -59,6 +59,26 @@ function insertFirstAvailableNode(editor: Editor, nodeTypeCandidates: string[]):
   return editor.chain().focus().insertContent({ type: nodeType }).run()
 }
 
+function insertFirstAvailableInlineNode(
+  editor: Editor,
+  nodeTypeCandidates: string[],
+  attrs: Record<string, unknown> = {},
+): boolean {
+  const nodeType = nodeTypeCandidates.find((candidate) => editor.schema.nodes[candidate])
+  if (!nodeType) return false
+
+  return editor
+    .chain()
+    .focus()
+    .insertContent([
+      { type: nodeType, attrs },
+      { type: 'text', text: ' ' },
+    ])
+    .run()
+}
+
+const generateShortId = () => Math.random().toString(36).substring(2, 8)
+
 function insertCanvasNode(editor: Editor): boolean {
   // Prefer the React Flow canvas node; support both name variants to avoid
   // case-related schema naming drift across environments.
@@ -353,6 +373,144 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertTrends()
+      },
+    },
+    // Mentions
+    {
+      id: 'mention-timepoint',
+      title: 'Mention: Timepoint',
+      description: 'Insert a @ timepoint mention (Today)',
+      emoji: '@',
+      keywords: ['mention', 'timepoint', 'date', 'today', '@'],
+      action: (editor) => {
+        const now = new Date()
+        const todayLabel = now.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+
+        insertFirstAvailableInlineNode(editor, ['timepoint'], {
+          id: 'timepoint:today',
+          label: '📅 Today',
+          'data-date': now.toISOString(),
+          'data-formatted': `Today (${todayLabel})`,
+          'data-relative-label': 'Today',
+        })
+      },
+    },
+    {
+      id: 'mention-location',
+      title: 'Mention: Location',
+      description: 'Insert a ! location mention (San Francisco)',
+      emoji: '📍',
+      keywords: ['mention', 'location', 'place', 'map', '!'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['location'], {
+          id: 'loc:san-francisco',
+          label: '📍 San Francisco',
+          'data-name': 'San Francisco',
+          'data-country': 'USA',
+          'data-coords': JSON.stringify([-122.4194, 37.7749]),
+        })
+      },
+    },
+    {
+      id: 'mention-hashtag',
+      title: 'Mention: Hashtag',
+      description: 'Insert a # hashtag mention (important)',
+      emoji: '#',
+      keywords: ['mention', 'hashtag', 'tag', 'important', '#'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['hashtag'], {
+          id: 'tag:important',
+          label: '⭐️ important',
+          'data-tag': 'important',
+          'data-color': '#f59e0b',
+        })
+      },
+    },
+    {
+      id: 'mention-merit-demerit',
+      title: 'Mention: Merit',
+      description: 'Insert a * merit mention (Giving)',
+      emoji: '○',
+      keywords: ['mention', 'merit', 'demerit', 'giving', '*'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['meritDemerit'], {
+          id: 'merit:giving',
+          label: 'Giving',
+          'data-type': 'merit',
+          'data-circle-color': 'white',
+        })
+      },
+    },
+    {
+      id: 'mention-aura',
+      title: 'Mention: Aura',
+      description: 'Insert a ^ aura mention (Respect)',
+      emoji: '⚪',
+      keywords: ['mention', 'aura', 'finesse', 'energy', '^'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['finesse', 'aura'], {
+          id: 'aura:respect-level-2',
+          label: '⚪ Respect (Level 2)',
+        })
+      },
+    },
+    {
+      id: 'mention-todo',
+      title: 'Mention: ToDo',
+      description: 'Insert a [] todo mention',
+      emoji: '☐',
+      keywords: ['mention', 'todo', 'checkbox', 'task', '[]'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['todoMention'], {
+          checked: false,
+          text: '',
+          todoId: generateShortId(),
+        })
+      },
+    },
+    {
+      id: 'mention-to-not-do',
+      title: 'Mention: ToNotDo',
+      description: 'Insert a [x] to-not-do mention',
+      emoji: '☒',
+      keywords: ['mention', 'to not do', 'not todo', 'crossed', '[x]'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['toNotDoMention'], {
+          checked: true,
+          text: '',
+          todoId: generateShortId(),
+        })
+      },
+    },
+    {
+      id: 'mention-question',
+      title: 'Mention: Question',
+      description: 'Insert a ?? question mention',
+      emoji: '?',
+      keywords: ['mention', 'question', 'clarify', '??'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['questionMention'], {
+          checked: false,
+          text: '',
+          questionId: generateShortId(),
+        })
+      },
+    },
+    {
+      id: 'mention-motivation',
+      title: 'Mention: Motivation',
+      description: 'Insert a !! motivation mention',
+      emoji: '✨',
+      keywords: ['mention', 'motivation', 'inspiration', '!!'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['motivationsMention'], {
+          text: '',
+          motivationId: generateShortId(),
+        })
       },
     },
     // Text formatting

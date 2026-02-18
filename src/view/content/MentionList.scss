@@ -698,6 +698,107 @@
 }
 
 // ============================================================================
+// To-Not-Do Mention Styles ([x] insertion)
+// ============================================================================
+// Inline crossed-out todo variant:
+// - Default checked/crossed state
+// - Red checkbox style
+// - Strikethrough text styling
+
+.to-not-do-mention {
+  @extend %inline-badge-base;
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+
+  &:hover {
+    background-color: #fee2e2;
+    border-color: #f87171;
+  }
+
+  &.to-not-do-checked {
+    background-color: #fee2e2;
+    border-color: #f87171;
+  }
+}
+
+.to-not-do-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1.5px solid #f87171;
+  border-radius: 0.2rem;
+  background: #fff1f2;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #ef4444;
+    background: #ffe4e6;
+  }
+
+  .to-not-do-checked & {
+    border-color: #dc2626;
+    background: #fee2e2;
+  }
+}
+
+.to-not-do-checkbox-icon {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  transition: color 0.15s ease;
+
+  .to-not-do-checked & {
+    color: #dc2626;
+  }
+}
+
+.to-not-do-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-weight: 500;
+  color: #7f1d1d;
+  min-width: 90px;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  text-decoration: line-through;
+
+  &::placeholder {
+    color: #b91c1c;
+    font-weight: 400;
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.to-not-do-text {
+  color: #7f1d1d;
+  cursor: text;
+  text-decoration: line-through;
+
+  &.to-not-do-text-empty {
+    color: #b91c1c;
+    font-weight: 400;
+    opacity: 0.6;
+  }
+
+  &.to-not-do-text-checked {
+    color: #991b1b;
+  }
+}
+
+// ============================================================================
 // Question Mention Styles ([?] question insertion)
 // ============================================================================
 // Inline question mention with boxed icon:

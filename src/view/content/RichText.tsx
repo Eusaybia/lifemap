@@ -40,6 +40,7 @@ import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { AuraMention, AuraNode } from './AuraMention'
 import { TodoMention, TodoMentionNode } from './TodoMention'
+import { ToNotDoMention, ToNotDoMentionNode } from './ToNotDoMention'
 import { QuestionMention, QuestionMentionNode } from './QuestionMention'
 import { MotivationsMention, MotivationsMentionNode } from './MotivationsMention'
 import { CustomLink } from './Link'
@@ -897,6 +898,10 @@ export const customExtensions: Extensions = [
   // Styled like a Mention but with a checkbox and editable text content
   TodoMentionNode,
   TodoMention,
+  // To-not-do mentions - triggered by [x] for inline crossed-out red todos
+  // Same behavior as TodoMention, but defaults to crossed/red state
+  ToNotDoMentionNode,
+  ToNotDoMention,
   // Question mentions - triggered by [?] for inline clarify-question items
   // Left icon toggles between boxed question mark and light bulb
   QuestionMentionNode,
