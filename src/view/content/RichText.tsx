@@ -20,7 +20,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { throttle } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
-import * as Lowlight from 'lowlight'
+import { createLowlight } from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
@@ -752,22 +752,9 @@ import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { useEditorContext } from '../../contexts/EditorContext'
 
-const lowlight = (() => {
-  const createLowlight = (Lowlight as any).createLowlight
-  if (typeof createLowlight === 'function') {
-    const instance = createLowlight()
-    instance.register('javascript', js)
-    instance.register('js', js)
-    return instance
-  }
-
-  const legacyLowlight = (Lowlight as any).lowlight
-  if (legacyLowlight && typeof legacyLowlight.registerLanguage === 'function') {
-    legacyLowlight.registerLanguage('javascript', js)
-    legacyLowlight.registerLanguage('js', js)
-  }
-  return legacyLowlight
-})()
+const lowlight = createLowlight()
+lowlight.register('javascript', js)
+lowlight.register('js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
@@ -1236,7 +1223,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
     const newSalesGuideId = sessionStorage.getItem('newSalesGuide');
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     
     // Only apply template if URL ID matches stored ID
     if (newSalesGuideId === urlId && editor) {
@@ -1267,7 +1254,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
 
     const forceTemporalMaterialization = searchParams.get('forceTemporalMaterialization') === 'true';
     const userId = searchParams.get('userId');
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     if (!urlId) return;
 
     const plan = resolveLongTermTemporalMaterializationPlan(urlId);
@@ -1477,7 +1464,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
     if (temporalMaterializationMode) return;
     const userId = searchParams.get('userId');
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     const templateKey = searchParams.get('templateKey');
     const forceDailySeed = searchParams.get('forceDailySeed') === 'true';
     const scopedSchedulesKey = userId ? `${NEW_DAILY_SCHEDULES_KEY}-${userId}` : NEW_DAILY_SCHEDULES_KEY;
@@ -1710,7 +1697,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!templateKey) return;
     if (!props.quanta?.information || !editor || templateApplied.current || customTemplateInitChecked.current) return;
 
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
@@ -1802,7 +1789,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // IndexedDB finishes syncing, which would cause Y.js to MERGE both (duplication bug).
   const dailyTemplateInitChecked = React.useRef(false);
   React.useEffect(() => {
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     
     // Only apply to the template quanta itself
     if (urlId !== DAILY_TEMPLATE_QUANTA_ID) return;
@@ -1894,7 +1881,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const userId = searchParams.get('userId');
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     if (!urlId || !urlId.startsWith('period-')) return;
     if (!props.quanta?.information || !editor || templateApplied.current || periodInitChecked.current) return;
 
@@ -1998,7 +1985,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!ENABLE_LIFE_MAPPING_MAIN_TEMPLATE) return; // Template loading disabled
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     
     // Only apply to life-mapping-main
     if (urlId === LIFE_MAPPING_MAIN_QUANTA_ID && editor) {
@@ -2024,7 +2011,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (dailyNodeCheckDone.current) return;
     if (!props.quanta?.id || !editor) return;
     
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     if (urlId !== 'present-day-tasks') return;
     
     // Access the Y.Doc from the quanta props
@@ -2105,7 +2092,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (calendarNodeCheckDone.current) return;
     if (!props.quanta?.id || !editor) return;
     
-    const urlId = window.location.pathname.split('/').pop();
+    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
     if (urlId !== 'past') return;
     
     // Access the Y.Doc from the quanta props
