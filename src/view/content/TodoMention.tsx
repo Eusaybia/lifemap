@@ -8,9 +8,9 @@
  * PURPOSE:
  * A checkbox-based todo item that appears inline within text, styled like a Mention.
  * Unlike traditional <li> task lists, this renders as an inline span with:
+ * - A 6-dot grip on the left for connections (like SpanGroups)
  * - A checkbox on the left
  * - Editable text on the right (stored as attribute, edited via inline input)
- * - A 6-dot grip on the right for connections (like SpanGroups)
  * - Placeholder "Your todo here" when empty
  * 
  * ARCHITECTURE DECISIONS:
@@ -209,6 +209,15 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
       data-text={text}
       data-todo-id={todoId ?? undefined}
     >
+      {/* 6-dot grip for connections (like SpanGroup) */}
+      <span
+        className="todo-grip"
+        contentEditable={false}
+        data-drag-handle
+        onMouseDown={handleGripMouseDown}
+        title="Drag to move"
+      />
+
       {/* Checkbox button */}
       <motion.span
         className="todo-checkbox"
@@ -241,15 +250,6 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
           {text || 'Your todo here'}
         </span>
       )}
-      
-      {/* 6-dot grip for connections (like SpanGroup) */}
-      <span
-        className="todo-grip"
-        contentEditable={false}
-        data-drag-handle
-        onMouseDown={handleGripMouseDown}
-        title="Drag to move"
-      />
     </NodeViewWrapper>
   )
 }
