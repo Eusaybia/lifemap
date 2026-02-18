@@ -43,6 +43,7 @@ interface TemporalLocationCandidate {
 
 interface TemporalSpaceContext {
   insideTemporalSpace: boolean
+  containerType: 'temporalSpace' | 'group' | null
   locations: TemporalLocationCandidate[]
 }
 
@@ -188,6 +189,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const findTemporalSpaceContext = useCallback((): TemporalSpaceContext | null => {
     const emptyContext: TemporalSpaceContext = {
       insideTemporalSpace: false,
+      containerType: null,
       locations: [],
     }
 
@@ -216,22 +218,24 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       } catch (error) {
         return null
       }
-      let temporalNode: any | null = null
+      let contextNode: any | null = null
+      let containerType: 'temporalSpace' | 'group' | null = null
 
       for (let depth = $pos.depth; depth >= 0; depth -= 1) {
         const ancestor = $pos.node(depth)
-        if (ancestor.type.name === 'temporalSpace') {
-          temporalNode = ancestor
+        if (ancestor.type.name === 'temporalSpace' || ancestor.type.name === 'group') {
+          contextNode = ancestor
+          containerType = ancestor.type.name as 'temporalSpace' | 'group'
           break
         }
       }
 
-      if (!temporalNode) {
+      if (!contextNode) {
         return emptyContext
       }
 
       const locations: TemporalLocationCandidate[] = []
-      temporalNode.descendants((childNode: any) => {
+      contextNode.descendants((childNode: any) => {
         if (childNode.type.name !== 'location') return
 
         const locationAttrs = (childNode.attrs || {}) as LocationNodeAttrs
@@ -250,6 +254,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
       return {
         insideTemporalSpace: true,
+        containerType,
         locations,
       }
     } catch (error) {
@@ -346,7 +351,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return marker
   }, [])
 
-  // Track location tags inside the same containing temporalSpace node.
+  // Track location tags inside the same containing temporalSpace/group node.
   useEffect(() => {
     const syncTemporalSpaceLocations = (): boolean => {
       if (props.editor.isDestroyed) return false
@@ -354,7 +359,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       const temporalContext = findTemporalSpaceContext()
       if (!temporalContext) return false
 
-      const nextSignature = `${temporalContext.insideTemporalSpace}:${temporalContext.locations
+      const nextSignature = `${temporalContext.insideTemporalSpace}:${temporalContext.containerType || 'none'}:${temporalContext.locations
         .map((location) => {
           const coords = location.coords ? `${location.coords[0].toFixed(6)},${location.coords[1].toFixed(6)}` : 'null'
           return `${location.id || ''}:${location.name}:${location.country || ''}:${coords}`
@@ -391,7 +396,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     }
   }, [findTemporalSpaceContext, props.editor])
 
-  // Resolve coordinates for temporalSpace location tags (including custom tags
+  // Resolve coordinates for temporalSpace/group location tags (including custom tags
   // without saved coordinates yet) and convert them into map markers.
   useEffect(() => {
     let cancelled = false
@@ -507,7 +512,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       markersRef.current.forEach(marker => marker.remove())
       markersRef.current = []
 
-      // Add all markers from node attrs + sibling location tags in temporalSpace.
+      // Add all markers from node attrs + sibling location tags in temporalSpace/group.
       activeMarkers.forEach((markerData: MapMarker) => {
         const marker = addMarkerToMap(markerData)
         if (marker) {
