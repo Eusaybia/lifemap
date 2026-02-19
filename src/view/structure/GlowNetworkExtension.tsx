@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Node as TipTapNode, NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { NodeOverlay } from "../components/NodeOverlay";
-import miserablesData from "./data/miserables.json";
 
 interface GlowNetworkNode {
   id: string;
   group?: number;
+  tone?: "light" | "dark";
+  color?: string;
   [key: string]: unknown;
 }
 
@@ -26,7 +27,9 @@ interface GlowNetworkGraphInstance {
   graphData: (data: GlowNetworkData) => GlowNetworkGraphInstance;
   backgroundColor: (color: string) => GlowNetworkGraphInstance;
   nodeLabel: (label: string) => GlowNetworkGraphInstance;
-  nodeAutoColorBy: (key: string) => GlowNetworkGraphInstance;
+  nodeColor: (colorAccessor: (node: GlowNetworkNode) => string) => GlowNetworkGraphInstance;
+  nodeThreeObject: (objectAccessor: (node: GlowNetworkNode) => unknown) => GlowNetworkGraphInstance;
+  nodeThreeObjectExtend: (extend: boolean) => GlowNetworkGraphInstance;
   linkColor: (colorAccessor: () => string) => GlowNetworkGraphInstance;
   linkWidth: (width: number) => GlowNetworkGraphInstance;
   showNavInfo: (enabled: boolean) => GlowNetworkGraphInstance;
@@ -37,6 +40,7 @@ interface GlowNetworkGraphInstance {
   enablePointerInteraction: (enabled: boolean) => GlowNetworkGraphInstance;
   onEngineStop: (handler: () => void) => GlowNetworkGraphInstance;
   zoomToFit: (durationMs?: number, padding?: number) => GlowNetworkGraphInstance;
+  d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
   postProcessingComposer: () => {
     addPass: (pass: unknown) => void;
   };
@@ -54,7 +58,46 @@ const getForceGraph3DConstructor = (): GlowNetworkGraphConstructor | undefined =
   return (window as Window & { ForceGraph3D?: GlowNetworkGraphConstructor }).ForceGraph3D;
 };
 
-const SOURCE_GRAPH_DATA = miserablesData as GlowNetworkData;
+const NODE_TONE_COLORS = {
+  light: "#c9cfde",
+  dark: "#727a8a",
+};
+
+const NODE_LABEL_COLORS = {
+  light: "#dddfe8",
+  dark: "#7f8798",
+};
+
+const SOURCE_GRAPH_DATA: GlowNetworkData = {
+  nodes: [
+    { id: "Arcturus", group: 1, tone: "dark", x: -340, y: 120, z: 0 },
+    { id: "Polaris", group: 1, tone: "light", x: -290, y: 58, z: 0 },
+    { id: "Antares", group: 1, tone: "dark", x: -355, y: 2, z: 0 },
+    { id: "Aldebaran", group: 1, tone: "light", x: -285, y: -76, z: 0 },
+    { id: "Deneb", group: 1, tone: "dark", x: -220, y: -12, z: 0 },
+    { id: "Altair", group: 2, tone: "light", x: 215, y: -88, z: 0 },
+    { id: "Vega", group: 2, tone: "dark", x: 268, y: -14, z: 0 },
+    { id: "Betelgeuse", group: 2, tone: "light", x: 350, y: 24, z: 0 },
+    { id: "Rigel", group: 2, tone: "dark", x: 345, y: -98, z: 0 },
+    { id: "Sirius", group: 2, tone: "light", x: 420, y: -42, z: 0 },
+  ],
+  links: [
+    // Component A (left graph)
+    { source: "Arcturus", target: "Polaris" },
+    { source: "Polaris", target: "Antares" },
+    { source: "Antares", target: "Aldebaran" },
+    { source: "Aldebaran", target: "Deneb" },
+    { source: "Deneb", target: "Polaris" },
+    // Component B (right graph)
+    { source: "Sirius", target: "Rigel" },
+    { source: "Sirius", target: "Betelgeuse" },
+    { source: "Rigel", target: "Betelgeuse" },
+    { source: "Vega", target: "Betelgeuse" },
+    { source: "Vega", target: "Rigel" },
+    { source: "Altair", target: "Vega" },
+    { source: "Altair", target: "Sirius" },
+  ],
+};
 
 const cloneGraphData = (): GlowNetworkData => ({
   nodes: SOURCE_GRAPH_DATA.nodes.map((node) => ({ ...node })),
@@ -65,8 +108,13 @@ const MIN_WIDTH = 280;
 const MIN_HEIGHT = 240;
 const FORCE_GRAPH_3D_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/3d-force-graph";
 const FORCE_GRAPH_3D_SCRIPT_ATTR = "data-force-graph-3d";
+const ASTRO_FONT_FAMILY = '"Cinzel Decorative", "Marcellus", serif';
+const ASTRO_FONT_STYLESHEET_URL =
+  "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Marcellus&display=swap";
+const ASTRO_FONT_LINK_ATTR = "data-glow-network-font";
 
 let forceGraph3DScriptPromise: Promise<void> | null = null;
+let astrologyFontPromise: Promise<void> | null = null;
 
 const ensureForceGraph3DScript = async (): Promise<void> => {
   if (typeof window === "undefined") return;
@@ -112,6 +160,55 @@ const ensureForceGraph3DScript = async (): Promise<void> => {
   }
 };
 
+const waitForStylesheet = (link: HTMLLinkElement) =>
+  new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    link.addEventListener("load", finish, { once: true });
+    link.addEventListener("error", finish, { once: true });
+    window.setTimeout(finish, 1800);
+  });
+
+const ensureAstrologyFont = async (): Promise<void> => {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (astrologyFontPromise) return astrologyFontPromise;
+
+  astrologyFontPromise = (async () => {
+    let fontLink = document.querySelector<HTMLLinkElement>(`link[${ASTRO_FONT_LINK_ATTR}="true"]`);
+    if (!fontLink) {
+      fontLink = document.createElement("link");
+      fontLink.rel = "stylesheet";
+      fontLink.href = ASTRO_FONT_STYLESHEET_URL;
+      fontLink.setAttribute(ASTRO_FONT_LINK_ATTR, "true");
+      document.head.appendChild(fontLink);
+    }
+
+    await waitForStylesheet(fontLink);
+
+    if (document.fonts?.load) {
+      await Promise.race([
+        Promise.all([
+          document.fonts.load(`700 28px ${ASTRO_FONT_FAMILY}`),
+          document.fonts.load(`400 28px ${ASTRO_FONT_FAMILY}`),
+        ]),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 1200)),
+      ]);
+    }
+  })();
+
+  try {
+    await astrologyFontPromise;
+  } catch (error) {
+    astrologyFontPromise = null;
+    throw error;
+  }
+};
+
 const GlowNetworkFigure: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<GlowNetworkGraphInstance | null>(null);
@@ -138,11 +235,12 @@ const GlowNetworkFigure: React.FC = () => {
 
     const initGraph = async () => {
       try {
-        const [THREE, { UnrealBloomPass }] = await Promise.all([
+        const [THREE, { default: SpriteText }, { UnrealBloomPass }] = await Promise.all([
           import("three"),
+          import("three-spritetext"),
           import("three/examples/jsm/postprocessing/UnrealBloomPass.js"),
         ]);
-        await ensureForceGraph3DScript();
+        await Promise.all([ensureForceGraph3DScript(), ensureAstrologyFont()]);
         const ForceGraph3D = getForceGraph3DConstructor();
 
         if (disposed || !ForceGraph3D) return;
@@ -158,7 +256,24 @@ const GlowNetworkFigure: React.FC = () => {
           .graphData(graphData)
           .backgroundColor("#000003")
           .nodeLabel("id")
-          .nodeAutoColorBy("group")
+          .nodeColor((node) =>
+            node.tone === "dark" ? NODE_TONE_COLORS.dark : NODE_TONE_COLORS.light
+          )
+          .nodeThreeObject((node) => {
+            const sprite = new SpriteText(node.id);
+            if (sprite.material) {
+              sprite.material.depthWrite = false;
+            }
+            sprite.color = NODE_LABEL_COLORS.dark;
+            sprite.textHeight = 8;
+            sprite.fontFace = ASTRO_FONT_FAMILY;
+            sprite.fontWeight = "700";
+            if (sprite.center) {
+              sprite.center.y = -0.6;
+            }
+            return sprite;
+          })
+          .nodeThreeObjectExtend(true)
           .linkColor(() => "rgba(236, 245, 255, 0.55)")
           .linkWidth(0.9)
           .showNavInfo(false)
@@ -173,7 +288,12 @@ const GlowNetworkFigure: React.FC = () => {
             graph.zoomToFit(450, 90);
           });
 
-        const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 4, 1, 0);
+        const chargeForce = graph.d3Force("charge");
+        if (chargeForce?.strength) {
+          chargeForce.strength(-120);
+        }
+
+        const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 2.5, 0.7, 0);
         graph.postProcessingComposer().addPass(bloom);
         bloomPass = bloom;
 
@@ -331,7 +451,7 @@ export const GlowNetworkExtension = TipTapNode.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["div", { ...HTMLAttributes, "data-type": "glow-network" }, 0];
+    return ["div", { ...HTMLAttributes, "data-type": "glow-network" }];
   },
 
   addNodeView() {
