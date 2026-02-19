@@ -1420,6 +1420,19 @@ const TemporalDailyLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+const GlowNetworkLoupe = React.memo((props: { editor: Editor }) => {
+    void props.editor
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <Tag>
+                Glow Network
+            </Tag>
+        </div>
+    )
+})
+GlowNetworkLoupe.displayName = "GlowNetworkLoupe"
+
 // Architectural choice: keep the Weekly loupe tag-only because the
 // weekly node's interactions live inside the embedded day cards,
 // and the flow menu should stay lightweight while scanning schedules.
@@ -2147,6 +2160,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
                         'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
+                        'glowNetwork': <GlowNetworkLoupe editor={props.editor} />,
                         'scrollview': <></>,
                         'portal': <PortalLoupe editor={props.editor} />,
                         'externalPortal': <ExternalPortalLoupe editor={props.editor} />,

@@ -90,6 +90,15 @@ function insertCanvasNode(editor: Editor): boolean {
   return editor.chain().focus().insertContent('<div data-type="canvas-3d"></div>').run()
 }
 
+function insertGlowNetworkNode(editor: Editor): boolean {
+  const commands = editor.commands as { insertGlowNetwork?: () => boolean }
+  if (typeof commands.insertGlowNetwork === 'function') {
+    return commands.insertGlowNetwork()
+  }
+
+  return editor.chain().focus().insertContent({ type: 'glowNetwork' }).run()
+}
+
 // Shared upload mechanism used by both the editor slash menu and the 3D canvas slash menu.
 // Keep this flow identical to existing slash image upload behavior.
 export function uploadImageThroughSlashMenu(onUploaded: (imageUrl: string) => void): void {
@@ -639,6 +648,16 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         // @ts-ignore
         editor.commands.insertWeatherCard?.() ||
           editor.chain().focus().insertContent({ type: 'weatherCard' }).run()
+      },
+    },
+    {
+      id: 'glow-network',
+      title: 'Glow Network',
+      description: 'Insert a luminous connected-node constellation',
+      emoji: '✨',
+      keywords: ['glow', 'network', 'graph', 'constellation', 'nodes', 'neural', 'lights'],
+      action: (editor) => {
+        insertGlowNetworkNode(editor)
       },
     },
     {

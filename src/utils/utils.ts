@@ -245,6 +245,8 @@ export const getSelectedNodeType = (editor: Editor) => {
         return "temporalOrder"
       case "temporalDaily":
         return "temporalDaily"
+      case "glowNetwork":
+        return "glowNetwork"
       case "trends":
         return "trends"
       case "scrollview":

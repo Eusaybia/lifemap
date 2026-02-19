@@ -70,6 +70,7 @@ import { TemporalDailyExtension } from '../structure/TemporalDailyExtension'
 import { TrendsExtension } from '../structure/TrendsExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
+import { GlowNetworkExtension } from '../structure/GlowNetworkExtension'
 import { Canvas3DExtension } from '../structure/Canvas3DExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
@@ -857,7 +858,7 @@ export const officialExtensions = (quantaId: string) => {return [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'portal', 'lifetimeView',
+      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'portal', 'lifetimeView', 'glowNetwork',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
       'excalidraw', 'mapboxMap', 'warning', 'quote',
@@ -966,6 +967,7 @@ export const customExtensions: Extensions = [
   TrendsExtension,
   LifetimeViewExtension,
   WeatherExtension,
+  GlowNetworkExtension,
   Canvas3DExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
