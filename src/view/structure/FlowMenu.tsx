@@ -1188,6 +1188,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
             {/* Lenses - leftmost */}
             <FlowSwitch value={lens} isLens scrollToSelect>
                 <Option value={"identity"} onClick={() => {
+                    console.log("1. identity lens selected")
                     props.editor.commands.setGroupLens({ lens: "identity" })
                 }}>
                     <motion.div>
@@ -1195,6 +1196,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"chip"} onClick={() => {
+                    console.log("2. chip lens selected")
                     props.editor.commands.setGroupLens({ lens: "chip" })
                 }}>
                     <motion.div>
@@ -1202,6 +1204,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"preview"} onClick={() => {
+                    console.log("3. preview lens selected")
                     props.editor.commands.setGroupLens({ lens: "preview" })
                 }}>
                     <motion.div>
@@ -1209,6 +1212,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"auraView"} onClick={() => {
+                    console.log("4. auraView lens selected")
                     props.editor.commands.setGroupLens({ lens: "auraView" })
                 }}>
                     <motion.div>
@@ -1216,6 +1220,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"collapsed"} onClick={() => {
+                    console.log("5. collapsed lens selected")
                     props.editor.commands.setGroupLens({ lens: "collapsed" })
                 }}>
                     <motion.div>
@@ -1223,6 +1228,7 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option value={"private"} onClick={() => {
+                    console.log("6. private lens selected")
                     props.editor.commands.setGroupLens({ lens: "private" })
                 }}>
                     <motion.div>

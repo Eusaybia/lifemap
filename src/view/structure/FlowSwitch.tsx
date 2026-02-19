@@ -70,6 +70,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
             style={{
                 scrollSnapAlign: "center",
                 width: "fit-content",
+                minHeight: 27,
             }}
             viewport={{ root: flowSwitchContainerRef, margin: "-14px 0px -14px 0px" }}
             onViewportEnter={(entry) => {

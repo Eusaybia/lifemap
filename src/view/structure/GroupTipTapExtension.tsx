@@ -508,8 +508,11 @@ export const GroupExtension = TipTapNode.create({
         return title || 'Untitled';
       };
 
-      const currentLens = props.node.attrs.lens;
-      const isAuraLens = currentLens === "glowVisualisation" || currentLens === "auraView";
+      const currentLens =
+        props.node.attrs.lens === "glowVisualisation"
+          ? "auraView"
+          : props.node.attrs.lens;
+      const isAuraLens = currentLens === "auraView";
       const glowVisualisationData = React.useMemo(
         () => buildGlowVisualisationData(props.node),
         [props.node]
@@ -520,8 +523,8 @@ export const GroupExtension = TipTapNode.create({
       const chipRef = useRef<HTMLSpanElement>(null);
       const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
 
-      // Chip lens - render as compact inline element matching .hashtag-mention style
-      if (currentLens === 'chip') {
+      // Chip lens renderer - compact inline element matching .hashtag-mention style
+      const renderChipLens = () => {
         const title = getGroupTitle();
         
         // Calculate position when showing preview - diagonal offset (down-right)
@@ -703,89 +706,93 @@ export const GroupExtension = TipTapNode.create({
             </AnimatePresence>
           </NodeViewWrapper>
         );
-      }
+      };
 
-      return (
-        <NodeViewWrapper
-          ref={nodeViewRef}
-          data-group-node-view="true"
-          style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
-        >
-          {/* NodeOverlay provides the grip, shadow, and connection support */}
-          <NodeOverlay
-            nodeProps={props}
-            nodeType="group"
-            boxShadow={GROUP_NODE_BOX_SHADOW}
-            padding={isAuraLens ? 0 : '20px'}
-            style={{ display: isHidden ? 'none' : 'block' }}
-            isPrivate={props.node.attrs.lens === 'private'}
-          >
-            {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
-            <div
-              style={{
-                borderRadius: 10,
-                position: 'relative',
-                overflow: 'visible',
-              }}
+      switch (currentLens) {
+        case "chip":
+          return renderChipLens();
+        default:
+          return (
+            <NodeViewWrapper
+              ref={nodeViewRef}
+              data-group-node-view="true"
+              style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
             >
-              <Group
-                lens={props.node.attrs.lens}
-                quantaId={props.node.attrs.quantaId}
-                backgroundColor={props.node.attrs.backgroundColor}
+              {/* NodeOverlay provides the grip, shadow, and connection support */}
+              <NodeOverlay
+                nodeProps={props}
+                nodeType="group"
+                boxShadow={GROUP_NODE_BOX_SHADOW}
+                padding={isAuraLens ? 0 : '20px'}
+                style={{ display: isHidden ? 'none' : 'block' }}
+                isPrivate={currentLens === 'private'}
               >
-                {(() => {
-                  switch (props.node.attrs.lens) {
-                    case "identity":
-                      return <NodeViewContent />;
-                    case "hideUnimportantNodes":
-                      return <div>Important Nodes Only (Pending)</div>;
-                    case "private":
-                      // Content still renders but overlay covers it in Group component
-                      return <NodeViewContent />;
-                    case "collapsed":
-                      // Content is hidden by Group component when collapsed
-                      return <NodeViewContent />;
-                    case "glowVisualisation":
-                    case "auraView":
-                      return (
-                        <GlowNetworkFigure
-                          graphData={glowVisualisationData}
-                          aspectRatio="7 / 3"
-                          minHeight={220}
-                          showNavHint={false}
-                          fitPadding={0}
-                          autoFitDelayMs={500}
-                          edgeToEdge
-                          fitZoomScale={0.62}
-                        />
-                      );
-                    default:
-                      return <NodeViewContent />;
-                  }
-                })()}
-              </Group>
+                {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
+                <div
+                  style={{
+                    borderRadius: 10,
+                    position: 'relative',
+                    overflow: 'visible',
+                  }}
+                >
+                  <Group
+                    lens={currentLens}
+                    quantaId={props.node.attrs.quantaId}
+                    backgroundColor={props.node.attrs.backgroundColor}
+                  >
+                    {(() => {
+                      switch (currentLens) {
+                        case "identity":
+                          return <NodeViewContent />;
+                        case "hideUnimportantNodes":
+                          return <div>Important Nodes Only (Pending)</div>;
+                        case "private":
+                          // Content still renders but overlay covers it in Group component
+                          return <NodeViewContent />;
+                        case "collapsed":
+                          // Content is hidden by Group component when collapsed
+                          return <NodeViewContent />;
+                        case "auraView":
+                          return (
+                            <GlowNetworkFigure
+                              graphData={glowVisualisationData}
+                              aspectRatio="7 / 3"
+                              minHeight={220}
+                              showNavHint={false}
+                              fitPadding={0}
+                              autoFitDelayMs={500}
+                              edgeToEdge
+                              fitZoomScale={0.62}
+                            />
+                          );
+                        default:
+                          return <NodeViewContent />;
+                      }
+                    })()}
+                  </Group>
 
-              {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
-              {/* This is separate from the Aura focus system which uses focus tags */}
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'black',
-                  borderRadius: 10,
-                  pointerEvents: 'none',
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: dimmingOpacity }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-              />
-            </div>
-          </NodeOverlay>
-        </NodeViewWrapper>
-      );
+                  {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
+                  {/* This is separate from the Aura focus system which uses focus tags */}
+                  <motion.div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'black',
+                      borderRadius: 10,
+                      pointerEvents: 'none',
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: dimmingOpacity }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  />
+                </div>
+              </NodeOverlay>
+            </NodeViewWrapper>
+          );
+      }
     });
   },
 });
