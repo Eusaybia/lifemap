@@ -5,7 +5,14 @@ import React from 'react'
 import { offWhite, purple } from '../Theme';
 // Grip is now handled by the parent NodeView (GroupTipTapExtension)
 
-export type GroupLenses = "identity" | "private" | "chip" | "collapsed" | "preview";
+export type GroupLenses =
+    | "identity"
+    | "private"
+    | "chip"
+    | "collapsed"
+    | "preview"
+    | "glowVisualisation"
+    | "auraView";
 
 export const Group = (props: { 
     children: any, 
@@ -32,6 +39,7 @@ export const Group = (props: {
     const isCollapsed = props.lens === 'collapsed';
     const isPreview = props.lens === 'preview';
     const isPrivate = props.lens === 'private';
+    const isAuraView = props.lens === 'glowVisualisation' || props.lens === 'auraView';
 
     return (
         <motion.div
@@ -58,10 +66,10 @@ export const Group = (props: {
                 position: "relative", // Keep relative for Grip positioning
                 minHeight: isCollapsed ? 48 : 20,
                 maxHeight: (isPreview || isPrivate) ? 100 : undefined,
-                overflow: (isPreview || isPrivate) ? "hidden" : "visible",
+                overflow: (isPreview || isPrivate || isAuraView) ? "hidden" : "visible",
                 borderRadius: `10px`,
                 // Note: boxShadow removed - now provided by NodeOverlay wrapper
-                padding: isCollapsed ? '10px 20px' : '20px',
+                padding: isCollapsed ? '10px 20px' : (isAuraView ? 0 : '20px'),
                 // Note: margin removed - now provided by NodeOverlay wrapper
             }}
         >

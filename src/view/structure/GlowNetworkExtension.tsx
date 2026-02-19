@@ -3,7 +3,7 @@ import { Node as TipTapNode, NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { NodeOverlay } from "../components/NodeOverlay";
 
-interface GlowNetworkNode {
+export interface GlowNetworkNode {
   id: string;
   group?: number;
   tone?: "light" | "dark";
@@ -11,14 +11,14 @@ interface GlowNetworkNode {
   [key: string]: unknown;
 }
 
-interface GlowNetworkLink {
+export interface GlowNetworkLink {
   source: string;
   target: string;
   value?: number;
   [key: string]: unknown;
 }
 
-interface GlowNetworkData {
+export interface GlowNetworkData {
   nodes: GlowNetworkNode[];
   links: GlowNetworkLink[];
 }
@@ -40,6 +40,12 @@ interface GlowNetworkGraphInstance {
   enablePointerInteraction: (enabled: boolean) => GlowNetworkGraphInstance;
   onEngineStop: (handler: () => void) => GlowNetworkGraphInstance;
   zoomToFit: (durationMs?: number, padding?: number) => GlowNetworkGraphInstance;
+  camera?: () => { position?: { x: number; y: number; z: number } };
+  cameraPosition?: (
+    position: { x?: number; y?: number; z?: number },
+    lookAt?: { x?: number; y?: number; z?: number },
+    durationMs?: number
+  ) => GlowNetworkGraphInstance;
   d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
   postProcessingComposer: () => {
     addPass: (pass: unknown) => void;
@@ -99,18 +105,18 @@ const SOURCE_GRAPH_DATA: GlowNetworkData = {
   ],
 };
 
-const cloneGraphData = (): GlowNetworkData => ({
-  nodes: SOURCE_GRAPH_DATA.nodes.map((node) => ({ ...node })),
-  links: SOURCE_GRAPH_DATA.links.map((link) => ({ ...link })),
+const cloneGraphData = (data: GlowNetworkData): GlowNetworkData => ({
+  nodes: data.nodes.map((node) => ({ ...node })),
+  links: data.links.map((link) => ({ ...link })),
 });
 
 const MIN_WIDTH = 280;
 const MIN_HEIGHT = 240;
 const FORCE_GRAPH_3D_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/3d-force-graph";
 const FORCE_GRAPH_3D_SCRIPT_ATTR = "data-force-graph-3d";
-const ASTRO_FONT_FAMILY = '"Cinzel Decorative", "Marcellus", serif';
+const ASTRO_FONT_FAMILY = '"Cormorant Garamond", "Cinzel Decorative", "Marcellus", serif';
 const ASTRO_FONT_STYLESHEET_URL =
-  "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Marcellus&display=swap";
+  "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=Marcellus&display=swap";
 const ASTRO_FONT_LINK_ATTR = "data-glow-network-font";
 
 let forceGraph3DScriptPromise: Promise<void> | null = null;
@@ -193,8 +199,8 @@ const ensureAstrologyFont = async (): Promise<void> => {
     if (document.fonts?.load) {
       await Promise.race([
         Promise.all([
-          document.fonts.load(`700 28px ${ASTRO_FONT_FAMILY}`),
-          document.fonts.load(`400 28px ${ASTRO_FONT_FAMILY}`),
+          document.fonts.load(`italic 700 28px ${ASTRO_FONT_FAMILY}`),
+          document.fonts.load(`italic 400 28px ${ASTRO_FONT_FAMILY}`),
         ]),
         new Promise<void>((resolve) => window.setTimeout(resolve, 1200)),
       ]);
@@ -209,11 +215,34 @@ const ensureAstrologyFont = async (): Promise<void> => {
   }
 };
 
-const GlowNetworkFigure: React.FC = () => {
+interface GlowNetworkFigureProps {
+  graphData?: GlowNetworkData;
+  aspectRatio?: string;
+  minHeight?: number;
+  showNavHint?: boolean;
+  fitPadding?: number;
+  autoFitDelayMs?: number;
+  edgeToEdge?: boolean;
+  fitZoomScale?: number;
+}
+
+export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
+  graphData,
+  aspectRatio = "8 / 3",
+  minHeight = 216,
+  showNavHint = true,
+  fitPadding = 100,
+  autoFitDelayMs = 700,
+  edgeToEdge = false,
+  fitZoomScale = 1,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<GlowNetworkGraphInstance | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const graphData = useMemo(() => cloneGraphData(), []);
+  const resolvedGraphData = useMemo(
+    () => cloneGraphData(graphData ?? SOURCE_GRAPH_DATA),
+    [graphData]
+  );
 
   const stopEditorEventBubble = useCallback((event: React.SyntheticEvent) => {
     event.stopPropagation();
@@ -231,7 +260,26 @@ const GlowNetworkFigure: React.FC = () => {
           dispose?: () => void;
         }
       | null = null;
-    let didFitCamera = false;
+    let fitTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
+
+    const applyFit = (graph: GlowNetworkGraphInstance, durationMs: number) => {
+      graph.zoomToFit(durationMs, fitPadding);
+      if (fitZoomScale >= 1) return;
+
+      const camera = graph.camera?.();
+      const currentPosition = camera?.position;
+      if (!currentPosition || !graph.cameraPosition) return;
+
+      graph.cameraPosition(
+        {
+          x: currentPosition.x * fitZoomScale,
+          y: currentPosition.y * fitZoomScale,
+          z: currentPosition.z * fitZoomScale,
+        },
+        undefined,
+        durationMs > 0 ? Math.max(80, Math.floor(durationMs * 0.6)) : 0
+      );
+    };
 
     const initGraph = async () => {
       try {
@@ -253,7 +301,7 @@ const GlowNetworkFigure: React.FC = () => {
         graphRef.current = graph;
 
         graph
-          .graphData(graphData)
+          .graphData(resolvedGraphData)
           .backgroundColor("#000003")
           .nodeLabel("id")
           .nodeColor((node) =>
@@ -267,7 +315,7 @@ const GlowNetworkFigure: React.FC = () => {
             sprite.color = NODE_LABEL_COLORS.dark;
             sprite.textHeight = 8;
             sprite.fontFace = ASTRO_FONT_FAMILY;
-            sprite.fontWeight = "700";
+            sprite.fontWeight = "italic 700";
             if (sprite.center) {
               sprite.center.y = -0.6;
             }
@@ -283,9 +331,8 @@ const GlowNetworkFigure: React.FC = () => {
           .enableNavigationControls(true)
           .enablePointerInteraction(true)
           .onEngineStop(() => {
-            if (disposed || didFitCamera) return;
-            didFitCamera = true;
-            graph.zoomToFit(450, 90);
+            if (disposed) return;
+            applyFit(graph, 300);
           });
 
         const chargeForce = graph.d3Force("charge");
@@ -297,6 +344,11 @@ const GlowNetworkFigure: React.FC = () => {
         graph.postProcessingComposer().addPass(bloom);
         bloomPass = bloom;
 
+        fitTimeoutId = window.setTimeout(() => {
+          if (disposed || !graphRef.current) return;
+          applyFit(graphRef.current, 350);
+        }, autoFitDelayMs);
+
         resizeObserver = new ResizeObserver((entries) => {
           const entry = entries[0];
           const nextGraph = graphRef.current;
@@ -307,6 +359,7 @@ const GlowNetworkFigure: React.FC = () => {
 
           nextGraph.width(nextWidth).height(nextHeight);
           bloomPass?.resolution?.set(nextWidth, nextHeight);
+          applyFit(nextGraph, 0);
         });
 
         resizeObserver.observe(container);
@@ -322,6 +375,9 @@ const GlowNetworkFigure: React.FC = () => {
 
     return () => {
       disposed = true;
+      if (fitTimeoutId !== null) {
+        window.clearTimeout(fitTimeoutId);
+      }
       resizeObserver?.disconnect();
       bloomPass?.dispose?.();
       if (graphRef.current) {
@@ -330,7 +386,7 @@ const GlowNetworkFigure: React.FC = () => {
       }
       container.innerHTML = "";
     };
-  }, [graphData]);
+  }, [autoFitDelayMs, fitPadding, fitZoomScale, resolvedGraphData]);
 
   return (
     <div
@@ -338,10 +394,12 @@ const GlowNetworkFigure: React.FC = () => {
         width: "100%",
         maxWidth: "none",
         margin: 0,
-        aspectRatio: "8 / 3",
-        minHeight: 216,
+        aspectRatio,
+        minHeight,
         position: "relative",
         background: "#000003",
+        overflow: "hidden",
+        borderRadius: edgeToEdge ? 0 : 16,
       }}
       onMouseDown={stopEditorEventBubble}
       onMouseUp={stopEditorEventBubble}
@@ -358,24 +416,26 @@ const GlowNetworkFigure: React.FC = () => {
         }}
       />
 
-      <div
-        style={{
-          position: "absolute",
-          left: 12,
-          bottom: 10,
-          fontSize: 11,
-          letterSpacing: 0.2,
-          color: "rgba(230, 240, 255, 0.76)",
-          background: "rgba(4, 8, 45, 0.45)",
-          border: "1px solid rgba(138, 165, 255, 0.25)",
-          borderRadius: 999,
-          padding: "4px 10px",
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-      >
-        Orbit drag | Scroll zoom | Drag nodes
-      </div>
+      {showNavHint && (
+        <div
+          style={{
+            position: "absolute",
+            left: 12,
+            bottom: 10,
+            fontSize: 11,
+            letterSpacing: 0.2,
+            color: "rgba(230, 240, 255, 0.76)",
+            background: "rgba(4, 8, 45, 0.45)",
+            border: "1px solid rgba(138, 165, 255, 0.25)",
+            borderRadius: 999,
+            padding: "4px 10px",
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        >
+          Orbit drag | Scroll zoom | Drag nodes
+        </div>
+      )}
 
       {loadError && (
         <div

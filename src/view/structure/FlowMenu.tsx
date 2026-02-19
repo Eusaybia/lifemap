@@ -1178,6 +1178,9 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
     const selectedNode = getSelectedNode(props.editor)
     let backgroundColor = selectedNode.attrs.backgroundColor
     let lens = selectedNode.attrs.lens
+    if (lens === "glowVisualisation") {
+        lens = "auraView"
+    }
 
     return (
         <div
@@ -1203,6 +1206,13 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         👁️ Preview
+                    </motion.div>
+                </Option>
+                <Option value={"auraView"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "auraView" })
+                }}>
+                    <motion.div>
+                        ✨ Aura view
                     </motion.div>
                 </Option>
                 <Option value={"collapsed"} onClick={() => {
