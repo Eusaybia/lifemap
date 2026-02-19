@@ -111,6 +111,7 @@ const TEMPLATE_TODAY_LITERAL = 'Today {todays_date}'
 const THIS_SUMMER_ID = 'timepoint:this-summer'
 const THIS_MONTH_ID = 'timepoint:this-month'
 const THIS_WEEK_ID = 'timepoint:this-week'
+const CURRENT_FOCUS_ID = 'timepoint:current-focus'
 const formatTemplateTodayLabel = (): string => TEMPLATE_TODAY_LITERAL
 
 // ============================================================================
@@ -776,6 +777,7 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:weekday-sunday', label: 'Sundays', date: new Date(0), emoji: '📅' },
     // Architecture: "Some day" represents an intentionally indeterminate future, so we keep it abstract.
     { id: 'timepoint:someday', label: 'Some day', date: new Date(0), emoji: '⏳' },
+    { id: CURRENT_FOCUS_ID, label: 'Current Focus', date: new Date(0), emoji: '🎯' },
     { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
     { id: TODAY_TEMPLATE_ID, label: 'Today (Template) version', date: new Date(0), emoji: '📋' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
@@ -818,6 +820,7 @@ const getTemporalLengthDays = (tp: TimePoint): number => {
   if (id === 'timepoint:daily') return 1
   // Architecture: "Some day" should sort after concrete near-term dates.
   if (id === 'timepoint:someday') return 3650
+  if (id === CURRENT_FOCUS_ID) return 14
   if (id.startsWith('timepoint:weekday-')) return 7
   if (id === THIS_WEEK_ID) return getThisWeekRangeForUser().totalDays
   if (id === THIS_MONTH_ID) return getThisMonthRangeForUser().totalDays
@@ -1356,7 +1359,7 @@ const isThisWeekPoint = (tp: TimePoint): boolean => tp.id === THIS_WEEK_ID
 const isThisMonthPoint = (tp: TimePoint): boolean => tp.id === THIS_MONTH_ID
 const isThisSummerPoint = (tp: TimePoint): boolean => tp.id === THIS_SUMMER_ID
 const isAbstractTimePoint = (tp: TimePoint): boolean =>
-  tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday'
+  tp.id === 'timepoint:daily' || tp.id === 'timepoint:someday' || tp.id === CURRENT_FOCUS_ID
 const isAbstractLunarPhase = (tp: TimePoint): boolean => tp.id.startsWith('lunar:abstract:')
 const isAbstractSeasonPoint = (tp: TimePoint): boolean => tp.id.startsWith('timepoint:season-abstract-')
 const isTimeOfDayPoint = (tp: TimePoint): boolean => {
@@ -1532,6 +1535,7 @@ const formatTimePointLabel = (tp: TimePoint): string => {
   if (isTemplateTodayPoint(tp)) return `${tp.emoji} ${formatTemplateTodayLabel()}`
   if (isAbstractTimePoint(tp)) {
     if (tp.id === 'timepoint:daily') return `${tp.emoji} Daily`
+    if (tp.id === CURRENT_FOCUS_ID) return `${tp.emoji} Current Focus`
     return `${tp.emoji} Some day`
   }
   // Architecture: weekday timepoints are recurring concepts, not concrete dates.
@@ -1588,6 +1592,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
         formattedDate = 'Daily'
       } else if (timePoint.id === 'timepoint:someday') {
         formattedDate = 'Some day'
+      } else if (timePoint.id === CURRENT_FOCUS_ID) {
+        formattedDate = 'Current Focus'
       }
     } else if (isWeekdayRecurring) {
       formattedDate = timePoint.label
@@ -1706,6 +1712,8 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
                             ? 'For events that are intended to happen every single day'
                             : item.id === 'timepoint:someday'
                               ? 'For events that will happen one day, but are intentionally indeterminate'
+                            : item.id === CURRENT_FOCUS_ID
+                              ? 'For events that should stay in your active focus for now'
                             : 'Not tied to a specific date'}
                         </span>
                       ) : isAbstractLunarPhase(item) || isAbstractSeasonPoint(item) ? (
@@ -1783,12 +1791,16 @@ export const TimePointNode = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
+    const isCurrentFocus = node.attrs.id === CURRENT_FOCUS_ID
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        class: 'timepoint-mention',
+        class: isCurrentFocus
+          ? 'timepoint-mention timepoint-mention--current-focus'
+          : 'timepoint-mention',
         'data-type': 'timepoint',
         'data-id': node.attrs.id,
+        ...(isCurrentFocus ? { 'data-timepoint-kind': 'current-focus' } : {}),
       }),
       node.attrs.label || '',
     ]

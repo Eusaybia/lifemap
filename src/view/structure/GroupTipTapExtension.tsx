@@ -4,7 +4,7 @@ import { Editor, Node as TipTapNode, NodeViewProps, wrappingInputRule, JSONConte
 import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
-import { GlowNetworkData, GlowNetworkFigure } from "./GlowNetworkExtension";
+import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
 import './styles.scss';
 import { motion, useMotionTemplate, useTransform, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
@@ -37,8 +37,6 @@ import { NodeOverlay } from "../components/NodeOverlay";
 // Helper to generate unique group IDs (shared format with SpanGroupMark)
 const generateGroupId = () => Math.random().toString(36).substring(2, 8);
 const GROUP_NODE_BOX_SHADOW = `-1px 1px 3px -1px rgba(0, 0, 0, 0.24), -2px 2px 6px -2px rgba(0, 0, 0, 0.17), -3px 4px 10px -3px rgba(0, 0, 0, 0.11)`;
-const MAX_GLOW_VISUALISATION_NODES = 12;
-
 const truncateGlowLabel = (label: string, maxLength = 14) =>
   label.length > maxLength ? `${label.slice(0, maxLength - 1)}…` : label;
 
@@ -54,15 +52,14 @@ const getGlowNodeLabel = (node: ProseMirrorNode, index: number) => {
   return `${prettifyNodeType(node.type.name)} ${index + 1}`;
 };
 
-const buildGlowVisualisationData = (groupNode: ProseMirrorNode): GlowNetworkData => {
+const buildGlowVisualisationData = (groupNode: ProseMirrorNode): ForceGraph3DData => {
   const children: ProseMirrorNode[] = [];
   groupNode.content.forEach((childNode) => {
     children.push(childNode);
   });
 
-  const limitedChildren = children.slice(0, MAX_GLOW_VISUALISATION_NODES);
   const usedIds = new Set<string>();
-  const nodes = limitedChildren.map((childNode, index) => {
+  const nodes = children.map((childNode, index) => {
     const baseId = getGlowNodeLabel(childNode, index);
     let uniqueId = baseId;
     let suffix = 2;
@@ -74,7 +71,7 @@ const buildGlowVisualisationData = (groupNode: ProseMirrorNode): GlowNetworkData
 
     return {
       id: uniqueId,
-      group: index < Math.ceil(limitedChildren.length / 2) ? 1 : 2,
+      group: index < Math.ceil(children.length / 2) ? 1 : 2,
       tone: (index % 2 === 0 ? 'light' : 'dark') as 'light' | 'dark',
     };
   });
@@ -83,15 +80,7 @@ const buildGlowVisualisationData = (groupNode: ProseMirrorNode): GlowNetworkData
     nodes.push({ id: 'Empty group', group: 1, tone: 'light' });
   }
 
-  const links: GlowNetworkData['links'] = [];
-  for (let index = 0; index < nodes.length - 1; index += 1) {
-    links.push({ source: nodes[index].id, target: nodes[index + 1].id });
-  }
-  for (let index = 0; index < nodes.length - 2; index += 2) {
-    links.push({ source: nodes[index].id, target: nodes[index + 2].id, value: 0.7 });
-  }
-
-  return { nodes, links };
+  return { nodes, links: [] };
 };
 
 declare module '@tiptap/core' {
@@ -754,7 +743,7 @@ export const GroupExtension = TipTapNode.create({
                           return <NodeViewContent />;
                         case "auraView":
                           return (
-                            <GlowNetworkFigure
+                            <ForceGraph3DFigure
                               graphData={glowVisualisationData}
                               aspectRatio="7 / 3"
                               minHeight={220}

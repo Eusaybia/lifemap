@@ -90,8 +90,14 @@ function insertCanvasNode(editor: Editor): boolean {
   return editor.chain().focus().insertContent('<div data-type="canvas-3d"></div>').run()
 }
 
-function insertGlowNetworkNode(editor: Editor): boolean {
-  const commands = editor.commands as { insertGlowNetwork?: () => boolean }
+function insertForceGraph3DNode(editor: Editor): boolean {
+  const commands = editor.commands as {
+    insertForceGraph3D?: () => boolean
+    insertGlowNetwork?: () => boolean
+  }
+  if (typeof commands.insertForceGraph3D === 'function') {
+    return commands.insertForceGraph3D()
+  }
   if (typeof commands.insertGlowNetwork === 'function') {
     return commands.insertGlowNetwork()
   }
@@ -651,13 +657,13 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
-      id: 'glow-network',
-      title: 'Glow Network',
-      description: 'Insert a luminous connected-node constellation',
+      id: '3d-force-graph',
+      title: '3DForceGraph',
+      description: 'Insert an interactive 3D force-directed graph',
       emoji: '✨',
-      keywords: ['glow', 'network', 'graph', 'constellation', 'nodes', 'neural', 'lights'],
+      keywords: ['3dforcegraph', '3d-force-graph', 'force', 'graph', 'network', 'nodes', 'constellation'],
       action: (editor) => {
-        insertGlowNetworkNode(editor)
+        insertForceGraph3DNode(editor)
       },
     },
     {

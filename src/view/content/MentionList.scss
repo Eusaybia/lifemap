@@ -140,6 +140,50 @@
   }
 }
 
+// Current Focus variation: wider, spotlight-like aura around the tag.
+.timepoint-mention--current-focus {
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+  z-index: 0;
+  border-color: #e6d7a0;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(246, 231, 177, 0.56),
+    0 0 56px rgba(255, 242, 191, 0.78),
+    0 0 180px rgba(255, 228, 148, 0.62);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 520%;
+    height: 760%;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 255, 246, 0.92) 0%,
+      rgba(255, 243, 197, 0.7) 32%,
+      rgba(255, 228, 146, 0.5) 56%,
+      rgba(232, 194, 92, 0.28) 74%,
+      rgba(128, 101, 34, 0) 100%
+    );
+    filter: blur(34px);
+  }
+
+  &:hover {
+    border-color: #dbc47f;
+    box-shadow:
+      0 0 0 1px rgba(245, 227, 165, 0.62),
+      0 0 72px rgba(255, 236, 168, 0.82),
+      0 0 220px rgba(255, 214, 117, 0.72);
+  }
+}
+
 // Inline hashtag mention styling (in editor) - matches old .mention style
 .hashtag-mention {
   display: inline-flex;

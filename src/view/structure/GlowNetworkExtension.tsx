@@ -3,7 +3,7 @@ import { Node as TipTapNode, NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { NodeOverlay } from "../components/NodeOverlay";
 
-export interface GlowNetworkNode {
+export interface ForceGraph3DNode {
   id: string;
   group?: number;
   tone?: "light" | "dark";
@@ -11,41 +11,41 @@ export interface GlowNetworkNode {
   [key: string]: unknown;
 }
 
-export interface GlowNetworkLink {
+export interface ForceGraph3DLink {
   source: string;
   target: string;
   value?: number;
   [key: string]: unknown;
 }
 
-export interface GlowNetworkData {
-  nodes: GlowNetworkNode[];
-  links: GlowNetworkLink[];
+export interface ForceGraph3DData {
+  nodes: ForceGraph3DNode[];
+  links: ForceGraph3DLink[];
 }
 
-interface GlowNetworkGraphInstance {
-  graphData: (data: GlowNetworkData) => GlowNetworkGraphInstance;
-  backgroundColor: (color: string) => GlowNetworkGraphInstance;
-  nodeLabel: (label: string) => GlowNetworkGraphInstance;
-  nodeColor: (colorAccessor: (node: GlowNetworkNode) => string) => GlowNetworkGraphInstance;
-  nodeThreeObject: (objectAccessor: (node: GlowNetworkNode) => unknown) => GlowNetworkGraphInstance;
-  nodeThreeObjectExtend: (extend: boolean) => GlowNetworkGraphInstance;
-  linkColor: (colorAccessor: () => string) => GlowNetworkGraphInstance;
-  linkWidth: (width: number) => GlowNetworkGraphInstance;
-  showNavInfo: (enabled: boolean) => GlowNetworkGraphInstance;
-  width: (width: number) => GlowNetworkGraphInstance;
-  height: (height: number) => GlowNetworkGraphInstance;
-  enableNodeDrag: (enabled: boolean) => GlowNetworkGraphInstance;
-  enableNavigationControls: (enabled: boolean) => GlowNetworkGraphInstance;
-  enablePointerInteraction: (enabled: boolean) => GlowNetworkGraphInstance;
-  onEngineStop: (handler: () => void) => GlowNetworkGraphInstance;
-  zoomToFit: (durationMs?: number, padding?: number) => GlowNetworkGraphInstance;
+interface ForceGraph3DInstance {
+  graphData: (data: ForceGraph3DData) => ForceGraph3DInstance;
+  backgroundColor: (color: string) => ForceGraph3DInstance;
+  nodeLabel: (label: string) => ForceGraph3DInstance;
+  nodeColor: (colorAccessor: (node: ForceGraph3DNode) => string) => ForceGraph3DInstance;
+  nodeThreeObject: (objectAccessor: (node: ForceGraph3DNode) => unknown) => ForceGraph3DInstance;
+  nodeThreeObjectExtend: (extend: boolean) => ForceGraph3DInstance;
+  linkColor: (colorAccessor: () => string) => ForceGraph3DInstance;
+  linkWidth: (width: number) => ForceGraph3DInstance;
+  showNavInfo: (enabled: boolean) => ForceGraph3DInstance;
+  width: (width: number) => ForceGraph3DInstance;
+  height: (height: number) => ForceGraph3DInstance;
+  enableNodeDrag: (enabled: boolean) => ForceGraph3DInstance;
+  enableNavigationControls: (enabled: boolean) => ForceGraph3DInstance;
+  enablePointerInteraction: (enabled: boolean) => ForceGraph3DInstance;
+  onEngineStop: (handler: () => void) => ForceGraph3DInstance;
+  zoomToFit: (durationMs?: number, padding?: number) => ForceGraph3DInstance;
   camera?: () => { position?: { x: number; y: number; z: number } };
   cameraPosition?: (
     position: { x?: number; y?: number; z?: number },
     lookAt?: { x?: number; y?: number; z?: number },
     durationMs?: number
-  ) => GlowNetworkGraphInstance;
+  ) => ForceGraph3DInstance;
   d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
   postProcessingComposer: () => {
     addPass: (pass: unknown) => void;
@@ -53,15 +53,15 @@ interface GlowNetworkGraphInstance {
   _destructor: () => void;
 }
 
-type GlowNetworkGraphConstructor = new (
+type ForceGraph3DLibraryConstructor = new (
   element: HTMLElement,
   config?: {
     controlType?: "trackball" | "orbit" | "fly";
   }
-) => GlowNetworkGraphInstance;
+) => ForceGraph3DInstance;
 
-const getForceGraph3DConstructor = (): GlowNetworkGraphConstructor | undefined => {
-  return (window as Window & { ForceGraph3D?: GlowNetworkGraphConstructor }).ForceGraph3D;
+const getForceGraph3DConstructor = (): ForceGraph3DLibraryConstructor | undefined => {
+  return (window as Window & { ForceGraph3D?: ForceGraph3DLibraryConstructor }).ForceGraph3D;
 };
 
 const NODE_TONE_COLORS = {
@@ -74,7 +74,7 @@ const NODE_LABEL_COLORS = {
   dark: "#7f8798",
 };
 
-const SOURCE_GRAPH_DATA: GlowNetworkData = {
+const SOURCE_GRAPH_DATA: ForceGraph3DData = {
   nodes: [
     { id: "Arcturus", group: 1, tone: "dark", x: -340, y: 120, z: 0 },
     { id: "Polaris", group: 1, tone: "light", x: -290, y: 58, z: 0 },
@@ -105,7 +105,7 @@ const SOURCE_GRAPH_DATA: GlowNetworkData = {
   ],
 };
 
-const cloneGraphData = (data: GlowNetworkData): GlowNetworkData => ({
+const cloneGraphData = (data: ForceGraph3DData): ForceGraph3DData => ({
   nodes: data.nodes.map((node) => ({ ...node })),
   links: data.links.map((link) => ({ ...link })),
 });
@@ -215,8 +215,8 @@ const ensureAstrologyFont = async (): Promise<void> => {
   }
 };
 
-interface GlowNetworkFigureProps {
-  graphData?: GlowNetworkData;
+interface ForceGraph3DFigureProps {
+  graphData?: ForceGraph3DData;
   aspectRatio?: string;
   minHeight?: number;
   showNavHint?: boolean;
@@ -226,7 +226,7 @@ interface GlowNetworkFigureProps {
   fitZoomScale?: number;
 }
 
-export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
+export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
   graphData,
   aspectRatio = "8 / 3",
   minHeight = 216,
@@ -237,7 +237,7 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
   fitZoomScale = 1,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const graphRef = useRef<GlowNetworkGraphInstance | null>(null);
+  const graphRef = useRef<ForceGraph3DInstance | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const resolvedGraphData = useMemo(
     () => cloneGraphData(graphData ?? SOURCE_GRAPH_DATA),
@@ -261,8 +261,10 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
         }
       | null = null;
     let fitTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let settleRefitTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let didInitialEngineFit = false;
 
-    const applyFit = (graph: GlowNetworkGraphInstance, durationMs: number) => {
+    const applyFit = (graph: ForceGraph3DInstance, durationMs: number) => {
       graph.zoomToFit(durationMs, fitPadding);
       if (fitZoomScale >= 1) return;
 
@@ -332,12 +334,21 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
           .enablePointerInteraction(true)
           .onEngineStop(() => {
             if (disposed) return;
-            applyFit(graph, 300);
+            if (didInitialEngineFit) return;
+            didInitialEngineFit = true;
+            applyFit(graph, 420);
+
+            // Second short fit after camera animation settles.
+            settleRefitTimeoutId = window.setTimeout(() => {
+              if (disposed || !graphRef.current) return;
+              applyFit(graphRef.current, 220);
+            }, 140);
           });
 
         const chargeForce = graph.d3Force("charge");
         if (chargeForce?.strength) {
-          chargeForce.strength(-120);
+          const hasLinks = resolvedGraphData.links.length > 0;
+          chargeForce.strength(hasLinks ? -120 : -12);
         }
 
         const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 2.5, 0.7, 0);
@@ -345,7 +356,8 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
         bloomPass = bloom;
 
         fitTimeoutId = window.setTimeout(() => {
-          if (disposed || !graphRef.current) return;
+          if (disposed || !graphRef.current || didInitialEngineFit) return;
+          didInitialEngineFit = true;
           applyFit(graphRef.current, 350);
         }, autoFitDelayMs);
 
@@ -377,6 +389,9 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
       disposed = true;
       if (fitTimeoutId !== null) {
         window.clearTimeout(fitTimeoutId);
+      }
+      if (settleRefitTimeoutId !== null) {
+        window.clearTimeout(settleRefitTimeoutId);
       }
       resizeObserver?.disconnect();
       bloomPass?.dispose?.();
@@ -458,7 +473,7 @@ export const GlowNetworkFigure: React.FC<GlowNetworkFigureProps> = ({
   );
 };
 
-const GlowNetworkNodeView: React.FC<NodeViewProps> = (props) => {
+const ForceGraph3DNodeView: React.FC<NodeViewProps> = (props) => {
   const { selected } = props;
 
   return (
@@ -483,7 +498,7 @@ const GlowNetworkNodeView: React.FC<NodeViewProps> = (props) => {
             background: "#000003",
           }}
         >
-          <GlowNetworkFigure />
+          <ForceGraph3DFigure />
         </div>
       </NodeOverlay>
     </NodeViewWrapper>
@@ -494,11 +509,12 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     glowNetwork: {
       insertGlowNetwork: () => ReturnType;
+      insertForceGraph3D: () => ReturnType;
     };
   }
 }
 
-export const GlowNetworkExtension = TipTapNode.create({
+export const ForceGraph3DExtension = TipTapNode.create({
   name: "glowNetwork",
   group: "block",
   inline: false,
@@ -515,7 +531,7 @@ export const GlowNetworkExtension = TipTapNode.create({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(GlowNetworkNodeView);
+    return ReactNodeViewRenderer(ForceGraph3DNodeView);
   },
 
   addCommands() {
@@ -527,8 +543,22 @@ export const GlowNetworkExtension = TipTapNode.create({
           })
           .run();
       },
+      insertForceGraph3D: () => ({ chain }) => {
+        return chain()
+          .insertContent({
+            type: this.name,
+          })
+          .run();
+      },
     };
   },
 });
 
-export default GlowNetworkExtension;
+// Backward-compatible aliases for existing imports.
+export type GlowNetworkNode = ForceGraph3DNode;
+export type GlowNetworkLink = ForceGraph3DLink;
+export type GlowNetworkData = ForceGraph3DData;
+export const GlowNetworkFigure = ForceGraph3DFigure;
+export const GlowNetworkExtension = ForceGraph3DExtension;
+
+export default ForceGraph3DExtension;

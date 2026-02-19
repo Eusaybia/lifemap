@@ -70,7 +70,7 @@ import { TemporalDailyExtension } from '../structure/TemporalDailyExtension'
 import { TrendsExtension } from '../structure/TrendsExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
-import { GlowNetworkExtension } from '../structure/GlowNetworkExtension'
+import { ForceGraph3DExtension } from '../structure/GlowNetworkExtension'
 import { Canvas3DExtension } from '../structure/Canvas3DExtension'
 import { SlashMenuExtension } from '../structure/SlashMenuExtension'
 import { SpanGroupMark } from './SpanGroupMark'
@@ -967,7 +967,7 @@ export const customExtensions: Extensions = [
   TrendsExtension,
   LifetimeViewExtension,
   WeatherExtension,
-  GlowNetworkExtension,
+  ForceGraph3DExtension,
   Canvas3DExtension,
   SlashMenuExtension,
   // EmptyNodeCleanupExtension,
