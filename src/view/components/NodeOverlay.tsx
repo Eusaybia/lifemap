@@ -1,11 +1,13 @@
 "use client"
 
 import React, { useRef, useMemo } from "react"
-import { Editor } from "@tiptap/core"
+import { Editor, isNodeSelection, isTextSelection } from "@tiptap/core"
 import { Node as ProseMirrorNode } from "prosemirror-model"
 import { motion } from "framer-motion"
 import { DragGrip } from "./DragGrip"
 import { Aura, scanNodeForTags, calculateGlowStyles } from "./Aura"
+import { readAuraFromAttrs } from "../aura/AuraModel"
+import { getSelectedNodeType } from "../../utils/utils"
 
 // Minimal props interface - accepts any node view props that have the required fields
 // This allows custom node interfaces (e.g., MapboxMapNodeViewProps) to work with NodeOverlay
@@ -53,6 +55,7 @@ interface MinimalNodeViewProps {
 // Multi-layer shadow: close shadow for crispness, medium for depth, far for ambient
 const GROUP_BOX_SHADOW = `-2px 3px 6px -1px rgba(0, 0, 0, 0.25), -4px 6px 12px -2px rgba(0, 0, 0, 0.2), -8px 12px 24px -3px rgba(0, 0, 0, 0.15)`
 const GROUP_BORDER_RADIUS = 10
+const NOT_PRIORITY_DIM_OPACITY = 0.4
 
 export interface NodeOverlayProps {
   /** The NodeViewProps from ReactNodeViewRenderer (accepts custom interfaces too) */
@@ -95,6 +98,44 @@ export interface NodeOverlayProps {
 const GRIP_HIT_TARGET = 40
 const GRIP_HIT_EXPANSION = 6
 
+interface GripSelectionSnapshot {
+  selectionKind: string
+  flowMenuNodeType: string
+  from: number
+  to: number
+  empty: boolean
+  anchor: number
+  head: number
+  nodeSelectionType: string | null
+  textParentType: string | null
+  ancestorChain: string[]
+}
+
+const buildGripSelectionSnapshot = (editor: Editor): GripSelectionSnapshot => {
+  const selection = editor.state.selection
+  const ancestorChain: string[] = []
+  for (let depth = 0; depth <= selection.$from.depth; depth += 1) {
+    ancestorChain.push(selection.$from.node(depth).type.name)
+  }
+
+  return {
+    selectionKind: isNodeSelection(selection)
+      ? 'NodeSelection'
+      : isTextSelection(selection)
+        ? 'TextSelection'
+        : selection.constructor.name,
+    flowMenuNodeType: getSelectedNodeType(editor),
+    from: selection.from,
+    to: selection.to,
+    empty: selection.empty,
+    anchor: selection.anchor,
+    head: selection.head,
+    nodeSelectionType: isNodeSelection(selection) ? selection.node.type.name : null,
+    textParentType: isTextSelection(selection) ? selection.$from.parent.type.name : null,
+    ancestorChain,
+  }
+}
+
 export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   nodeProps,
   nodeType,
@@ -126,6 +167,39 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
 
   // Scan node for tags to determine glow effects
   const tags = useMemo(() => scanNodeForTags(nodeProps.node as ProseMirrorNode), [nodeProps.node])
+
+  // Group/Node aura (derived from descendants) can also dim the container.
+  const nodeAura = useMemo(
+    () => readAuraFromAttrs(nodeProps.node.attrs as Record<string, unknown>),
+    [nodeProps.node]
+  )
+
+  const auraDimOpacity = useMemo(() => {
+    if (!nodeAura) return 0
+
+    // Luminance under this threshold should visibly de-emphasize the node.
+    const dimThreshold = 420
+    if (nodeAura.luminance >= dimThreshold) return 0
+
+    const normalized = (dimThreshold - nodeAura.luminance) / (dimThreshold - 1)
+    return Math.max(0.12, Math.min(0.5, normalized * 0.52))
+  }, [nodeAura])
+
+  const forceOpaqueBlackDim = useMemo(() => {
+    if (tags.hasNotPriorityTag) return true
+    if (nodeAura && nodeAura.luminance <= 160) return true
+    return false
+  }, [tags.hasNotPriorityTag, nodeAura])
+
+  const dimOverlayBackground = useMemo(() => {
+    if (forceOpaqueBlackDim) {
+      return '#000000'
+    }
+    if (tags.hasUnimportantTag) {
+      return 'rgba(255, 255, 255, 0.8)'
+    }
+    return 'rgba(10, 14, 24, 0.82)'
+  }, [forceOpaqueBlackDim, tags.hasUnimportantTag])
   
   // Calculate glow styles based on tags
   const glowStyles = useMemo(() => {
@@ -152,16 +226,54 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
   // block TipTap's native drag behavior. The data-drag-handle attribute on DragGrip tells
   // TipTap to use that element as the drag handle, and we need to let events bubble up.
   const handleGripMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const pos = nodeProps.getPos()
+    const docNodeAtPos =
+      typeof pos === 'number' ? nodeProps.editor.state.doc.nodeAt(pos) : null
+    const baseDebug = {
+      overlayNodeType: nodeType,
+      overlayQuantaId: quantaId ?? null,
+      getPosValue: typeof pos === 'number' ? pos : null,
+      docNodeAtPosType: docNodeAtPos?.type.name ?? null,
+      eventTargetTag: (e.target as HTMLElement | null)?.tagName ?? null,
+      currentTargetTag: e.currentTarget.tagName,
+    }
+
     if (onGripMouseDown) {
       // Use custom handler if provided (caller is responsible for event handling)
+      console.log('[GripSelectionDebug] Custom grip handler before execution', {
+        ...baseDebug,
+        beforeSelection: buildGripSelectionSnapshot(nodeProps.editor),
+      })
       onGripMouseDown(e)
+      setTimeout(() => {
+        console.log('[GripSelectionDebug] Custom grip handler after execution', {
+          ...baseDebug,
+          afterSelection: buildGripSelectionSnapshot(nodeProps.editor),
+        })
+      }, 0)
     } else {
       // Default behavior: select the node for TipTap dragging
       // We don't preventDefault or stopPropagation to allow native drag to work
-      const pos = nodeProps.getPos()
       if (typeof pos === 'number') {
         // Ensure keyboard shortcuts (cut/copy/paste) target the editor after grip clicks.
-        nodeProps.editor.chain().focus().setNodeSelection(pos).run()
+        const beforeSelection = buildGripSelectionSnapshot(nodeProps.editor)
+        const runResult = nodeProps.editor.commands.setNodeSelection(pos)
+        if (!nodeProps.editor.view.hasFocus()) {
+          nodeProps.editor.view.focus()
+        }
+        console.log('[GripSelectionDebug] Default grip setNodeSelection dispatched', {
+          ...baseDebug,
+          commandResult: runResult,
+          beforeSelection,
+        })
+        setTimeout(() => {
+          console.log('[GripSelectionDebug] Default grip after setNodeSelection', {
+            ...baseDebug,
+            afterSelection: buildGripSelectionSnapshot(nodeProps.editor),
+          })
+        }, 0)
+      } else {
+        console.warn('[GripSelectionDebug] Grip click had non-numeric getPos()', baseDebug)
       }
     }
   }
@@ -232,10 +344,16 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
           Using a semi-transparent white overlay creates a "faded" appearance that 
           de-emphasizes content while preserving readability and allowing 3D shadows
           to partially show through. */}
-      {tags.hasUnimportantTag && (
+      {(tags.hasUnimportantTag || auraDimOpacity > 0) && (
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.55 }}
+          animate={{
+            opacity: forceOpaqueBlackDim
+              ? NOT_PRIORITY_DIM_OPACITY
+              : tags.hasUnimportantTag
+                ? Math.max(0.55, auraDimOpacity)
+                : auraDimOpacity,
+          }}
           transition={{ duration: 0.3 }}
           style={{
             position: 'absolute',
@@ -243,7 +361,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backgroundColor: dimOverlayBackground,
             borderRadius,
             zIndex: 20,
             pointerEvents: 'none',

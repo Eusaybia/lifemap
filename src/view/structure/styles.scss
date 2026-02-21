@@ -67,6 +67,7 @@
   gap: 8px;
 }
 
+.temporal-order-content-host.is-graph-source,
 .temporal-order-content-host.is-non-linear-source {
   position: absolute;
   opacity: 0;
@@ -75,23 +76,51 @@
   overflow: hidden;
 }
 
+.temporal-order-content-host.is-graph-source .temporal-order-node-view-content,
 .temporal-order-content-host.is-non-linear-source .temporal-order-node-view-content {
   display: block;
 }
 
+.temporal-order-graph-layer,
 .temporal-order-flow-layer {
   position: relative;
   width: 100%;
-  min-height: 460px;
+  min-height: 480px;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
   background: #f8fafc;
 }
 
+.temporal-order-graph-layer.is-edge-to-edge {
+  border-radius: 0;
+  border: none;
+  background: transparent;
+}
+
+.temporal-order-graph-canvas,
 .temporal-order-flow-canvas {
   width: 100%;
-  height: 460px;
+  min-height: 480px;
+  height: 480px;
+  position: relative;
+}
+
+.temporal-order-graph-canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.temporal-order-graph-canvas-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(30, 41, 59, 0.85);
+  font-size: 13px;
+  background: rgba(241, 245, 249, 0.88);
+  pointer-events: none;
 }
 
 .temporal-order-flow-canvas .react-flow__renderer,

@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "@tiptap/pm/model";
-import { Node as TipTapNode, NodeViewProps, JSONContent, wrappingInputRule } from "@tiptap/core";
-import { Plugin, PluginKey, Transaction, EditorState } from "@tiptap/pm/state";
+import { Node as TipTapNode, NodeViewProps, JSONContent, isNodeSelection, wrappingInputRule } from "@tiptap/core";
+import { Plugin, PluginKey, Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { applyNodeChanges, type Node, type NodeChange, type ReactFlowInstance } from 'reactflow';
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
-import { ReferenceReactFlowCanvas } from "./ReferenceReactFlowCanvas";
-import { TemporalEventCanvasNode, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
+import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
+import { AuraSpec, readAuraFromAttrs, readTimepointAuraFromAttrs } from "../aura/AuraModel";
 import './styles.scss';
 
 // ============================================================================
@@ -50,6 +49,7 @@ declare module '@tiptap/core' {
     temporalOrder: {
       insertTemporalOrder: () => ReturnType;
       setTemporalOrderCollapsed: (options: { collapsed: boolean }) => ReturnType;
+      setTemporalOrderLens: (options: { lens: string }) => ReturnType;
     }
   }
 }
@@ -119,45 +119,6 @@ const getTemporalFadeOpacity = (distanceMs: number): number => {
     normalized * (TEMPORAL_FADE_CONFIG.maxOpacity - TEMPORAL_FADE_CONFIG.minOpacity);
 
   return clampNumber(opacity, TEMPORAL_FADE_CONFIG.minOpacity, TEMPORAL_FADE_CONFIG.maxOpacity);
-};
-
-/**
- * Sorts child nodes by their earliest TimePointMention date.
- * Nodes with dates are sorted reverse-chronologically (newest first for top-to-bottom display).
- * This means: TOP = FUTURE (newer), BOTTOM = PAST (older).
- * Nodes without dates are placed at the end (bottom).
- * 
- * ARCHITECTURE: We sort DESCENDING (newest first) because TipTap's NodeViewContent
- * renders children as a single block, so flex-direction tricks don't work.
- * The first item in the DOM appears at the top, so newest must come first.
- * 
- * @param children - Array of child JSON content
- * @param schema - ProseMirror schema for node creation
- * @returns Sorted array of children (newest first)
- */
-const sortChildrenByDate = (
-  children: JSONContent[],
-  resolveNode: (content: JSONContent) => ProseMirrorNode | null
-): JSONContent[] => {
-  const withDates = children.map((child, originalIndex) => {
-    const node = resolveNode(child);
-    const date = node ? extractEarliestDateFromNode(node) : null;
-    return { child, date, originalIndex };
-  });
-
-  // Sort: nodes with dates come first (newest to oldest), then nodes without dates
-  // Newest at top (start of array) for top-to-bottom visual display
-  return withDates
-    .sort((a, b) => {
-      if (a.date && b.date) {
-        // DESCENDING: newer dates first (larger timestamp first)
-        return b.date.getTime() - a.date.getTime();
-      }
-      if (a.date && !b.date) return -1;
-      if (!a.date && b.date) return 1;
-      return a.originalIndex - b.originalIndex;
-    })
-    .map(item => item.child);
 };
 
 // ============================================================================
@@ -258,6 +219,18 @@ const normalizeClipboardNodesForTemporalOrder = (
   flushPending();
 
   return normalized;
+};
+
+const findTemporalOrderNodePosition = (state: { selection: { $from: { depth: number; node: (depth: number) => ProseMirrorNode; before: (depth: number) => number } } }): number | null => {
+  const { $from } = state.selection;
+
+  for (let depth = $from.depth; depth >= 0; depth -= 1) {
+    if ($from.node(depth).type.name === 'temporalOrder') {
+      return depth === 0 ? 0 : $from.before(depth);
+    }
+  }
+
+  return null;
 };
 
 // ============================================================================
@@ -566,166 +539,416 @@ const DropZone: React.FC<DropZoneProps> = ({
 interface TemporalOrderContentProps {
   children: React.ReactNode;
   isCollapsed: boolean;
-  backgroundColor?: string;
-  timeMode: TimeMode;
-  eventSources: NonLinearEventSource[];
-  nonLinearPositions?: Record<string, { x: number; y: number }>;
-  onNonLinearPositionsChange: (positions: Record<string, { x: number; y: number }>) => void;
-  onTimeModeChange: (mode: TimeMode) => void;
-  onDropZoneDrop: (draggedNode: DraggedNodeInfo | null) => void;
-  onDropZoneDragEnter: () => DraggedNodeInfo | null;
-  onDropZonePaste: (payload: ClipboardPayload) => void;
+  lens: TemporalOrderLens;
+  eventSources: TemporalOrderEventSource[];
+  auraGraphData: ForceGraph3DData;
+  graph2DData: TemporalOrderForceGraph2DData;
 }
 
-type TimeMode = 'linear' | 'nonLinear';
+type TemporalOrderLens = 'identity' | 'auraView' | 'graph2D';
 
-interface NonLinearEventSource {
+interface TemporalOrderEventSource {
   key: string;
+  nodeId: string;
   label: string;
   content: JSONContent;
   hasMap: boolean;
+  dateMs: number | null;
+  aura: AuraSpec | null;
 }
 
-interface NonLinearEventPreview {
-  key: string;
+interface TemporalOrderForceGraph2DNode {
+  id: string;
   label: string;
-  content: JSONContent;
-  hasMap: boolean;
-  position: { x: number; y: number };
+  color: string;
+  val: number;
+  auraLuminance?: number;
+  auraSize?: number;
 }
 
-const buildAtemporalPositions = (count: number, radius: number): { x: number; y: number }[] => {
-  if (!count) return [];
+interface TemporalOrderForceGraph2DLink {
+  source: string;
+  target: string;
+  value?: number;
+}
 
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const positions: { x: number; y: number }[] = [];
+interface TemporalOrderForceGraph2DData {
+  nodes: TemporalOrderForceGraph2DNode[];
+  links: TemporalOrderForceGraph2DLink[];
+}
 
-  for (let i = 0; i < count; i++) {
-    const spread = Math.sqrt(i + 1) * radius;
-    const theta = goldenAngle * i;
-    const x = Math.cos(theta) * spread;
-    const y = Math.sin(theta) * spread * 0.72;
-    positions.push({ x, y });
-  }
+interface ForceGraph2DInstance {
+  graphData: (data: TemporalOrderForceGraph2DData) => ForceGraph2DInstance;
+  backgroundColor: (color: string) => ForceGraph2DInstance;
+  nodeId: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
+  nodeLabel: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
+  nodeColor: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
+  nodeVal: (accessor: number | ((node: TemporalOrderForceGraph2DNode) => number)) => ForceGraph2DInstance;
+  nodeCanvasObject: (
+    accessor: (
+      node: TemporalOrderForceGraph2DNode & { x?: number; y?: number },
+      context: CanvasRenderingContext2D,
+      globalScale: number
+    ) => void
+  ) => ForceGraph2DInstance;
+  linkColor: (accessor: string | ((link: TemporalOrderForceGraph2DLink) => string)) => ForceGraph2DInstance;
+  linkWidth: (accessor: number | ((link: TemporalOrderForceGraph2DLink) => number)) => ForceGraph2DInstance;
+  linkDirectionalArrowLength: (value: number) => ForceGraph2DInstance;
+  linkDirectionalArrowRelPos: (value: number) => ForceGraph2DInstance;
+  width: (width: number) => ForceGraph2DInstance;
+  height: (height: number) => ForceGraph2DInstance;
+  enableNodeDrag: (enabled: boolean) => ForceGraph2DInstance;
+  onEngineStop: (handler: () => void) => ForceGraph2DInstance;
+  zoomToFit: (durationMs?: number, padding?: number) => ForceGraph2DInstance;
+  d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
+  _destructor?: () => void;
+}
 
-  return positions;
-};
+type ForceGraph2DChartFactory = () => (element: HTMLElement) => ForceGraph2DInstance;
 
-const temporalOrderFlowNodeTypes = {
-  temporalOrderEvent: TemporalEventCanvasNode,
-};
+const FORCE_GRAPH_2D_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/force-graph';
+const FORCE_GRAPH_2D_SCRIPT_ATTR = 'data-force-graph-2d';
+const FORCE_GRAPH_2D_MIN_WIDTH = 280;
+const FORCE_GRAPH_2D_MIN_HEIGHT = 260;
+let forceGraph2DScriptPromise: Promise<void> | null = null;
 
-const AtemporalEventField: React.FC<{
-  items: NonLinearEventPreview[];
-  onPositionsChange: (positions: Record<string, { x: number; y: number }>) => void;
-}> = ({ items, onPositionsChange }) => {
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  const [nodes, setNodes] = useState<Node<TemporalEventCanvasNodeData>[]>([]);
-  const lastEmittedPositionsRef = useRef<string>('');
+const getForceGraph2DFactory = (): ForceGraph2DChartFactory | undefined => (
+  (window as Window & { ForceGraph?: ForceGraph2DChartFactory }).ForceGraph
+);
 
-  const baseNodes = useMemo<Node<TemporalEventCanvasNodeData>[]>(() => {
-    return items.map((item, index) => {
-      const stableId = (item.key || `item-${index}`).trim();
+const ensureForceGraph2DScript = async (): Promise<void> => {
+  if (typeof window === 'undefined') return;
+  if (getForceGraph2DFactory()) return;
+  if (forceGraph2DScriptPromise) return forceGraph2DScriptPromise;
 
-      return {
-        id: `temporal-order-${stableId}`,
-        type: 'temporalOrderEvent',
-        position: item.position,
-        data: {
-          nodeId: `temporal-order-${stableId}`,
-          positionKey: item.key,
-          label: item.label,
-          content: item.content,
-        },
-        draggable: true,
-        selectable: true,
-        dragHandle: '.node-overlay-grip-handle',
-        style: { width: 640, height: item.hasMap ? 420 : 280 },
-      };
-    });
-  }, [items]);
+  forceGraph2DScriptPromise = new Promise<void>((resolve, reject) => {
+    const finishLoad = () => {
+      if (getForceGraph2DFactory()) {
+        resolve();
+        return;
+      }
+      reject(new Error('ForceGraph global was not found after script load.'));
+    };
 
-  useEffect(() => {
-    setNodes((currentNodes) => {
-      const currentById = new Map(currentNodes.map((node) => [node.id, node]));
-
-      return baseNodes.map((baseNode) => {
-        const previousNode = currentById.get(baseNode.id);
-        if (!previousNode) {
-          return baseNode;
-        }
-
-        return {
-          ...baseNode,
-          position: previousNode.position ?? baseNode.position,
-          selected: previousNode.selected,
-          dragging: previousNode.dragging,
-        };
-      });
-    });
-  }, [baseNodes]);
-
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((currentNodes) => applyNodeChanges(changes, currentNodes));
-  }, []);
-
-  useEffect(() => {
-    if (!nodes.length) return;
-
-    const positions: Record<string, { x: number; y: number }> = {};
-    nodes.forEach((node) => {
-      const positionKey = node.data?.positionKey;
-      if (!positionKey) return;
-      positions[positionKey] = {
-        x: node.position.x,
-        y: node.position.y,
-      };
-    });
-
-    const serialized = JSON.stringify(positions);
-    if (serialized === lastEmittedPositionsRef.current) {
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      `script[${FORCE_GRAPH_2D_SCRIPT_ATTR}="true"]`
+    );
+    if (existingScript) {
+      existingScript.addEventListener('load', finishLoad, { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Failed to load force-graph script.')), { once: true });
       return;
     }
 
-    lastEmittedPositionsRef.current = serialized;
-    onPositionsChange(positions);
-  }, [nodes, onPositionsChange]);
+    const script = document.createElement('script');
+    script.setAttribute(FORCE_GRAPH_2D_SCRIPT_ATTR, 'true');
+    script.src = FORCE_GRAPH_2D_SCRIPT_URL;
+    script.async = true;
+    script.onload = finishLoad;
+    script.onerror = () => reject(new Error('Failed to load force-graph script.'));
+    document.head.appendChild(script);
+  });
 
-  const nodeIdsSignature = useMemo(
-    () => baseNodes.map((node) => node.id).join('|'),
-    [baseNodes]
+  try {
+    await forceGraph2DScriptPromise;
+  } catch (error) {
+    forceGraph2DScriptPromise = null;
+    throw error;
+  }
+};
+
+const truncateTemporalOrderLabel = (label: string, maxLength = 24) => (
+  label.length > maxLength ? `${label.slice(0, maxLength - 1)}…` : label
+);
+
+const sanitizeTemporalOrderNodeId = (value: string) => (
+  value
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'event'
+);
+
+const buildTemporalOrderNodeId = (
+  baseLabel: string,
+  index: number,
+  usedIds: Set<string>
+): string => {
+  const baseId = sanitizeTemporalOrderNodeId(baseLabel || `event-${index + 1}`);
+  let nextId = baseId;
+  let suffix = 2;
+  while (usedIds.has(nextId)) {
+    nextId = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(nextId);
+  return nextId;
+};
+
+const deriveTemporalOrderNodeAura = (node: ProseMirrorNode): AuraSpec | null => {
+  const directAura = readAuraFromAttrs((node.attrs || {}) as Record<string, unknown>);
+  if (directAura) return directAura;
+
+  let discoveredAura: AuraSpec | null = null;
+  node.descendants((descendant) => {
+    const attrs = (descendant.attrs || {}) as Record<string, unknown>;
+    const aura =
+      descendant.type.name === 'timepoint'
+        ? readTimepointAuraFromAttrs(attrs)
+        : readAuraFromAttrs(attrs);
+    if (aura) {
+      discoveredAura = aura;
+      return false;
+    }
+    return true;
+  });
+
+  return discoveredAura;
+};
+
+const buildTemporalOrderLinkSequence = (nodeIds: string[]): TemporalOrderForceGraph2DLink[] => {
+  const links: TemporalOrderForceGraph2DLink[] = [];
+  for (let index = 0; index < nodeIds.length - 1; index += 1) {
+    links.push({
+      source: nodeIds[index],
+      target: nodeIds[index + 1],
+      value: 1,
+    });
+  }
+  return links;
+};
+
+const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[]): ForceGraph3DData => {
+  if (eventSources.length === 0) {
+    return {
+      nodes: [{ id: 'Empty timeline', group: 1, tone: 'light' }],
+      links: [],
+    };
+  }
+
+  const nowMs = Date.now();
+  const usedNodeIds = new Set<string>();
+  const resolvedNodeIds: string[] = [];
+  const nodes = eventSources.map((source, index) => {
+    let graphNodeId = source.label || `Event ${index + 1}`;
+    let suffix = 2;
+    while (usedNodeIds.has(graphNodeId)) {
+      graphNodeId = `${source.label || `Event ${index + 1}`} ${suffix}`;
+      suffix += 1;
+    }
+    usedNodeIds.add(graphNodeId);
+    resolvedNodeIds.push(graphNodeId);
+
+    const isFuture = source.dateMs !== null ? source.dateMs >= nowMs : index % 2 === 0;
+    return {
+      id: graphNodeId,
+      group: isFuture ? 1 : 2,
+      tone: (isFuture ? 'light' : 'dark') as 'light' | 'dark',
+      ...(source.aura
+        ? {
+            color: source.aura.color,
+            auraLuminance: source.aura.luminance,
+            auraSize: source.aura.size,
+          }
+        : {}),
+    };
+  });
+
+  const links = resolvedNodeIds.slice(0, -1).map((nodeId, index) => ({
+    source: nodeId,
+    target: resolvedNodeIds[index + 1],
+    value: 1,
+  }));
+
+  return {
+    nodes,
+    links,
+  };
+};
+
+const buildTemporalOrderForceGraph2DData = (
+  eventSources: TemporalOrderEventSource[]
+): TemporalOrderForceGraph2DData => {
+  if (eventSources.length === 0) {
+    return {
+      nodes: [{ id: 'empty-timeline', label: 'Empty timeline', color: '#94a3b8', val: 1.2 }],
+      links: [],
+    };
+  }
+
+  const nowMs = Date.now();
+  const nodes = eventSources.map((source, index) => {
+    const isFuture = source.dateMs !== null ? source.dateMs >= nowMs : index % 2 === 0;
+    const fallbackColor = isFuture ? '#4f6cb2' : '#475569';
+    const auraSize = source.aura?.size;
+    const auraLuminance = source.aura?.luminance;
+
+    return {
+      id: source.nodeId,
+      label: source.label,
+      color: source.aura?.color || fallbackColor,
+      val: auraSize ? 1.1 + auraSize / 45 : source.hasMap ? 2.1 : 1.55,
+      ...(auraLuminance ? { auraLuminance } : {}),
+      ...(auraSize ? { auraSize } : {}),
+    };
+  });
+
+  return {
+    nodes,
+    links: buildTemporalOrderLinkSequence(eventSources.map((source) => source.nodeId)),
+  };
+};
+
+const cloneTemporalOrderForceGraph2DData = (
+  data: TemporalOrderForceGraph2DData
+): TemporalOrderForceGraph2DData => ({
+  nodes: data.nodes.map((node) => ({ ...node })),
+  links: data.links.map((link) => ({ ...link })),
+});
+
+const TemporalOrderForceGraph2D: React.FC<{
+  graphData: TemporalOrderForceGraph2DData;
+}> = ({ graphData }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const graphRef = useRef<ForceGraph2DInstance | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const resolvedGraphData = useMemo(
+    () => cloneTemporalOrderForceGraph2DData(graphData),
+    [graphData]
   );
 
+  const stopEditorEventBubble = useCallback((event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  }, []);
+
   useEffect(() => {
-    if (!reactFlowInstance || !baseNodes.length) return;
-    const rafId = window.requestAnimationFrame(() => {
-      reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
-    });
-    return () => window.cancelAnimationFrame(rafId);
-  }, [reactFlowInstance, nodeIdsSignature, baseNodes.length]);
+    const container = containerRef.current;
+    if (!container) return;
+
+    let disposed = false;
+    let resizeObserver: ResizeObserver | null = null;
+    let fallbackFitTimeoutId: number | null = null;
+    let didInitialFit = false;
+
+    const fitGraph = (graph: ForceGraph2DInstance, durationMs: number) => {
+      graph.zoomToFit(durationMs, 80);
+    };
+
+    const initGraph = async () => {
+      try {
+        await ensureForceGraph2DScript();
+        const ForceGraph = getForceGraph2DFactory();
+        if (disposed || !ForceGraph) return;
+
+        const { width: rawWidth, height: rawHeight } = container.getBoundingClientRect();
+        const width = Math.max(FORCE_GRAPH_2D_MIN_WIDTH, Math.floor(rawWidth));
+        const height = Math.max(FORCE_GRAPH_2D_MIN_HEIGHT, Math.floor(rawHeight));
+
+        const graph = ForceGraph()(container);
+        graphRef.current = graph;
+
+        graph
+          .graphData(resolvedGraphData)
+          .backgroundColor('#f8fafc')
+          .nodeId('id')
+          .nodeLabel((node) => node.label)
+          .nodeColor((node) => node.color)
+          .nodeVal((node) => node.val)
+          .nodeCanvasObject((node, context, globalScale) => {
+            const fontSize = Math.max(10, 13 / globalScale);
+            const x = node.x ?? 0;
+            const y = node.y ?? 0;
+            const radius = Math.max(5, Math.sqrt(Math.max(0.8, node.val)) * 4.4);
+
+            context.beginPath();
+            context.arc(x, y, radius, 0, 2 * Math.PI, false);
+            context.fillStyle = node.color;
+            context.globalAlpha = 0.92;
+            context.fill();
+
+            context.lineWidth = Math.max(0.8, 1.2 / globalScale);
+            context.strokeStyle = 'rgba(30, 41, 59, 0.5)';
+            context.globalAlpha = 1;
+            context.stroke();
+
+            context.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillStyle = '#1e293b';
+            context.fillText(node.label, x, y + radius + fontSize * 0.85);
+          })
+          .linkColor(() => 'rgba(71, 85, 105, 0.34)')
+          .linkWidth(1.1)
+          .linkDirectionalArrowLength(4)
+          .linkDirectionalArrowRelPos(0.82)
+          .width(width)
+          .height(height)
+          .enableNodeDrag(true)
+          .onEngineStop(() => {
+            if (disposed || didInitialFit) return;
+            didInitialFit = true;
+            fitGraph(graph, 320);
+          });
+
+        const chargeForce = graph.d3Force('charge');
+        if (chargeForce?.strength) {
+          chargeForce.strength(-220);
+        }
+
+        fallbackFitTimeoutId = window.setTimeout(() => {
+          if (disposed || !graphRef.current || didInitialFit) return;
+          didInitialFit = true;
+          fitGraph(graphRef.current, 260);
+        }, 720);
+
+        resizeObserver = new ResizeObserver((entries) => {
+          const entry = entries[0];
+          const activeGraph = graphRef.current;
+          if (!entry || !activeGraph) return;
+
+          const nextWidth = Math.max(FORCE_GRAPH_2D_MIN_WIDTH, Math.floor(entry.contentRect.width));
+          const nextHeight = Math.max(FORCE_GRAPH_2D_MIN_HEIGHT, Math.floor(entry.contentRect.height));
+          activeGraph.width(nextWidth).height(nextHeight);
+          fitGraph(activeGraph, 0);
+        });
+
+        resizeObserver.observe(container);
+      } catch (error) {
+        console.error('Failed to initialize temporal order 2D graph:', error);
+        if (!disposed) {
+          setLoadError('Unable to load 2D graph.');
+        }
+      }
+    };
+
+    initGraph();
+
+    return () => {
+      disposed = true;
+      if (fallbackFitTimeoutId !== null) {
+        window.clearTimeout(fallbackFitTimeoutId);
+      }
+      resizeObserver?.disconnect();
+      if (graphRef.current?._destructor) {
+        graphRef.current._destructor();
+      }
+      graphRef.current = null;
+      container.innerHTML = '';
+    };
+  }, [resolvedGraphData]);
 
   return (
-    <div className="temporal-order-flow-canvas">
-      <ReferenceReactFlowCanvas
-        nodes={nodes}
-        edges={[]}
-        nodeTypes={temporalOrderFlowNodeTypes}
-        onNodesChange={onNodesChange}
-        onInit={setReactFlowInstance}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.1}
-        maxZoom={4}
-        nodesConnectable={false}
-        panOnDrag
-        zoomOnScroll
-        zoomOnPinch
-        zoomOnDoubleClick={false}
-        showControls={false}
-        showBackground
-      >
-        {/* No edges for atemporal preview, only repositionable event nodes. */}
-      </ReferenceReactFlowCanvas>
+    <div
+      className="temporal-order-graph-canvas temporal-order-graph-canvas-2d"
+      onMouseDown={stopEditorEventBubble}
+      onMouseUp={stopEditorEventBubble}
+      onPointerDown={stopEditorEventBubble}
+      onPointerUp={stopEditorEventBubble}
+      onTouchStart={stopEditorEventBubble}
+      onWheel={stopEditorEventBubble}
+    >
+      <div ref={containerRef} className="temporal-order-graph-canvas-host" />
+      {loadError && (
+        <div className="temporal-order-graph-canvas-error">{loadError}</div>
+      )}
     </div>
   );
 };
@@ -733,35 +956,18 @@ const AtemporalEventField: React.FC<{
 const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   children,
   isCollapsed,
-  timeMode,
+  lens,
   eventSources,
-  nonLinearPositions,
-  onNonLinearPositionsChange,
-  onTimeModeChange,
-  onDropZoneDrop,
-  onDropZoneDragEnter,
-  onDropZonePaste,
+  auraGraphData,
+  graph2DData,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(200);
-  const isNonLinear = timeMode === 'nonLinear';
-  const eventPreviews = useMemo<NonLinearEventPreview[]>(() => {
-    const radius = 165 + Math.min(eventSources.length, 24) * 6;
-    const positions = buildAtemporalPositions(eventSources.length, radius);
-
-    return eventSources.map((source, index) => ({
-      key: source.key || `${index}`,
-      label: source.label,
-      content: source.content,
-      hasMap: source.hasMap,
-      position:
-        nonLinearPositions?.[source.key] &&
-        Number.isFinite(nonLinearPositions[source.key].x) &&
-        Number.isFinite(nonLinearPositions[source.key].y)
-          ? nonLinearPositions[source.key]
-          : positions[index] || { x: 0, y: 0 },
-    }));
-  }, [eventSources, nonLinearPositions]);
+  const isIdentityLens = lens === 'identity';
+  const isAuraLens = lens === 'auraView';
+  const isGraph2DLens = lens === 'graph2D';
+  const isImmersiveGraphLens = isAuraLens || isGraph2DLens;
+  const hasGraphNodes = eventSources.length > 0;
 
   // Track content height for the arrow
   useEffect(() => {
@@ -781,42 +987,14 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       ref={containerRef}
       style={{
         position: 'relative',
-        minHeight: isCollapsed ? 48 : isNonLinear ? 520 : 100,
-        paddingLeft: 8, // Space for the arrow
+        minHeight: isCollapsed ? 48 : isIdentityLens ? 100 : 480,
+        paddingLeft: isIdentityLens ? 8 : 0, // Only reserve arrow space for identity lens.
+        borderRadius: isImmersiveGraphLens ? 16 : 0,
+        overflow: isImmersiveGraphLens ? 'hidden' : 'visible',
       }}
     >
-      {/* Time mode toggle */}
-      {!isCollapsed && (
-        <div className="temporal-order-time-mode-toggle">
-          {(['linear', 'nonLinear'] as TimeMode[]).map((mode) => {
-            const label = mode === 'linear' ? 'Linear' : 'Non-linear';
-            const isActive = timeMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => onTimeModeChange(mode)}
-                className={`temporal-order-time-mode-option ${isActive ? 'is-active' : ''}`}
-              >
-                {isActive && <motion.span layoutId="temporal-order-mode-active-pill" className="temporal-order-time-mode-pill" />}
-                <span className="temporal-order-time-mode-label">{label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Temporal Arrow */}
-      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || isNonLinear} />
-
-      {/* Shared drop zone for both linear and non-linear modes */}
-      <DropZone
-        onDrop={onDropZoneDrop}
-        onDragEnter={onDropZoneDragEnter}
-        onPaste={onDropZonePaste}
-        isCollapsed={isCollapsed}
-        compact={false}
-      />
+      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || !isIdentityLens} />
 
       {/* Content */}
       <AnimatePresence>
@@ -832,25 +1010,35 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             }}
           >
             <div
-              className={`temporal-order-content-host ${isNonLinear ? 'is-non-linear-source' : 'is-linear'}`}
+              className={`temporal-order-content-host ${isIdentityLens ? 'is-linear' : 'is-graph-source'}`}
             >
               {children}
             </div>
 
             <AnimatePresence>
-              {isNonLinear && (
+              {(isAuraLens || isGraph2DLens) && (
                 <motion.div
-                  key="temporal-order-flow-field"
+                  key={`temporal-order-graph-${lens}`}
                   initial={{ opacity: 0, scale: 0.985 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.985 }}
                   transition={{ duration: 0.28 }}
-                  className="temporal-order-flow-layer"
+                  className="temporal-order-graph-layer is-edge-to-edge"
                 >
-                  <AtemporalEventField
-                    items={eventPreviews}
-                    onPositionsChange={onNonLinearPositionsChange}
-                  />
+                  {isAuraLens ? (
+                    <ForceGraph3DFigure
+                      graphData={auraGraphData}
+                      aspectRatio={hasGraphNodes ? "8 / 3" : "5 / 2"}
+                      minHeight={320}
+                      showNavHint={false}
+                      fitPadding={90}
+                      autoFitDelayMs={520}
+                      edgeToEdge
+                      fitZoomScale={0.72}
+                    />
+                  ) : (
+                    <TemporalOrderForceGraph2D graphData={graph2DData} />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -902,8 +1090,7 @@ export const TemporalOrderExtension = TipTapNode.create({
     return {
       collapsed: { default: false },
       backgroundColor: { default: offWhite },
-      timeMode: { default: 'linear' },
-      nonLinearPositions: { default: {}, rendered: false },
+      lens: { default: 'identity' as TemporalOrderLens },
     };
   },
 
@@ -918,14 +1105,22 @@ export const TemporalOrderExtension = TipTapNode.create({
           .run();
       },
       setTemporalOrderCollapsed: (attributes: { collapsed: boolean }) => ({ state, dispatch }) => {
-        const { selection } = state;
-        const node = state.doc.nodeAt(selection.from);
-        
-        if (node?.type.name === "temporalOrder" && dispatch) {
-          dispatch(state.tr.setNodeAttribute(selection.$from.pos, "collapsed", attributes.collapsed));
-          return true;
-        }
-        return false;
+        if (!dispatch) return false;
+
+        const temporalOrderPos = findTemporalOrderNodePosition(state);
+        if (temporalOrderPos === null) return false;
+
+        dispatch(state.tr.setNodeAttribute(temporalOrderPos, "collapsed", attributes.collapsed));
+        return true;
+      },
+      setTemporalOrderLens: (attributes: { lens: string }) => ({ state, dispatch }) => {
+        if (!dispatch) return false;
+
+        const temporalOrderPos = findTemporalOrderNodePosition(state);
+        if (temporalOrderPos === null) return false;
+
+        dispatch(state.tr.setNodeAttribute(temporalOrderPos, 'lens', attributes.lens));
+        return true;
       },
     };
   },
@@ -952,8 +1147,6 @@ export const TemporalOrderExtension = TipTapNode.create({
   },
 
   addProseMirrorPlugins() {
-    const extensionThis = this;
-
     return [
       new Plugin({
         key: new PluginKey('temporalOrderSorter'),
@@ -1092,19 +1285,24 @@ export const TemporalOrderExtension = TipTapNode.create({
   addNodeView() {
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       const isCollapsed = props.node.attrs.collapsed;
-      const backgroundColor = props.node.attrs.backgroundColor || '#FFFFFF';
-      const timeMode: TimeMode = props.node.attrs.timeMode === 'nonLinear' ? 'nonLinear' : 'linear';
-      const { updateAttributes } = props;
-      const persistPositionsTimerRef = useRef<number | null>(null);
-      const nonLinearPositions = (props.node.attrs.nonLinearPositions || {}) as Record<string, { x: number; y: number }>;
-      const nonLinearEventSources = useMemo<NonLinearEventSource[]>(() => {
-        const sources: NonLinearEventSource[] = [];
+      const lensAttr = props.node.attrs.lens;
+      const legacyTimeMode = props.node.attrs.timeMode;
+      const lens: TemporalOrderLens = (() => {
+        if (lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'identity') {
+          return lensAttr;
+        }
+        if (legacyTimeMode === 'nonLinear') {
+          return 'graph2D';
+        }
+        return 'identity';
+      })();
+      const eventSources = useMemo<TemporalOrderEventSource[]>(() => {
+        const sources: TemporalOrderEventSource[] = [];
+        const usedNodeIds = new Set<string>();
         let index = 0;
 
         props.node.forEach((childNode) => {
-          // Non-linear mode should represent event containers, not incidental
-          // top-level blocks (e.g., empty paragraphs between events).
-          // Include both temporalSpace and trends containers.
+          // Force-graph lenses should represent timeline containers only.
           if (childNode.type.name !== 'temporalSpace' && childNode.type.name !== 'trends') {
             return;
           }
@@ -1116,7 +1314,12 @@ export const TemporalOrderExtension = TipTapNode.create({
               : `${childNode.type.name}-${index}`;
 
           const label =
-            childNode.textContent?.replace(/\s+/g, ' ').trim().slice(0, 90) || childNode.type.name || 'Event';
+            truncateTemporalOrderLabel(
+              childNode.textContent?.replace(/\s+/g, ' ').trim() || childNode.type.name || 'Event'
+            );
+          const nodeId = buildTemporalOrderNodeId(label, index, usedNodeIds);
+          const date = extractEarliestDateFromNode(childNode);
+          const aura = deriveTemporalOrderNodeAura(childNode);
 
           let hasMap = false;
           let hasMeaningfulContent = false;
@@ -1133,17 +1336,19 @@ export const TemporalOrderExtension = TipTapNode.create({
             return true;
           });
 
-          // Skip fully empty temporal spaces so they don't appear as blank
-          // floating cards in non-linear mode.
+          // Skip empty wrappers so they do not render as empty graph nodes.
           if (!hasMeaningfulContent) {
             return;
           }
 
           sources.push({
             key,
+            nodeId,
             label,
             content: childNode.toJSON() as JSONContent,
             hasMap,
+            dateMs: date ? date.getTime() : null,
+            aura,
           });
 
           index += 1;
@@ -1151,6 +1356,15 @@ export const TemporalOrderExtension = TipTapNode.create({
 
         return sources;
       }, [props.node]);
+      const auraGraphData = useMemo(
+        () => buildTemporalOrderAuraGraphData(eventSources),
+        [eventSources]
+      );
+      const graph2DData = useMemo(
+        () => buildTemporalOrderForceGraph2DData(eventSources),
+        [eventSources]
+      );
+      const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D';
 
       /**
        * ARCHITECTURE: Capture dragged node on dragenter
@@ -1163,7 +1377,7 @@ export const TemporalOrderExtension = TipTapNode.create({
         const { selection } = state;
         
         // Check if we have a node selection (dragged node)
-        if (selection && 'node' in selection && selection.node) {
+        if (isNodeSelection(selection) && selection.node) {
           const node = selection.node;
           return {
             from: selection.from,
@@ -1285,33 +1499,6 @@ export const TemporalOrderExtension = TipTapNode.create({
         view.dispatch(tr.scrollIntoView());
       }, [props.editor, props.getPos]);
 
-      const handleTimeModeChange = useCallback((mode: TimeMode) => {
-        if (mode === timeMode) return;
-        updateAttributes({ timeMode: mode });
-      }, [timeMode, updateAttributes]);
-
-      const handleNonLinearPositionsChange = useCallback((positions: Record<string, { x: number; y: number }>) => {
-        const current = JSON.stringify(nonLinearPositions || {});
-        const next = JSON.stringify(positions || {});
-        if (current === next) return;
-
-        if (persistPositionsTimerRef.current !== null) {
-          window.clearTimeout(persistPositionsTimerRef.current);
-        }
-
-        persistPositionsTimerRef.current = window.setTimeout(() => {
-          updateAttributes({ nonLinearPositions: positions });
-        }, 120);
-      }, [nonLinearPositions, updateAttributes]);
-
-      useEffect(() => {
-        return () => {
-          if (persistPositionsTimerRef.current !== null) {
-            window.clearTimeout(persistPositionsTimerRef.current);
-          }
-        };
-      }, []);
-
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
@@ -1335,20 +1522,15 @@ export const TemporalOrderExtension = TipTapNode.create({
               inset 0 1px 0 rgba(255, 255, 255, 0.9)
             `}
             borderRadius={16}
-            padding="24px 20px 24px 32px"
-            backgroundColor="rgba(255, 255, 255, 0.1)"
+            padding={isImmersiveGraphLens ? 0 : "24px 20px 24px 32px"}
+            backgroundColor={isImmersiveGraphLens ? "transparent" : "rgba(255, 255, 255, 0.1)"}
           >
             <TemporalOrderContent
               isCollapsed={isCollapsed}
-              backgroundColor={backgroundColor}
-              timeMode={timeMode}
-              eventSources={nonLinearEventSources}
-              nonLinearPositions={nonLinearPositions}
-              onNonLinearPositionsChange={handleNonLinearPositionsChange}
-              onTimeModeChange={handleTimeModeChange}
-              onDropZoneDrop={handleDropZoneDrop}
-              onDropZoneDragEnter={handleDropZoneDragEnter}
-              onDropZonePaste={handleDropZonePaste}
+              lens={lens}
+              eventSources={eventSources}
+              auraGraphData={auraGraphData}
+              graph2DData={graph2DData}
             >
               <NodeViewContent className="temporal-order-node-view-content" />
             </TemporalOrderContent>

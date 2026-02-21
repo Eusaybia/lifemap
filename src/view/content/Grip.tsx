@@ -10,6 +10,9 @@ export const Grip = () => {
             position="absolute-right"
             dotColor="#999"
             hoverBackground="rgba(0, 0, 0, 0.08)"
+            onClick={() => {
+                console.log('[GripSelectionDebug] Legacy Grip clicked (no editor context available)')
+            }}
         />
     )
 }

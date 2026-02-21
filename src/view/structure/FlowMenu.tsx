@@ -1364,29 +1364,63 @@ const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+const getNearestAncestorNode = (editor: Editor, typeName: string) => {
+    const { selection } = editor.state
+
+    for (let depth = selection.$from.depth; depth >= 0; depth -= 1) {
+        const nodeAtDepth = selection.$from.node(depth)
+        if (nodeAtDepth.type.name === typeName) {
+            return nodeAtDepth
+        }
+    }
+
+    return null
+}
+
 const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
+    const selectedNode = getNearestAncestorNode(props.editor, 'temporalOrder') ?? getSelectedNode(props.editor)
     const isCollapsed = !!selectedNode?.attrs?.collapsed
-    const flowValue = isCollapsed ? "collapsed" : "expanded"
+    const lensAttr = selectedNode?.attrs?.lens
+    const selectedLens =
+      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'identity'
+        ? lensAttr
+        : selectedNode?.attrs?.timeMode === 'nonLinear'
+          ? 'graph2D'
+          : 'identity'
+    const flowValue = selectedLens
 
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
             <FlowSwitch value={flowValue} isLens scrollToSelect>
-                <Option value={"expanded"} onClick={() => {
+                <Option value={"identity"} onClick={() => {
                     // @ts-ignore - command is added by TemporalOrderExtension
                     props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "identity" })
                 }}>
                     <motion.div>
-                        Expanded
+                        Identity
                     </motion.div>
                 </Option>
-                <Option value={"collapsed"} onClick={() => {
+                <Option value={"auraView"} onClick={() => {
                     // @ts-ignore - command is added by TemporalOrderExtension
-                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: true })
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "auraView" })
                 }}>
                     <motion.div>
-                        📦 Collapsed
+                        Aura
+                    </motion.div>
+                </Option>
+                <Option value={"graph2D"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "graph2D" })
+                }}>
+                    <motion.div>
+                        2D Graph
                     </motion.div>
                 </Option>
             </FlowSwitch>
@@ -2169,6 +2203,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'canvas3D': <Canvas3DLoupe editor={props.editor} />,
                         'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
+                        'trends': <TemporalOrderLoupe editor={props.editor} />,
                         'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
                         'glowNetwork': <ForceGraph3DLoupe editor={props.editor} />,
                         'scrollview': <></>,
