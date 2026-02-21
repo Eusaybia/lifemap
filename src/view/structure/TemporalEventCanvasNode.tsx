@@ -24,7 +24,11 @@ const normalizeContentToDoc = (content: JSONContent): JSONContent => {
   }
 }
 
-export const TemporalEventCanvasNode = memo(({ data }: NodeProps<TemporalEventCanvasNodeData>) => {
+interface TemporalEventCardRendererProps {
+  data: TemporalEventCanvasNodeData
+}
+
+export const TemporalEventCardRenderer = memo(({ data }: TemporalEventCardRendererProps) => {
   const normalizedContent = useMemo(() => normalizeContentToDoc(data.content), [data.content])
 
   const nodeExtensions = useMemo(() => {
@@ -66,6 +70,12 @@ export const TemporalEventCanvasNode = memo(({ data }: NodeProps<TemporalEventCa
       </div>
     </div>
   )
+})
+
+TemporalEventCardRenderer.displayName = 'TemporalEventCardRenderer'
+
+export const TemporalEventCanvasNode = memo(({ data }: NodeProps<TemporalEventCanvasNodeData>) => {
+  return <TemporalEventCardRenderer data={data} />
 })
 
 TemporalEventCanvasNode.displayName = 'TemporalEventCanvasNode'

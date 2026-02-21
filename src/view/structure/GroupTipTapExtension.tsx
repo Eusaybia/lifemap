@@ -13,6 +13,14 @@ import { DocumentAttributes, defaultDocumentAttributes } from "./DocumentAttribu
 import { throttle } from 'lodash';
 import { DragGrip } from "../components/DragGrip";
 import { NodeOverlay } from "../components/NodeOverlay";
+import {
+  AuraSpec,
+  areAurasEqual,
+  blendWeightedAuras,
+  readAuraFromAttrs,
+  readTimepointAuraFromAttrs,
+  sanitizeAura,
+} from "../aura/AuraModel";
 
 // ============================================================================
 // GROUP ARCHITECTURE
@@ -69,10 +77,23 @@ const buildGlowVisualisationData = (groupNode: ProseMirrorNode): ForceGraph3DDat
     }
     usedIds.add(uniqueId);
 
+    const fallbackTone = (index % 2 === 0 ? 'light' : 'dark') as 'light' | 'dark';
+    const aura =
+      readAuraFromAttrs(childNode.attrs as Record<string, unknown>) ??
+      deriveAuraForNode(childNode);
+    const tone = aura ? (aura.luminance < 420 ? 'dark' : 'light') : fallbackTone;
+
     return {
       id: uniqueId,
       group: index < Math.ceil(children.length / 2) ? 1 : 2,
-      tone: (index % 2 === 0 ? 'light' : 'dark') as 'light' | 'dark',
+      tone,
+      ...(aura
+        ? {
+            color: aura.color,
+            auraLuminance: aura.luminance,
+            auraSize: aura.size,
+          }
+        : {}),
     };
   });
 
@@ -81,6 +102,55 @@ const buildGlowVisualisationData = (groupNode: ProseMirrorNode): ForceGraph3DDat
   }
 
   return { nodes, links: [] };
+};
+
+const GROUP_AURA_DERIVED_META = "groupAuraDerived";
+const GROUP_AURA_PLUGIN_KEY = new PluginKey("groupAuraUpdater");
+const GROUP_AURA_DEPTH_FALLOFF = 0.85;
+
+const getAuraSourceWeight = (aura: AuraSpec, depth: number) => {
+  const sizeComponent = aura.size / 100;
+  const luminanceComponent = aura.luminance / 1000;
+  const baseWeight = Math.max(0.05, sizeComponent * 0.7 + luminanceComponent * 0.3);
+  return baseWeight * Math.pow(GROUP_AURA_DEPTH_FALLOFF, Math.max(0, depth - 1));
+};
+
+const collectAuraSources = (
+  node: ProseMirrorNode,
+  depth: number,
+  sources: Array<{ aura: AuraSpec; weight: number }>
+) => {
+  node.forEach((childNode) => {
+    const nextDepth = depth + 1;
+
+    if (childNode.type.name === "timepoint") {
+      const aura = readTimepointAuraFromAttrs(childNode.attrs as Record<string, unknown>);
+      if (aura) {
+        sources.push({
+          aura,
+          weight: getAuraSourceWeight(aura, nextDepth),
+        });
+      }
+    } else if (childNode.type.name === "hashtag" || childNode.type.name === "mention") {
+      const aura = readAuraFromAttrs(childNode.attrs as Record<string, unknown>);
+      if (aura) {
+        sources.push({
+          aura,
+          weight: getAuraSourceWeight(aura, nextDepth),
+        });
+      }
+    }
+
+    if (childNode.childCount > 0) {
+      collectAuraSources(childNode, nextDepth, sources);
+    }
+  });
+};
+
+const deriveAuraForNode = (node: ProseMirrorNode): AuraSpec | null => {
+  const sources: Array<{ aura: AuraSpec; weight: number }> = [];
+  collectAuraSources(node, 0, sources);
+  return blendWeightedAuras(sources);
 };
 
 declare module '@tiptap/core' {
@@ -306,6 +376,24 @@ export const GroupExtension = TipTapNode.create({
       // experimental: density: amount of qi in this group (amount of people in this group)
       // experimental: rationality: is this statement based on reason (rather than "truth")? 1 + 1 = 3
       backgroundColor: { default: '#FFFFFF' },
+      aura: {
+        default: null,
+        parseHTML: element => {
+          const rawAura = element.getAttribute('data-aura');
+          if (!rawAura) return null;
+
+          try {
+            return sanitizeAura(JSON.parse(rawAura));
+          } catch {
+            return null;
+          }
+        },
+        renderHTML: attributes => {
+          const aura = sanitizeAura(attributes.aura);
+          if (!aura) return {};
+          return { 'data-aura': JSON.stringify(aura) };
+        },
+      },
       lens: { default: "identity" as GroupLenses },
       collapsed: { default: false },
     }
@@ -353,7 +441,45 @@ export const GroupExtension = TipTapNode.create({
             }
           }
         })
-      })
+      }),
+      new Plugin({
+        key: GROUP_AURA_PLUGIN_KEY,
+        appendTransaction: (transactions, _oldState, newState) => {
+          const hasDocChanges = transactions.some((transaction) => transaction.docChanged);
+          if (!hasDocChanges) return null;
+          if (transactions.some((transaction) => transaction.getMeta(GROUP_AURA_DERIVED_META))) {
+            return null;
+          }
+
+          const transaction = newState.tr;
+          let hasAuraUpdates = false;
+
+          newState.doc.descendants((node, pos) => {
+            if (node.type.name !== 'group') return true;
+
+            const currentAura = readAuraFromAttrs(node.attrs as Record<string, unknown>);
+            const derivedAura = deriveAuraForNode(node);
+
+            if (areAurasEqual(currentAura, derivedAura)) {
+              return true;
+            }
+
+            transaction.setNodeMarkup(
+              pos,
+              node.type,
+              { ...node.attrs, aura: derivedAura },
+              node.marks
+            );
+            hasAuraUpdates = true;
+            return true;
+          });
+
+          if (!hasAuraUpdates) return null;
+
+          transaction.setMeta(GROUP_AURA_DERIVED_META, true);
+          return transaction;
+        },
+      }),
     ];
   },
   addNodeView() {

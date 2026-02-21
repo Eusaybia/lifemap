@@ -8,6 +8,8 @@ export interface ForceGraph3DNode {
   group?: number;
   tone?: "light" | "dark";
   color?: string;
+  auraLuminance?: number;
+  auraSize?: number;
   [key: string]: unknown;
 }
 
@@ -28,6 +30,7 @@ interface ForceGraph3DInstance {
   backgroundColor: (color: string) => ForceGraph3DInstance;
   nodeLabel: (label: string) => ForceGraph3DInstance;
   nodeColor: (colorAccessor: (node: ForceGraph3DNode) => string) => ForceGraph3DInstance;
+  nodeVal: (valueAccessor: number | string | ((node: ForceGraph3DNode) => number)) => ForceGraph3DInstance;
   nodeThreeObject: (objectAccessor: (node: ForceGraph3DNode) => unknown) => ForceGraph3DInstance;
   nodeThreeObjectExtend: (extend: boolean) => ForceGraph3DInstance;
   linkColor: (colorAccessor: () => string) => ForceGraph3DInstance;
@@ -72,6 +75,101 @@ const NODE_TONE_COLORS = {
 const NODE_LABEL_COLORS = {
   light: "#dddfe8",
   dark: "#7f8798",
+};
+
+const AURA_LUMINANCE_MIN = 1;
+const AURA_LUMINANCE_MAX = 1000;
+const AURA_SIZE_MIN = 1;
+const AURA_SIZE_MAX = 100;
+
+const clamp = (value: number, min: number, max: number) => {
+  if (!Number.isFinite(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+};
+
+const hexToRgb = (hexColor: string) => {
+  const value = hexColor.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(value)) return null;
+
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16),
+  };
+};
+
+const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) =>
+  `#${[r, g, b]
+    .map((channel) => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, "0"))
+    .join("")}`;
+
+const scaleHexColor = (hexColor: string, scale: number) => {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return hexColor;
+
+  return rgbToHex({
+    r: rgb.r * scale,
+    g: rgb.g * scale,
+    b: rgb.b * scale,
+  });
+};
+
+const resolveAuraLuminance = (node: ForceGraph3DNode) => {
+  if (typeof node.auraLuminance !== "number" || !Number.isFinite(node.auraLuminance)) {
+    return null;
+  }
+  return clamp(node.auraLuminance, AURA_LUMINANCE_MIN, AURA_LUMINANCE_MAX);
+};
+
+const resolveAuraSize = (node: ForceGraph3DNode) => {
+  if (typeof node.auraSize !== "number" || !Number.isFinite(node.auraSize)) {
+    return null;
+  }
+  return clamp(node.auraSize, AURA_SIZE_MIN, AURA_SIZE_MAX);
+};
+
+const resolveNodeColor = (node: ForceGraph3DNode) => {
+  if (typeof node.color === "string" && node.color.trim().length > 0) {
+    return node.color.toLowerCase();
+  }
+  return node.tone === "dark" ? NODE_TONE_COLORS.dark : NODE_TONE_COLORS.light;
+};
+
+const resolveNodeRenderColor = (node: ForceGraph3DNode) => {
+  const baseColor = resolveNodeColor(node);
+  const luminance = resolveAuraLuminance(node);
+  if (luminance === null) return baseColor;
+
+  const normalized =
+    (luminance - AURA_LUMINANCE_MIN) / (AURA_LUMINANCE_MAX - AURA_LUMINANCE_MIN);
+  const brightnessScale = 0.2 + normalized * 1.05;
+  return scaleHexColor(baseColor, brightnessScale);
+};
+
+const resolveNodeRenderValue = (node: ForceGraph3DNode) => {
+  const size = resolveAuraSize(node);
+  if (size === null) {
+    return node.tone === "dark" ? 1 : 1.2;
+  }
+  return 0.6 + (size / AURA_SIZE_MAX) * 2.4;
+};
+
+const resolveLabelTextHeight = (node: ForceGraph3DNode) => {
+  const size = resolveAuraSize(node);
+  if (size === null) return 8;
+  return 5 + (size / AURA_SIZE_MAX) * 6;
+};
+
+const resolveLabelColor = (node: ForceGraph3DNode) => {
+  const luminance = resolveAuraLuminance(node);
+  if (luminance === null) {
+    return NODE_LABEL_COLORS.dark;
+  }
+
+  const nodeColor = resolveNodeRenderColor(node);
+  return scaleHexColor(nodeColor, 0.78);
 };
 
 const SOURCE_GRAPH_DATA: ForceGraph3DData = {
@@ -306,16 +404,15 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
           .graphData(resolvedGraphData)
           .backgroundColor("#000003")
           .nodeLabel("id")
-          .nodeColor((node) =>
-            node.tone === "dark" ? NODE_TONE_COLORS.dark : NODE_TONE_COLORS.light
-          )
+          .nodeColor((node) => resolveNodeRenderColor(node))
+          .nodeVal((node) => resolveNodeRenderValue(node))
           .nodeThreeObject((node) => {
             const sprite = new SpriteText(node.id);
             if (sprite.material) {
               sprite.material.depthWrite = false;
             }
-            sprite.color = NODE_LABEL_COLORS.dark;
-            sprite.textHeight = 8;
+            sprite.color = resolveLabelColor(node);
+            sprite.textHeight = resolveLabelTextHeight(node);
             sprite.fontFace = ASTRO_FONT_FAMILY;
             sprite.fontWeight = "italic 700";
             if (sprite.center) {

@@ -9,6 +9,13 @@ import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'rea
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
+import {
+  AuraSpec,
+  CURRENT_FOCUS_AURA,
+  CURRENT_FOCUS_TIMEPOINT_ID,
+  readTimepointAuraFromAttrs,
+  toAuraDataAttributes,
+} from '../aura/AuraModel'
 
 // Unique plugin key to avoid conflicts with other extensions
 const TimePointPluginKey = new PluginKey('timepoint-suggestion')
@@ -22,6 +29,7 @@ export interface TimePoint {
   label: string
   date: Date
   emoji: string
+  aura?: AuraSpec
 }
 
 interface TimePointListProps extends SuggestionProps {
@@ -111,7 +119,7 @@ const TEMPLATE_TODAY_LITERAL = 'Today {todays_date}'
 const THIS_SUMMER_ID = 'timepoint:this-summer'
 const THIS_MONTH_ID = 'timepoint:this-month'
 const THIS_WEEK_ID = 'timepoint:this-week'
-const CURRENT_FOCUS_ID = 'timepoint:current-focus'
+const CURRENT_FOCUS_ID = CURRENT_FOCUS_TIMEPOINT_ID
 const formatTemplateTodayLabel = (): string => TEMPLATE_TODAY_LITERAL
 
 // ============================================================================
@@ -777,7 +785,13 @@ const getTimePoints = (): TimePoint[] => {
     { id: 'timepoint:weekday-sunday', label: 'Sundays', date: new Date(0), emoji: '📅' },
     // Architecture: "Some day" represents an intentionally indeterminate future, so we keep it abstract.
     { id: 'timepoint:someday', label: 'Some day', date: new Date(0), emoji: '⏳' },
-    { id: CURRENT_FOCUS_ID, label: 'Current Focus', date: new Date(0), emoji: '🎯' },
+    {
+      id: CURRENT_FOCUS_ID,
+      label: 'Current Focus',
+      date: new Date(0),
+      emoji: '🎯',
+      aura: CURRENT_FOCUS_AURA,
+    },
     { id: 'timepoint:today', label: "Today's date", date: now, emoji: '🗓️' },
     { id: TODAY_TEMPLATE_ID, label: 'Today (Template) version', date: new Date(0), emoji: '📋' },
     { id: 'timepoint:tomorrow', label: 'Tomorrow', date: addDays(now, 1), emoji: '🗓️' },
@@ -1626,6 +1640,7 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
     }
     const displayLabel = formatTimePointLabel(timePoint)
     const relativeLabel = isTemplateTodayPoint(timePoint) ? formatTemplateTodayLabel() : timePoint.label
+    const auraAttributes = timePoint.aura ? toAuraDataAttributes(timePoint.aura) : {}
 
     props.command({
       id: timePoint.id,
@@ -1633,6 +1648,7 @@ const TimePointList = forwardRef<TimePointListRef, TimePointListProps>((props, r
       'data-date': isAbstract ? '' : timePoint.date.toISOString(),
       'data-formatted': formattedDate,
       'data-relative-label': relativeLabel,
+      ...auraAttributes,
     })
   }
 
@@ -1783,6 +1799,9 @@ export const TimePointNode = Node.create({
       'data-date': { default: null },
       'data-formatted': { default: null },
       'data-relative-label': { default: null },
+      'data-aura-color': { default: null },
+      'data-aura-luminance': { default: null },
+      'data-aura-size': { default: null },
     }
   },
 
@@ -1792,6 +1811,8 @@ export const TimePointNode = Node.create({
 
   renderHTML({ node, HTMLAttributes }) {
     const isCurrentFocus = node.attrs.id === CURRENT_FOCUS_ID
+    const aura = readTimepointAuraFromAttrs(node.attrs as Record<string, unknown>)
+    const auraDataAttributes = aura ? toAuraDataAttributes(aura) : {}
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
@@ -1800,6 +1821,7 @@ export const TimePointNode = Node.create({
           : 'timepoint-mention',
         'data-type': 'timepoint',
         'data-id': node.attrs.id,
+        ...auraDataAttributes,
         ...(isCurrentFocus ? { 'data-timepoint-kind': 'current-focus' } : {}),
       }),
       node.attrs.label || '',

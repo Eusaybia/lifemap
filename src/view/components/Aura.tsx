@@ -40,6 +40,7 @@ const COMPLETE_TAG = "✅ complete"
 const IMPORTANT_TAG = "⭐️ important"
 const VERY_IMPORTANT_TAG = "🌟 very important"
 const UNIMPORTANT_TAG = "🌫️ unimportant"
+const NOT_A_PRIORITY_TAG = "not-a-priority"
 
 export interface AuraProps {
   /** The ProseMirror node to scan for tags */
@@ -79,6 +80,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
   let hasImportantTag = false
   let hasVeryImportantTag = false
   let hasUnimportantTag = false
+  let hasNotPriorityTag = false
   let hasUncheckedTodo = false
   let hasCheckItem = false
 
@@ -92,6 +94,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
     if (childNode.type.name === 'mention' || childNode.type.name === 'hashtag') {
       const label = childNode.attrs.label as string
       const dataTag = childNode.attrs['data-tag'] as string
+      const id = childNode.attrs.id as string
 
       // Check for complete tag
       if (label?.includes(COMPLETE_TAG) || dataTag === 'complete') {
@@ -106,8 +109,21 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
         hasImportantTag = true
       }
       // Check for unimportant tag (triggers darkening overlay)
-      if (label?.includes(UNIMPORTANT_TAG) || dataTag === 'unimportant') {
+      if (
+        label?.includes(UNIMPORTANT_TAG) ||
+        label?.includes(NOT_A_PRIORITY_TAG) ||
+        dataTag === 'unimportant' ||
+        dataTag === NOT_A_PRIORITY_TAG ||
+        id === 'tag:not-a-priority'
+      ) {
         hasUnimportantTag = true
+        if (
+          label?.includes(NOT_A_PRIORITY_TAG) ||
+          dataTag === NOT_A_PRIORITY_TAG ||
+          id === 'tag:not-a-priority'
+        ) {
+          hasNotPriorityTag = true
+        }
       }
     }
     // Check for task items
@@ -140,7 +156,16 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
     })
   }
 
-  return { hasFocusTag, hasCompleteTag, hasImportantTag, hasVeryImportantTag, hasUnimportantTag, hasUncheckedTodo, hasCheckItem }
+  return {
+    hasFocusTag,
+    hasCompleteTag,
+    hasImportantTag,
+    hasVeryImportantTag,
+    hasUnimportantTag,
+    hasNotPriorityTag,
+    hasUncheckedTodo,
+    hasCheckItem,
+  }
 }
 
 /**

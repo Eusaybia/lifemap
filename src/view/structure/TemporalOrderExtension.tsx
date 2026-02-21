@@ -5,11 +5,13 @@ import { Plugin, PluginKey, Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { forceCollide } from "d3-force-3d";
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
 import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
 import { AuraSpec, readAuraFromAttrs, readTimepointAuraFromAttrs } from "../aura/AuraModel";
+import { TemporalEventCardRenderer, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
 import './styles.scss';
 
 // ============================================================================
@@ -560,8 +562,17 @@ interface TemporalOrderEventSource {
 interface TemporalOrderForceGraph2DNode {
   id: string;
   label: string;
+  content: JSONContent;
+  previewLines: string[];
+  timeLabel: string | null;
+  hasMapPreview: boolean;
+  cardWidthPx: number;
+  cardHeightPx: number;
+  collisionRadius: number;
   color: string;
   val: number;
+  x?: number;
+  y?: number;
   auraLuminance?: number;
   auraSize?: number;
 }
@@ -577,83 +588,151 @@ interface TemporalOrderForceGraph2DData {
   links: TemporalOrderForceGraph2DLink[];
 }
 
-interface ForceGraph2DInstance {
-  graphData: (data: TemporalOrderForceGraph2DData) => ForceGraph2DInstance;
-  backgroundColor: (color: string) => ForceGraph2DInstance;
-  nodeId: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
-  nodeLabel: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
-  nodeColor: (accessor: string | ((node: TemporalOrderForceGraph2DNode) => string)) => ForceGraph2DInstance;
-  nodeVal: (accessor: number | ((node: TemporalOrderForceGraph2DNode) => number)) => ForceGraph2DInstance;
-  nodeCanvasObject: (
-    accessor: (
-      node: TemporalOrderForceGraph2DNode & { x?: number; y?: number },
-      context: CanvasRenderingContext2D,
-      globalScale: number
-    ) => void
-  ) => ForceGraph2DInstance;
-  linkColor: (accessor: string | ((link: TemporalOrderForceGraph2DLink) => string)) => ForceGraph2DInstance;
-  linkWidth: (accessor: number | ((link: TemporalOrderForceGraph2DLink) => number)) => ForceGraph2DInstance;
-  linkDirectionalArrowLength: (value: number) => ForceGraph2DInstance;
-  linkDirectionalArrowRelPos: (value: number) => ForceGraph2DInstance;
-  width: (width: number) => ForceGraph2DInstance;
-  height: (height: number) => ForceGraph2DInstance;
-  enableNodeDrag: (enabled: boolean) => ForceGraph2DInstance;
-  onEngineStop: (handler: () => void) => ForceGraph2DInstance;
-  zoomToFit: (durationMs?: number, padding?: number) => ForceGraph2DInstance;
-  d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
-  _destructor?: () => void;
+interface ForceGraph2DHandle {
+  d3Force: {
+    (name: string): {
+      strength?: (value: number) => void;
+      distance?: (value: number) => void;
+      distanceMax?: (value: number) => void;
+      distanceMin?: (value: number) => void;
+    } | undefined;
+    (name: string, forceFn: unknown): ForceGraph2DHandle;
+  };
+  graph2ScreenCoords: (x: number, y: number) => { x: number; y: number };
+  zoomToFit: (durationMs?: number, padding?: number) => void;
 }
 
-type ForceGraph2DChartFactory = () => (element: HTMLElement) => ForceGraph2DInstance;
+type ReactForceGraph2DComponent = React.ComponentType<Record<string, unknown>>;
 
-const FORCE_GRAPH_2D_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/force-graph';
-const FORCE_GRAPH_2D_SCRIPT_ATTR = 'data-force-graph-2d';
 const FORCE_GRAPH_2D_MIN_WIDTH = 280;
 const FORCE_GRAPH_2D_MIN_HEIGHT = 260;
-let forceGraph2DScriptPromise: Promise<void> | null = null;
+const FORCE_GRAPH_2D_DEFAULT_HEIGHT = 480;
+const FORCE_GRAPH_CARD_WIDTH = 360;
+const FORCE_GRAPH_CARD_WIDTH_MAP = 420;
+const FORCE_GRAPH_CARD_HEIGHT = 180;
+const FORCE_GRAPH_CARD_HEIGHT_MAP = 300;
+const FORCE_GRAPH_CARD_CORNER_RADIUS = 16;
 
-const getForceGraph2DFactory = (): ForceGraph2DChartFactory | undefined => (
-  (window as Window & { ForceGraph?: ForceGraph2DChartFactory }).ForceGraph
-);
+const drawTemporalOrderRoundedRect = (
+  context: CanvasRenderingContext2D,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  radius: number
+) => {
+  context.beginPath();
+  context.moveTo(left + radius, top);
+  context.lineTo(left + width - radius, top);
+  context.quadraticCurveTo(left + width, top, left + width, top + radius);
+  context.lineTo(left + width, top + height - radius);
+  context.quadraticCurveTo(left + width, top + height, left + width - radius, top + height);
+  context.lineTo(left + radius, top + height);
+  context.quadraticCurveTo(left, top + height, left, top + height - radius);
+  context.lineTo(left, top + radius);
+  context.quadraticCurveTo(left, top, left + radius, top);
+  context.closePath();
+};
 
-const ensureForceGraph2DScript = async (): Promise<void> => {
-  if (typeof window === 'undefined') return;
-  if (getForceGraph2DFactory()) return;
-  if (forceGraph2DScriptPromise) return forceGraph2DScriptPromise;
+const buildTemporalOrderCardPositions = (count: number, radius: number): { x: number; y: number }[] => {
+  if (!count) return [];
 
-  forceGraph2DScriptPromise = new Promise<void>((resolve, reject) => {
-    const finishLoad = () => {
-      if (getForceGraph2DFactory()) {
-        resolve();
-        return;
-      }
-      reject(new Error('ForceGraph global was not found after script load.'));
-    };
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const positions: { x: number; y: number }[] = [];
 
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      `script[${FORCE_GRAPH_2D_SCRIPT_ATTR}="true"]`
-    );
-    if (existingScript) {
-      existingScript.addEventListener('load', finishLoad, { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Failed to load force-graph script.')), { once: true });
+  for (let index = 0; index < count; index += 1) {
+    const spread = radius * Math.sqrt((index + 0.5) / count);
+    const theta = goldenAngle * index;
+    positions.push({
+      x: Math.cos(theta) * spread,
+      y: Math.sin(theta) * spread,
+    });
+  }
+
+  return positions;
+};
+
+const walkJSONContent = (
+  node: JSONContent | null | undefined,
+  visitor: (current: JSONContent) => void
+) => {
+  if (!node) return;
+  visitor(node);
+  node.content?.forEach((child) => walkJSONContent(child, visitor));
+};
+
+const extractTextPreviewFromJSONContent = (content: JSONContent): string => {
+  const chunks: string[] = [];
+  walkJSONContent(content, (node) => {
+    if (node.type === 'text' && typeof node.text === 'string' && node.text.trim()) {
+      chunks.push(node.text.trim());
       return;
     }
+    if (node.type === 'timepoint') {
+      const attrs = (node.attrs || {}) as Record<string, unknown>;
+      const rawLabel =
+        attrs['data-relative-label'] ??
+        attrs['data-formatted'] ??
+        attrs.label;
+      if (typeof rawLabel === 'string' && rawLabel.trim()) {
+        chunks.push(rawLabel.replace(/^📆\s*/, '').trim());
+      }
+    }
+  });
+  return chunks.join(' ').replace(/\s+/g, ' ').trim();
+};
 
-    const script = document.createElement('script');
-    script.setAttribute(FORCE_GRAPH_2D_SCRIPT_ATTR, 'true');
-    script.src = FORCE_GRAPH_2D_SCRIPT_URL;
-    script.async = true;
-    script.onload = finishLoad;
-    script.onerror = () => reject(new Error('Failed to load force-graph script.'));
-    document.head.appendChild(script);
+const extractTimeLabelFromJSONContent = (content: JSONContent): string | null => {
+  let discovered: string | null = null;
+  walkJSONContent(content, (node) => {
+    if (discovered || node.type !== 'timepoint') return;
+    const attrs = (node.attrs || {}) as Record<string, unknown>;
+    const rawValue =
+      attrs['data-relative-label'] ??
+      attrs['data-formatted'] ??
+      attrs.label;
+    if (typeof rawValue === 'string' && rawValue.trim()) {
+      discovered = rawValue.replace(/^📆\s*/, '').trim();
+    }
+  });
+  return discovered;
+};
+
+const splitTextIntoPreviewLines = (text: string, maxCharsPerLine = 42, maxLines = 3): string[] => {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return [];
+
+  const words = cleaned.split(' ');
+  const lines: string[] = [];
+  let current = '';
+
+  words.forEach((word) => {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxCharsPerLine) {
+      current = candidate;
+      return;
+    }
+    if (current) {
+      lines.push(current);
+      current = word;
+      return;
+    }
+    lines.push(word.slice(0, maxCharsPerLine));
+    current = word.slice(maxCharsPerLine);
   });
 
-  try {
-    await forceGraph2DScriptPromise;
-  } catch (error) {
-    forceGraph2DScriptPromise = null;
-    throw error;
+  if (current) {
+    lines.push(current);
   }
+
+  if (lines.length > maxLines) {
+    const clamped = lines.slice(0, maxLines);
+    const last = clamped[maxLines - 1];
+    clamped[maxLines - 1] = `${last.slice(0, Math.max(1, maxCharsPerLine - 1))}…`;
+    return clamped;
+  }
+
+  return lines;
 };
 
 const truncateTemporalOrderLabel = (label: string, maxLength = 24) => (
@@ -702,18 +781,6 @@ const deriveTemporalOrderNodeAura = (node: ProseMirrorNode): AuraSpec | null => 
   });
 
   return discoveredAura;
-};
-
-const buildTemporalOrderLinkSequence = (nodeIds: string[]): TemporalOrderForceGraph2DLink[] => {
-  const links: TemporalOrderForceGraph2DLink[] = [];
-  for (let index = 0; index < nodeIds.length - 1; index += 1) {
-    links.push({
-      source: nodeIds[index],
-      target: nodeIds[index + 1],
-      value: 1,
-    });
-  }
-  return links;
 };
 
 const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[]): ForceGraph3DData => {
@@ -769,23 +836,41 @@ const buildTemporalOrderForceGraph2DData = (
 ): TemporalOrderForceGraph2DData => {
   if (eventSources.length === 0) {
     return {
-      nodes: [{ id: 'empty-timeline', label: 'Empty timeline', color: '#94a3b8', val: 1.2 }],
+      nodes: [],
       links: [],
     };
   }
 
   const nowMs = Date.now();
+  const radius = 220 + Math.min(eventSources.length, 24) * 16;
+  const initialPositions = buildTemporalOrderCardPositions(eventSources.length, radius);
   const nodes = eventSources.map((source, index) => {
     const isFuture = source.dateMs !== null ? source.dateMs >= nowMs : index % 2 === 0;
     const fallbackColor = isFuture ? '#4f6cb2' : '#475569';
     const auraSize = source.aura?.size;
     const auraLuminance = source.aura?.luminance;
+    const previewText = extractTextPreviewFromJSONContent(source.content);
+    const previewLines = splitTextIntoPreviewLines(previewText || source.label);
+    const timeLabel = extractTimeLabelFromJSONContent(source.content);
+    const hasMapPreview = source.hasMap;
+    const cardWidthPx = hasMapPreview ? FORCE_GRAPH_CARD_WIDTH_MAP : FORCE_GRAPH_CARD_WIDTH;
+    const cardHeightPx = hasMapPreview ? FORCE_GRAPH_CARD_HEIGHT_MAP : FORCE_GRAPH_CARD_HEIGHT;
+    const collisionRadius = hasMapPreview ? 240 : 200;
 
     return {
       id: source.nodeId,
       label: source.label,
+      content: source.content,
+      previewLines: previewLines.length > 0 ? previewLines : [source.label],
+      timeLabel,
+      hasMapPreview,
+      cardWidthPx,
+      cardHeightPx,
+      collisionRadius,
       color: source.aura?.color || fallbackColor,
-      val: auraSize ? 1.1 + auraSize / 45 : source.hasMap ? 2.1 : 1.55,
+      val: auraSize ? 8 + auraSize / 22 : hasMapPreview ? 9.6 : 8.8,
+      x: initialPositions[index]?.x ?? 0,
+      y: initialPositions[index]?.y ?? 0,
       ...(auraLuminance ? { auraLuminance } : {}),
       ...(auraSize ? { auraSize } : {}),
     };
@@ -793,7 +878,8 @@ const buildTemporalOrderForceGraph2DData = (
 
   return {
     nodes,
-    links: buildTemporalOrderLinkSequence(eventSources.map((source) => source.nodeId)),
+    // Match old non-linear card field behavior: free-floating cards without chain edges.
+    links: [],
   };
 };
 
@@ -808,7 +894,13 @@ const TemporalOrderForceGraph2D: React.FC<{
   graphData: TemporalOrderForceGraph2DData;
 }> = ({ graphData }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const graphRef = useRef<ForceGraph2DInstance | null>(null);
+  const graphRef = useRef<ForceGraph2DHandle | null>(null);
+  const cardElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const [GraphComponent, setGraphComponent] = useState<ReactForceGraph2DComponent | null>(null);
+  const [graphSize, setGraphSize] = useState({
+    width: FORCE_GRAPH_2D_MIN_WIDTH,
+    height: FORCE_GRAPH_2D_DEFAULT_HEIGHT,
+  });
   const [loadError, setLoadError] = useState<string | null>(null);
   const resolvedGraphData = useMemo(
     () => cloneTemporalOrderForceGraph2DData(graphData),
@@ -820,120 +912,108 @@ const TemporalOrderForceGraph2D: React.FC<{
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    import('react-force-graph-2d')
+      .then((module) => {
+        if (cancelled) return;
+        setGraphComponent(() => module.default as unknown as ReactForceGraph2DComponent);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        console.error('Failed to load react-force-graph-2d:', error);
+        if (!cancelled) {
+          setLoadError('Unable to load 2D graph.');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    let disposed = false;
-    let resizeObserver: ResizeObserver | null = null;
-    let fallbackFitTimeoutId: number | null = null;
-    let didInitialFit = false;
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setGraphSize({
+        width: Math.max(FORCE_GRAPH_2D_MIN_WIDTH, Math.floor(entry.contentRect.width)),
+        height: Math.max(FORCE_GRAPH_2D_MIN_HEIGHT, Math.floor(entry.contentRect.height)),
+      });
+    });
 
-    const fitGraph = (graph: ForceGraph2DInstance, durationMs: number) => {
-      graph.zoomToFit(durationMs, 80);
-    };
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
-    const initGraph = async () => {
-      try {
-        await ensureForceGraph2DScript();
-        const ForceGraph = getForceGraph2DFactory();
-        if (disposed || !ForceGraph) return;
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
 
-        const { width: rawWidth, height: rawHeight } = container.getBoundingClientRect();
-        const width = Math.max(FORCE_GRAPH_2D_MIN_WIDTH, Math.floor(rawWidth));
-        const height = Math.max(FORCE_GRAPH_2D_MIN_HEIGHT, Math.floor(rawHeight));
+    const chargeForce = graph.d3Force('charge');
+    if (chargeForce?.strength) {
+      chargeForce.strength(-960);
+    }
+    if (chargeForce?.distanceMax) {
+      chargeForce.distanceMax(920);
+    }
+    if (chargeForce?.distanceMin) {
+      chargeForce.distanceMin(16);
+    }
 
-        const graph = ForceGraph()(container);
-        graphRef.current = graph;
+    graph.d3Force(
+      'collide',
+      forceCollide<any>()
+        .radius((node: any) => Number(node?.collisionRadius) || 180)
+        .strength(0.92)
+        .iterations(2)
+    );
 
-        graph
-          .graphData(resolvedGraphData)
-          .backgroundColor('#f8fafc')
-          .nodeId('id')
-          .nodeLabel((node) => node.label)
-          .nodeColor((node) => node.color)
-          .nodeVal((node) => node.val)
-          .nodeCanvasObject((node, context, globalScale) => {
-            const fontSize = Math.max(10, 13 / globalScale);
-            const x = node.x ?? 0;
-            const y = node.y ?? 0;
-            const radius = Math.max(5, Math.sqrt(Math.max(0.8, node.val)) * 4.4);
+    const fitTimeoutId = window.setTimeout(() => {
+      graph.zoomToFit(280, 140);
+    }, 520);
 
-            context.beginPath();
-            context.arc(x, y, radius, 0, 2 * Math.PI, false);
-            context.fillStyle = node.color;
-            context.globalAlpha = 0.92;
-            context.fill();
-
-            context.lineWidth = Math.max(0.8, 1.2 / globalScale);
-            context.strokeStyle = 'rgba(30, 41, 59, 0.5)';
-            context.globalAlpha = 1;
-            context.stroke();
-
-            context.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.fillStyle = '#1e293b';
-            context.fillText(node.label, x, y + radius + fontSize * 0.85);
-          })
-          .linkColor(() => 'rgba(71, 85, 105, 0.34)')
-          .linkWidth(1.1)
-          .linkDirectionalArrowLength(4)
-          .linkDirectionalArrowRelPos(0.82)
-          .width(width)
-          .height(height)
-          .enableNodeDrag(true)
-          .onEngineStop(() => {
-            if (disposed || didInitialFit) return;
-            didInitialFit = true;
-            fitGraph(graph, 320);
-          });
-
-        const chargeForce = graph.d3Force('charge');
-        if (chargeForce?.strength) {
-          chargeForce.strength(-220);
-        }
-
-        fallbackFitTimeoutId = window.setTimeout(() => {
-          if (disposed || !graphRef.current || didInitialFit) return;
-          didInitialFit = true;
-          fitGraph(graphRef.current, 260);
-        }, 720);
-
-        resizeObserver = new ResizeObserver((entries) => {
-          const entry = entries[0];
-          const activeGraph = graphRef.current;
-          if (!entry || !activeGraph) return;
-
-          const nextWidth = Math.max(FORCE_GRAPH_2D_MIN_WIDTH, Math.floor(entry.contentRect.width));
-          const nextHeight = Math.max(FORCE_GRAPH_2D_MIN_HEIGHT, Math.floor(entry.contentRect.height));
-          activeGraph.width(nextWidth).height(nextHeight);
-          fitGraph(activeGraph, 0);
-        });
-
-        resizeObserver.observe(container);
-      } catch (error) {
-        console.error('Failed to initialize temporal order 2D graph:', error);
-        if (!disposed) {
-          setLoadError('Unable to load 2D graph.');
-        }
-      }
-    };
-
-    initGraph();
-
-    return () => {
-      disposed = true;
-      if (fallbackFitTimeoutId !== null) {
-        window.clearTimeout(fallbackFitTimeoutId);
-      }
-      resizeObserver?.disconnect();
-      if (graphRef.current?._destructor) {
-        graphRef.current._destructor();
-      }
-      graphRef.current = null;
-      container.innerHTML = '';
-    };
+    return () => window.clearTimeout(fitTimeoutId);
   }, [resolvedGraphData]);
+
+  useEffect(() => {
+    let frameId = 0;
+    const updateCardTransforms = () => {
+      const graph = graphRef.current;
+      if (!graph) {
+        frameId = window.requestAnimationFrame(updateCardTransforms);
+        return;
+      }
+
+      const maxX = graphSize.width + 240;
+      const maxY = graphSize.height + 240;
+      resolvedGraphData.nodes.forEach((node) => {
+        const element = cardElementsRef.current[node.id];
+        if (!element) return;
+
+        const graphX = Number.isFinite(node.x) ? Number(node.x) : 0;
+        const graphY = Number.isFinite(node.y) ? Number(node.y) : 0;
+        const screenPoint = graph.graph2ScreenCoords(graphX, graphY);
+        const isVisible =
+          Number.isFinite(screenPoint.x) &&
+          Number.isFinite(screenPoint.y) &&
+          screenPoint.x > -220 &&
+          screenPoint.y > -220 &&
+          screenPoint.x < maxX &&
+          screenPoint.y < maxY;
+
+        element.style.opacity = isVisible ? '1' : '0';
+        element.style.transform = `translate(${screenPoint.x}px, ${screenPoint.y}px) translate(-50%, -50%)`;
+      });
+
+      frameId = window.requestAnimationFrame(updateCardTransforms);
+    };
+
+    frameId = window.requestAnimationFrame(updateCardTransforms);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [graphSize.height, graphSize.width, resolvedGraphData]);
 
   return (
     <div
@@ -945,7 +1025,57 @@ const TemporalOrderForceGraph2D: React.FC<{
       onTouchStart={stopEditorEventBubble}
       onWheel={stopEditorEventBubble}
     >
-      <div ref={containerRef} className="temporal-order-graph-canvas-host" />
+      <div ref={containerRef} className="temporal-order-graph-canvas-host">
+        {GraphComponent && (
+          <GraphComponent
+            ref={graphRef}
+            graphData={resolvedGraphData as unknown as Record<string, unknown>}
+            width={graphSize.width}
+            height={graphSize.height}
+            backgroundColor="#f8fafc"
+            nodeId="id"
+            nodeLabel={(node: any) => node.label}
+            nodeCanvasObjectMode={() => 'replace'}
+            nodeCanvasObject={() => {}}
+            nodePointerAreaPaint={(node: any, color: string, context: CanvasRenderingContext2D, globalScale: number) => {
+              const safeScale = Math.max(0.0001, globalScale || 1);
+              const cardWidth = (Number(node.cardWidthPx) || FORCE_GRAPH_CARD_WIDTH) / safeScale;
+              const cardHeight = (Number(node.cardHeightPx) || FORCE_GRAPH_CARD_HEIGHT) / safeScale;
+              const cornerRadius = FORCE_GRAPH_CARD_CORNER_RADIUS / safeScale;
+              const left = (Number.isFinite(node.x) ? node.x : 0) - cardWidth / 2;
+              const top = (Number.isFinite(node.y) ? node.y : 0) - cardHeight / 2;
+
+              context.fillStyle = color;
+              drawTemporalOrderRoundedRect(context, left, top, cardWidth, cardHeight, cornerRadius);
+              context.fill();
+            }}
+            linkColor={() => 'rgba(71, 85, 105, 0.24)'}
+            linkWidth={0.8}
+            enableNodeDrag
+            cooldownTicks={160}
+          />
+        )}
+        <div className="temporal-order-graph-cards-overlay" aria-hidden="true">
+          {resolvedGraphData.nodes.map((node) => (
+            <div
+              key={node.id}
+              ref={(element) => {
+                cardElementsRef.current[node.id] = element;
+              }}
+              className="temporal-order-graph-card-anchor"
+              style={{ width: node.cardWidthPx }}
+            >
+              <TemporalEventCardRenderer
+                data={{
+                  nodeId: node.id,
+                  label: truncateTemporalOrderLabel(node.label, 54),
+                  content: node.content,
+                } as TemporalEventCanvasNodeData}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
       {loadError && (
         <div className="temporal-order-graph-canvas-error">{loadError}</div>
       )}
@@ -1023,7 +1153,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.985 }}
                   transition={{ duration: 0.28 }}
-                  className="temporal-order-graph-layer is-edge-to-edge"
+                  className={isAuraLens ? "temporal-order-graph-layer is-edge-to-edge" : "temporal-order-flow-layer is-edge-to-edge"}
                 >
                   {isAuraLens ? (
                     <ForceGraph3DFigure
@@ -1037,7 +1167,9 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                       fitZoomScale={0.72}
                     />
                   ) : (
-                    <TemporalOrderForceGraph2D graphData={graph2DData} />
+                    <TemporalOrderForceGraph2D
+                      graphData={graph2DData}
+                    />
                   )}
                 </motion.div>
               )}
@@ -1301,29 +1433,51 @@ export const TemporalOrderExtension = TipTapNode.create({
         const usedNodeIds = new Set<string>();
         let index = 0;
 
-        props.node.forEach((childNode) => {
-          // Force-graph lenses should represent timeline containers only.
-          if (childNode.type.name !== 'temporalSpace' && childNode.type.name !== 'trends') {
-            return;
+        const isRenderableTimelineNode = (node: ProseMirrorNode): boolean => {
+          // TemporalSpace cards are the primary units rendered in TemporalOrder.
+          if (node.type.name === 'temporalSpace') {
+            return true;
           }
 
-          const nodeQuantaId = (childNode.attrs as any)?.quantaId;
+          // Trends can also live inside TemporalOrder, but when it wraps temporalSpace
+          // children we render those children as graph nodes instead of the wrapper.
+          if (node.type.name === 'trends') {
+            let hasNestedTemporalSpace = false;
+            node.descendants((descendant) => {
+              if (descendant.type.name === 'temporalSpace') {
+                hasNestedTemporalSpace = true;
+                return false;
+              }
+              return true;
+            });
+            return !hasNestedTemporalSpace;
+          }
+
+          return false;
+        };
+
+        props.node.descendants((candidateNode, pos) => {
+          if (!isRenderableTimelineNode(candidateNode)) {
+            return true;
+          }
+
+          const nodeQuantaId = (candidateNode.attrs as any)?.quantaId;
           const key =
             typeof nodeQuantaId === 'string' && nodeQuantaId.trim()
               ? nodeQuantaId
-              : `${childNode.type.name}-${index}`;
+              : `${candidateNode.type.name}-${pos}-${index}`;
 
           const label =
             truncateTemporalOrderLabel(
-              childNode.textContent?.replace(/\s+/g, ' ').trim() || childNode.type.name || 'Event'
+              candidateNode.textContent?.replace(/\s+/g, ' ').trim() || candidateNode.type.name || 'Event'
             );
           const nodeId = buildTemporalOrderNodeId(label, index, usedNodeIds);
-          const date = extractEarliestDateFromNode(childNode);
-          const aura = deriveTemporalOrderNodeAura(childNode);
+          const date = extractEarliestDateFromNode(candidateNode);
+          const aura = deriveTemporalOrderNodeAura(candidateNode);
 
           let hasMap = false;
           let hasMeaningfulContent = false;
-          childNode.descendants((descendant) => {
+          candidateNode.descendants((descendant) => {
             if (descendant.type.name === 'mapboxMap') {
               hasMap = true;
             }
@@ -1338,20 +1492,21 @@ export const TemporalOrderExtension = TipTapNode.create({
 
           // Skip empty wrappers so they do not render as empty graph nodes.
           if (!hasMeaningfulContent) {
-            return;
+            return true;
           }
 
           sources.push({
             key,
             nodeId,
             label,
-            content: childNode.toJSON() as JSONContent,
+            content: candidateNode.toJSON() as JSONContent,
             hasMap,
             dateMs: date ? date.getTime() : null,
             aura,
           });
 
           index += 1;
+          return true;
         });
 
         return sources;

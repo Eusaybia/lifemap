@@ -9,6 +9,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'rea
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
+import { AuraSpec, toAuraDataAttributes } from '../aura/AuraModel'
 
 // Unique plugin key to avoid conflicts with other extensions
 const HashtagPluginKey = new PluginKey('hashtag-suggestion')
@@ -21,6 +22,7 @@ export interface Hashtag {
   id: string
   label: string
   color: string
+  aura?: AuraSpec
 }
 
 interface HashtagListProps extends SuggestionProps {
@@ -65,6 +67,16 @@ const POPULAR_HASHTAGS: Hashtag[] = [
   { id: 'tag:focus', label: '☀️ focus', color: '#ffb700' },
   { id: 'tag:very-important', label: '🌟 very important', color: '#fbbf24' },
   { id: 'tag:important', label: '⭐️ important', color: '#f59e0b' },
+  {
+    id: 'tag:not-a-priority',
+    label: '🌑 not-a-priority',
+    color: '#3d4352',
+    aura: {
+      color: '#2f3645',
+      luminance: 120,
+      size: 24,
+    },
+  },
   { id: 'tag:complete', label: '✅ complete', color: '#10b981' },
   { id: 'tag:unimportant', label: '🌫️ unimportant', color: '#6b7280' },
   
@@ -139,6 +151,14 @@ const createCustomHashtag = (name: string, isNew: boolean = true): Hashtag => ({
   color: getColorForHashtag(name),
 })
 
+const toHashtagInsertAttrs = (hashtag: Hashtag) => ({
+  id: hashtag.id.replace('tag:new-', 'tag:user-'),
+  label: `#${hashtag.label}`,
+  'data-tag': hashtag.label,
+  'data-color': hashtag.color,
+  ...(hashtag.aura ? toAuraDataAttributes(hashtag.aura) : {}),
+})
+
 const fetchHashtags = (query: string): Hashtag[] => {
   const customHashtags = loadCustomHashtags()
   const allKnownHashtags = [...POPULAR_HASHTAGS, ...customHashtags]
@@ -194,10 +214,7 @@ const HashtagList = forwardRef<HashtagListRef, HashtagListProps>((props, ref) =>
     }
     
     props.command({
-      id: hashtag.id.replace('tag:new-', 'tag:user-'), // Normalize the ID
-      label: `#${hashtag.label}`,
-      'data-tag': hashtag.label,
-      'data-color': hashtag.color,
+      ...toHashtagInsertAttrs(hashtag),
     })
   }
 
@@ -300,6 +317,9 @@ export const HashtagNode = Node.create({
       label: { default: null },
       'data-tag': { default: null },
       'data-color': { default: '#3b82f6' },
+      'data-aura-color': { default: null },
+      'data-aura-luminance': { default: null },
+      'data-aura-size': { default: null },
     }
   },
 
@@ -311,13 +331,17 @@ export const HashtagNode = Node.create({
     // Add special glow classes for important, complete, and focus tags
     // These work with the Aura component for visual effects
     const label = (node.attrs.label as string) || ''
+    const dataTag = (node.attrs['data-tag'] as string) || ''
+    const id = (node.attrs.id as string) || ''
     let extraClass = ''
-    if (label.includes('⭐️ important') || label === 'important') {
+    if (label.includes('⭐️ important') || label === 'important' || dataTag === 'important') {
       extraClass = ' glow'
-    } else if (label.includes('✅ complete') || label === 'complete') {
+    } else if (label.includes('✅ complete') || label === 'complete' || dataTag === 'complete') {
       extraClass = ' green-glow'
-    } else if (label.includes('☀️ focus') || label === 'focus') {
+    } else if (label.includes('☀️ focus') || label === 'focus' || dataTag === 'focus') {
       extraClass = ' focus-glow'
+    } else if (label.includes('not-a-priority') || dataTag === 'not-a-priority' || id === 'tag:not-a-priority') {
+      extraClass = ' dim-glow'
     }
 
     return [
@@ -368,6 +392,22 @@ export const HashtagNode = Node.create({
           'data-tag': 'focus',
           'data-color': '#ffb700',
         }),
+      }),
+      // nnp -> 🌑 not-a-priority (dark + dim aura)
+      nodeInputRule({
+        find: /nnp$/,
+        type: this.type,
+        getAttributes: () =>
+          toHashtagInsertAttrs({
+            id: 'tag:not-a-priority',
+            label: '🌑 not-a-priority',
+            color: '#3d4352',
+            aura: {
+              color: '#2f3645',
+              luminance: 120,
+              size: 24,
+            },
+          }),
       }),
     ]
   },
@@ -466,4 +506,3 @@ export const HashtagMention = Extension.create<HashtagOptions>({
 })
 
 export default HashtagMention
-
