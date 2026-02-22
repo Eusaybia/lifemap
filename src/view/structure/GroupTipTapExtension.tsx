@@ -54,10 +54,31 @@ const prettifyNodeType = (typeName: string) =>
     .replace(/[-_]/g, ' ')
     .replace(/^./, (char) => char.toUpperCase());
 
+// Bayer-style Greek letter designations used in real star catalogues.
+// When a node has no meaningful text we assign it a designation from this
+// pool so the constellation map reads like an actual star chart.
+const GREEK_LETTERS = [
+  'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
+  'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ',
+  'φ', 'χ', 'ψ', 'ω',
+];
+
+// Abbreviated Latin constellation names paired with their Greek letter
+// to form authentic-looking Bayer designations (e.g. "α Lyr", "β Cyg").
+const CONSTELLATION_ABBREVS = [
+  'Lyr', 'Cyg', 'Aql', 'Ori', 'Gem', 'Leo', 'Vir', 'Lib',
+  'Sgr', 'Cap', 'Aqr', 'Psc', 'Tau', 'Cnc', 'Sco', 'Ari',
+  'Dra', 'UMa', 'UMi', 'Cas', 'Per', 'And', 'Cep', 'Peg',
+];
+
 const getGlowNodeLabel = (node: ProseMirrorNode, index: number) => {
   const text = node.textBetween(0, node.content.size, ' ', ' ').replace(/\s+/g, ' ').trim();
   if (text.length > 0) return truncateGlowLabel(text);
-  return `${prettifyNodeType(node.type.name)} ${index + 1}`;
+
+  // Fallback: assign a Bayer-style star designation instead of "Paragraph 5"
+  const greek = GREEK_LETTERS[index % GREEK_LETTERS.length];
+  const constellation = CONSTELLATION_ABBREVS[index % CONSTELLATION_ABBREVS.length];
+  return `${greek} ${constellation}`;
 };
 
 const buildGlowVisualisationData = (groupNode: ProseMirrorNode): ForceGraph3DData => {

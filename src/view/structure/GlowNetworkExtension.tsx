@@ -153,17 +153,34 @@ const resolveNodeRenderColor = (node: ForceGraph3DNode) => {
   return scaleHexColor(baseColor, brightnessScale);
 };
 
+// Simple string hash to produce stable pseudo-random variation per node.
+// This avoids Math.random() which would jitter on every re-render.
+const hashString = (str: string) => {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+};
+
 const resolveNodeRenderValue = (node: ForceGraph3DNode) => {
   const size = resolveAuraSize(node);
   if (size === null) {
-    return node.tone === "dark" ? 1 : 1.2;
+    // Vary star sizes between 0.4 and 2.0 based on a hash of the node id,
+    // mimicking how real stars differ in apparent magnitude.
+    const variation = (hashString(node.id) % 100) / 100; // 0..1
+    return 0.4 + variation * 1.6;
   }
   return 0.6 + (size / AURA_SIZE_MAX) * 2.4;
 };
 
 const resolveLabelTextHeight = (node: ForceGraph3DNode) => {
   const size = resolveAuraSize(node);
-  if (size === null) return 8;
+  if (size === null) {
+    // Scale label with the star's apparent size for realism
+    const variation = (hashString(node.id) % 100) / 100;
+    return 4 + variation * 6;
+  }
   return 5 + (size / AURA_SIZE_MAX) * 6;
 };
 
