@@ -101,7 +101,71 @@ const buildGlowVisualisationData = (groupNode: ProseMirrorNode): ForceGraph3DDat
     nodes.push({ id: 'Empty group', group: 1, tone: 'light' });
   }
 
-  return { nodes, links: [] };
+  // ── Constellation-style link generation ──
+  // Real constellation maps are composed of many small, disconnected clusters
+  // of 2-5 stars each, connected by simple angular shapes (chains, triangles,
+  // L-shapes, zigzags). We partition the nodes into small groups and wire each
+  // group internally with a sparse pattern, leaving gaps between groups so they
+  // float apart like separate constellations in the night sky.
+
+  const links: { source: string; target: string }[] = [];
+
+  if (nodes.length <= 1) {
+    return { nodes, links };
+  }
+
+  // Use a seeded-ish shuffle based on node count so the layout is stable
+  // for the same content but looks organic
+  const shuffled = [...nodes];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = (i * 7 + shuffled.length * 3) % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Partition into small clusters of 2-4 nodes each
+  const clusters: typeof nodes[] = [];
+  let cursor = 0;
+  const clusterSizes = [3, 2, 4, 2, 3, 5, 2, 3, 4, 2];
+  let sizeIdx = 0;
+  while (cursor < shuffled.length) {
+    const size = Math.min(
+      clusterSizes[sizeIdx % clusterSizes.length],
+      shuffled.length - cursor
+    );
+    clusters.push(shuffled.slice(cursor, cursor + size));
+    cursor += size;
+    sizeIdx++;
+  }
+
+  // Assign a group index to each node based on its cluster
+  clusters.forEach((cluster, clusterIdx) => {
+    cluster.forEach((node) => {
+      node.group = clusterIdx + 1;
+    });
+  });
+
+  // Wire each cluster with a simple angular constellation pattern
+  clusters.forEach((cluster) => {
+    if (cluster.length === 1) return;
+
+    if (cluster.length === 2) {
+      links.push({ source: cluster[0].id, target: cluster[1].id });
+      return;
+    }
+
+    // Primary chain through all nodes in the cluster
+    for (let i = 0; i < cluster.length - 1; i++) {
+      links.push({ source: cluster[i].id, target: cluster[i + 1].id });
+    }
+
+    // Add one cross-link to create a triangle/fork shape (not a closed loop)
+    // This gives the angular, geometric feel of real constellations
+    if (cluster.length >= 4) {
+      links.push({ source: cluster[0].id, target: cluster[2].id });
+    }
+  });
+
+  return { nodes, links };
 };
 
 const GROUP_AURA_DERIVED_META = "groupAuraDerived";

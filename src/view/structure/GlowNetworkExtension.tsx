@@ -35,6 +35,11 @@ interface ForceGraph3DInstance {
   nodeThreeObjectExtend: (extend: boolean) => ForceGraph3DInstance;
   linkColor: (colorAccessor: () => string) => ForceGraph3DInstance;
   linkWidth: (width: number) => ForceGraph3DInstance;
+  linkOpacity: (opacity: number) => ForceGraph3DInstance;
+  linkDirectionalParticles: (num: number) => ForceGraph3DInstance;
+  linkDirectionalParticleWidth: (width: number) => ForceGraph3DInstance;
+  linkDirectionalParticleSpeed: (speed: number) => ForceGraph3DInstance;
+  linkDirectionalParticleColor: (colorAccessor: () => string) => ForceGraph3DInstance;
   showNavInfo: (enabled: boolean) => ForceGraph3DInstance;
   width: (width: number) => ForceGraph3DInstance;
   height: (height: number) => ForceGraph3DInstance;
@@ -49,7 +54,7 @@ interface ForceGraph3DInstance {
     lookAt?: { x?: number; y?: number; z?: number },
     durationMs?: number
   ) => ForceGraph3DInstance;
-  d3Force: (name: string) => { strength?: (value: number) => void } | undefined;
+  d3Force: (name: string) => { strength?: (value: number) => void; distance?: (value: number) => void } | undefined;
   postProcessingComposer: () => {
     addPass: (pass: unknown) => void;
   };
@@ -416,13 +421,14 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
             sprite.fontFace = ASTRO_FONT_FAMILY;
             sprite.fontWeight = "italic 700";
             if (sprite.center) {
-              sprite.center.y = -0.6;
+              sprite.center.y = 1.6;
             }
             return sprite;
           })
           .nodeThreeObjectExtend(true)
-          .linkColor(() => "rgba(236, 245, 255, 0.55)")
-          .linkWidth(0.9)
+          .linkColor(() => "#e6f0ff")
+          .linkOpacity(0.5)
+          .linkWidth(0.8)
           .showNavInfo(false)
           .width(width)
           .height(height)
@@ -442,10 +448,16 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
             }, 140);
           });
 
+        // Constellation layout tuning:
+        // Moderate charge keeps clusters distinct but close enough to feel cohesive.
+        // Short link distance keeps stars within the same constellation tight together.
         const chargeForce = graph.d3Force("charge");
         if (chargeForce?.strength) {
-          const hasLinks = resolvedGraphData.links.length > 0;
-          chargeForce.strength(hasLinks ? -120 : -12);
+          chargeForce.strength(-50);
+        }
+        const linkForce = graph.d3Force("link");
+        if (linkForce?.distance) {
+          linkForce.distance(40);
         }
 
         const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 2.5, 0.7, 0);
