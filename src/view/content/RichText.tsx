@@ -169,6 +169,26 @@ const parseDailySlugDate = (slug: string): Date | null => {
   return date
 }
 
+const resolveCurrentQuantaId = (scopedQuantaId?: string | null): string | null => {
+  const trimmedScoped = scopedQuantaId?.trim()
+  if (trimmedScoped) return trimmedScoped
+
+  if (typeof window === 'undefined') return null
+
+  const pathname = window.location.pathname || ''
+  const qPathMatch = pathname.match(/^\/q\/([^/?#]+)$/)
+  if (qPathMatch?.[1]) {
+    try {
+      return decodeURIComponent(qPathMatch[1])
+    } catch {
+      return qPathMatch[1]
+    }
+  }
+
+  const tail = pathname.split('/').pop()
+  return tail && tail.length > 0 ? tail : null
+}
+
 const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalMaterializationPlan | null => {
   if (quantaId === LONG_TERM_THIS_WEEK_QUANTA_ID) {
     return {
@@ -185,14 +205,8 @@ const resolveLongTermTemporalMaterializationPlan = (quantaId: string): TemporalM
   const dailyDate = parseDailySlugDate(quantaId)
   if (!dailyDate) return null
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const isToday =
-    dailyDate.getFullYear() === today.getFullYear() &&
-    dailyDate.getMonth() === today.getMonth() &&
-    dailyDate.getDate() === today.getDate()
-  if (!isToday) return null
-
+  // For long-term materialization mode, any concrete daily instance can be
+  // deterministically seeded from period-daily, including direct /q/{slug} loads.
   return {
     sourceQuantaIds: [PERIOD_DAILY_QUANTA_ID],
     resolveTokensForDate: dailyDate,
@@ -1277,6 +1291,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     '--quanta-content-scale': `${contentScaleCompensation}`,
     '--quanta-content-scale-inverse': `${inverseContentScaleCompensation}`,
   }
+
+  const { quantaId: scopedQuantaId } = React.useContext(QuantaStoreContext)
+  const resolvedQuantaId = resolveCurrentQuantaId(scopedQuantaId)
   
   // Share editor instance via context so DocumentFlowMenu can access it
   const { setEditor } = useEditorContext()
@@ -1316,7 +1333,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
     const newSalesGuideId = sessionStorage.getItem('newSalesGuide');
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     
     // Only apply template if URL ID matches stored ID
     if (newSalesGuideId === urlId && editor) {
@@ -1330,7 +1347,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         sessionStorage.removeItem('newSalesGuide');
       }, 300);
     }
-  }, [props.quanta?.id, editor]);
+  }, [props.quanta?.id, editor, resolvedQuantaId]);
 
   // Materialize abstract period quantas into concrete long-term-calendar panes.
   // This path is opt-in via `temporalMaterialization=long-term-v1` and only
@@ -1339,19 +1356,79 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
-    if (temporalMaterializationMode !== LONG_TERM_TEMPORAL_MATERIALIZATION_MODE) return;
-    if (!props.quanta?.information || !editor || templateApplied.current || temporalMaterializationChecked.current) return;
+    const temporalMaterializationDebug =
+      searchParams.get('tmDebug') === '1' ||
+      searchParams.get('temporalMaterializationDebug') === '1';
+    const effectStart = performance.now();
+    const tmDebugLog = (event: string, payload?: Record<string, unknown>) => {
+      if (!temporalMaterializationDebug) return;
+      const entry = {
+        timestamp: new Date().toISOString(),
+        event,
+        payload: payload ?? {},
+      };
+      const debugHost = window as Window & {
+        __tmDebugEvents?: Array<{
+          timestamp: string
+          event: string
+          payload: Record<string, unknown>
+        }>
+      };
+      const existingEvents = debugHost.__tmDebugEvents ?? [];
+      const nextEvents = [...existingEvents, entry];
+      if (nextEvents.length > 500) {
+        nextEvents.splice(0, nextEvents.length - 500);
+      }
+      debugHost.__tmDebugEvents = nextEvents;
+      console.log('[RichText TM DEBUG]', event, entry);
+    };
+
+    if (temporalMaterializationMode !== LONG_TERM_TEMPORAL_MATERIALIZATION_MODE) {
+      tmDebugLog('effect:skip:mode-mismatch', {
+        temporalMaterializationMode,
+      });
+      return;
+    }
+    if (!props.quanta?.information || !editor || templateApplied.current || temporalMaterializationChecked.current) {
+      tmDebugLog('effect:skip:missing-prereq', {
+        hasQuantaInformation: Boolean(props.quanta?.information),
+        hasEditor: Boolean(editor),
+        templateApplied: templateApplied.current,
+        temporalMaterializationChecked: temporalMaterializationChecked.current,
+      });
+      return;
+    }
 
     const templateKey = searchParams.get('templateKey');
-    if (templateKey) return;
+    if (templateKey) {
+      tmDebugLog('effect:skip:template-key-present', {
+        templateKey,
+      });
+      return;
+    }
 
     const forceTemporalMaterialization = searchParams.get('forceTemporalMaterialization') === 'true';
     const userId = searchParams.get('userId');
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
-    if (!urlId) return;
+    const pathSlug = window.location.pathname.split('/').pop() || null;
+    const quantaGuid = props.quanta?.id || null;
+    const urlId = resolvedQuantaId || quantaGuid || pathSlug;
+    if (!urlId) {
+      tmDebugLog('effect:skip:missing-url-id', {
+        pathSlug,
+        quantaGuid,
+      });
+      return;
+    }
 
     const plan = resolveLongTermTemporalMaterializationPlan(urlId);
-    if (!plan) return;
+    if (!plan) {
+      tmDebugLog('effect:skip:no-plan', {
+        urlId,
+        pathSlug,
+        quantaGuid,
+      });
+      return;
+    }
 
     const metaKey = buildTemporalMaterializationMetaKey({
       mode: temporalMaterializationMode,
@@ -1359,10 +1436,29 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       quantaId: urlId,
     });
     const existingMeta = readTemporalMaterializationMeta(metaKey);
+    tmDebugLog('effect:start', {
+      elapsedMs: Math.round(performance.now() - effectStart),
+      search: window.location.search,
+        pathname: window.location.pathname,
+        pathSlug,
+        quantaGuid,
+        scopedQuantaId,
+        resolvedQuantaId,
+        urlId,
+      userId,
+      mode: temporalMaterializationMode,
+      forceTemporalMaterialization,
+      planSourceQuantaIds: plan.sourceQuantaIds,
+      planResolveTokensForDate: plan.resolveTokensForDate ? plan.resolveTokensForDate.toISOString() : null,
+      planFallbackTemplate: plan.fallbackTemplate ?? null,
+      metaKey,
+      existingMeta,
+    });
 
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
+    let yDocUpdateCount = 0;
     const STABILIZATION_DELAY = 800;
     const FALLBACK_TIMEOUT = 2000;
 
@@ -1374,19 +1470,55 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         updatedAt: new Date().toISOString(),
         sourceQuantaIds,
       });
+      tmDebugLog('meta:persist', {
+        status,
+        sourceQuantaIds,
+      });
     };
 
-    const checkAndMaterialize = async () => {
-      if (temporalMaterializationChecked.current || templateApplied.current) return;
+    const probeIndexedDbRoom = async (roomName: string, context: string) => {
+      if (!temporalMaterializationDebug) return;
+      const probeContent = await fetchQuantaContentFromIndexedDB(roomName, 1500);
+      const sanitizedProbeContent = probeContent ? stripLegacyDailyFallbackNotice(probeContent) : null;
+      tmDebugLog(`probe:${context}`, {
+        roomName,
+        hasContent: Boolean(probeContent),
+        hasMeaningfulContent: hasMeaningfulContent(sanitizedProbeContent),
+      });
+    };
+
+    const checkAndMaterialize = async (trigger: 'stabilization' | 'fallback' | 'manual') => {
+      const checkStart = performance.now();
+      tmDebugLog('check:start', {
+        trigger,
+        temporalMaterializationChecked: temporalMaterializationChecked.current,
+        templateApplied: templateApplied.current,
+      });
+      if (temporalMaterializationChecked.current || templateApplied.current) {
+        tmDebugLog('check:skip:guard-locked', {
+          trigger,
+          temporalMaterializationChecked: temporalMaterializationChecked.current,
+          templateApplied: templateApplied.current,
+        });
+        return;
+      }
       temporalMaterializationChecked.current = true;
+      tmDebugLog('check:lock', {
+        trigger,
+      });
 
       const yFragment = yDoc.getXmlFragment('default');
       let yDocHasMeaningfulContent = yFragment.length > 0;
       try {
         const yDocJson = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
         yDocHasMeaningfulContent = hasMeaningfulContent(yDocJson);
-      } catch {
+      } catch (error) {
         yDocHasMeaningfulContent = yFragment.length > 0;
+        tmDebugLog('check:ydoc-transform-error', {
+          trigger,
+          error: String(error),
+          yFragmentLength: yFragment.length,
+        });
       }
 
       const editorContent = (editor as Editor).getJSON() as JSONContent
@@ -1395,10 +1527,23 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       const isDailyTarget = parseDailySlugDate(urlId) !== null;
       const isLongTermTarget = urlId === LONG_TERM_THIS_WEEK_QUANTA_ID || urlId === LONG_TERM_THIS_MONTH_QUANTA_ID;
       const supportsMergeIntoExisting = isDailyTarget || isLongTermTarget;
+      tmDebugLog('check:emptiness', {
+        trigger,
+        yDocHasMeaningfulContent,
+        editorHasMeaningfulContent,
+        isEmpty,
+        isDailyTarget,
+        isLongTermTarget,
+        supportsMergeIntoExisting,
+      });
 
       if (!isEmpty) {
         const dedupeResult = dedupeTopLevelTemporalMaterializationBlocks(editorContent);
         if (dedupeResult.removedCount > 0) {
+          tmDebugLog('check:dedupe:apply', {
+            trigger,
+            removedCount: dedupeResult.removedCount,
+          });
           yDoc.transact(() => {
             yFragment.delete(0, yFragment.length);
           });
@@ -1409,6 +1554,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
             existingMeta?.sourceQuantaIds?.length ? existingMeta.sourceQuantaIds : plan.sourceQuantaIds,
           );
           console.log(`[RichText] Removed ${dedupeResult.removedCount} duplicate temporal block(s) from ${urlId}`);
+          tmDebugLog('check:end', {
+            trigger,
+            elapsedMs: Math.round(performance.now() - checkStart),
+            outcome: 'dedupe-seeded',
+          });
           return;
         }
       }
@@ -1419,28 +1569,76 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         !forceTemporalMaterialization
       ) {
         // Enforce at-most-once-per-version semantics for this quanta.
-        if (existingMeta.status === 'seeded' && !isEmpty) return;
-        if (existingMeta.status === 'existing' && !isEmpty) return;
+        if (existingMeta.status === 'seeded' && !isEmpty) {
+          tmDebugLog('check:skip:meta-seeded-and-not-empty', {
+            trigger,
+            existingMeta,
+            isEmpty,
+          });
+          return;
+        }
+        if (existingMeta.status === 'existing' && !isEmpty) {
+          tmDebugLog('check:skip:meta-existing-and-not-empty', {
+            trigger,
+            existingMeta,
+            isEmpty,
+          });
+          return;
+        }
       }
 
       const sourceContents: Array<{ sourceQuantaId: string; content: JSONContent }> = [];
       for (const sourceQuantaId of plan.sourceQuantaIds) {
+        tmDebugLog('source:fetch:start', {
+          trigger,
+          sourceQuantaId,
+        });
         const sourceContent = await fetchQuantaContentWithLegacyFallback({
           userId,
           quantaId: sourceQuantaId,
           timeoutMs: 8000,
         });
-        if (!sourceContent) continue;
+        if (!sourceContent) {
+          tmDebugLog('source:fetch:missing', {
+            trigger,
+            sourceQuantaId,
+          });
+          const trimmedUserId = userId?.trim();
+          if (trimmedUserId) {
+            await probeIndexedDbRoom(`${trimmedUserId}/${sourceQuantaId}`, `source:scoped:${sourceQuantaId}`);
+          }
+          await probeIndexedDbRoom(sourceQuantaId, `source:legacy:${sourceQuantaId}`);
+          continue;
+        }
         const sanitizedSourceContent = stripLegacyDailyFallbackNotice(sourceContent);
-        if (!hasMeaningfulContent(sanitizedSourceContent)) continue;
+        if (!hasMeaningfulContent(sanitizedSourceContent)) {
+          tmDebugLog('source:fetch:not-meaningful', {
+            trigger,
+            sourceQuantaId,
+          });
+          continue;
+        }
         sourceContents.push({
           sourceQuantaId,
           content: sanitizedSourceContent,
         });
+        tmDebugLog('source:fetch:accepted', {
+          trigger,
+          sourceQuantaId,
+        });
       }
 
       let contentToApply = mergeTemporalMaterializationSources(sourceContents);
+      tmDebugLog('content:merged-sources', {
+        trigger,
+        sourceCount: sourceContents.length,
+        hasContentToApply: Boolean(contentToApply),
+      });
       if (!contentToApply && plan.fallbackTemplate && isEmpty) {
+        tmDebugLog('content:fallback-template:start', {
+          trigger,
+          fallbackTemplate: plan.fallbackTemplate,
+        });
         const templateContent = await fetchQuantaContentWithLegacyFallback({
           userId,
           quantaId: DAILY_TEMPLATE_QUANTA_ID,
@@ -1449,6 +1647,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         contentToApply = templateContent
           ? stripLegacyDailyFallbackNotice(templateContent)
           : getDailyScheduleTemplate();
+        tmDebugLog('content:fallback-template:resolved', {
+          trigger,
+          hasPersistedTemplate: Boolean(templateContent),
+          usedHardcodedTemplate: !templateContent,
+        });
       }
 
       if (!contentToApply) {
@@ -1457,23 +1660,49 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
             persistMeta('existing', plan.sourceQuantaIds);
           }
         }
+        tmDebugLog('check:skip:no-content-to-apply', {
+          trigger,
+          isEmpty,
+          sourceCount: sourceContents.length,
+        });
         return;
       }
 
       if (plan.resolveTokensForDate) {
+        tmDebugLog('content:resolve-daily-tokens', {
+          trigger,
+          resolveTokensForDate: plan.resolveTokensForDate.toISOString(),
+        });
         contentToApply = resolveDailyTemplateTokensForDate(contentToApply, plan.resolveTokensForDate);
       }
 
       if (isEmpty) {
         // Guard against late sync races: if the target already has persisted
         // content, skip seeding so we don't duplicate by materializing too early.
+        const trimmedUserId = userId?.trim();
+        if (trimmedUserId) {
+          await probeIndexedDbRoom(`${trimmedUserId}/${urlId}`, `target:scoped:${urlId}`);
+        }
+        await probeIndexedDbRoom(urlId, `target:legacy:${urlId}`);
         const persistedTargetContent = await fetchQuantaContentWithLegacyFallback({
           userId,
           quantaId: urlId,
           timeoutMs: 8000,
         });
-        if (persistedTargetContent && hasMeaningfulContent(stripLegacyDailyFallbackNotice(persistedTargetContent))) {
+        const sanitizedPersistedTargetContent = persistedTargetContent
+          ? stripLegacyDailyFallbackNotice(persistedTargetContent)
+          : null;
+        const persistedTargetHasMeaningfulContent = hasMeaningfulContent(sanitizedPersistedTargetContent);
+        tmDebugLog('target:fetch:result', {
+          trigger,
+          hasPersistedTargetContent: Boolean(persistedTargetContent),
+          persistedTargetHasMeaningfulContent,
+        });
+        if (persistedTargetHasMeaningfulContent) {
           persistMeta('existing', plan.sourceQuantaIds);
+          tmDebugLog('check:skip:target-has-persisted-content', {
+            trigger,
+          });
           return;
         }
 
@@ -1488,6 +1717,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
           sourceContents.length > 0 ? sourceContents.map((entry) => entry.sourceQuantaId) : plan.sourceQuantaIds,
         );
         console.log(`[RichText] Materialized ${urlId} from ${plan.sourceQuantaIds.join(', ')}`);
+        tmDebugLog('apply:seeded', {
+          trigger,
+          sourceQuantaIds: sourceContents.length > 0 ? sourceContents.map((entry) => entry.sourceQuantaId) : plan.sourceQuantaIds,
+          elapsedMs: Math.round(performance.now() - checkStart),
+        });
         return;
       }
 
@@ -1495,6 +1729,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         const existingContent = (editor as Editor).getJSON() as JSONContent;
         const mergeResult = mergeTemporalMaterializationIntoExistingDoc(existingContent, contentToApply);
         if (mergeResult.addedCount > 0) {
+          tmDebugLog('apply:merge', {
+            trigger,
+            addedCount: mergeResult.addedCount,
+          });
           yDoc.transact(() => {
             yFragment.delete(0, yFragment.length);
           });
@@ -1505,41 +1743,112 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
             sourceContents.length > 0 ? sourceContents.map((entry) => entry.sourceQuantaId) : plan.sourceQuantaIds,
           );
           console.log(`[RichText] Merged ${mergeResult.addedCount} temporal blocks into ${urlId}`);
+          tmDebugLog('check:end', {
+            trigger,
+            elapsedMs: Math.round(performance.now() - checkStart),
+            outcome: 'merged',
+          });
           return;
         }
+        tmDebugLog('apply:merge:no-op', {
+          trigger,
+        });
       }
 
       if (!existingMeta || existingMeta.version !== LONG_TERM_TEMPORAL_MATERIALIZATION_VERSION || forceTemporalMaterialization) {
         persistMeta('existing', plan.sourceQuantaIds);
       }
+      tmDebugLog('check:end', {
+        trigger,
+        elapsedMs: Math.round(performance.now() - checkStart),
+        outcome: 'marked-existing',
+      });
     };
+
+    const debugWindow = window as Window & {
+      __tmRunNow?: () => void
+      __tmRunNowById?: Record<string, () => void>
+    };
+    const runManualMaterialization = () => {
+      tmDebugLog('manual:triggered', {
+        urlId,
+      });
+      void checkAndMaterialize('manual');
+    };
+    if (temporalMaterializationDebug) {
+      debugWindow.__tmRunNow = runManualMaterialization;
+      debugWindow.__tmRunNowById = {
+        ...(debugWindow.__tmRunNowById ?? {}),
+        [urlId]: runManualMaterialization,
+      };
+      tmDebugLog('manual:registered', {
+        urlId,
+      });
+    }
 
     const resetStabilizationTimer = () => {
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
+      tmDebugLog('timer:stabilization:set', {
+        delayMs: STABILIZATION_DELAY,
+      });
       stabilizationTimeout = setTimeout(() => {
         if (fallbackTimeout) clearTimeout(fallbackTimeout);
-        void checkAndMaterialize();
+        tmDebugLog('timer:stabilization:fire', {
+          yDocUpdateCount,
+        });
+        void checkAndMaterialize('stabilization');
       }, STABILIZATION_DELAY);
     };
 
     const handleUpdate = () => {
+      yDocUpdateCount += 1;
+      tmDebugLog('ydoc:update', {
+        yDocUpdateCount,
+      });
       resetStabilizationTimer();
     };
 
     yDoc.on('update', handleUpdate);
+    tmDebugLog('ydoc:listener:attached', {
+      urlId,
+    });
     resetStabilizationTimer();
 
     fallbackTimeout = setTimeout(() => {
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
-      void checkAndMaterialize();
+      tmDebugLog('timer:fallback:fire', {
+        yDocUpdateCount,
+      });
+      void checkAndMaterialize('fallback');
     }, FALLBACK_TIMEOUT);
+    tmDebugLog('timer:fallback:set', {
+      delayMs: FALLBACK_TIMEOUT,
+    });
 
     return () => {
       yDoc.off('update', handleUpdate);
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
+      if (temporalMaterializationDebug) {
+        if (debugWindow.__tmRunNow === runManualMaterialization) {
+          delete debugWindow.__tmRunNow;
+        }
+        if (debugWindow.__tmRunNowById?.[urlId] === runManualMaterialization) {
+          const nextById = { ...debugWindow.__tmRunNowById };
+          delete nextById[urlId];
+          if (Object.keys(nextById).length > 0) {
+            debugWindow.__tmRunNowById = nextById;
+          } else {
+            delete debugWindow.__tmRunNowById;
+          }
+        }
+      }
+      tmDebugLog('effect:cleanup', {
+        urlId,
+        yDocUpdateCount,
+      });
     };
-  }, [props.quanta?.information, editor]);
+  }, [props.quanta?.information, editor, resolvedQuantaId, scopedQuantaId]);
 
   // Check for new daily schedule template flag
   // Uses localStorage because sessionStorage is NOT shared between iframes and parent
@@ -1557,7 +1866,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     const temporalMaterializationMode = searchParams.get(TEMPORAL_MATERIALIZATION_PARAM);
     if (temporalMaterializationMode) return;
     const userId = searchParams.get('userId');
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     const templateKey = searchParams.get('templateKey');
     const forceDailySeed = searchParams.get('forceDailySeed') === 'true';
     const scopedSchedulesKey = userId ? `${NEW_DAILY_SCHEDULES_KEY}-${userId}` : NEW_DAILY_SCHEDULES_KEY;
@@ -1770,7 +2079,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
-  }, [props.quanta?.information, editor]);
+  }, [props.quanta?.information, editor, resolvedQuantaId]);
 
   // ARCHITECTURE DECISION: Generic custom template seeding via URL query param + localStorage
   // ========================================================================================
@@ -1790,7 +2099,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!templateKey) return;
     if (!props.quanta?.information || !editor || templateApplied.current || customTemplateInitChecked.current) return;
 
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     const yDoc = props.quanta.information;
     let stabilizationTimeout: NodeJS.Timeout | null = null;
     let fallbackTimeout: NodeJS.Timeout | null = null;
@@ -1872,7 +2181,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
-  }, [props.quanta?.information, editor]);
+  }, [props.quanta?.information, editor, resolvedQuantaId]);
 
   // Initialize the editable daily-schedule-template with the hardcoded template if it's empty
   // This allows users to edit the template at /q/daily-schedule-template
@@ -1882,7 +2191,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // IndexedDB finishes syncing, which would cause Y.js to MERGE both (duplication bug).
   const dailyTemplateInitChecked = React.useRef(false);
   React.useEffect(() => {
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     
     // Only apply to the template quanta itself
     if (urlId !== DAILY_TEMPLATE_QUANTA_ID) return;
@@ -1959,7 +2268,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
-  }, [props.quanta?.information, editor]);
+  }, [props.quanta?.information, editor, resolvedQuantaId]);
 
   // ============================================================================
   // Initialize Period Quanta with TimePoint Mention
@@ -1974,7 +2283,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   React.useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const userId = searchParams.get('userId');
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     if (!urlId || !urlId.startsWith('period-')) return;
     if (!props.quanta?.information || !editor || templateApplied.current || periodInitChecked.current) return;
 
@@ -2068,7 +2377,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (stabilizationTimeout) clearTimeout(stabilizationTimeout);
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
-  }, [props.quanta?.information, editor]);
+  }, [props.quanta?.information, editor, resolvedQuantaId]);
 
   // Initialize life-mapping-main with LifeMappingMainTemplate if empty
   // DISABLED: Template auto-loading disabled to preserve user content
@@ -2078,7 +2387,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (!ENABLE_LIFE_MAPPING_MAIN_TEMPLATE) return; // Template loading disabled
     if (!props.quanta?.id || !editor || templateApplied.current) return;
     
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     
     // Only apply to life-mapping-main
     if (urlId === LIFE_MAPPING_MAIN_QUANTA_ID && editor) {
@@ -2093,7 +2402,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         }, 300);
       }
     }
-  }, [props.quanta?.id, editor]);
+  }, [props.quanta?.id, editor, resolvedQuantaId]);
 
   // Auto-insert Daily node for present-day-tasks after content has synced from IndexedDB
   // Also removes duplicate Daily nodes if multiple exist
@@ -2104,7 +2413,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (dailyNodeCheckDone.current) return;
     if (!props.quanta?.id || !editor) return;
     
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     if (urlId !== 'present-day-tasks') return;
     
     // Access the Y.Doc from the quanta props
@@ -2174,7 +2483,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       yDoc.off('update', onYDocUpdate);
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
     };
-  }, [props.quanta?.id, editor, props.quanta?.information]);
+  }, [props.quanta?.id, editor, props.quanta?.information, resolvedQuantaId]);
 
   // Auto-insert Calendar node for 'past' quanta (Monthly section) after content has synced
   // Use a module-level flag to prevent duplicate insertions across component remounts
@@ -2185,7 +2494,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (calendarNodeCheckDone.current) return;
     if (!props.quanta?.id || !editor) return;
     
-    const urlId = props.quanta?.id || window.location.pathname.split('/').pop();
+    const urlId = resolvedQuantaId;
     if (urlId !== 'past') return;
     
     // Access the Y.Doc from the quanta props
@@ -2254,7 +2563,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       yDoc.off('update', onYDocUpdate);
       if (stabilityTimeout) clearTimeout(stabilityTimeout);
     };
-  }, [props.quanta?.id, editor, props.quanta?.information]);
+  }, [props.quanta?.id, editor, props.quanta?.information, resolvedQuantaId]);
 
   // TODO: Change this to proper responsiveness for each screen size
   const maxWidth = 1300

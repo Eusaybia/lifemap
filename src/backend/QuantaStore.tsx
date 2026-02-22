@@ -8,6 +8,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions } from "./Firebase";
 
 type QuantaStoreContextType = {
+  quantaId: QuantaId,
   quanta: QuantaType,
   provider: TiptapCollabProvider | null
   requestVersionPreviewFromCloud: (version: Content) => void
@@ -15,6 +16,7 @@ type QuantaStoreContextType = {
 
 // Use null for the initial context - no dummy provider that spams connection errors
 const dummyQuantaStoreContext = {
+  quantaId: '',
   quanta: new QuantaClass(),
   provider: null,
   requestVersionPreviewFromCloud: (version: Content) => {}
@@ -149,6 +151,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   }
 
   const quantaStoreContext = {
+    quantaId: props.quantaId,
     quanta, 
     provider, 
     requestVersionPreviewFromCloud
