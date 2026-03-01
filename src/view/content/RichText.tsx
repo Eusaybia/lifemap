@@ -20,7 +20,7 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { throttle } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
-import { createLowlight } from 'lowlight'
+import * as lowlightModule from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
@@ -774,9 +774,44 @@ import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { useEditorContext } from '../../contexts/EditorContext'
 
-const lowlight = createLowlight()
-lowlight.register('javascript', js)
-lowlight.register('js', js)
+const lowlight = (() => {
+  const maybeCreateLowlight = (lowlightModule as { createLowlight?: () => unknown }).createLowlight
+  if (typeof maybeCreateLowlight === 'function') {
+    return maybeCreateLowlight()
+  }
+
+  const maybeLegacyLowlight = (lowlightModule as { lowlight?: unknown }).lowlight
+  if (
+    maybeLegacyLowlight &&
+    (
+      typeof (maybeLegacyLowlight as { register?: unknown }).register === 'function' ||
+      typeof (maybeLegacyLowlight as { registerLanguage?: unknown }).registerLanguage === 'function'
+    )
+  ) {
+    return maybeLegacyLowlight
+  }
+
+  throw new Error('Unsupported lowlight export shape')
+})()
+
+const registerLowlightLanguage = (instance: unknown, languageName: string, language: unknown) => {
+  const register = (instance as { register?: (name: string, syntax: unknown) => void }).register
+  if (typeof register === 'function') {
+    register(languageName, language)
+    return
+  }
+
+  const registerLanguage = (instance as { registerLanguage?: (name: string, syntax: unknown) => void }).registerLanguage
+  if (typeof registerLanguage === 'function') {
+    registerLanguage(languageName, language)
+    return
+  }
+
+  throw new Error('Lowlight instance does not support language registration')
+}
+
+registerLowlightLanguage(lowlight, 'javascript', js)
+registerLowlightLanguage(lowlight, 'js', js)
 
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
