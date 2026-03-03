@@ -56,6 +56,7 @@ import { generateUniqueID } from '../../utils/utils'
 import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { ExternalPortalExtension } from '../structure/ExternalPortalExtension'
+import { BrowserWindowExtension } from '../structure/BrowserWindowExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
@@ -907,7 +908,7 @@ export const officialExtensions = (quantaId: string) => {return [
       'paragraph', 'mention', 'group', 'scrollview', 'daily',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'portal', 'lifetimeView', 'glowNetwork',
+      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
       'excalidraw', 'mapboxMap', 'warning', 'quote',
@@ -989,6 +990,7 @@ export const customExtensions: Extensions = [
   PortalExtension,
   ExperimentalPortalExtension,
   ExternalPortalExtension,
+  BrowserWindowExtension,
   QuoteExtension,
   SpanGroupMark,
   WarningExtension,

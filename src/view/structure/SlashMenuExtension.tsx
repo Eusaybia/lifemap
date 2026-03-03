@@ -79,6 +79,22 @@ function insertFirstAvailableInlineNode(
 
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
 
+function insertBrowserWindowNode(editor: Editor): boolean {
+  const commands = editor.commands as {
+    insertBrowserWindow?: (attributes?: { url?: string; height?: number }) => boolean
+  }
+
+  if (typeof commands.insertBrowserWindow === 'function') {
+    return commands.insertBrowserWindow({ url: '' })
+  }
+
+  return editor
+    .chain()
+    .focus()
+    .insertContent({ type: 'browserWindow', attrs: { url: '' } })
+    .run()
+}
+
 function insertCanvasNode(editor: Editor): boolean {
   // Prefer the React Flow canvas node; support both name variants to avoid
   // case-related schema naming drift across environments.
@@ -629,6 +645,16 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         // @ts-ignore
         editor.commands.insertLifetimeView?.() ||
           editor.chain().focus().insertContent({ type: 'lifetimeView' }).run()
+      },
+    },
+    {
+      id: 'browser-window',
+      title: 'Browser Window',
+      description: 'Embed a website with a URL bar',
+      emoji: '🌐',
+      keywords: ['browser', 'window', 'web', 'url', 'website', 'iframe', 'notion', 'apple notes'],
+      action: (editor) => {
+        insertBrowserWindowNode(editor)
       },
     },
     {
