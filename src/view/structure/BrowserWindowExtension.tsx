@@ -8,6 +8,12 @@ const DEFAULT_IFRAME_HEIGHT = 360;
 const MIN_IFRAME_HEIGHT = 160;
 const MAX_IFRAME_HEIGHT = 720;
 const sharedBorderRadius = 15;
+const DESKTOP_SURFACE_INSET = {
+  top: 44,
+  right: 14,
+  bottom: 14,
+  left: 14,
+};
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -29,7 +35,15 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const resolvedUrl = useMemo(() => normalizeUrl(rawUrl), [rawUrl]);
   const [inputValue, setInputValue] = useState(rawUrl);
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const desktopApi = typeof window !== "undefined" ? window.kairosDesktop : undefined;
+  const desktopApi = useMemo(() => {
+    if (typeof window === "undefined") return undefined;
+    if (window.kairosDesktop) return window.kairosDesktop;
+    try {
+      return window.top?.kairosDesktop;
+    } catch {
+      return undefined;
+    }
+  }, []);
   const isDesktopSurfaceEnabled = Boolean(desktopApi?.isElectron);
   const [surfaceId, setSurfaceId] = useState(() => {
     const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
@@ -59,12 +73,57 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const computeBounds = useCallback(() => {
     const hostElement = hostRef.current;
     if (!hostElement) return null;
+
+    // Compute bounds relative to the top-level Electron BrowserWindow even when
+    // the node is rendered inside nested same-origin iframes with CSS transforms.
     const rect = hostElement.getBoundingClientRect();
+    let x = rect.left;
+    let y = rect.top;
+    let width = rect.width;
+    let height = rect.height;
+
+    try {
+      let currentWindow: Window | null = window;
+      while (currentWindow && currentWindow !== currentWindow.top) {
+        const frameElement = currentWindow.frameElement as HTMLElement | null;
+        if (!frameElement) break;
+        const frameRect = frameElement.getBoundingClientRect();
+
+        // When parent scenes scale/transform the iframe, BrowserView bounds must
+        // include that scale or the native surface will drift and overshoot.
+        const frameClientWidth = Math.max(frameElement.clientWidth, 1);
+        const frameClientHeight = Math.max(frameElement.clientHeight, 1);
+        const scaleX = frameRect.width / frameClientWidth;
+        const scaleY = frameRect.height / frameClientHeight;
+
+        x = frameRect.left + x * scaleX;
+        y = frameRect.top + y * scaleY;
+        width *= scaleX;
+        height *= scaleY;
+        currentWindow = currentWindow.parent;
+      }
+    } catch {
+      // Cross-origin access should not happen in this app path, but if it does,
+      // keep best-effort local-frame coordinates.
+    }
+
+    // BrowserView is rendered above the DOM layer, so map it to the inner
+    // viewport region instead of the full node card (so URL chrome/frame keeps
+    // visual ownership and the page appears contained).
+    const insetWidth = Math.max(
+      0,
+      width - DESKTOP_SURFACE_INSET.left - DESKTOP_SURFACE_INSET.right,
+    );
+    const insetHeight = Math.max(
+      0,
+      height - DESKTOP_SURFACE_INSET.top - DESKTOP_SURFACE_INSET.bottom,
+    );
+
     return {
-      x: Math.round(rect.left),
-      y: Math.round(rect.top),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
+      x: Math.round(x + DESKTOP_SURFACE_INSET.left),
+      y: Math.round(y + DESKTOP_SURFACE_INSET.top),
+      width: Math.round(insetWidth),
+      height: Math.round(insetHeight),
     };
   }, []);
 
