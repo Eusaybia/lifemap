@@ -27,6 +27,10 @@ export interface SlashMenuItem {
 export type Canvas3DSlashMenuInsertPayload = {
   type: '3d-photo'
   imageUrl: string
+} | {
+  type: 'note'
+} | {
+  type: 'deep-mind'
 }
 
 export interface Canvas3DSlashMenuItem {
@@ -78,20 +82,24 @@ function insertFirstAvailableInlineNode(
 }
 
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
+const DEEP_MIND_EMBED_ROUTE = '/spiritual-construct-landing?embedded=true'
 
-function insertBrowserWindowNode(editor: Editor): boolean {
+function insertBrowserWindowNode(
+  editor: Editor,
+  attributes: { url?: string; height?: number } = { url: '' },
+): boolean {
   const commands = editor.commands as {
     insertBrowserWindow?: (attributes?: { url?: string; height?: number }) => boolean
   }
 
   if (typeof commands.insertBrowserWindow === 'function') {
-    return commands.insertBrowserWindow({ url: '' })
+    return commands.insertBrowserWindow(attributes)
   }
 
   return editor
     .chain()
     .focus()
-    .insertContent({ type: 'browserWindow', attrs: { url: '' } })
+    .insertContent({ type: 'browserWindow', attrs: attributes })
     .run()
 }
 
@@ -104,6 +112,16 @@ function insertCanvasNode(editor: Editor): boolean {
 
   // Fallback to parseHTML rule for Canvas3D (`div[data-type="canvas-3d"]`).
   return editor.chain().focus().insertContent('<div data-type="canvas-3d"></div>').run()
+}
+
+function insertDeepMindNode(editor: Editor): boolean {
+  // ARCHITECTURE DECISION: Insert DeepMind as an embedded BrowserWindow node
+  // so `/deep` immediately mounts the real DeepMind route instead of a
+  // placeholder canvas node.
+  return insertBrowserWindowNode(editor, {
+    url: DEEP_MIND_EMBED_ROUTE,
+    height: 560,
+  })
 }
 
 function insertForceGraph3DNode(editor: Editor): boolean {
@@ -149,6 +167,32 @@ export function uploadImageThroughSlashMenu(onUploaded: (imageUrl: string) => vo
 
 export const getCanvas3DSlashMenuItems = (): Canvas3DSlashMenuItem[] => {
   return [
+    {
+      id: 'canvas-3d-note',
+      title: 'Note',
+      description: 'Add a new note to the canvas',
+      emoji: '📝',
+      keywords: ['note', 'text', 'document', 'plane'],
+      action: (onInsert) => {
+        onInsert({
+          type: 'note'
+        })
+      },
+    },
+    {
+      id: 'canvas-3d-deep-mind',
+      title: 'Deep Mind',
+      description: 'Insert a Deep Mind placeholder node (3-sphere visualization)',
+      emoji: '🧠',
+      keywords: ['deep', 'mind', '3d', 'spheres', 'placeholder', 'quanta'],
+      action: (onInsert) => {
+        // ARCHITECTURE DECISION: Emit a semantic payload type so host canvases can
+        // create a standard 2D Quanta placeholder while rendering a richer 3D overlay.
+        onInsert({
+          type: 'deep-mind'
+        })
+      },
+    },
     {
       id: 'canvas-3d-photo',
       title: '3D Photo',
@@ -680,6 +724,16 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
         // @ts-ignore
         editor.commands.insertWeatherCard?.() ||
           editor.chain().focus().insertContent({ type: 'weatherCard' }).run()
+      },
+    },
+    {
+      id: 'deep-mind',
+      title: 'Deep Mind',
+      description: 'Insert the Deep Mind visualization',
+      emoji: '🧠',
+      keywords: ['deep', 'mind', 'deepmind', '3d', 'sphere', 'spheres', 'placeholder', 'quanta'],
+      action: (editor) => {
+        insertDeepMindNode(editor)
       },
     },
     {

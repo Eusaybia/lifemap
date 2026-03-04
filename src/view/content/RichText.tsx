@@ -20,7 +20,6 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import js from 'highlight.js/lib/languages/javascript'
 import { throttle } from 'lodash'
 import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/Model'
-import * as lowlightModule from 'lowlight'
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
@@ -775,13 +774,25 @@ import { backup } from '../../backend/backup'
 import { HighlightImportantLinePlugin } from './HighlightImportantLinePlugin'
 import { useEditorContext } from '../../contexts/EditorContext'
 
+const lowlightModule = (() => {
+  try {
+    // ARCHITECTURE DECISION: Resolve lowlight at runtime to support both export
+    // shapes used in this repo (root v3 -> createLowlight, lifemap v2 -> lowlight)
+    // without static named-export checks failing the client bundle.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('lowlight') as Record<string, unknown>
+  } catch {
+    return {} as Record<string, unknown>
+  }
+})()
+
 const lowlight = (() => {
-  const maybeCreateLowlight = (lowlightModule as { createLowlight?: () => unknown }).createLowlight
+  const maybeCreateLowlight = lowlightModule['createLowlight']
   if (typeof maybeCreateLowlight === 'function') {
-    return maybeCreateLowlight()
+    return (maybeCreateLowlight as () => unknown)()
   }
 
-  const maybeLegacyLowlight = (lowlightModule as { lowlight?: unknown }).lowlight
+  const maybeLegacyLowlight = lowlightModule['lowlight']
   if (
     maybeLegacyLowlight &&
     (

@@ -26,6 +26,8 @@ declare module "@tiptap/core" {
 const normalizeUrl = (rawUrl: string): string => {
   const trimmed = rawUrl.trim();
   if (!trimmed) return "";
+  // Allow app-internal routes for embedded experiences (e.g. /spiritual-construct-landing).
+  if (/^(\/|\.\/|\.\.\/)/.test(trimmed)) return trimmed;
   if (/^(https?:|about:|data:|blob:)/i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
 };
