@@ -520,7 +520,10 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
         window.clearTimeout(settleRefitTimeoutId);
       }
       resizeObserver?.disconnect();
-      bloomPass?.dispose?.();
+      // `3d-force-graph` owns the internal post-processing composer and only exposes
+      // a partial `_destructor()`. Manually disposing a locally-imported bloom pass
+      // during React unmount can cross `three` runtimes and crash inside cleanup.
+      bloomPass = null;
       if (graphRef.current) {
         graphRef.current._destructor();
         graphRef.current = null;
