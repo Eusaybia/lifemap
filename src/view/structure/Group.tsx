@@ -19,6 +19,7 @@ export const Group = (props: {
     lens: GroupLenses, 
     quantaId: QuantaId, 
     backgroundColor?: string,
+    padding?: string | number,
 }) => {
     // Helper function to get background color
     // ARCHITECTURE DECISION: Semi-transparent backgrounds for 3D scene integration
@@ -69,7 +70,7 @@ export const Group = (props: {
                 overflow: (isPreview || isPrivate || isAuraView) ? "hidden" : "visible",
                 borderRadius: `10px`,
                 // Note: boxShadow removed - now provided by NodeOverlay wrapper
-                padding: isCollapsed ? '10px 20px' : (isAuraView ? 0 : '20px'),
+                padding: props.padding ?? (isCollapsed ? '10px 20px' : (isAuraView ? 0 : '20px')),
                 // Note: margin removed - now provided by NodeOverlay wrapper
             }}
         >

@@ -115,13 +115,13 @@ function insertCanvasNode(editor: Editor): boolean {
 }
 
 function insertDeepMindNode(editor: Editor): boolean {
-  // ARCHITECTURE DECISION: Insert DeepMind as an embedded BrowserWindow node
-  // so `/deep` immediately mounts the real DeepMind route instead of a
-  // placeholder canvas node.
-  return insertBrowserWindowNode(editor, {
-    url: DEEP_MIND_EMBED_ROUTE,
-    height: 560,
-  })
+  // ARCHITECTURE DECISION: Insert DeepMind as a tracking placeholder
+  // so the 3D Canvas can render the actual model dynamically
+  return editor
+    .chain()
+    .focus()
+    .insertContent({ type: 'deepMindTracker' })
+    .run()
 }
 
 function insertForceGraph3DNode(editor: Editor): boolean {

@@ -56,6 +56,7 @@ import { issue123DocumentState } from '../../../bugs/issue-123'
 import { ExperimentalPortalExtension } from '../structure/ExperimentalPortalExtension'
 import { ExternalPortalExtension } from '../structure/ExternalPortalExtension'
 import { BrowserWindowExtension } from '../structure/BrowserWindowExtension'
+import { DeepMindTrackerExtension } from '../structure/DeepMindTrackerExtension'
 import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
@@ -1002,6 +1003,7 @@ export const customExtensions: Extensions = [
   ExperimentalPortalExtension,
   ExternalPortalExtension,
   BrowserWindowExtension,
+  DeepMindTrackerExtension,
   QuoteExtension,
   SpanGroupMark,
   WarningExtension,
