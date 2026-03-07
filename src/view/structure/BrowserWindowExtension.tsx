@@ -48,6 +48,13 @@ const normalizeUrl = (rawUrl: string): string => {
   return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
 };
 
+const generateBrowserSessionPartitionId = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `browser-session-${crypto.randomUUID()}`;
+  }
+  return `browser-session-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const rawUrl = String(props.node.attrs.url || "");
   const resolvedUrl = useMemo(() => normalizeUrl(rawUrl), [rawUrl]);
@@ -110,7 +117,15 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     ? Math.min(Math.max(storedHeight, MIN_IFRAME_HEIGHT), MAX_IFRAME_HEIGHT)
     : DEFAULT_IFRAME_HEIGHT;
   const resolvedQuantaId = String(props.node.attrs.quantaId || "browser-window");
-  const normalizedPartition = `browser-${resolvedQuantaId.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  const explicitPartitionKey = String(props.node.attrs.sessionPartition || "").trim();
+  const normalizedPartition = `browser-${(explicitPartitionKey || resolvedQuantaId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
+  useEffect(() => {
+    if (explicitPartitionKey) return;
+    props.updateAttributes({
+      sessionPartition: generateBrowserSessionPartitionId(),
+    });
+  }, [explicitPartitionKey, props]);
 
   useEffect(() => {
     const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
@@ -213,7 +228,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       const bounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
       await desktopApi.surface.create({
         surfaceId,
-        url: resolvedUrl || "about:blank",
+        url: "about:blank",
         bounds,
         partition: normalizedPartition,
       });
@@ -233,7 +248,6 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     desktopApi,
     isDesktopSurfaceEnabled,
     normalizedPartition,
-    resolvedUrl,
     surfaceId,
     syncDesktopSurfaceBounds,
   ]);
@@ -667,6 +681,7 @@ const BrowserWindowExtension = Node.create({
       id: { default: null },
       url: { default: "" },
       height: { default: DEFAULT_IFRAME_HEIGHT },
+      sessionPartition: { default: null },
     };
   },
 
