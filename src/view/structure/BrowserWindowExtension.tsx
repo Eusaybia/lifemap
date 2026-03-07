@@ -22,6 +22,74 @@ type BrowserSurfaceState = {
   canGoForward: boolean;
 };
 
+type KairosSurfaceBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type KairosSurfaceRequestResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type KairosSurfaceStateResult = KairosSurfaceRequestResult & {
+  state?: BrowserSurfaceState;
+};
+
+type KairosSurfaceEvent = {
+  surfaceId: string;
+  type: "title" | "url" | "loadState";
+  title?: string;
+  url?: string;
+  loading?: boolean;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
+};
+
+type KairosDesktopBridge = {
+  isElectron: boolean;
+  surface: {
+    create: (payload: {
+      surfaceId: string;
+      url?: string;
+      bounds?: KairosSurfaceBounds;
+      partition?: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    updateBounds: (payload: {
+      surfaceId: string;
+      bounds: KairosSurfaceBounds;
+    }) => Promise<KairosSurfaceRequestResult>;
+    navigate: (payload: {
+      surfaceId: string;
+      url: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    goBack: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    goForward: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    reload: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    stop: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    getState: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceStateResult>;
+    focus: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+    destroy: (payload: {
+      surfaceId: string;
+    }) => Promise<KairosSurfaceRequestResult>;
+  };
+  onSurfaceEvent: (listener: (event: KairosSurfaceEvent) => void) => (() => void) | void;
+};
+
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     browserWindow: {
@@ -55,6 +123,22 @@ const generateBrowserSessionPartitionId = (): string => {
   return `browser-session-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const isIgnorableSurfaceError = (value: unknown): boolean => {
+  const message =
+    typeof value === "string"
+      ? value
+      : value instanceof Error
+        ? value.message
+        : String(value ?? "");
+
+  return [
+    "ERR_ABORTED",
+    "ERR_FAILED",
+    "No handler registered",
+    "surface not found",
+  ].some((fragment) => message.includes(fragment));
+};
+
 const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const rawUrl = String(props.node.attrs.url || "");
   const resolvedUrl = useMemo(() => normalizeUrl(rawUrl), [rawUrl]);
@@ -69,11 +153,13 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lastSentBoundsKeyRef = useRef<string | null>(null);
   const syncInFlightRef = useRef(false);
+  const surfaceLifecycleStateRef = useRef<"idle" | "ready" | "failed">("idle");
   const desktopApi = useMemo(() => {
     if (typeof window === "undefined") return undefined;
-    if (window.kairosDesktop) return window.kairosDesktop;
+    const currentWindow = window as Window & { kairosDesktop?: KairosDesktopBridge };
+    if (currentWindow.kairosDesktop) return currentWindow.kairosDesktop;
     try {
-      return window.top?.kairosDesktop;
+      return (window.top as (Window & { kairosDesktop?: KairosDesktopBridge }) | null)?.kairosDesktop;
     } catch {
       return undefined;
     }
@@ -90,11 +176,40 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const hasSurfaceReloadApi = typeof surfaceApi?.reload === "function";
   const hasSurfaceStopApi = typeof surfaceApi?.stop === "function";
   const isDesktopSurfaceEnabled = Boolean(desktopApi?.isElectron && hasRequiredSurfaceApi);
+  const [surfaceLifecycleState, setSurfaceLifecycleState] = useState<"idle" | "ready" | "failed">("idle");
   const [surfaceId, setSurfaceId] = useState(() => {
     const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
     if (existingQuantaId) return `browser-window:${existingQuantaId}`;
     return `browser-window:tmp-${Math.random().toString(36).slice(2, 10)}`;
   });
+
+  const runSurfaceRequest = useCallback(
+    async <T extends KairosSurfaceRequestResult | KairosSurfaceStateResult>(
+      request: () => Promise<T>,
+    ): Promise<T | null> => {
+      try {
+        const result = await request();
+        if (!result.ok) {
+          if (!isIgnorableSurfaceError(result.error)) {
+            console.warn("[BrowserWindowExtension] Surface request failed:", result.error);
+          }
+          return null;
+        }
+        return result;
+      } catch (error) {
+        if (!isIgnorableSurfaceError(error)) {
+          console.warn("[BrowserWindowExtension] Surface request threw:", error);
+        }
+        return null;
+      }
+    },
+    [],
+  );
+
+  const setSurfaceLifecycle = useCallback((nextState: "idle" | "ready" | "failed") => {
+    surfaceLifecycleStateRef.current = nextState;
+    setSurfaceLifecycleState((current) => (current === nextState ? current : nextState));
+  }, []);
 
   useEffect(() => {
     setInputValue(rawUrl);
@@ -137,7 +252,8 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   useEffect(() => {
     lastSentBoundsKeyRef.current = null;
-  }, [surfaceId]);
+    setSurfaceLifecycle("idle");
+  }, [setSurfaceLifecycle, surfaceId]);
 
   const computeBounds = useCallback(() => {
     const hostElement = hostRef.current;
@@ -198,6 +314,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const syncDesktopSurfaceBounds = useCallback(async (force: boolean = false) => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (surfaceLifecycleStateRef.current !== "ready") return;
     if (syncInFlightRef.current) return;
 
     const bounds = computeBounds();
@@ -210,66 +327,80 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
     syncInFlightRef.current = true;
     try {
-      await desktopApi.surface.updateBounds({
+      const result = await runSurfaceRequest(() => desktopApi.surface.updateBounds({
         surfaceId,
         bounds: nextBounds,
-      });
+      }));
+      if (!result) return;
       lastSentBoundsKeyRef.current = nextKey;
     } finally {
       syncInFlightRef.current = false;
     }
-  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, surfaceId]);
+  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceId]);
 
   useEffect(() => {
-    if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (!isDesktopSurfaceEnabled || !desktopApi) {
+      setSurfaceLifecycle("idle");
+      return;
+    }
     let isDisposed = false;
 
     const createSurface = async () => {
       const bounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
-      await desktopApi.surface.create({
+      const result = await runSurfaceRequest(() => desktopApi.surface.create({
         surfaceId,
-        url: "about:blank",
         bounds,
         partition: normalizedPartition,
-      });
+      }));
+      if (isDisposed) return;
+      if (!result) {
+        setSurfaceLifecycle("failed");
+        return;
+      }
+      setSurfaceLifecycle("ready");
       if (!isDisposed) {
         await syncDesktopSurfaceBounds(true);
       }
     };
 
-    createSurface();
+    void createSurface();
 
     return () => {
       isDisposed = true;
-      desktopApi.surface.destroy({ surfaceId });
+      setSurfaceLifecycle("idle");
+      void runSurfaceRequest(() => desktopApi.surface.destroy({ surfaceId }));
     };
   }, [
     computeBounds,
     desktopApi,
     isDesktopSurfaceEnabled,
     normalizedPartition,
+    runSurfaceRequest,
     surfaceId,
+    setSurfaceLifecycle,
     syncDesktopSurfaceBounds,
   ]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (surfaceLifecycleState !== "ready") return;
     if (!resolvedUrl) return;
-    desktopApi.surface.navigate({ surfaceId, url: resolvedUrl });
-  }, [desktopApi, isDesktopSurfaceEnabled, resolvedUrl, surfaceId]);
+    void runSurfaceRequest(() => desktopApi.surface.navigate({ surfaceId, url: resolvedUrl }));
+  }, [desktopApi, isDesktopSurfaceEnabled, resolvedUrl, runSurfaceRequest, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (surfaceLifecycleState !== "ready") return;
 
     let isCancelled = false;
     if (hasSurfaceStateApi) {
-      void surfaceApi.getState({ surfaceId }).then((result) => {
-        if (isCancelled || !result.ok || !result.state) return;
+      void runSurfaceRequest(() => surfaceApi.getState({ surfaceId })).then((result) => {
+        if (isCancelled || !result?.state) return;
         setBrowserState(result.state);
       });
     }
 
-    const unsubscribe = window.kairosDesktop?.onSurfaceEvent((event) => {
+    const unsubscribe = desktopApi.onSurfaceEvent((event: KairosSurfaceEvent) => {
       if (event.surfaceId !== surfaceId) return;
       setBrowserState((current) => ({
         url: event.url ?? current.url,
@@ -282,9 +413,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
     return () => {
       isCancelled = true;
-      unsubscribe?.();
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
     };
-  }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, surfaceApi, surfaceId]);
+  }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled) return;
@@ -326,7 +459,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const handleNavigateBack = () => {
     if (isDesktopSurfaceEnabled && hasSurfaceBackApi) {
-      void surfaceApi.goBack({ surfaceId });
+      void runSurfaceRequest(() => surfaceApi.goBack({ surfaceId }));
       return;
     }
     window.history.back();
@@ -334,7 +467,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const handleNavigateForward = () => {
     if (isDesktopSurfaceEnabled && hasSurfaceForwardApi) {
-      void surfaceApi.goForward({ surfaceId });
+      void runSurfaceRequest(() => surfaceApi.goForward({ surfaceId }));
       return;
     }
     window.history.forward();
@@ -343,11 +476,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const handleReload = () => {
     if (isDesktopSurfaceEnabled) {
       if (browserState.loading && hasSurfaceStopApi) {
-        void surfaceApi.stop({ surfaceId });
+        void runSurfaceRequest(() => surfaceApi.stop({ surfaceId }));
         return;
       }
       if (hasSurfaceReloadApi) {
-        void surfaceApi.reload({ surfaceId });
+        void runSurfaceRequest(() => surfaceApi.reload({ surfaceId }));
         return;
       }
     }
@@ -373,6 +506,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     : "Enter a web address";
   const canGoBack = isDesktopSurfaceEnabled && hasSurfaceBackApi ? browserState.canGoBack : false;
   const canGoForward = isDesktopSurfaceEnabled && hasSurfaceForwardApi ? browserState.canGoForward : false;
+  const shouldRenderDesktopSurface = isDesktopSurfaceEnabled && surfaceLifecycleState !== "failed";
 
   return (
     <NodeViewWrapper style={{ padding: "4px 0", width: "100%" }}>
@@ -612,11 +746,12 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
           >
             <Group lens="identity" quantaId={resolvedQuantaId} padding={0}>
               <div contentEditable={false}>
-                {isDesktopSurfaceEnabled ? (
+                {shouldRenderDesktopSurface ? (
                   <div
                     ref={hostRef}
                     onPointerDown={() => {
-                      desktopApi?.surface.focus({ surfaceId });
+                      if (!desktopApi || !surfaceApi) return;
+                      void runSurfaceRequest(() => surfaceApi.focus({ surfaceId }));
                     }}
                     style={{
                       width: "100%",
