@@ -236,45 +236,12 @@ export const getSelectedNodeType = (editor: Editor) => {
   if (isTextSelection(selection)) {
     return "text"
   } else if (isNodeSelection(selection)) {
-    switch (selection.node.type.name) {
-      case "group":
-        return "group"
-      case "temporalSpace":
-        return "temporalSpace"
-      case "temporalOrder":
-        return "temporalOrder"
-      case "temporalDaily":
-        return "temporalDaily"
-      case "glowNetwork":
-        return "glowNetwork"
-      case "trends":
-        return "trends"
-      case "scrollview":
-        return "scrollview"
-      case "portal":
-        return "portal"
-      case "externalPortal":
-        return "externalPortal"
-      case "canvas3D":
-        return "canvas3D"
-      case "weekly":
-        return "weekly"
-      // ARCHITECTURE: Pomodoro is an inline atom node that supports selection.
-      // We return a dedicated type so FlowMenu can show a simple loupe for it.
-      case "pomodoro":
-        return "pomodoro"
-      // Inline mention atoms are selectable node views; map them so selection updates
-      // don't emit unsupported-node errors in FlowMenu.
-      case "todoMention":
-        return "todoMention"
-      case "motivationsMention":
-        return "motivationsMention"
-      default:
-        console.error(`Unsupported node type was selected. Developer needs to add support for node type ${selection.node.type.name}`)
-        return "invalid"
-    }
+    return selection.node.type.name
   } else {
-    console.error("Selected a node that is neither text nor a node.")
-    return "invalid"
+    const fallbackNodeType = selection.$from?.parent?.type?.name
+    if (fallbackNodeType) {
+      return fallbackNodeType === "paragraph" ? "text" : fallbackNodeType
+    }
+    return "text"
   }
 }
