@@ -89,6 +89,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   }));
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lastSentBoundsKeyRef = useRef<string | null>(null);
+  const lastPersistedSurfaceUrlRef = useRef<string | null>(rawUrl.trim() || null);
   const syncInFlightRef = useRef(false);
   const desktopApi = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -144,6 +145,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   useEffect(() => {
     setInputValue(rawUrl);
+    lastPersistedSurfaceUrlRef.current = rawUrl.trim() || null;
   }, [rawUrl]);
 
   useEffect(() => {
@@ -157,6 +159,17 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       url: resolvedUrl,
     }));
   }, [resolvedUrl]);
+
+  const persistSurfaceUrlAttribute = useCallback(
+    (nextUrl: string | null | undefined) => {
+      const trimmedNextUrl = String(nextUrl ?? "").trim();
+      if (!trimmedNextUrl) return;
+      if (trimmedNextUrl === lastPersistedSurfaceUrlRef.current) return;
+      lastPersistedSurfaceUrlRef.current = trimmedNextUrl;
+      props.updateAttributes({ url: trimmedNextUrl });
+    },
+    [props],
+  );
 
   const storedHeight = Number(props.node.attrs.height);
   const iframeHeight = Number.isFinite(storedHeight)
@@ -359,6 +372,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       void runSurfaceRequest(() => surfaceApi.getState({ surfaceId })).then((result) => {
         if (isCancelled || !result?.state) return;
         setBrowserState(result.state);
+        persistSurfaceUrlAttribute(result.state.url);
       });
     }
 
@@ -371,13 +385,14 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
         canGoBack: typeof event.canGoBack === "boolean" ? event.canGoBack : current.canGoBack,
         canGoForward: typeof event.canGoForward === "boolean" ? event.canGoForward : current.canGoForward,
       }));
+      persistSurfaceUrlAttribute(event.url);
     });
 
     return () => {
       isCancelled = true;
       unsubscribe?.();
     };
-  }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
+  }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, persistSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled) return;
