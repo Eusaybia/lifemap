@@ -6,7 +6,7 @@ import { Group } from "./Group";
 
 const DEFAULT_IFRAME_HEIGHT = 360;
 const MIN_IFRAME_HEIGHT = 160;
-const MAX_IFRAME_HEIGHT = 720;
+const MAX_IFRAME_HEIGHT = 2400;
 const DESKTOP_SURFACE_INSET = {
   top: 0,
   right: 0,
@@ -22,78 +22,14 @@ type BrowserSurfaceState = {
   canGoForward: boolean;
 };
 
-type KairosSurfaceBounds = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-type KairosSurfaceRequestResult = {
-  ok: boolean;
-  error?: string;
-};
-
-type KairosSurfaceStateResult = KairosSurfaceRequestResult & {
-  state?: BrowserSurfaceState;
-};
-
-type KairosSurfaceEvent = {
-  surfaceId: string;
-  type: "title" | "url" | "loadState";
-  title?: string;
-  url?: string;
-  loading?: boolean;
-  canGoBack?: boolean;
-  canGoForward?: boolean;
-};
-
-type KairosDesktopBridge = {
-  isElectron: boolean;
-  surface: {
-    create: (payload: {
-      surfaceId: string;
-      url?: string;
-      bounds?: KairosSurfaceBounds;
-      partition?: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    updateBounds: (payload: {
-      surfaceId: string;
-      bounds: KairosSurfaceBounds;
-    }) => Promise<KairosSurfaceRequestResult>;
-    navigate: (payload: {
-      surfaceId: string;
-      url: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    goBack: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    goForward: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    reload: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    stop: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    getState: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceStateResult>;
-    focus: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-    destroy: (payload: {
-      surfaceId: string;
-    }) => Promise<KairosSurfaceRequestResult>;
-  };
-  onSurfaceEvent: (listener: (event: KairosSurfaceEvent) => void) => (() => void) | void;
-};
-
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     browserWindow: {
-      insertBrowserWindow: (attributes?: { url?: string; height?: number }) => ReturnType;
+      insertBrowserWindow: (attributes?: {
+        url?: string;
+        height?: number;
+        sessionPartition?: string;
+      }) => ReturnType;
     };
   }
 }
@@ -153,13 +89,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lastSentBoundsKeyRef = useRef<string | null>(null);
   const syncInFlightRef = useRef(false);
-  const surfaceLifecycleStateRef = useRef<"idle" | "ready" | "failed">("idle");
   const desktopApi = useMemo(() => {
     if (typeof window === "undefined") return undefined;
-    const currentWindow = window as Window & { kairosDesktop?: KairosDesktopBridge };
-    if (currentWindow.kairosDesktop) return currentWindow.kairosDesktop;
+    if (window.kairosDesktop) return window.kairosDesktop;
     try {
-      return (window.top as (Window & { kairosDesktop?: KairosDesktopBridge }) | null)?.kairosDesktop;
+      return window.top?.kairosDesktop;
     } catch {
       return undefined;
     }
@@ -177,6 +111,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const hasSurfaceStopApi = typeof surfaceApi?.stop === "function";
   const isDesktopSurfaceEnabled = Boolean(desktopApi?.isElectron && hasRequiredSurfaceApi);
   const [surfaceLifecycleState, setSurfaceLifecycleState] = useState<"idle" | "ready" | "failed">("idle");
+  const [isInsideGraphNode, setIsInsideGraphNode] = useState(false);
   const [surfaceId, setSurfaceId] = useState(() => {
     const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
     if (existingQuantaId) return `browser-window:${existingQuantaId}`;
@@ -206,11 +141,6 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     [],
   );
 
-  const setSurfaceLifecycle = useCallback((nextState: "idle" | "ready" | "failed") => {
-    surfaceLifecycleStateRef.current = nextState;
-    setSurfaceLifecycleState((current) => (current === nextState ? current : nextState));
-  }, []);
-
   useEffect(() => {
     setInputValue(rawUrl);
   }, [rawUrl]);
@@ -235,6 +165,37 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const explicitPartitionKey = String(props.node.attrs.sessionPartition || "").trim();
   const normalizedPartition = `browser-${(explicitPartitionKey || resolvedQuantaId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
+  // Sync iframe height with React Flow node height if we are inside one
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nodeElement = hostRef.current?.closest(".react-flow__node") as HTMLElement | null;
+    if (!nodeElement) return;
+    
+    setIsInsideGraphNode(true);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Only sync if the React Flow node has a fixed height (user is resizing it)
+        const hasFixedHeight = nodeElement.style.height && nodeElement.style.height !== "auto";
+        if (!hasFixedHeight) continue;
+
+        const nodeHeight = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
+        
+        // The browser window has about 133px of vertical chrome/margins
+        // (24px ProseMirror padding + 48px margin + 8px wrapper padding + 52px header + 1px borders)
+        const CHROME_HEIGHT = 133;
+        const targetIframeHeight = Math.max(MIN_IFRAME_HEIGHT, Math.min(nodeHeight - CHROME_HEIGHT, MAX_IFRAME_HEIGHT));
+        
+        if (Math.abs(targetIframeHeight - iframeHeight) > 2) {
+          props.updateAttributes({ height: targetIframeHeight });
+        }
+      }
+    });
+
+    observer.observe(nodeElement);
+    return () => observer.disconnect();
+  }, [iframeHeight, props]);
+
   useEffect(() => {
     if (explicitPartitionKey) return;
     props.updateAttributes({
@@ -252,8 +213,8 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   useEffect(() => {
     lastSentBoundsKeyRef.current = null;
-    setSurfaceLifecycle("idle");
-  }, [setSurfaceLifecycle, surfaceId]);
+    setSurfaceLifecycleState("idle");
+  }, [surfaceId]);
 
   const computeBounds = useCallback(() => {
     const hostElement = hostRef.current;
@@ -314,7 +275,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const syncDesktopSurfaceBounds = useCallback(async (force: boolean = false) => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
-    if (surfaceLifecycleStateRef.current !== "ready") return;
+    if (surfaceLifecycleState !== "ready") return;
     if (syncInFlightRef.current) return;
 
     const bounds = computeBounds();
@@ -336,11 +297,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     } finally {
       syncInFlightRef.current = false;
     }
-  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceId]);
+  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) {
-      setSurfaceLifecycle("idle");
+      setSurfaceLifecycleState("idle");
       return;
     }
     let isDisposed = false;
@@ -349,15 +310,16 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       const bounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
       const result = await runSurfaceRequest(() => desktopApi.surface.create({
         surfaceId,
+        url: "about:blank",
         bounds,
         partition: normalizedPartition,
       }));
       if (isDisposed) return;
       if (!result) {
-        setSurfaceLifecycle("failed");
+        setSurfaceLifecycleState("failed");
         return;
       }
-      setSurfaceLifecycle("ready");
+      setSurfaceLifecycleState("ready");
       if (!isDisposed) {
         await syncDesktopSurfaceBounds(true);
       }
@@ -367,7 +329,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
     return () => {
       isDisposed = true;
-      setSurfaceLifecycle("idle");
+      setSurfaceLifecycleState("idle");
       void runSurfaceRequest(() => desktopApi.surface.destroy({ surfaceId }));
     };
   }, [
@@ -377,7 +339,6 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     normalizedPartition,
     runSurfaceRequest,
     surfaceId,
-    setSurfaceLifecycle,
     syncDesktopSurfaceBounds,
   ]);
 
@@ -400,7 +361,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       });
     }
 
-    const unsubscribe = desktopApi.onSurfaceEvent((event: KairosSurfaceEvent) => {
+    const unsubscribe = desktopApi.onSurfaceEvent((event) => {
       if (event.surfaceId !== surfaceId) return;
       setBrowserState((current) => ({
         url: event.url ?? current.url,
@@ -413,9 +374,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
     return () => {
       isCancelled = true;
-      if (typeof unsubscribe === "function") {
-        unsubscribe();
-      }
+      unsubscribe?.();
     };
   }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
@@ -797,6 +756,58 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                 )}
               </div>
             </Group>
+
+            {/* Resize Handle (only show if not in a graph node, as graph nodes have their own resizer) */}
+            {!isInsideGraphNode && (
+              <div
+                onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const startY = e.clientY;
+                const startHeight = iframeHeight;
+
+                const onPointerMove = (moveEvent: PointerEvent) => {
+                  const deltaY = moveEvent.clientY - startY;
+                  const newHeight = Math.max(MIN_IFRAME_HEIGHT, Math.min(startHeight + deltaY, MAX_IFRAME_HEIGHT));
+                  props.updateAttributes({ height: newHeight });
+                };
+
+                const onPointerUp = () => {
+                  window.removeEventListener("pointermove", onPointerMove);
+                  window.removeEventListener("pointerup", onPointerUp);
+                };
+
+                window.addEventListener("pointermove", onPointerMove);
+                window.addEventListener("pointerup", onPointerUp);
+              }}
+              style={{
+                position: "absolute",
+                bottom: 2,
+                right: 2,
+                width: 16,
+                height: 16,
+                cursor: "ns-resize",
+                zIndex: 10,
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "flex-end",
+                padding: 4,
+                color: "#cbd5e1",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#94a3b8";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#cbd5e1";
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15L15 21" />
+                <path d="M21 8L8 21" />
+              </svg>
+            </div>
+            )}
           </div>
         </div>
       </NodeOverlay>
@@ -814,9 +825,36 @@ const BrowserWindowExtension = Node.create({
   addAttributes() {
     return {
       id: { default: null },
-      url: { default: "" },
-      height: { default: DEFAULT_IFRAME_HEIGHT },
-      sessionPartition: { default: null },
+      url: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-browser-url") ?? "",
+        renderHTML: (attributes) => ({
+          "data-browser-url": attributes.url || "",
+        }),
+      },
+      height: {
+        default: DEFAULT_IFRAME_HEIGHT,
+        parseHTML: (element) => {
+          const rawHeight = element.getAttribute("data-browser-height");
+          const parsedHeight = Number(rawHeight);
+          return Number.isFinite(parsedHeight) ? parsedHeight : DEFAULT_IFRAME_HEIGHT;
+        },
+        renderHTML: (attributes) => ({
+          "data-browser-height": String(
+            Number.isFinite(Number(attributes.height))
+              ? Number(attributes.height)
+              : DEFAULT_IFRAME_HEIGHT,
+          ),
+        }),
+      },
+      sessionPartition: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-browser-session-partition"),
+        renderHTML: (attributes) =>
+          attributes.sessionPartition
+            ? { "data-browser-session-partition": attributes.sessionPartition }
+            : {},
+      },
     };
   },
 
@@ -824,12 +862,11 @@ const BrowserWindowExtension = Node.create({
     return [{ tag: 'div[data-browser-window="true"]' }];
   },
 
-  renderHTML({ node }) {
+  renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      mergeAttributes({
+      mergeAttributes(HTMLAttributes, {
         "data-browser-window": "true",
-        "data-browser-url": node.attrs.url,
       }),
       0,
     ];
@@ -842,13 +879,18 @@ const BrowserWindowExtension = Node.create({
   addCommands() {
     return {
       insertBrowserWindow:
-        (attributes?: { url?: string; height?: number }) =>
+        (attributes?: {
+          url?: string;
+          height?: number;
+          sessionPartition?: string;
+        }) =>
         ({ commands }) =>
           commands.insertContent({
             type: this.name,
             attrs: {
               url: attributes?.url ?? "",
               height: attributes?.height ?? DEFAULT_IFRAME_HEIGHT,
+              sessionPartition: attributes?.sessionPartition ?? generateBrowserSessionPartitionId(),
             },
           }),
     };
