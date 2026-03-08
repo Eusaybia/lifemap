@@ -7,6 +7,7 @@ import { Group } from "./Group";
 const DEFAULT_IFRAME_HEIGHT = 360;
 const MIN_IFRAME_HEIGHT = 160;
 const MAX_IFRAME_HEIGHT = 2400;
+const DEFAULT_BROWSER_HOME = "https://kairoslifemap.com";
 const DESKTOP_SURFACE_INSET = {
   top: 0,
   right: 0,
@@ -310,7 +311,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       const bounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
       const result = await runSurfaceRequest(() => desktopApi.surface.create({
         surfaceId,
-        url: "about:blank",
+        url: resolvedUrl || DEFAULT_BROWSER_HOME,
         bounds,
         partition: normalizedPartition,
       }));
@@ -721,9 +722,9 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                       background: "rgba(248, 250, 252, 0.88)",
                     }}
                   />
-                ) : resolvedUrl ? (
+                ) : resolvedUrl || !isDesktopSurfaceEnabled ? (
                   <iframe
-                    src={resolvedUrl}
+                    src={resolvedUrl || DEFAULT_BROWSER_HOME}
                     loading="lazy"
                     style={{
                       width: "100%",
@@ -733,7 +734,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                       borderBottomRightRadius: "10px",
                       background: "white",
                     }}
-                    title={`Browser Window: ${resolvedUrl}`}
+                    title={`Browser Window: ${resolvedUrl || "Kairos"}`}
                   />
                 ) : (
                   <div
@@ -826,10 +827,10 @@ const BrowserWindowExtension = Node.create({
     return {
       id: { default: null },
       url: {
-        default: "",
-        parseHTML: (element) => element.getAttribute("data-browser-url") ?? "",
+        default: DEFAULT_BROWSER_HOME,
+        parseHTML: (element) => element.getAttribute("data-browser-url") ?? DEFAULT_BROWSER_HOME,
         renderHTML: (attributes) => ({
-          "data-browser-url": attributes.url || "",
+          "data-browser-url": attributes.url || DEFAULT_BROWSER_HOME,
         }),
       },
       height: {
@@ -888,7 +889,7 @@ const BrowserWindowExtension = Node.create({
           commands.insertContent({
             type: this.name,
             attrs: {
-              url: attributes?.url ?? "",
+              url: attributes?.url ?? DEFAULT_BROWSER_HOME,
               height: attributes?.height ?? DEFAULT_IFRAME_HEIGHT,
               sessionPartition: attributes?.sessionPartition ?? generateBrowserSessionPartitionId(),
             },

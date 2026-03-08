@@ -83,10 +83,11 @@ function insertFirstAvailableInlineNode(
 
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
 const DEEP_MIND_EMBED_ROUTE = '/spiritual-construct-landing?embedded=true'
+const DEFAULT_BROWSER_HOME = 'https://kairoslifemap.com'
 
 function insertBrowserWindowNode(
   editor: Editor,
-  attributes: { url?: string; height?: number } = { url: '' },
+  attributes: { url?: string; height?: number } = { url: DEFAULT_BROWSER_HOME },
 ): boolean {
   const commands = editor.commands as {
     insertBrowserWindow?: (attributes?: { url?: string; height?: number }) => boolean
