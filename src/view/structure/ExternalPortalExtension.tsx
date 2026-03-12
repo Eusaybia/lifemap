@@ -42,49 +42,27 @@ const DEFAULT_IFRAME_HEIGHT = 220;
 const MIN_IFRAME_HEIGHT = 96;
 const MAX_INITIAL_HEIGHT = 420;
 const MAX_IFRAME_HEIGHT = 420;
-const GRAPH_EMBED_STRATEGY_QUERY_PARAM = 'graphEmbedStrategy';
-const GRAPH_EMBED_STRATEGY_EVENT = 'natural-calendar:graph-embed-strategy-change';
+const KAIROS_USER_ID_STORAGE_KEY = 'kairos-user-id';
+const LEGACY_KAIROS_USER_ID = '000000';
 
-type GraphEmbedStrategy =
-  | 'default'
-  | 'no-height-cap'
-  | 'fill-pane'
-  | 'fill-pane-edge-to-edge';
-
-const normalizeGraphEmbedStrategy = (value: string | null | undefined): GraphEmbedStrategy => {
-  switch (value) {
-    case 'no-height-cap':
-    case 'fill-pane':
-    case 'fill-pane-edge-to-edge':
-      return value;
-    default:
-      return 'default';
-  }
+type DirectEmbedComponents = {
+  EditorProvider: React.ComponentType<{ children: React.ReactNode }>
+  Quanta: React.ComponentType<{ quantaId: string; userId: string }>
 };
 
-const readGraphEmbedStrategy = (): GraphEmbedStrategy => {
-  if (typeof window === 'undefined') return 'default';
-  return normalizeGraphEmbedStrategy(
-    new URLSearchParams(window.location.search).get(GRAPH_EMBED_STRATEGY_QUERY_PARAM)
-  );
-};
+const resolveKairosUserId = (): string => {
+  if (typeof window === 'undefined') return LEGACY_KAIROS_USER_ID;
 
-const buildExternalPortalSrc = (externalQuantaId: string, strategy: GraphEmbedStrategy): string => {
-  const searchParams = new URLSearchParams();
-
-  if (strategy === 'fill-pane' || strategy === 'fill-pane-edge-to-edge') {
-    // ARCHITECTURE DECISION: reuse the existing /q graph/fill-pane layout rather
-    // than inventing a bespoke "graph node embed" route. That lets us test whether
-    // the resize ceiling is really caused by route chrome and padding.
-    searchParams.set('mode', 'graph');
-    searchParams.set('fillPane', 'true');
-    searchParams.set('disableNodeDrag', 'true');
-    searchParams.set('padding', '0');
-    searchParams.set('suppressFlushSyncWarning', 'true');
+  const storedUserId = window.localStorage.getItem(KAIROS_USER_ID_STORAGE_KEY);
+  if (storedUserId && storedUserId.trim().length > 0) {
+    return storedUserId;
   }
 
-  const queryString = searchParams.toString();
-  return queryString ? `/q/${externalQuantaId}?${queryString}` : `/q/${externalQuantaId}`;
+  return LEGACY_KAIROS_USER_ID;
+};
+
+const buildExternalPortalSrc = (externalQuantaId: string): string => {
+  return `/q/${externalQuantaId}`;
 };
 
 // Declare the setExternalPortalLens command for TypeScript
@@ -161,16 +139,11 @@ const ExternalPortalExtension = Node.create({
   addNodeView() {
     return ReactNodeViewRenderer(
       (props: NodeViewProps) => {
-        const initialGraphEmbedStrategy = readGraphEmbedStrategy();
         const externalQuantaId = String(props.node.attrs.externalQuantaId || "");
         const iframeRef = useRef<HTMLIFrameElement | null>(null);
-        const [graphEmbedStrategy, setGraphEmbedStrategy] = useState<GraphEmbedStrategy>(initialGraphEmbedStrategy);
         const [iframeHeight, setIframeHeight] = useState(() => {
           const raw = Number(props.node.attrs.height);
           if (Number.isFinite(raw) && raw > 0) {
-            if (initialGraphEmbedStrategy === 'no-height-cap') {
-              return Math.max(Math.round(raw), MIN_IFRAME_HEIGHT);
-            }
             return Math.min(raw, MAX_INITIAL_HEIGHT);
           }
           return DEFAULT_IFRAME_HEIGHT;
@@ -178,38 +151,64 @@ const ExternalPortalExtension = Node.create({
         const [isTagExpanded, setIsTagExpanded] = useState(false);
 
         // Get the current lens from node attributes
-        const currentLens = props.node.attrs.lens as ExternalPortalLenses;
+        const currentLens = (props.node.attrs.lens as ExternalPortalLenses | undefined) ?? 'identity';
         const isTag = currentLens === 'tag';
         const isPrivate = currentLens === 'private';
         const isPreview = currentLens === 'preview';
-        const usesFillPaneEmbed =
-          graphEmbedStrategy === 'fill-pane' || graphEmbedStrategy === 'fill-pane-edge-to-edge';
-        const usesEdgeToEdgeEmbed = graphEmbedStrategy === 'fill-pane-edge-to-edge';
-        const usesUnclampedHeight = graphEmbedStrategy === 'no-height-cap';
+        const shouldFillSingleRootPortalPane = useMemo(() => {
+          if (currentLens !== 'identity') {
+            return false;
+          }
+
+          try {
+            const doc = props.editor.state.doc;
+            let meaningfulTopLevelNodeCount = 0;
+            let portalNodeCount = 0;
+
+            doc.forEach((child) => {
+              const isEmptyParagraph =
+                child.type.name === 'paragraph' &&
+                child.textContent.trim() === '' &&
+                child.childCount === 0;
+
+              if (isEmptyParagraph) {
+                return;
+              }
+
+              meaningfulTopLevelNodeCount += 1;
+              if (child.type.name === 'externalPortal') {
+                portalNodeCount += 1;
+              }
+            });
+
+            return meaningfulTopLevelNodeCount === 1 && portalNodeCount === 1;
+          } catch {
+            return false;
+          }
+        }, [currentLens, props.editor.state.doc]);
+        const usesFullHeightPane = shouldFillSingleRootPortalPane;
+        const usesDirectReactEmbed = shouldFillSingleRootPortalPane;
+        const embeddedUserId = useMemo(() => resolveKairosUserId(), []);
+        const [directEmbedComponents, setDirectEmbedComponents] = useState<DirectEmbedComponents | null>(null);
         const resolvedQuantaId = String(props.node.attrs.quantaId || externalQuantaId || "external-portal");
-        const externalPortalSrc = useMemo(
-          () => buildExternalPortalSrc(externalQuantaId, graphEmbedStrategy),
-          [externalQuantaId, graphEmbedStrategy]
-        );
+        const externalPortalSrc = useMemo(() => buildExternalPortalSrc(externalQuantaId), [externalQuantaId]);
         const handleQuantaIdChange = (newQuantaId: string) => {
           props.updateAttributes({ externalQuantaId: newQuantaId });
         };
         const applyIframeHeight = useCallback((value: number) => {
-          if (usesFillPaneEmbed) return;
+          if (usesFullHeightPane) return;
 
-          const nextHeight = usesUnclampedHeight
-            ? Math.max(Math.round(value), MIN_IFRAME_HEIGHT)
-            : Math.min(
-                Math.max(Math.round(value), MIN_IFRAME_HEIGHT),
-                MAX_IFRAME_HEIGHT,
-              );
+          const nextHeight = Math.min(
+            Math.max(Math.round(value), MIN_IFRAME_HEIGHT),
+            MAX_IFRAME_HEIGHT,
+          );
           setIframeHeight((previousHeight) => previousHeight === nextHeight ? previousHeight : nextHeight);
           if (props.node.attrs.height !== nextHeight) {
             props.updateAttributes({ height: nextHeight });
           }
-        }, [props.node.attrs.height, props.updateAttributes, usesFillPaneEmbed, usesUnclampedHeight]);
+        }, [props.node.attrs.height, props.updateAttributes, usesFullHeightPane]);
         const measureIframeHeight = useCallback((iframe: HTMLIFrameElement | null) => {
-          if (!iframe || usesFillPaneEmbed) return;
+          if (!iframe || usesFullHeightPane) return;
 
           try {
             const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -228,7 +227,7 @@ const ExternalPortalExtension = Node.create({
           } catch {
             // Ignore cross-context access issues; postMessage resize will still apply.
           }
-        }, [applyIframeHeight, usesFillPaneEmbed]);
+        }, [applyIframeHeight, usesFullHeightPane]);
         const handleIframeLoad = useCallback((event: React.SyntheticEvent<HTMLIFrameElement>) => {
           measureIframeHeight(event.currentTarget);
         }, [measureIframeHeight]);
@@ -250,21 +249,32 @@ const ExternalPortalExtension = Node.create({
         }, [applyIframeHeight, externalQuantaId]);
 
         useEffect(() => {
-          const handleEmbedStrategyChange = () => {
-            setGraphEmbedStrategy(readGraphEmbedStrategy());
-          };
-
-          window.addEventListener(GRAPH_EMBED_STRATEGY_EVENT, handleEmbedStrategyChange);
-          window.addEventListener('popstate', handleEmbedStrategyChange);
-          return () => {
-            window.removeEventListener(GRAPH_EMBED_STRATEGY_EVENT, handleEmbedStrategyChange);
-            window.removeEventListener('popstate', handleEmbedStrategyChange);
-          };
-        }, []);
+          measureIframeHeight(iframeRef.current);
+        }, [measureIframeHeight, externalPortalSrc]);
 
         useEffect(() => {
-          measureIframeHeight(iframeRef.current);
-        }, [graphEmbedStrategy, measureIframeHeight, externalPortalSrc]);
+          if (!usesDirectReactEmbed) {
+            setDirectEmbedComponents(null);
+            return;
+          }
+
+          let cancelled = false;
+
+          void Promise.all([
+            import('../../core/Quanta'),
+            import('../../contexts/EditorContext'),
+          ]).then(([quantaModule, editorContextModule]) => {
+            if (cancelled) return;
+            setDirectEmbedComponents({
+              Quanta: quantaModule.Quanta as DirectEmbedComponents['Quanta'],
+              EditorProvider: editorContextModule.EditorProvider as DirectEmbedComponents['EditorProvider'],
+            });
+          });
+
+          return () => {
+            cancelled = true;
+          };
+        }, [usesDirectReactEmbed]);
 
         useEffect(() => {
           if (!props.selected) {
@@ -278,13 +288,12 @@ const ExternalPortalExtension = Node.create({
             nodeType="externalPortal"
             isPrivate={lens === "private"}
             backgroundColor="#ffffff"
-            padding={usesEdgeToEdgeEmbed ? 0 : undefined}
-            style={usesFillPaneEmbed
+            style={usesFullHeightPane
               ? {
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  margin: usesEdgeToEdgeEmbed ? 0 : undefined,
+                  minHeight: 0,
                 }
               : undefined}
           >
@@ -309,17 +318,25 @@ const ExternalPortalExtension = Node.create({
             <Group
               lens={lens}
               quantaId={resolvedQuantaId}
-              padding={usesEdgeToEdgeEmbed ? 0 : undefined}
+              fillHeight={usesFullHeightPane}
             >
               <div
                 contentEditable={false}
-                style={usesFillPaneEmbed ? { height: '100%', minHeight: 0 } : undefined}
+                style={usesFullHeightPane
+                  ? {
+                      height: '100%',
+                      minHeight: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      flex: 1,
+                    }
+                  : undefined}
               >
                 {externalQuantaId ? (
                   <div
                     style={{
                       width: '100%',
-                      height: usesFillPaneEmbed ? '100%' : `${iframeHeight}px`,
+                      height: usesFullHeightPane ? '100%' : `${iframeHeight}px`,
                       borderRadius: 10,
                       overflow: 'hidden',
                       background: 'white',
@@ -329,22 +346,69 @@ const ExternalPortalExtension = Node.create({
                       clipPath: 'inset(0 round 10px)',
                       transform: 'translateZ(0)',
                       WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                      minHeight: 0,
+                      flex: usesFullHeightPane ? 1 : undefined,
                     }}
                   >
-                    <iframe
-                      ref={iframeRef}
-                      src={externalPortalSrc}
-                      loading="lazy"
-                      onLoad={handleIframeLoad}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        border: 'none',
-                        background: 'white',
-                        display: 'block',
-                      }}
-                      title={`Embedded Quanta: ${externalQuantaId}`}
-                    />
+                    {usesDirectReactEmbed ? (
+                      <div
+                        className="nodrag nopan"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          overflow: 'auto',
+                          background: 'white',
+                        }}
+                      >
+                        <style>{`
+                          .external-portal-react-embed [data-drag-handle] {
+                            display: none !important;
+                          }
+                        `}</style>
+                        <div
+                          className="external-portal-react-embed"
+                          style={{
+                            width: '100%',
+                            minHeight: '100%',
+                            padding: 16,
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {directEmbedComponents ? (
+                            <directEmbedComponents.EditorProvider>
+                              <directEmbedComponents.Quanta quantaId={externalQuantaId} userId={embeddedUserId} />
+                            </directEmbedComponents.EditorProvider>
+                          ) : (
+                            <div
+                              style={{
+                                width: '100%',
+                                minHeight: '100%',
+                                display: 'grid',
+                                placeItems: 'center',
+                                color: '#64748b',
+                              }}
+                            >
+                              Loading quanta…
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <iframe
+                        ref={iframeRef}
+                        src={externalPortalSrc}
+                        loading="lazy"
+                        onLoad={handleIframeLoad}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          border: 'none',
+                          background: 'white',
+                          display: 'block',
+                        }}
+                        title={`Embedded Quanta: ${externalQuantaId}`}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div style={{
@@ -426,7 +490,9 @@ const ExternalPortalExtension = Node.create({
 
         return (
           <NodeViewWrapper
-            style={usesFillPaneEmbed ? { display: 'block', height: '100%' } : undefined}
+            style={usesFullHeightPane
+              ? { display: 'block', height: '100%', minHeight: 0 }
+              : undefined}
           >
             {renderExternalPortalFrame(groupLens)}
           </NodeViewWrapper>
