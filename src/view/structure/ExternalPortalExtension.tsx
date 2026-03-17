@@ -42,27 +42,19 @@ const DEFAULT_IFRAME_HEIGHT = 220;
 const MIN_IFRAME_HEIGHT = 96;
 const MAX_INITIAL_HEIGHT = 420;
 const MAX_IFRAME_HEIGHT = 420;
-const KAIROS_USER_ID_STORAGE_KEY = 'kairos-user-id';
-const LEGACY_KAIROS_USER_ID = '000000';
+const buildExternalPortalSrc = (externalQuantaId: string, fillPane: boolean): string => {
+  const searchParams = new URLSearchParams();
 
-type DirectEmbedComponents = {
-  EditorProvider: React.ComponentType<{ children: React.ReactNode }>
-  Quanta: React.ComponentType<{ quantaId: string; userId: string }>
-};
-
-const resolveKairosUserId = (): string => {
-  if (typeof window === 'undefined') return LEGACY_KAIROS_USER_ID;
-
-  const storedUserId = window.localStorage.getItem(KAIROS_USER_ID_STORAGE_KEY);
-  if (storedUserId && storedUserId.trim().length > 0) {
-    return storedUserId;
+  if (fillPane) {
+    searchParams.set('mode', 'graph');
+    searchParams.set('fillPane', 'true');
+    searchParams.set('disableNodeDrag', 'true');
+    searchParams.set('padding', '0');
+    searchParams.set('suppressFlushSyncWarning', 'true');
   }
 
-  return LEGACY_KAIROS_USER_ID;
-};
-
-const buildExternalPortalSrc = (externalQuantaId: string): string => {
-  return `/q/${externalQuantaId}`;
+  const queryString = searchParams.toString();
+  return queryString ? `/q/${externalQuantaId}?${queryString}` : `/q/${externalQuantaId}`;
 };
 
 // Declare the setExternalPortalLens command for TypeScript
@@ -187,14 +179,17 @@ const ExternalPortalExtension = Node.create({
           }
         }, [currentLens, props.editor.state.doc]);
         const usesFullHeightPane = shouldFillSingleRootPortalPane;
-        const usesDirectReactEmbed = shouldFillSingleRootPortalPane;
-        const embeddedUserId = useMemo(() => resolveKairosUserId(), []);
-        const [directEmbedComponents, setDirectEmbedComponents] = useState<DirectEmbedComponents | null>(null);
         const resolvedQuantaId = String(props.node.attrs.quantaId || externalQuantaId || "external-portal");
-        const externalPortalSrc = useMemo(() => buildExternalPortalSrc(externalQuantaId), [externalQuantaId]);
+        const externalPortalSrc = useMemo(
+          () => buildExternalPortalSrc(externalQuantaId, usesFullHeightPane),
+          [externalQuantaId, usesFullHeightPane]
+        );
         const handleQuantaIdChange = (newQuantaId: string) => {
           props.updateAttributes({ externalQuantaId: newQuantaId });
         };
+        const stopInteractiveInputPropagation = useCallback((event: React.SyntheticEvent<HTMLElement>) => {
+          event.stopPropagation();
+        }, []);
         const applyIframeHeight = useCallback((value: number) => {
           if (usesFullHeightPane) return;
 
@@ -253,30 +248,6 @@ const ExternalPortalExtension = Node.create({
         }, [measureIframeHeight, externalPortalSrc]);
 
         useEffect(() => {
-          if (!usesDirectReactEmbed) {
-            setDirectEmbedComponents(null);
-            return;
-          }
-
-          let cancelled = false;
-
-          void Promise.all([
-            import('../../core/Quanta'),
-            import('../../contexts/EditorContext'),
-          ]).then(([quantaModule, editorContextModule]) => {
-            if (cancelled) return;
-            setDirectEmbedComponents({
-              Quanta: quantaModule.Quanta as DirectEmbedComponents['Quanta'],
-              EditorProvider: editorContextModule.EditorProvider as DirectEmbedComponents['EditorProvider'],
-            });
-          });
-
-          return () => {
-            cancelled = true;
-          };
-        }, [usesDirectReactEmbed]);
-
-        useEffect(() => {
           if (!props.selected) {
             setIsTagExpanded(false);
           }
@@ -302,6 +273,13 @@ const ExternalPortalExtension = Node.create({
                 type="text"
                 value={externalQuantaId}
                 onChange={(e) => handleQuantaIdChange(e.target.value)}
+                onPointerDown={stopInteractiveInputPropagation}
+                onMouseDown={stopInteractiveInputPropagation}
+                onClick={stopInteractiveInputPropagation}
+                onFocus={stopInteractiveInputPropagation}
+                onKeyDown={stopInteractiveInputPropagation}
+                onKeyUp={stopInteractiveInputPropagation}
+                onBeforeInput={stopInteractiveInputPropagation}
                 placeholder="quanta-id"
                 style={{
                   border: "1.5px solid #34343430",
@@ -350,65 +328,20 @@ const ExternalPortalExtension = Node.create({
                       flex: usesFullHeightPane ? 1 : undefined,
                     }}
                   >
-                    {usesDirectReactEmbed ? (
-                      <div
-                        className="nodrag nopan"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          overflow: 'auto',
-                          background: 'white',
-                        }}
-                      >
-                        <style>{`
-                          .external-portal-react-embed [data-drag-handle] {
-                            display: none !important;
-                          }
-                        `}</style>
-                        <div
-                          className="external-portal-react-embed"
-                          style={{
-                            width: '100%',
-                            minHeight: '100%',
-                            padding: 16,
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          {directEmbedComponents ? (
-                            <directEmbedComponents.EditorProvider>
-                              <directEmbedComponents.Quanta quantaId={externalQuantaId} userId={embeddedUserId} />
-                            </directEmbedComponents.EditorProvider>
-                          ) : (
-                            <div
-                              style={{
-                                width: '100%',
-                                minHeight: '100%',
-                                display: 'grid',
-                                placeItems: 'center',
-                                color: '#64748b',
-                              }}
-                            >
-                              Loading quanta…
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <iframe
-                        ref={iframeRef}
-                        src={externalPortalSrc}
-                        loading="lazy"
-                        onLoad={handleIframeLoad}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          border: 'none',
-                          background: 'white',
-                          display: 'block',
-                        }}
-                        title={`Embedded Quanta: ${externalQuantaId}`}
-                      />
-                    )}
+                    <iframe
+                      ref={iframeRef}
+                      src={externalPortalSrc}
+                      loading="lazy"
+                      onLoad={handleIframeLoad}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        background: 'white',
+                        display: 'block',
+                      }}
+                      title={`Embedded Quanta: ${externalQuantaId}`}
+                    />
                   </div>
                 ) : (
                   <div style={{
@@ -491,13 +424,32 @@ const ExternalPortalExtension = Node.create({
         return (
           <NodeViewWrapper
             style={usesFullHeightPane
-              ? { display: 'block', height: '100%', minHeight: 0 }
+              ? {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  minHeight: 0,
+                }
               : undefined}
           >
             {renderExternalPortalFrame(groupLens)}
           </NodeViewWrapper>
         );
       },
+      {
+        stopEvent: ({ event }) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return false;
+          }
+
+          return Boolean(
+            target.closest(
+              'input, textarea, select, button, a, [role="button"], [contenteditable="true"], iframe'
+            )
+          );
+        },
+      }
     );
   },
 

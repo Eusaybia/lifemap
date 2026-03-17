@@ -713,6 +713,29 @@ export const GroupExtension = TipTapNode.create({
           ? "auraView"
           : props.node.attrs.lens;
       const isAuraLens = currentLens === "auraView";
+      const shouldFillEmbeddedGraphPane = (() => {
+        if (typeof window === 'undefined') return false;
+        if (currentLens !== 'identity') return false;
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') !== 'graph' || params.get('fillPane') !== 'true') {
+          return false;
+        }
+
+        const pos = props.getPos();
+        if (typeof pos !== 'number') return false;
+
+        try {
+          const resolvedPos = props.editor.state.doc.resolve(pos);
+          // ARCHITECTURE DECISION: only let the single top-level identity Group
+          // stretch to the iframe bounds in graph fill-pane mode. Nested Groups
+          // should keep their intrinsic height so normal document composition
+          // semantics remain unchanged outside this embed-specific path.
+          return resolvedPos.depth === 1 && props.editor.state.doc.childCount === 1;
+        } catch {
+          return false;
+        }
+      })();
       const glowVisualisationData = React.useMemo(
         () => buildGlowVisualisationData(props.node),
         [props.node]
@@ -916,7 +939,11 @@ export const GroupExtension = TipTapNode.create({
             <NodeViewWrapper
               ref={nodeViewRef}
               data-group-node-view="true"
-              style={{ scrollSnapAlign: 'start', overflow: 'visible' }}
+              style={{
+                scrollSnapAlign: 'start',
+                overflow: 'visible',
+                height: shouldFillEmbeddedGraphPane ? '100%' : undefined,
+              }}
             >
               {/* NodeOverlay provides the grip, shadow, and connection support */}
               <NodeOverlay
@@ -924,7 +951,12 @@ export const GroupExtension = TipTapNode.create({
                 nodeType="group"
                 boxShadow={GROUP_NODE_BOX_SHADOW}
                 padding={isAuraLens ? 0 : '20px'}
-                style={{ display: isHidden ? 'none' : 'block' }}
+                style={{
+                  display: isHidden ? 'none' : (shouldFillEmbeddedGraphPane ? 'flex' : 'block'),
+                  flexDirection: shouldFillEmbeddedGraphPane ? 'column' : undefined,
+                  height: shouldFillEmbeddedGraphPane ? '100%' : undefined,
+                  minHeight: shouldFillEmbeddedGraphPane ? 0 : undefined,
+                }}
                 isPrivate={currentLens === 'private'}
               >
                 {/* Note: Glow effects are now handled by Aura component via NodeOverlay */}
@@ -933,12 +965,17 @@ export const GroupExtension = TipTapNode.create({
                     borderRadius: 10,
                     position: 'relative',
                     overflow: 'visible',
+                    display: shouldFillEmbeddedGraphPane ? 'flex' : undefined,
+                    flexDirection: shouldFillEmbeddedGraphPane ? 'column' : undefined,
+                    flex: shouldFillEmbeddedGraphPane ? 1 : undefined,
+                    minHeight: shouldFillEmbeddedGraphPane ? 0 : undefined,
                   }}
                 >
                   <Group
                     lens={currentLens}
                     quantaId={props.node.attrs.quantaId}
                     backgroundColor={props.node.attrs.backgroundColor}
+                    fillHeight={shouldFillEmbeddedGraphPane}
                   >
                     {(() => {
                       switch (currentLens) {

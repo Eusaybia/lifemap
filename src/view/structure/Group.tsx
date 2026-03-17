@@ -20,6 +20,7 @@ export const Group = (props: {
     quantaId: QuantaId, 
     backgroundColor?: string,
     padding?: string | number,
+    fillHeight?: boolean,
 }) => {
     // Helper function to get background color
     // ARCHITECTURE DECISION: Semi-transparent backgrounds for 3D scene integration
@@ -41,6 +42,7 @@ export const Group = (props: {
     const isPreview = props.lens === 'preview';
     const isPrivate = props.lens === 'private';
     const isAuraView = props.lens === 'glowVisualisation' || props.lens === 'auraView';
+    const usesFillHeightLayout = props.fillHeight === true;
 
     return (
         <motion.div
@@ -71,6 +73,14 @@ export const Group = (props: {
                 borderRadius: `10px`,
                 // Note: boxShadow removed - now provided by NodeOverlay wrapper
                 padding: props.padding ?? (isCollapsed ? '10px 20px' : (isAuraView ? 0 : '20px')),
+                // ARCHITECTURE DECISION: some embedded graph surfaces need the Group shell
+                // to participate in a flex-height contract instead of sizing itself purely
+                // from document content. Keep this opt-in so normal Lifemap blocks still use
+                // the historical intrinsic-height behavior.
+                height: usesFillHeightLayout ? '100%' : undefined,
+                display: usesFillHeightLayout ? 'flex' : undefined,
+                flexDirection: usesFillHeightLayout ? 'column' : undefined,
+                minHeight: usesFillHeightLayout ? 0 : (isCollapsed ? 48 : 20),
                 // Note: margin removed - now provided by NodeOverlay wrapper
             }}
         >
@@ -79,9 +89,17 @@ export const Group = (props: {
                 {!isCollapsed && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
+                        animate={{ opacity: 1, height: usesFillHeightLayout ? '100%' : 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
+                        style={{
+                            ...(usesFillHeightLayout ? {
+                                flex: 1,
+                                minHeight: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                            } : undefined),
+                        }}
                     >
                         {props.children}
                     </motion.div>

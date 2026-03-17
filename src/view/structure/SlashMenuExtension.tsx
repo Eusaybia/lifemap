@@ -216,6 +216,28 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
   return [
     // Structure
     {
+      id: 'group',
+      title: 'Group',
+      description: 'Insert a grouped note container',
+      emoji: '📦',
+      keywords: ['group', 'container', 'block', 'card'],
+      action: (editor) => {
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: 'group',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'New group - double-click to edit' }],
+              },
+            ],
+          })
+          .run()
+      },
+    },
+    {
       id: 'columns-2',
       title: '2 Columns',
       description: 'Insert a 2-column layout',
