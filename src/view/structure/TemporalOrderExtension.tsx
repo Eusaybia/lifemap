@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "@tiptap/pm/model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, isNodeSelection, wrappingInputRule } from "@tiptap/core";
 import { Plugin, PluginKey, Transaction } from "@tiptap/pm/state";
@@ -6,13 +7,24 @@ import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { forceCollide } from "d3-force-3d";
+import type { Edge as ReactFlowEdge, Node as ReactFlowNode } from "reactflow";
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
 import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
 import { AuraSpec, readAuraFromAttrs, readTimepointAuraFromAttrs } from "../aura/AuraModel";
 import { TemporalEventCardRenderer, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
+import type { QuantaFlowGraphNodeData } from "@/components/QuantaFlowGraph";
 import './styles.scss';
+
+const TemporalOrderQuantaFlowGraph = dynamic(() => import('@/components/QuantaFlowGraph'), {
+  ssr: false,
+  loading: () => (
+    <div className="temporal-order-graph-canvas-error">
+      Loading flow graph...
+    </div>
+  ),
+});
 
 // ============================================================================
 // TEMPORAL ORDER EXTENSION
@@ -545,9 +557,10 @@ interface TemporalOrderContentProps {
   eventSources: TemporalOrderEventSource[];
   auraGraphData: ForceGraph3DData;
   graph2DData: TemporalOrderForceGraph2DData;
+  flowGraphData: TemporalOrderQuantaFlowGraphData;
 }
 
-type TemporalOrderLens = 'identity' | 'auraView' | 'graph2D';
+type TemporalOrderLens = 'identity' | 'auraView' | 'graph2D' | 'flowGraph';
 
 interface TemporalOrderEventSource {
   key: string;
@@ -588,6 +601,12 @@ interface TemporalOrderForceGraph2DData {
   links: TemporalOrderForceGraph2DLink[];
 }
 
+interface TemporalOrderQuantaFlowGraphData {
+  nodes: ReactFlowNode<QuantaFlowGraphNodeData>[];
+  edges: ReactFlowEdge[];
+  signature: string;
+}
+
 interface ForceGraph2DHandle {
   d3Force: {
     (name: string): {
@@ -612,6 +631,13 @@ const FORCE_GRAPH_CARD_WIDTH_MAP = 420;
 const FORCE_GRAPH_CARD_HEIGHT = 180;
 const FORCE_GRAPH_CARD_HEIGHT_MAP = 300;
 const FORCE_GRAPH_CARD_CORNER_RADIUS = 16;
+const TEMPORAL_ORDER_FLOW_NODE_WIDTH = 620;
+const TEMPORAL_ORDER_FLOW_NODE_HEIGHT = 430;
+const TEMPORAL_ORDER_FLOW_NODE_MAP_WIDTH = 700;
+const TEMPORAL_ORDER_FLOW_NODE_MAP_HEIGHT = 520;
+const TEMPORAL_ORDER_FLOW_NODE_PRIMARY_X = 48;
+const TEMPORAL_ORDER_FLOW_NODE_SECONDARY_X = 796;
+const TEMPORAL_ORDER_FLOW_NODE_VERTICAL_STEP = 340;
 
 const drawTemporalOrderRoundedRect = (
   context: CanvasRenderingContext2D,
@@ -883,6 +909,51 @@ const buildTemporalOrderForceGraph2DData = (
   };
 };
 
+const buildTemporalOrderQuantaFlowGraphData = (
+  eventSources: TemporalOrderEventSource[]
+): TemporalOrderQuantaFlowGraphData => {
+  const nodes: ReactFlowNode<QuantaFlowGraphNodeData>[] = eventSources.map((source, index) => ({
+    id: source.nodeId,
+    type: 'quantaNode',
+    position: {
+      x: index % 2 === 0 ? TEMPORAL_ORDER_FLOW_NODE_PRIMARY_X : TEMPORAL_ORDER_FLOW_NODE_SECONDARY_X,
+      y: index * TEMPORAL_ORDER_FLOW_NODE_VERTICAL_STEP,
+    },
+    data: {
+      label: source.label,
+      content: source.content,
+    },
+    style: {
+      width: source.hasMap ? TEMPORAL_ORDER_FLOW_NODE_MAP_WIDTH : TEMPORAL_ORDER_FLOW_NODE_WIDTH,
+      height: source.hasMap ? TEMPORAL_ORDER_FLOW_NODE_MAP_HEIGHT : TEMPORAL_ORDER_FLOW_NODE_HEIGHT,
+    },
+  }));
+
+  const edges: ReactFlowEdge[] = eventSources.slice(0, -1).map((source, index) => ({
+    id: `temporal-order-flow-${source.nodeId}-${eventSources[index + 1].nodeId}`,
+    source: source.nodeId,
+    target: eventSources[index + 1].nodeId,
+    type: 'handDrawn',
+  }));
+
+  const signature = JSON.stringify(
+    eventSources.map((source) => ({
+      nodeId: source.nodeId,
+      key: source.key,
+      label: source.label,
+      hasMap: source.hasMap,
+      dateMs: source.dateMs,
+      content: source.content,
+    }))
+  );
+
+  return {
+    nodes,
+    edges,
+    signature,
+  };
+};
+
 const cloneTemporalOrderForceGraph2DData = (
   data: TemporalOrderForceGraph2DData
 ): TemporalOrderForceGraph2DData => ({
@@ -1090,13 +1161,15 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   eventSources,
   auraGraphData,
   graph2DData,
+  flowGraphData,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(200);
   const isIdentityLens = lens === 'identity';
   const isAuraLens = lens === 'auraView';
   const isGraph2DLens = lens === 'graph2D';
-  const isImmersiveGraphLens = isAuraLens || isGraph2DLens;
+  const isFlowGraphLens = lens === 'flowGraph';
+  const isImmersiveGraphLens = isAuraLens || isGraph2DLens || isFlowGraphLens;
   const hasGraphNodes = eventSources.length > 0;
 
   // Track content height for the arrow
@@ -1146,7 +1219,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             </div>
 
             <AnimatePresence>
-              {(isAuraLens || isGraph2DLens) && (
+              {(isAuraLens || isGraph2DLens || isFlowGraphLens) && (
                 <motion.div
                   key={`temporal-order-graph-${lens}`}
                   initial={{ opacity: 0, scale: 0.985 }}
@@ -1166,9 +1239,21 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                       edgeToEdge
                       fitZoomScale={0.72}
                     />
-                  ) : (
+                  ) : isGraph2DLens ? (
                     <TemporalOrderForceGraph2D
                       graphData={graph2DData}
+                    />
+                  ) : (
+                    <TemporalOrderQuantaFlowGraph
+                      key={flowGraphData.signature}
+                      initialNodes={flowGraphData.nodes}
+                      initialEdges={flowGraphData.edges}
+                      hideInsertToolbar
+                      editableNodes={false}
+                      showNodeFlowMenu={false}
+                      showControls={false}
+                      showBackground={false}
+                      canvasBackground="transparent"
                     />
                   )}
                 </motion.div>
@@ -1420,7 +1505,7 @@ export const TemporalOrderExtension = TipTapNode.create({
       const lensAttr = props.node.attrs.lens;
       const legacyTimeMode = props.node.attrs.timeMode;
       const lens: TemporalOrderLens = (() => {
-        if (lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'identity') {
+        if (lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity') {
           return lensAttr;
         }
         if (legacyTimeMode === 'nonLinear') {
@@ -1519,7 +1604,11 @@ export const TemporalOrderExtension = TipTapNode.create({
         () => buildTemporalOrderForceGraph2DData(eventSources),
         [eventSources]
       );
-      const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D';
+      const flowGraphData = useMemo(
+        () => buildTemporalOrderQuantaFlowGraphData(eventSources),
+        [eventSources]
+      );
+      const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D' || lens === 'flowGraph';
 
       /**
        * ARCHITECTURE: Capture dragged node on dragenter
@@ -1686,6 +1775,7 @@ export const TemporalOrderExtension = TipTapNode.create({
               eventSources={eventSources}
               auraGraphData={auraGraphData}
               graph2DData={graph2DData}
+              flowGraphData={flowGraphData}
             >
               <NodeViewContent className="temporal-order-node-view-content" />
             </TemporalOrderContent>

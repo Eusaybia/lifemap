@@ -1377,12 +1377,44 @@ const getNearestAncestorNode = (editor: Editor, typeName: string) => {
     return null
 }
 
+const FLOW_MENU_GRIP_SELECTION_GRACE_MS = 400
+
+interface GripSelectionContext {
+    nodeType: string | null
+    at: number
+}
+
+const shouldPreferTemporalOrderLoupe = (
+    editor: Editor,
+    gripSelectionContext: GripSelectionContext | null,
+) => {
+    const selectedNodeType = getSelectedNodeType(editor)
+    if (selectedNodeType !== 'temporalSpace') return false
+    if (!isNodeSelection(editor.state.selection)) return false
+    if (!getNearestAncestorNode(editor, 'temporalOrder')) return false
+    if (!gripSelectionContext) return false
+    if (gripSelectionContext.nodeType !== 'temporalOrder') return false
+
+    return Date.now() - gripSelectionContext.at <= FLOW_MENU_GRIP_SELECTION_GRACE_MS
+}
+
+const resolveFlowMenuNodeType = (
+    editor: Editor,
+    gripSelectionContext: GripSelectionContext | null,
+) => {
+    if (shouldPreferTemporalOrderLoupe(editor, gripSelectionContext)) {
+        return 'temporalOrder'
+    }
+
+    return getSelectedNodeType(editor)
+}
+
 const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     const selectedNode = getNearestAncestorNode(props.editor, 'temporalOrder') ?? getSelectedNode(props.editor)
     const isCollapsed = !!selectedNode?.attrs?.collapsed
     const lensAttr = selectedNode?.attrs?.lens
     const selectedLens =
-      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'identity'
+      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity'
         ? lensAttr
         : selectedNode?.attrs?.timeMode === 'nonLinear'
           ? 'graph2D'
@@ -1421,6 +1453,16 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         2D Graph
+                    </motion.div>
+                </Option>
+                <Option value={"flowGraph"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "flowGraph" })
+                }}>
+                    <motion.div>
+                        Flow Graph
                     </motion.div>
                 </Option>
             </FlowSwitch>
@@ -2103,6 +2145,7 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
 
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
+    const lastGripSelectionContextRef = React.useRef<GripSelectionContext | null>(null)
 
     const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
     const [selectedVersionHistory, setSelectedVersionHistory] = React.useState<string>("No Version Initialised")
@@ -2112,12 +2155,42 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const [selectedValue, setSelectedValue] = React.useState<string>("Arial")
     
     // Track selection type changes to force re-render when switching between text and node selections
-    const [currentNodeType, setCurrentNodeType] = React.useState<string>(() => getSelectedNodeType(props.editor))
+    const [currentNodeType, setCurrentNodeType] = React.useState<string>(() =>
+        resolveFlowMenuNodeType(props.editor, lastGripSelectionContextRef.current)
+    )
     
     // Get current quanta ID for snapshot history controls
     const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
     React.useEffect(() => {
         setCurrentQuantaId(quantaBackup.getCurrentQuantaId())
+    }, [])
+
+    React.useEffect(() => {
+        const handleMouseDownCapture = (event: MouseEvent) => {
+            const target = event.target
+            if (!(target instanceof HTMLElement)) {
+                lastGripSelectionContextRef.current = null
+                return
+            }
+
+            const gripHandle = target.closest('.node-overlay-grip-handle')
+            if (!gripHandle) {
+                lastGripSelectionContextRef.current = null
+                return
+            }
+
+            const overlay = gripHandle.closest('[data-node-overlay="true"]')
+            const nodeType = overlay instanceof HTMLElement ? overlay.dataset.nodeType ?? null : null
+            lastGripSelectionContextRef.current = {
+                nodeType,
+                at: Date.now(),
+            }
+        }
+
+        document.addEventListener('mousedown', handleMouseDownCapture, true)
+        return () => {
+            document.removeEventListener('mousedown', handleMouseDownCapture, true)
+        }
     }, [])
     
     const selection = props.editor!.view.state.selection
@@ -2125,7 +2198,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     // Listen for selection updates and re-render when node type changes
     React.useEffect(() => {
         const handleSelectionUpdate = () => {
-            const newNodeType = getSelectedNodeType(props.editor);
+            const newNodeType = resolveFlowMenuNodeType(props.editor, lastGripSelectionContextRef.current);
             if (newNodeType !== currentNodeType) {
                 setCurrentNodeType(newNodeType);
             }
