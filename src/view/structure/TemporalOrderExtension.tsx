@@ -1847,7 +1847,6 @@ const TemporalOrderYearRail: React.FC<{
     <div
       aria-hidden="true"
       className="temporal-order-year-rail"
-      style={{ minHeight: railHeight }}
     >
       <div
         className="temporal-order-year-rail-axis"
