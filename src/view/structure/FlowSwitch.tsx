@@ -2,6 +2,7 @@ import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
 import { playUiSound, useScrollEnd } from '../../utils/utils';
+import { FlowSwitchValue, getFlowSwitchOptionElements, resolveFlowSwitchValue } from './FlowSwitch.utils';
 
 interface OptionButtonProps {
     onClick: (event?: React.MouseEvent<HTMLDivElement>) => void;
@@ -10,10 +11,11 @@ interface OptionButtonProps {
 }
 
 interface FlowSwitchProps {
-    children: React.ReactElement[]
-    value: string
+    children: React.ReactNode
+    value: FlowSwitchValue
     onChange?: (selectedIndex: number) => void
     isLens?: boolean
+    testId?: string
     disableAutoScroll?: boolean
     /** When true, scrolling to an option will automatically trigger its onClick */
     scrollToSelect?: boolean
@@ -46,7 +48,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
     const isProgrammaticScroll = React.useRef(false);
     const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-    const lastValueRef = React.useRef<string>(props.value);
+    const lastValueRef = React.useRef<FlowSwitchValue | undefined>(props.value);
 
     const logDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
         if (!props.diagnosticsEnabled) return
@@ -58,8 +60,22 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     let timer: NodeJS.Timeout | null = null;
 
     // Filter out undefined/null children first
-    const validChildren = props.children.filter(child => child != null);
-    const switchElementsRefs = validChildren.map(() => React.createRef<HTMLDivElement>());
+    const validChildren = React.useMemo(
+        () => getFlowSwitchOptionElements(props.children),
+        [props.children],
+    );
+    const optionValuesSignature = React.useMemo(
+        () => validChildren.map((child) => String(child.props.value ?? "")).join("\u001f"),
+        [validChildren],
+    );
+    const resolvedValue = React.useMemo(
+        () => resolveFlowSwitchValue(props.value, validChildren),
+        [props.value, optionValuesSignature],
+    );
+    const switchElementsRefs = React.useMemo(
+        () => validChildren.map(() => React.createRef<HTMLDivElement>()),
+        [optionValuesSignature],
+    );
 
     const switchElements = validChildren.map((child, index) => 
         (<motion.div
@@ -109,17 +125,22 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
         // Skip auto-scroll if disabled (for keyboard-controlled navigation)
         if (props.disableAutoScroll) return;
 
-        if (lastValueRef.current !== props.value) {
+        if (lastValueRef.current !== resolvedValue) {
             logDiagnostics('valueChanged', {
                 previousValue: lastValueRef.current,
-                nextValue: props.value,
+                nextValue: resolvedValue,
+                requestedValue: props.value,
             })
-            lastValueRef.current = props.value
+            lastValueRef.current = resolvedValue
         }
 
-        // Find the element in valid children
+        if (resolvedValue === undefined) {
+            return;
+        }
+
+        const normalizedResolvedValue = String(resolvedValue)
         const index = validChildren.findIndex(child => {
-            return child && child.props && child.props.value === props.value
+            return String(child.props?.value ?? "") === normalizedResolvedValue
         })
 
         if (index !== -1 && switchElementsRefs[index].current) {
@@ -136,7 +157,8 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
                 const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - (containerRect.height / 2) + (elementRect.height / 2);
                 logDiagnostics('autoScroll:start', {
-                    selectedValue: props.value,
+                    selectedValue: resolvedValue,
+                    requestedValue: props.value,
                     index,
                     fromScrollTop: container.scrollTop,
                     toScrollTop: scrollTop,
@@ -155,7 +177,8 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
             setTimeout(() => {
                 isProgrammaticScroll.current = false;
                 logDiagnostics('autoScroll:end', {
-                    selectedValue: props.value,
+                    selectedValue: resolvedValue,
+                    requestedValue: props.value,
                     index,
                     currentScrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
                 })
@@ -163,7 +186,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
         }
 
-    }, [props.value, props.disableAutoScroll, logDiagnostics])
+    }, [props.value, props.disableAutoScroll, logDiagnostics, optionValuesSignature, resolvedValue])
 
     useScrollEnd(() => {
         if (props.onChange) {
@@ -217,6 +240,9 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
             key={props.value}
             ref={setRefs}
             onScroll={handleScroll}
+            data-testid={props.testId}
+            data-flow-switch={props.testId || 'flow-switch'}
+            data-flow-switch-value={resolvedValue !== undefined ? String(resolvedValue) : String(props.value)}
             style={{
                 scrollSnapType: "y mandatory",
                 scrollBehavior: "smooth",
@@ -269,13 +295,16 @@ export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, onPointerDo
 };
 
 export const Option = (props: {
-    value: string,
+    value: FlowSwitchValue,
     onClick?: (event?: React.MouseEvent<HTMLDivElement>) => void,
     onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void,
     children: React.ReactElement
 }) => {
     return (
-        <motion.div>
+        <motion.div
+            data-flow-switch-option={String(props.value)}
+            data-testid={`flow-switch-option-${String(props.value)}`}
+        >
             <OptionButton onClick={props.onClick || (() => {})} onPointerDown={props.onPointerDown}>
                 {props.children}
             </OptionButton>

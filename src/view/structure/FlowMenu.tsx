@@ -617,7 +617,11 @@ const ActionSwitch = React.memo((props: {
 
     return (
         <>
-        <FlowSwitch value={props.selectedAction} isLens>
+        <FlowSwitch
+            value={props.selectedAction}
+            isLens
+            testId={props.nodeType ? "node-actions" : "document-actions"}
+        >
             {isDevMode && (
                 <Option
                     value={"Copy node to clipboard"}
@@ -1034,7 +1038,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     const { editor: contextEditor } = useEditorContext()
     const editor = contextEditor || props.editor
     
-    const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
+    const selectedAction = "Insert 2 columns"
     
     // Get current quanta ID from URL
     const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null)
@@ -2106,7 +2110,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
     const lastGripSelectionContextRef = React.useRef<GripSelectionContext | null>(null)
 
-    const [selectedAction, setSelectedAction] = React.useState<string>("Copy quanta id")
+    const selectedAction = "Insert 2 columns"
     const [selectedVersionHistory, setSelectedVersionHistory] = React.useState<string>("No Version Initialised")
     const [selectedDisplayLens, setSelectedDisplayLens] = React.useState<string>("linear")
     const [selectedEvaluationLens, setSelectedEvaluationLens] = React.useState<string>("evaluate")
