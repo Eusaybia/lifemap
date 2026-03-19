@@ -92,6 +92,7 @@
     "roughjs": "^4.6.6",
     "sass": "1.59.2",
     "three": "0.155.0",
+    "three-spritetext": "^1.9.6",
     "tippy.js": "6.3.7",
     "typescript": "5.1.6",
     "typia": "3.6.8",
@@ -106,8 +107,8 @@
   "scripts": {
     "deploy": "firebase deploy",
     "test": "vitest",
-    "cy:run": "cypress run",
-    "cy:open": "cypress open",
+    "cy:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
+    "cy:open": "env -u ELECTRON_RUN_AS_NODE cypress open",
     "initialise-mobile-native": "yarn next build && npx cap add android && npx cap add ios",
     "dev-web": "yarn concurrently -n NEXT,TS -c magenta,cyan \"yarn next dev -p 3000\" \"yarn tsc --watch\"",
     "dev-ios": "npx cap open ios",

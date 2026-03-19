@@ -10,6 +10,7 @@ import { PluginKey } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/core'
 import { FlowSwitch, Option } from './FlowSwitch'
 import { playUiSound } from '../../utils/utils'
+import { promptAndUploadImage } from '../content/image-upload'
 
 // ============================================================================
 // Types
@@ -282,9 +283,7 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       emoji: '🌁',
       keywords: ['image', 'picture', 'photo', 'upload'],
       action: (editor) => {
-        uploadImageThroughSlashMenu((imageUrl) => {
-          editor.chain().focus().setImage({ src: imageUrl }).run()
-        })
+        promptAndUploadImage(editor)
       },
     },
     {

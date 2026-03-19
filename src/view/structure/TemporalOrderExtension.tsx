@@ -14,10 +14,10 @@ import { scanNodeForTags } from "../components/Aura";
 import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
 import { AuraSpec, readAuraFromAttrs, readTimepointAuraFromAttrs } from "../aura/AuraModel";
 import { TemporalEventCardRenderer, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
-import type { QuantaFlowGraphNodeData } from "@/components/QuantaFlowGraph";
+import type { QuantaFlowGraphNodeData } from "../components/QuantaFlowGraph";
 import './styles.scss';
 
-const TemporalOrderQuantaFlowGraph = dynamic(() => import('@/components/QuantaFlowGraph'), {
+const TemporalOrderQuantaFlowGraph = dynamic(() => import('../components/QuantaFlowGraph'), {
   ssr: false,
   loading: () => (
     <div className="temporal-order-graph-canvas-error">

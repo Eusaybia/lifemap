@@ -8,7 +8,7 @@ import { EditorContent, Extensions, JSONContent, Editor, useEditor, Content, Ext
 import StarterKit from '@tiptap/starter-kit'
 import FontFamily from '@tiptap/extension-font-family'
 import { TextStyle } from '@tiptap/extension-text-style'
-import Image from '@/components/tiptap-node/image-node/image-node-extension'
+import Image from './image-node/image-node-extension'
 import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'

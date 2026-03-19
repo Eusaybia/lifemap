@@ -1,0 +1,95 @@
+/* TimePoint Mention Styles - Differentiated from User Mentions */
+
+.tiptap-mention[data-id^="timepoint:"] {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #9ca3af !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+.tiptap-mention[data-id^="timepoint:"]:hover {
+  background-color: #f9fafb !important;
+  border-color: #6b7280 !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  body[theme='dark'] .tiptap-mention[data-id^="timepoint:"],
+  html[class*='dark'] .tiptap-mention[data-id^="timepoint:"] {
+    background-color: #374151 !important;
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.3),
+      0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
+  }
+
+  body[theme='dark'] .tiptap-mention[data-id^="timepoint:"]:hover,
+  html[class*='dark'] .tiptap-mention[data-id^="timepoint:"]:hover {
+    background-color: #4b5563 !important;
+    border-color: #6b7280 !important;
+  }
+}
+
+.tiptap-timepoint-decoration {
+  color: #0369a1;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}
+
+.tiptap-mention[data-id^="lunar:"] {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #9ca3af !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+.tiptap-mention[data-id^="lunar:"]:hover {
+  background-color: #f9fafb !important;
+  border-color: #6b7280 !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  body[theme='dark'] .tiptap-mention[data-id^="lunar:"],
+  html[class*='dark'] .tiptap-mention[data-id^="lunar:"] {
+    background-color: #374151 !important;
+    color: #f9fafb !important;
+    border-color: #4b5563 !important;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.3),
+      0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
+  }
+
+  body[theme='dark'] .tiptap-mention[data-id^="lunar:"]:hover,
+  html[class*='dark'] .tiptap-mention[data-id^="lunar:"]:hover {
+    background-color: #4b5563 !important;
+    border-color: #6b7280 !important;
+  }
+}

@@ -5,7 +5,7 @@ import { Node as TipTapNode } from "@tiptap/core"
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from "@tiptap/react"
 import { motion } from "framer-motion"
 import { NodeOverlay } from "../components/NodeOverlay"
-import "@/styles/timepoint-mention.css"
+import "../../../styles/timepoint-mention.css"
 
 // ============================================================================
 // Lunar Phase Calculations

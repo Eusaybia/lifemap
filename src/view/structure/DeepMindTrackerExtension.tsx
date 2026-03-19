@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react'
-import { DeepMindTracker } from '@/components/DeepMindTracker'
+import { DeepMindTracker } from '../components/DeepMindTracker'
 import { NodeOverlay } from '../components/NodeOverlay'
 
 const DeepMindTrackerNodeView = (props: any) => {
