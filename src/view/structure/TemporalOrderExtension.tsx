@@ -1317,6 +1317,9 @@ export const TemporalOrderExtension = TipTapNode.create({
         return chain()
           .insertContent({
             type: 'temporalOrder',
+            attrs: {
+              lens: 'identity',
+            },
             content: [{ type: 'temporalSpace', content: [{ type: 'paragraph' }] }],
           })
           .run();
