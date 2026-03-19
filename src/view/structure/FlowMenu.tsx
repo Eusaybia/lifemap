@@ -1114,9 +1114,9 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
 
 // Memoize GroupLoupe
 const GroupLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    let backgroundColor = selectedNode.attrs.backgroundColor
-    let lens = selectedNode.attrs.lens
+    const selectedNode = getLoupeNode(props.editor, "group")
+    let backgroundColor = selectedNode?.attrs?.backgroundColor ?? offWhite
+    let lens = selectedNode?.attrs?.lens ?? "identity"
     if (lens === "glowVisualisation") {
         lens = "auraView"
     }
@@ -1241,8 +1241,8 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
 
 // Memoize Canvas3DLoupe
 const Canvas3DLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    let lens = selectedNode.attrs.lens
+    const selectedNode = getLoupeNode(props.editor, "canvas3D")
+    let lens = selectedNode?.attrs?.lens ?? "identity"
 
     return (
         <div
@@ -1273,8 +1273,8 @@ const Canvas3DLoupe = React.memo((props: { editor: Editor }) => {
 
 // Memoize TemporalSpaceLoupe - similar to GroupLoupe but with "Temporal Space" tag
 const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    let lens = selectedNode.attrs.lens
+    const selectedNode = getLoupeNode(props.editor, "temporalSpace")
+    let lens = selectedNode?.attrs?.lens ?? "identity"
 
     return (
         <div
@@ -1314,6 +1314,16 @@ const getNearestAncestorNode = (editor: Editor, typeName: string) => {
     }
 
     return null
+}
+
+const getLoupeNode = (editor: Editor, typeName: string) => {
+    const ancestorNode = getNearestAncestorNode(editor, typeName)
+    if (ancestorNode) {
+        return ancestorNode
+    }
+
+    const selectedNode = getSelectedNode(editor)
+    return selectedNode?.type?.name === typeName ? selectedNode : null
 }
 
 const FLOW_MENU_GRIP_SELECTION_GRACE_MS = 400
@@ -2009,8 +2019,8 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
 // Add new PortalLoupe component
 // Memoize PortalLoupe
 const PortalLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    let lens = selectedNode.attrs.lens
+    const selectedNode = getLoupeNode(props.editor, "portal")
+    let lens = selectedNode?.attrs?.lens ?? "identity"
 
     return (
         <div
@@ -2048,8 +2058,8 @@ const PortalLoupe = React.memo((props: { editor: Editor }) => {
 
 // ExternalPortalLoupe - for iframe-embedded external quanta
 const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    let lens = selectedNode.attrs.lens
+    const selectedNode = getLoupeNode(props.editor, "externalPortal")
+    let lens = selectedNode?.attrs?.lens ?? "identity"
 
     return (
         <div

@@ -223,7 +223,7 @@ export const getSelectedNode = (editor: Editor) => {
 
   if (selection) {
     // @ts-ignore - Node does exist on Selection
-    return selection.node
+    return selection.node ?? null
   } else {
     return null
   }
