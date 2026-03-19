@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "@tiptap/pm/model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, isNodeSelection, wrappingInputRule } from "@tiptap/core";
@@ -136,6 +136,7 @@ const TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG = {
 const CENTURY_VIEW_VERTICAL_PADDING_PX = 18;
 const CENTURY_VIEW_MAX_EVENT_WIDTH_PX = 500;
 const CENTURY_VIEW_MIN_EVENT_WIDTH_PX = 132;
+const CENTURY_VIEW_PREFERRED_EVENT_WIDTH_PX = 320;
 const CENTURY_VIEW_COLUMN_GAP_PX = 12;
 const CENTURY_VIEW_ROW_GAP_PX = 10;
 const CENTURY_VIEW_LOG_SCALE_EXPONENT = 0.28;
@@ -143,8 +144,8 @@ const CENTURY_VIEW_UNSCHEDULED_GAP_PX = 28;
 const CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX = 280;
 const CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX = 420;
 const CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX = 340;
-const CENTURY_VIEW_EVENT_BASE_SCALE = 0.7;
-const CENTURY_VIEW_FUTURE_EVENT_MIN_SCALE = 0.58;
+const CENTURY_VIEW_EVENT_BASE_SCALE = 0.84;
+const CENTURY_VIEW_FUTURE_EVENT_MIN_SCALE = 0.72;
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -236,6 +237,37 @@ interface TemporalOrderTimelineLayoutItem {
 interface TemporalOrderMonthTick {
   key: string;
   topPx: number;
+}
+
+interface TemporalOrderCenturyViewPlacementInput {
+  index: number;
+  targetAnchorPx: number;
+  childHeight: number;
+  scale: number;
+  yearKey: string | null;
+  slotKey: string | null;
+}
+
+interface TemporalOrderCenturyViewResolvedPlacement {
+  index: number;
+  laneIndex: number;
+  topPx: number;
+  leftPx: number;
+  bottomPx: number;
+  scale: number;
+}
+
+interface TemporalOrderCenturyTopBandPlacementInput {
+  index: number;
+  childHeight: number;
+}
+
+interface TemporalOrderCenturyTopBandResolvedPlacement {
+  index: number;
+  laneIndex: number;
+  topPx: number;
+  leftPx: number;
+  bottomPx: number;
 }
 
 interface TemporalOrderClickTimePointAttrs {
@@ -523,6 +555,263 @@ const getCenturyViewDateOffsetPx = (
   );
 
   return yearTopPx - (yearTopPx - nextYearTopPx) * progress;
+};
+
+export const buildTemporalOrderCenturyViewPlacements = (
+  placements: TemporalOrderCenturyViewPlacementInput[],
+  columnCount: number,
+  cardWidth: number
+): {
+  placements: TemporalOrderCenturyViewResolvedPlacement[];
+  contentBottom: number;
+} => {
+  const resolvedColumnCount = Math.max(columnCount, 1);
+  const laneTopEdges = Array.from({ length: resolvedColumnCount }, () => Number.POSITIVE_INFINITY);
+  const resolvedPlacements: TemporalOrderCenturyViewResolvedPlacement[] = [];
+  const nextLaneByYearKey = new Map<string, number>();
+  const nextLaneBySlotKey = new Map<string, number>();
+  let contentBottom = CENTURY_VIEW_VERTICAL_PADDING_PX;
+
+  const buildLanePreferenceOrder = (startLane: number) => {
+    return Array.from({ length: resolvedColumnCount }, (_, offset) => (startLane + offset) % resolvedColumnCount);
+  };
+
+  placements
+    .slice()
+    // Place cards starting from the present and build upward into the future.
+    // This preserves the "future is up" direction even when lanes collide.
+    .sort((left, right) => {
+      if (right.targetAnchorPx !== left.targetAnchorPx) {
+        return right.targetAnchorPx - left.targetAnchorPx;
+      }
+
+      return left.index - right.index;
+    })
+    .forEach((placement) => {
+      const preferredStartLane = (() => {
+        if (placement.slotKey && nextLaneBySlotKey.has(placement.slotKey)) {
+          return nextLaneBySlotKey.get(placement.slotKey) ?? 0;
+        }
+
+        if (placement.yearKey && nextLaneByYearKey.has(placement.yearKey)) {
+          return nextLaneByYearKey.get(placement.yearKey) ?? 0;
+        }
+
+        return 0;
+      })();
+      const lanePreferenceOrder = buildLanePreferenceOrder(preferredStartLane);
+      let bestLaneIndex = 0;
+      let bestBottomPx = Number.NEGATIVE_INFINITY;
+
+      lanePreferenceOrder.forEach((laneIndex) => {
+        const laneTopEdge = laneTopEdges[laneIndex];
+        const candidateBottomPx = Number.isFinite(laneTopEdge)
+          ? Math.min(placement.targetAnchorPx, laneTopEdge - CENTURY_VIEW_ROW_GAP_PX)
+          : placement.targetAnchorPx;
+
+        if (candidateBottomPx > bestBottomPx) {
+          bestBottomPx = candidateBottomPx;
+          bestLaneIndex = laneIndex;
+        }
+      });
+
+      const topPx = Math.max(
+        CENTURY_VIEW_VERTICAL_PADDING_PX,
+        bestBottomPx - placement.childHeight
+      );
+      const bottomPx = topPx + placement.childHeight;
+
+      laneTopEdges[bestLaneIndex] = topPx;
+      if (placement.yearKey) {
+        nextLaneByYearKey.set(placement.yearKey, (bestLaneIndex + 1) % resolvedColumnCount);
+      }
+      if (placement.slotKey) {
+        nextLaneBySlotKey.set(placement.slotKey, (bestLaneIndex + 1) % resolvedColumnCount);
+      }
+      contentBottom = Math.max(contentBottom, bottomPx + CENTURY_VIEW_ROW_GAP_PX);
+
+      resolvedPlacements.push({
+        index: placement.index,
+        laneIndex: bestLaneIndex,
+        topPx,
+        leftPx: bestLaneIndex * (cardWidth + CENTURY_VIEW_COLUMN_GAP_PX),
+        bottomPx,
+        scale: placement.scale,
+      });
+    });
+
+  return {
+    placements: resolvedPlacements,
+    contentBottom,
+  };
+};
+
+export const buildTemporalOrderCenturyTopBandPlacements = (
+  placements: TemporalOrderCenturyTopBandPlacementInput[],
+  availableWidth: number,
+  columnCount: number,
+  cardWidth: number
+): {
+  placements: TemporalOrderCenturyTopBandResolvedPlacement[];
+  bandHeight: number;
+} => {
+  if (!placements.length) {
+    return {
+      placements: [],
+      bandHeight: 0,
+    };
+  }
+
+  const resolvedColumnCount = Math.max(1, Math.min(columnCount, placements.length));
+  const laneBottomEdges = Array.from(
+    { length: resolvedColumnCount },
+    () => CENTURY_VIEW_VERTICAL_PADDING_PX
+  );
+  const laneStepPx =
+    resolvedColumnCount > 1
+      ? Math.max((availableWidth - cardWidth) / (resolvedColumnCount - 1), 0)
+      : 0;
+  const resolvedPlacements: TemporalOrderCenturyTopBandResolvedPlacement[] = [];
+
+  placements.forEach((placement) => {
+    let bestLaneIndex = 0;
+    let bestTopPx = laneBottomEdges[0] ?? CENTURY_VIEW_VERTICAL_PADDING_PX;
+
+    for (let laneIndex = 1; laneIndex < laneBottomEdges.length; laneIndex += 1) {
+      const laneTopPx = laneBottomEdges[laneIndex] ?? CENTURY_VIEW_VERTICAL_PADDING_PX;
+      if (laneTopPx < bestTopPx) {
+        bestTopPx = laneTopPx;
+        bestLaneIndex = laneIndex;
+      }
+    }
+
+    const topPx = bestTopPx;
+    const bottomPx = topPx + placement.childHeight;
+    laneBottomEdges[bestLaneIndex] = bottomPx + CENTURY_VIEW_ROW_GAP_PX;
+
+    resolvedPlacements.push({
+      index: placement.index,
+      laneIndex: bestLaneIndex,
+      topPx,
+      leftPx: laneStepPx * bestLaneIndex,
+      bottomPx,
+    });
+  });
+
+  return {
+    placements: resolvedPlacements,
+    bandHeight: Math.max(...laneBottomEdges) - CENTURY_VIEW_VERTICAL_PADDING_PX,
+  };
+};
+
+export const resolveTemporalOrderCenturyViewColumnCount = (
+  placements: Array<
+    Pick<TemporalOrderCenturyViewPlacementInput, 'yearKey' | 'slotKey' | 'childHeight'> & {
+      bandTopPx: number;
+      bandBottomPx: number;
+    }
+  >,
+  timelineWidth: number
+): number => {
+  if (!placements.length) return 1;
+
+  const maxColumnsByWidth = Math.max(
+    1,
+    Math.floor(
+      (timelineWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
+        (CENTURY_VIEW_MIN_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
+    )
+  );
+  const maxUsableColumns = Math.max(1, Math.min(maxColumnsByWidth, placements.length));
+
+  const canFitYearBandInColumns = (heights: number[], bandHeight: number, columnCount: number) => {
+    if (!heights.length) return true;
+    const laneHeights = Array.from({ length: columnCount }, () => 0);
+
+    return heights
+      .slice()
+      .sort((left, right) => right - left)
+      .every((height) => {
+        let bestLaneIndex = -1;
+        let bestLaneHeight = Number.POSITIVE_INFINITY;
+
+        for (let laneIndex = 0; laneIndex < laneHeights.length; laneIndex += 1) {
+          const laneHeight = laneHeights[laneIndex];
+          const candidateHeight = laneHeight === 0
+            ? height
+            : laneHeight + CENTURY_VIEW_ROW_GAP_PX + height;
+
+          if (candidateHeight > bandHeight) {
+            continue;
+          }
+
+          if (candidateHeight < bestLaneHeight) {
+            bestLaneHeight = candidateHeight;
+            bestLaneIndex = laneIndex;
+          }
+        }
+
+        if (bestLaneIndex === -1) {
+          return false;
+        }
+
+        laneHeights[bestLaneIndex] = bestLaneHeight;
+        return true;
+      });
+  };
+
+  const yearCounts = new Map<string, number>();
+  const slotCounts = new Map<string, number>();
+  const yearBands = new Map<string, { heights: number[]; bandHeight: number }>();
+
+  placements.forEach((placement) => {
+    if (placement.yearKey) {
+      yearCounts.set(placement.yearKey, (yearCounts.get(placement.yearKey) ?? 0) + 1);
+
+      const bandHeight = Math.max(
+        placement.bandBottomPx - placement.bandTopPx - CENTURY_VIEW_ROW_GAP_PX,
+        placement.childHeight
+      );
+      const existingBand = yearBands.get(placement.yearKey);
+      if (existingBand) {
+        existingBand.heights.push(placement.childHeight);
+        existingBand.bandHeight = Math.max(existingBand.bandHeight, bandHeight);
+      } else {
+        yearBands.set(placement.yearKey, {
+          heights: [placement.childHeight],
+          bandHeight,
+        });
+      }
+    }
+    if (placement.slotKey) {
+      slotCounts.set(placement.slotKey, (slotCounts.get(placement.slotKey) ?? 0) + 1);
+    }
+  });
+
+  const densestYearCount = Math.max(...yearCounts.values(), 1);
+  const densestSlotCount = Math.max(...slotCounts.values(), 1);
+  const densityDrivenColumns = Math.max(
+    densestSlotCount,
+    Math.ceil(densestYearCount / 2)
+  );
+
+  const startingColumnCount = clampNumber(
+    densityDrivenColumns,
+    1,
+    maxUsableColumns
+  );
+
+  for (let candidateColumnCount = startingColumnCount; candidateColumnCount <= maxUsableColumns; candidateColumnCount += 1) {
+    const everyYearFits = Array.from(yearBands.values()).every((yearBand) =>
+      canFitYearBandInColumns(yearBand.heights, yearBand.bandHeight, candidateColumnCount)
+    );
+
+    if (everyYearFits) {
+      return candidateColumnCount;
+    }
+  }
+
+  return maxUsableColumns;
 };
 
 // ============================================================================
@@ -1547,10 +1836,11 @@ const TemporalOrderForceGraph2D: React.FC<{
 
 const TemporalOrderYearRail: React.FC<{
   increments: TemporalOrderYearIncrement[];
-}> = ({ increments }) => {
+  topOffsetPx?: number;
+}> = ({ increments, topOffsetPx = 0 }) => {
   if (!increments.length) return null;
 
-  const railHeight = (increments[0]?.topPx ?? 0) + CENTURY_VIEW_VERTICAL_PADDING_PX;
+  const railHeight = (increments[0]?.topPx ?? 0) + CENTURY_VIEW_VERTICAL_PADDING_PX + topOffsetPx;
   const monthTicks = buildTemporalOrderMonthTicks(increments);
 
   return (
@@ -1562,7 +1852,7 @@ const TemporalOrderYearRail: React.FC<{
       <div
         className="temporal-order-year-rail-axis"
         style={{
-          top: CENTURY_VIEW_VERTICAL_PADDING_PX,
+          top: CENTURY_VIEW_VERTICAL_PADDING_PX + topOffsetPx,
           height: Math.max(railHeight - CENTURY_VIEW_VERTICAL_PADDING_PX * 2, 0),
         }}
       />
@@ -1570,7 +1860,7 @@ const TemporalOrderYearRail: React.FC<{
         <div
           key={tick.key}
           className="temporal-order-year-rail-month-row"
-          style={{ top: tick.topPx }}
+          style={{ top: tick.topPx + topOffsetPx }}
         >
           <div className="temporal-order-year-rail-month-tick" />
         </div>
@@ -1580,7 +1870,7 @@ const TemporalOrderYearRail: React.FC<{
           <div
             key={increment.year}
             className="temporal-order-year-rail-row"
-            style={{ top: increment.topPx }}
+            style={{ top: increment.topPx + topOffsetPx }}
           >
             <div
               className="temporal-order-year-rail-tick"
@@ -1626,7 +1916,10 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentHostRef = useRef<HTMLDivElement>(null);
+  const centuryLayoutFrameRef = useRef<number | null>(null);
   const [contentHeight, setContentHeight] = useState(200);
+  const [centuryLayoutRevision, setCenturyLayoutRevision] = useState(0);
+  const [centuryTopInset, setCenturyTopInset] = useState(0);
   const [timelineHoverIndicator, setTimelineHoverIndicator] = useState<TemporalOrderHoverIndicatorState | null>(null);
   const isIdentityLens = lens === 'identity';
   const isYearIncrementLens = lens === 'centuryView';
@@ -1649,20 +1942,73 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     );
   }, [yearIncrements]);
 
+  const scheduleCenturyViewLayout = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (centuryLayoutFrameRef.current !== null) return;
+
+    centuryLayoutFrameRef.current = window.requestAnimationFrame(() => {
+      centuryLayoutFrameRef.current = null;
+      setCenturyLayoutRevision((prev) => prev + 1);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && centuryLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(centuryLayoutFrameRef.current);
+      }
+    };
+  }, []);
+
   // Track content height for the arrow
   useEffect(() => {
     if (containerRef.current) {
       const observer = new ResizeObserver((entries) => {
         for (const entry of entries) {
-          setContentHeight(entry.contentRect.height);
+          setContentHeight((prev) =>
+            prev === entry.contentRect.height ? prev : entry.contentRect.height
+          );
         }
+        scheduleCenturyViewLayout();
       });
       observer.observe(containerRef.current);
       return () => observer.disconnect();
     }
-  }, []);
+  }, [scheduleCenturyViewLayout]);
 
   useEffect(() => {
+    const host = contentHostRef.current;
+    const contentNode = host?.querySelector('.temporal-order-node-view-content') as HTMLElement | null;
+
+    if (!isYearIncrementLens || !host || !contentNode) return;
+
+    const wrapperNode =
+      contentNode.children.length === 1 &&
+      contentNode.firstElementChild instanceof HTMLElement &&
+      contentNode.firstElementChild.hasAttribute('data-node-view-wrapper')
+        ? contentNode.firstElementChild
+        : null;
+    const itemContainer = (wrapperNode instanceof HTMLElement ? wrapperNode : contentNode) as HTMLElement;
+    const itemElements = Array.from(itemContainer.children) as HTMLElement[];
+
+    if (!itemElements.length) return;
+
+    // Embedded editors and maps can grow after first paint, so century view
+    // needs to remeasure each card instead of relying on the initial layout pass.
+    const resizeObserver = new ResizeObserver(() => {
+      scheduleCenturyViewLayout();
+    });
+
+    itemElements.forEach((child) => {
+      resizeObserver.observe(child);
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [isYearIncrementLens, scheduleCenturyViewLayout, timelineLayout]);
+
+  useLayoutEffect(() => {
     const host = contentHostRef.current;
     const contentNode = host?.querySelector('.temporal-order-node-view-content') as HTMLElement | null;
 
@@ -1679,6 +2025,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
 
     const resetCenturyViewStyles = () => {
       containerRef.current?.style.removeProperty('--temporal-order-century-timeline-width');
+      setCenturyTopInset((prev) => (prev === 0 ? prev : 0));
       itemContainer.style.position = '';
       if (wrapperNode instanceof HTMLElement) {
         wrapperNode.style.marginTop = '';
@@ -1725,72 +2072,69 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       .map((layoutItem, index) => ({ index, layoutItem, child: itemElements[index] }))
       .filter((placement) => !placement.layoutItem?.date);
     const hasUnscheduledItems = unscheduledPlacements.length > 0;
-    const unscheduledColumnWidth = hasUnscheduledItems
-      ? clampNumber(
-          Math.round(contentWidth * 0.3),
-          CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX,
-          CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX
-        )
-      : 0;
-    const timelineWidth = hasUnscheduledItems
-      ? Math.max(
-          contentWidth - unscheduledColumnWidth - CENTURY_VIEW_UNSCHEDULED_GAP_PX,
-          CENTURY_VIEW_MIN_EVENT_WIDTH_PX
-        )
-      : contentWidth;
+    const timelineWidth = contentWidth;
     containerRef.current?.style.setProperty('--temporal-order-century-timeline-width', `${timelineWidth}px`);
-    let columnCount = Math.max(
+    const maxColumnsByWidth = Math.max(
       1,
-      Math.floor(
-        (timelineWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
-          (CENTURY_VIEW_MAX_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
-      )
-    );
-    let cardWidth = Math.min(
-      CENTURY_VIEW_MAX_EVENT_WIDTH_PX,
-      Math.floor(
-        (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
-          Math.max(columnCount, 1)
-      )
-    );
-
-    while (columnCount > 1 && cardWidth < CENTURY_VIEW_MIN_EVENT_WIDTH_PX) {
-      columnCount -= 1;
-      cardWidth = Math.min(
-        CENTURY_VIEW_MAX_EVENT_WIDTH_PX,
+      Math.min(
+        scheduledPlacements.length || 1,
         Math.floor(
-          (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
-            Math.max(columnCount, 1)
+          (timelineWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
+            (CENTURY_VIEW_MIN_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
         )
-      );
-    }
-
-    cardWidth = Math.max(Math.min(cardWidth, CENTURY_VIEW_MAX_EVENT_WIDTH_PX), CENTURY_VIEW_MIN_EVENT_WIDTH_PX);
-    const unscheduledCardWidth = hasUnscheduledItems
-      ? Math.max(
-          Math.min(
-            unscheduledColumnWidth - 24,
-            CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX
+      )
+    );
+    const computeCardWidth = (columnCount: number) =>
+      Math.max(
+        Math.min(
+          Math.floor(
+            (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
+              Math.max(columnCount, 1)
           ),
-          Math.min(CENTURY_VIEW_MIN_EVENT_WIDTH_PX + 84, unscheduledColumnWidth - 24)
+          CENTURY_VIEW_MAX_EVENT_WIDTH_PX
+        ),
+        CENTURY_VIEW_MIN_EVENT_WIDTH_PX
+      );
+    const unscheduledColumnCount = hasUnscheduledItems
+      ? Math.max(
+          1,
+          Math.min(
+            unscheduledPlacements.length,
+            Math.floor(
+              (contentWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
+                (CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
+            )
+          )
         )
-      : cardWidth;
+      : 1;
+    const computeUnscheduledCardWidth = (scheduledCardWidth: number) =>
+      hasUnscheduledItems
+        ? clampNumber(
+            Math.floor(
+              (contentWidth - (unscheduledColumnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
+                Math.max(unscheduledColumnCount, 1)
+            ),
+            CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX,
+            CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX
+          )
+        : scheduledCardWidth;
 
-    for (let index = 0; index < itemCount; index += 1) {
-      const child = itemElements[index];
-      const layoutItem = timelineLayout[index];
-      const isUnscheduled = !layoutItem?.date;
-      const resolvedWidth = isUnscheduled ? unscheduledCardWidth : cardWidth;
-      child.style.width = `${cardWidth}px`;
-      child.style.maxWidth = `${isUnscheduled ? CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX : CENTURY_VIEW_MAX_EVENT_WIDTH_PX}px`;
-      child.style.width = `${resolvedWidth}px`;
-      if (isUnscheduled) {
-        child.style.setProperty('--temporal-order-century-cloud-opacity', '0.74');
-        child.setAttribute('data-century-cloud', 'true');
+    const applyCenturyViewWidths = (scheduledCardWidth: number, unscheduledCardWidth: number) => {
+      for (let index = 0; index < itemCount; index += 1) {
+        const child = itemElements[index];
+        const layoutItem = timelineLayout[index];
+        const isUnscheduled = !layoutItem?.date;
+        const resolvedWidth = isUnscheduled ? unscheduledCardWidth : scheduledCardWidth;
+        child.style.width = `${resolvedWidth}px`;
+        child.style.maxWidth = `${isUnscheduled ? CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX : CENTURY_VIEW_MAX_EVENT_WIDTH_PX}px`;
+        if (isUnscheduled) {
+          child.style.setProperty('--temporal-order-century-cloud-opacity', '0.74');
+          child.setAttribute('data-century-cloud', 'true');
+        }
       }
-    }
+    };
 
-    const placements = scheduledPlacements.map(({ index, layoutItem, child }) => {
+    const buildMeasuredPlacements = () => scheduledPlacements.map(({ index, layoutItem, child }) => {
       const targetAnchorPx = getCenturyViewDateOffsetPx(
         layoutItem.date as Date,
         yearTopLookup,
@@ -1802,89 +2146,113 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
         nowMs,
         horizonEndYear
       );
+      const yearKey = layoutItem.year !== null ? String(layoutItem.year) : null;
+      const bandBottomPx = yearTopLookup.get(layoutItem.year ?? NaN) ?? targetAnchorPx;
+      const bandTopPx =
+        yearTopLookup.get((layoutItem.year ?? NaN) + 1) ??
+        Math.max(CENTURY_VIEW_VERTICAL_PADDING_PX, bandBottomPx - 96);
 
       return {
         index,
-        child,
         childHeight,
         scale,
         targetAnchorPx,
-        desiredTop: Math.max(CENTURY_VIEW_VERTICAL_PADDING_PX, targetAnchorPx - childHeight),
+        yearKey,
+        slotKey: layoutItem.slotKey ?? null,
+        bandTopPx,
+        bandBottomPx,
       };
     });
 
-    const laneBottoms = Array.from({ length: columnCount }, () => -Infinity);
-    let contentBottom = CENTURY_VIEW_VERTICAL_PADDING_PX;
+    let columnCount = Math.min(maxColumnsByWidth, Math.max(1, scheduledPlacements.length > 1 ? 2 : 1));
+    let cardWidth = computeCardWidth(columnCount);
+    let unscheduledCardWidth = computeUnscheduledCardWidth(cardWidth);
+    let placements = [] as ReturnType<typeof buildMeasuredPlacements>;
 
-    placements
-      .slice()
-      .sort((left, right) => left.desiredTop - right.desiredTop)
-      .forEach((placement) => {
-        let laneIndex = laneBottoms.findIndex(
-          (laneBottom) => placement.desiredTop >= laneBottom + CENTURY_VIEW_ROW_GAP_PX
-        );
-        let resolvedTop = placement.desiredTop;
+    for (let iteration = 0; iteration < maxColumnsByWidth; iteration += 1) {
+      applyCenturyViewWidths(cardWidth, unscheduledCardWidth);
+      placements = buildMeasuredPlacements();
 
-        if (laneIndex === -1) {
-          laneIndex = laneBottoms.reduce(
-            (bestIndex, laneBottom, candidateIndex, allBottoms) =>
-              laneBottom < allBottoms[bestIndex] ? candidateIndex : bestIndex,
-            0
-          );
-          resolvedTop = laneBottoms[laneIndex] + CENTURY_VIEW_ROW_GAP_PX;
-        }
+      const requiredColumnCount = resolveTemporalOrderCenturyViewColumnCount(placements, timelineWidth);
+      if (requiredColumnCount <= columnCount || columnCount >= maxColumnsByWidth) {
+        break;
+      }
 
-        placement.child.style.position = 'absolute';
-        placement.child.style.marginTop = '0px';
-        placement.child.style.top = `${resolvedTop}px`;
-        placement.child.style.left = `${laneIndex * (cardWidth + CENTURY_VIEW_COLUMN_GAP_PX)}px`;
-        placement.child.style.transformOrigin = 'bottom left';
-        placement.child.style.transform = placement.scale < 0.999 ? `scale(${placement.scale})` : '';
-
-        laneBottoms[laneIndex] = resolvedTop + placement.childHeight;
-        contentBottom = Math.max(contentBottom, laneBottoms[laneIndex] + CENTURY_VIEW_ROW_GAP_PX);
-      });
-
-    if (hasUnscheduledItems) {
-      const cloudOffsetX = timelineWidth + CENTURY_VIEW_UNSCHEDULED_GAP_PX;
-      const cloudRadius = 92 + Math.min(unscheduledPlacements.length, 10) * 18;
-      const cloudPositions = buildTemporalOrderCardPositions(unscheduledPlacements.length, cloudRadius);
-      const maxAbsX = Math.max(...cloudPositions.map((position) => Math.abs(position.x)), 1);
-      const maxAbsY = Math.max(...cloudPositions.map((position) => Math.abs(position.y)), 1);
-      const cloudHorizontalRange = Math.max((unscheduledColumnWidth - unscheduledCardWidth) / 2 - 8, 0);
-      const cloudVerticalRange = 96 + Math.min(unscheduledPlacements.length, 8) * 22;
-      const cloudCenterX = cloudOffsetX + unscheduledColumnWidth / 2 - unscheduledCardWidth / 2;
-      const cloudCenterY = CENTURY_VIEW_VERTICAL_PADDING_PX + 160 + cloudVerticalRange / 2;
-
-      unscheduledPlacements.forEach(({ child }, index) => {
-        const position = cloudPositions[index] ?? { x: 0, y: 0 };
-        const childHeight = child.getBoundingClientRect().height;
-        const resolvedLeft =
-          cloudCenterX + (position.x / maxAbsX) * cloudHorizontalRange;
-        const resolvedTop = Math.max(
-          CENTURY_VIEW_VERTICAL_PADDING_PX,
-          cloudCenterY + (position.y / maxAbsY) * cloudVerticalRange - childHeight / 2
-        );
-
-        child.style.position = 'absolute';
-        child.style.marginTop = '0px';
-        child.style.left = `${resolvedLeft}px`;
-        child.style.top = `${resolvedTop}px`;
-        child.style.transformOrigin = 'top left';
-        child.style.transform = `scale(${CENTURY_VIEW_EVENT_BASE_SCALE})`;
-
-        contentBottom = Math.max(contentBottom, resolvedTop + childHeight + CENTURY_VIEW_ROW_GAP_PX);
-      });
+      columnCount = Math.min(requiredColumnCount, maxColumnsByWidth);
+      cardWidth = computeCardWidth(columnCount);
+      unscheduledCardWidth = computeUnscheduledCardWidth(cardWidth);
     }
+
+    cardWidth = computeCardWidth(columnCount);
+    unscheduledCardWidth = computeUnscheduledCardWidth(cardWidth);
+    applyCenturyViewWidths(cardWidth, unscheduledCardWidth);
+    placements = buildMeasuredPlacements();
+    const unscheduledMeasurements = unscheduledPlacements.map(({ index, child }) => ({
+      index,
+      childHeight: child.getBoundingClientRect().height,
+    }));
+    const {
+      placements: resolvedUnscheduledPlacements,
+      bandHeight: unscheduledBandHeight,
+    } = buildTemporalOrderCenturyTopBandPlacements(
+      unscheduledMeasurements,
+      timelineWidth,
+      unscheduledColumnCount,
+      unscheduledCardWidth
+    );
+    const resolvedCenturyTopInset = hasUnscheduledItems
+      ? unscheduledBandHeight + CENTURY_VIEW_UNSCHEDULED_GAP_PX
+      : 0;
+
+    setCenturyTopInset((prev) => (prev === resolvedCenturyTopInset ? prev : resolvedCenturyTopInset));
+
+    const {
+      placements: resolvedScheduledPlacements,
+      contentBottom: scheduledContentBottom,
+    } = buildTemporalOrderCenturyViewPlacements(
+      placements,
+      columnCount,
+      cardWidth
+    );
+    let contentBottom = scheduledContentBottom + resolvedCenturyTopInset;
+
+    resolvedScheduledPlacements.forEach((placement) => {
+      const child = itemElements[placement.index];
+      if (!child) return;
+
+      child.style.position = 'absolute';
+      child.style.marginTop = '0px';
+      child.style.top = `${placement.topPx + resolvedCenturyTopInset}px`;
+      child.style.left = `${placement.leftPx}px`;
+      child.style.transformOrigin = 'bottom left';
+      child.style.transform = placement.scale < 0.999 ? `scale(${placement.scale})` : '';
+    });
+
+    unscheduledPlacements.forEach(({ child }, index) => {
+      const placement = resolvedUnscheduledPlacements[index];
+      if (!placement) return;
+
+      child.style.position = 'absolute';
+      child.style.marginTop = '0px';
+      child.style.left = `${placement.leftPx}px`;
+      child.style.top = `${placement.topPx}px`;
+      child.style.transformOrigin = 'top left';
+      child.style.transform = `scale(${CENTURY_VIEW_EVENT_BASE_SCALE})`;
+
+      contentBottom = Math.max(contentBottom, placement.bottomPx + CENTURY_VIEW_ROW_GAP_PX);
+    });
 
     for (let index = itemCount; index < itemElements.length; index += 1) {
       itemElements[index].style.marginTop = '0px';
     }
 
-    const resolvedMinHeight = `${Math.max(contentBottom + CENTURY_VIEW_VERTICAL_PADDING_PX, centuryViewMinHeight)}px`;
+    const resolvedMinHeight = `${Math.max(
+      contentBottom + CENTURY_VIEW_VERTICAL_PADDING_PX,
+      centuryViewMinHeight + resolvedCenturyTopInset
+    )}px`;
     itemContainer.style.minHeight = resolvedMinHeight;
     contentNode.style.minHeight = resolvedMinHeight;
-  }, [centuryViewMinHeight, contentHeight, isYearIncrementLens, timelineLayout, yearIncrements]);
+  }, [centuryLayoutRevision, centuryViewMinHeight, contentHeight, isYearIncrementLens, timelineLayout, yearIncrements]);
 
   const handleCenturyTimelineClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!isYearIncrementLens || isCollapsed) return;
@@ -1921,7 +2289,12 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     }
 
     const containerRect = container.getBoundingClientRect();
-    const offsetTopPx = event.clientY - containerRect.top;
+    const rawTopPx = event.clientY - containerRect.top;
+    if (rawTopPx < centuryTopInset) {
+      return;
+    }
+
+    const offsetTopPx = rawTopPx - centuryTopInset;
     const resolvedDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
     const nearestYear = yearIncrements.reduce<TemporalOrderYearIncrement | null>((best, increment) => {
       if (!best) return increment;
@@ -1943,6 +2316,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     event.stopPropagation();
     onCreateTemporalSpaceAtTimePoint(buildTemporalOrderClickTimePointAttrs(resolvedDate, precision));
   }, [
+    centuryTopInset,
     isCollapsed,
     isYearIncrementLens,
     monthTicks,
@@ -1982,15 +2356,21 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
 
     const containerRect = container.getBoundingClientRect();
     const rawTopPx = event.clientY - containerRect.top;
+    if (rawTopPx < centuryTopInset) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    const offsetTopPx = rawTopPx - centuryTopInset;
     const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
     const hoverMode = horizontalRatio < 1 / 3 ? 'day' : horizontalRatio < 2 / 3 ? 'week' : 'month';
-    const rawDate = resolveCenturyViewClickDate(rawTopPx, yearIncrements);
+    const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
     const snappedDate = snapCenturyViewHoverDate(rawDate, hoverMode);
     const snappedTopPx = getCenturyViewDateOffsetPx(
       snappedDate,
       yearTopLookup,
-      rawTopPx
-    );
+      offsetTopPx
+    ) + centuryTopInset;
     const localLeftPx = event.clientX - containerRect.left;
 
     setTimelineHoverIndicator({
@@ -1998,7 +2378,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       leftPx: localLeftPx,
       label: formatCenturyViewHoverLabel(snappedDate, hoverMode),
     });
-  }, [isCollapsed, isYearIncrementLens, yearIncrements, yearTopLookup]);
+  }, [centuryTopInset, isCollapsed, isYearIncrementLens, yearIncrements, yearTopLookup]);
 
   const handleCenturyTimelineMouseLeave = useCallback(() => {
     setTimelineHoverIndicator(null);
@@ -2012,7 +2392,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       onMouseLeave={handleCenturyTimelineMouseLeave}
       style={{
         position: 'relative',
-        minHeight: isCollapsed ? 48 : isYearIncrementLens ? centuryViewMinHeight : isLinearLens ? 100 : 480,
+        minHeight: isCollapsed ? 48 : isYearIncrementLens ? centuryViewMinHeight + centuryTopInset : isLinearLens ? 100 : 480,
         paddingLeft: isLinearLens ? 8 : 0,
         borderRadius: isImmersiveGraphLens ? 16 : 0,
         overflow: isImmersiveGraphLens ? 'hidden' : 'visible',
@@ -2057,6 +2437,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             {isYearIncrementLens && (
               <TemporalOrderYearRail
                 increments={yearIncrements}
+                topOffsetPx={centuryTopInset}
               />
             )}
             <div

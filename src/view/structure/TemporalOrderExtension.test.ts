@@ -1,6 +1,12 @@
 import { expect, test } from 'vitest';
 
-import { buildTemporalOrderMonthTicks, buildTemporalOrderYearIncrements } from './TemporalOrderExtension';
+import {
+  buildTemporalOrderCenturyTopBandPlacements,
+  buildTemporalOrderCenturyViewPlacements,
+  buildTemporalOrderMonthTicks,
+  buildTemporalOrderYearIncrements,
+  resolveTemporalOrderCenturyViewColumnCount,
+} from './TemporalOrderExtension';
 
 test('buildTemporalOrderYearIncrements creates a present-to-2100 ladder', () => {
   const increments = buildTemporalOrderYearIncrements(2026, 2100);
@@ -44,4 +50,88 @@ test('buildTemporalOrderMonthTicks creates 12 monthly subdivisions per year inte
   expect(monthTicks).toHaveLength(24);
   expect(monthTicks[0]?.topPx).toBeLessThan(increments[0]?.topPx ?? Infinity);
   expect(monthTicks[11]?.topPx).toBeCloseTo(increments[1]?.topPx ?? 0, 5);
+});
+
+test('buildTemporalOrderCenturyViewPlacements keeps future cards at or above their anchors', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 820, childHeight: 260, scale: 0.7, yearKey: '2026', slotKey: '2026-10' },
+      { index: 1, targetAnchorPx: 760, childHeight: 180, scale: 0.7, yearKey: '2026', slotKey: '2026-08' },
+      { index: 2, targetAnchorPx: 700, childHeight: 160, scale: 0.7, yearKey: '2027', slotKey: '2027-02' },
+    ],
+    1,
+    320
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.bottomPx).toBeLessThanOrEqual(820);
+  expect(placementByIndex.get(1)?.bottomPx).toBeLessThanOrEqual(760);
+  expect(placementByIndex.get(2)?.bottomPx).toBeLessThanOrEqual(700);
+  expect(placementByIndex.get(1)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(0)?.topPx ?? 0) - 10);
+  expect(placementByIndex.get(2)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(1)?.topPx ?? 0) - 10);
+});
+
+test('buildTemporalOrderCenturyViewPlacements uses free columns before pushing cards upward', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 210, scale: 0.7, yearKey: '2026', slotKey: '2026-10' },
+      { index: 1, targetAnchorPx: 720, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-08' },
+    ],
+    2,
+    280
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.laneIndex).toBe(0);
+  expect(placementByIndex.get(1)?.laneIndex).toBe(1);
+  expect(placementByIndex.get(0)?.bottomPx).toBe(760);
+  expect(placementByIndex.get(1)?.bottomPx).toBe(720);
+});
+
+test('buildTemporalOrderCenturyTopBandPlacements anchors atemporal cards at the top band', () => {
+  const { placements, bandHeight } = buildTemporalOrderCenturyTopBandPlacements(
+    [
+      { index: 0, childHeight: 160 },
+      { index: 1, childHeight: 180 },
+      { index: 2, childHeight: 140 },
+    ],
+    960,
+    3,
+    300
+  );
+
+  expect(placements).toHaveLength(3);
+  expect(placements.every((placement) => placement.topPx >= 18)).toBe(true);
+  expect(new Set(placements.map((placement) => placement.laneIndex)).size).toBe(3);
+  expect(placements[2]?.leftPx ?? 0).toBeGreaterThan(placements[1]?.leftPx ?? 0);
+  expect(bandHeight).toBeGreaterThan(0);
+});
+
+test('resolveTemporalOrderCenturyViewColumnCount adds columns when a year band is overcrowded', () => {
+  const columnCount = resolveTemporalOrderCenturyViewColumnCount(
+    [
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, bandTopPx: 120, bandBottomPx: 520 },
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 210, bandTopPx: 120, bandBottomPx: 520 },
+      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, bandTopPx: 120, bandBottomPx: 520 },
+    ],
+    760
+  );
+
+  expect(columnCount).toBeGreaterThan(1);
+});
+
+test('resolveTemporalOrderCenturyViewColumnCount does not spread cards wider than needed', () => {
+  const columnCount = resolveTemporalOrderCenturyViewColumnCount(
+    [
+      { yearKey: '2026', slotKey: '2026-02', childHeight: 180, bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-05', childHeight: 210, bandTopPx: 120, bandBottomPx: 760 },
+    ],
+    1800
+  );
+
+  expect(columnCount).toBe(2);
 });
