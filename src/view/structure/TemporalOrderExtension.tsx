@@ -68,6 +68,8 @@ declare module '@tiptap/core' {
   }
 }
 
+type TemporalOrderLens = 'identity' | 'centuryView' | 'auraView' | 'graph2D' | 'flowGraph';
+
 // ============================================================================
 // Date Extraction Utilities
 // ============================================================================
@@ -114,11 +116,35 @@ const extractEarliestDateFromNode = (node: ProseMirrorNode): Date | null => {
  * This avoids relative fading where far-future items could look "present"
  * simply because all events are far away.
  */
+const MS_PER_YEAR = 1000 * 60 * 60 * 24 * 365.25;
+
 const TEMPORAL_FADE_CONFIG = {
   fadeRangeMs: 1000 * 60 * 60 * 24 * 365 * 2, // 2 years
   minOpacity: 0.35,
   maxOpacity: 1,
 };
+
+const TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG = {
+  fadeRangeMs: MS_PER_YEAR * 80,
+  minOpacity: 0.14,
+  maxOpacity: 1,
+  maxBlurPx: 6,
+  minBrightness: 0.72,
+  maxBrightness: 1,
+};
+
+const CENTURY_VIEW_VERTICAL_PADDING_PX = 18;
+const CENTURY_VIEW_MAX_EVENT_WIDTH_PX = 500;
+const CENTURY_VIEW_MIN_EVENT_WIDTH_PX = 132;
+const CENTURY_VIEW_COLUMN_GAP_PX = 12;
+const CENTURY_VIEW_ROW_GAP_PX = 10;
+const CENTURY_VIEW_LOG_SCALE_EXPONENT = 0.28;
+const CENTURY_VIEW_UNSCHEDULED_GAP_PX = 28;
+const CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX = 280;
+const CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX = 420;
+const CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX = 340;
+const CENTURY_VIEW_EVENT_BASE_SCALE = 0.7;
+const CENTURY_VIEW_FUTURE_EVENT_MIN_SCALE = 0.58;
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -133,6 +159,370 @@ const getTemporalFadeOpacity = (distanceMs: number): number => {
     normalized * (TEMPORAL_FADE_CONFIG.maxOpacity - TEMPORAL_FADE_CONFIG.minOpacity);
 
   return clampNumber(opacity, TEMPORAL_FADE_CONFIG.minOpacity, TEMPORAL_FADE_CONFIG.maxOpacity);
+};
+
+const getTemporalYearIncrementOpacity = (distanceMs: number): number => {
+  const normalized = Math.min(distanceMs / TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.fadeRangeMs, 1);
+  const opacity =
+    TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxOpacity -
+    normalized *
+      (TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxOpacity - TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.minOpacity);
+
+  return clampNumber(
+    opacity,
+    TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.minOpacity,
+    TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxOpacity
+  );
+};
+
+const getTemporalYearIncrementBlur = (distanceMs: number): number => {
+  const normalized = Math.min(distanceMs / TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.fadeRangeMs, 1);
+  return Number((normalized * TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxBlurPx).toFixed(2));
+};
+
+const getTemporalYearIncrementBrightness = (distanceMs: number): number => {
+  const normalized = Math.min(distanceMs / TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.fadeRangeMs, 1);
+  const brightness =
+    TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxBrightness -
+    normalized *
+      (TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxBrightness -
+        TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.minBrightness);
+
+  return Number(
+    clampNumber(
+      brightness,
+      TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.minBrightness,
+      TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG.maxBrightness
+    ).toFixed(2)
+  );
+};
+
+const getCenturyViewFutureEventScale = (
+  date: Date,
+  nowMs: number,
+  endYear: number
+): number => {
+  const distanceMs = date.getTime() - nowMs;
+  if (distanceMs <= 0) return CENTURY_VIEW_EVENT_BASE_SCALE;
+
+  const horizonMs = Math.max(Date.UTC(endYear + 1, 0, 1) - nowMs, MS_PER_YEAR);
+  const normalized = clampNumber(distanceMs / horizonMs, 0, 1);
+  return Number(
+    (
+      CENTURY_VIEW_EVENT_BASE_SCALE *
+      (1 - normalized * (1 - CENTURY_VIEW_FUTURE_EVENT_MIN_SCALE))
+    ).toFixed(3)
+  );
+};
+
+interface TemporalOrderYearIncrement {
+  year: number;
+  positionRatio: number;
+  opacity: number;
+  blurPx: number;
+  lineOpacity: number;
+  showLabel: boolean;
+  isPresent: boolean;
+  topPx: number;
+}
+
+interface TemporalOrderTimelineLayoutItem {
+  key: string;
+  year: number | null;
+  date: Date | null;
+  slotKey: string | null;
+}
+
+interface TemporalOrderMonthTick {
+  key: string;
+  topPx: number;
+}
+
+interface TemporalOrderClickTimePointAttrs {
+  id: string;
+  label: string;
+  'data-date': string;
+  'data-formatted': string;
+  'data-relative-label': string;
+}
+
+interface TemporalOrderHoverIndicatorState {
+  topPx: number;
+  leftPx: number;
+  label: string;
+}
+
+const TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX = 8;
+const TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX = 5;
+const TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX = 88;
+const TEMPORAL_ORDER_MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const TEMPORAL_ORDER_HOVER_DAY_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+const TEMPORAL_ORDER_HOVER_MONTH_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  month: 'long',
+  year: 'numeric',
+});
+
+const buildTemporalOrderClickTimePointAttrs = (
+  date: Date,
+  precision: 'year' | 'month' | 'date'
+): TemporalOrderClickTimePointAttrs => {
+  if (precision === 'year') {
+    const year = date.getFullYear();
+    const yearDate = new Date(year, 0, 1);
+    return {
+      id: `timepoint:year-${year}`,
+      label: `📆 ${year}`,
+      'data-date': yearDate.toISOString(),
+      'data-formatted': `${year}`,
+      'data-relative-label': `${year}`,
+    };
+  }
+
+  if (precision === 'month') {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const monthDate = new Date(year, month, 1);
+    const formatted = `${TEMPORAL_ORDER_MONTH_NAMES[month]} ${year}`;
+    return {
+      id: `timepoint:month-${year}-${month + 1}`,
+      label: `📅 ${formatted}`,
+      'data-date': monthDate.toISOString(),
+      'data-formatted': formatted,
+      'data-relative-label': formatted,
+    };
+  }
+
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const formatted = `${day} ${TEMPORAL_ORDER_MONTH_NAMES[month]} ${year}`;
+  const fullDate = new Date(year, month, day);
+
+  return {
+    id: `timepoint:date-${year}-${month + 1}-${day}`,
+    label: `📅 ${formatted}`,
+    'data-date': fullDate.toISOString(),
+    'data-formatted': formatted,
+    'data-relative-label': formatted,
+  };
+};
+
+const resolveCenturyViewClickDate = (
+  offsetTopPx: number,
+  increments: TemporalOrderYearIncrement[]
+): Date => {
+  if (!increments.length) return new Date();
+
+  for (let index = 0; index < increments.length - 1; index += 1) {
+    const current = increments[index];
+    const next = increments[index + 1];
+    if (!current || !next) continue;
+
+    const upperBound = next.topPx;
+    const lowerBound = current.topPx;
+    if (offsetTopPx < upperBound || offsetTopPx > lowerBound) continue;
+
+    const gapPx = Math.max(lowerBound - upperBound, 1);
+    const progress = clampNumber((lowerBound - offsetTopPx) / gapPx, 0, 1);
+    const yearStart = new Date(current.year, 0, 1);
+    const nextYearStart = new Date(current.year + 1, 0, 1);
+    const timeMs =
+      yearStart.getTime() + (nextYearStart.getTime() - yearStart.getTime()) * progress;
+
+    return new Date(timeMs);
+  }
+
+  if (offsetTopPx <= (increments[increments.length - 1]?.topPx ?? 0)) {
+    const endYear = increments[increments.length - 1]?.year ?? new Date().getFullYear();
+    return new Date(endYear, 0, 1);
+  }
+
+  return new Date(increments[0]?.year ?? new Date().getFullYear(), 0, 1);
+};
+
+const startOfWeek = (date: Date): Date => {
+  const resolved = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = resolved.getDay();
+  const deltaToMonday = (day + 6) % 7;
+  resolved.setDate(resolved.getDate() - deltaToMonday);
+  return resolved;
+};
+
+const snapCenturyViewHoverDate = (
+  date: Date,
+  mode: 'day' | 'week' | 'month'
+): Date => {
+  if (mode === 'month') {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+  }
+
+  if (mode === 'week') {
+    return startOfWeek(date);
+  }
+
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+};
+
+const formatCenturyViewHoverLabel = (
+  date: Date,
+  mode: 'day' | 'week' | 'month'
+): string => {
+  if (mode === 'month') {
+    return TEMPORAL_ORDER_HOVER_MONTH_FORMATTER.format(date);
+  }
+
+  if (mode === 'week') {
+    return `Week of ${TEMPORAL_ORDER_HOVER_DAY_FORMATTER.format(date)}`;
+  }
+
+  return TEMPORAL_ORDER_HOVER_DAY_FORMATTER.format(date);
+};
+
+const getCenturyViewScaledOffsetPx = (
+  distanceFromPresentYears: number,
+  totalGapCount: number,
+  totalHeightPx: number
+): number => {
+  if (totalGapCount <= 0) return 0;
+
+  const normalized =
+    Math.log1p(Math.max(distanceFromPresentYears, 0)) /
+    Math.log1p(totalGapCount);
+
+  return totalHeightPx * Math.pow(normalized, CENTURY_VIEW_LOG_SCALE_EXPONENT);
+};
+
+const buildCenturyViewYearAnchors = (startYear: number, endYear: number) => {
+  const resolvedEndYear = Math.max(startYear, endYear);
+  const totalGapCount = Math.max(resolvedEndYear - startYear, 0);
+  const totalHeightPx = Math.max(960, totalGapCount * 24);
+  const anchors: Array<{
+    year: number;
+    distanceYears: number;
+    offsetFromStartPx: number;
+  }> = [];
+
+  for (let year = startYear; year <= resolvedEndYear; year += 1) {
+    const distanceYears = year - startYear;
+    anchors.push({
+      year,
+      distanceYears,
+      offsetFromStartPx: getCenturyViewScaledOffsetPx(distanceYears, totalGapCount, totalHeightPx),
+    });
+  }
+
+  const totalOffsetPx = anchors[anchors.length - 1]?.offsetFromStartPx ?? 0;
+
+  return {
+    totalOffsetPx,
+    anchors: anchors.map((anchor) => ({
+      ...anchor,
+      topPx: CENTURY_VIEW_VERTICAL_PADDING_PX + (totalOffsetPx - anchor.offsetFromStartPx),
+    })),
+  };
+};
+
+export const buildTemporalOrderYearIncrements = (
+  startYear = new Date().getFullYear(),
+  endYear = 2100
+): TemporalOrderYearIncrement[] => {
+  const resolvedEndYear = Math.max(startYear, endYear);
+  const span = resolvedEndYear - startYear;
+  const { anchors, totalOffsetPx } = buildCenturyViewYearAnchors(startYear, resolvedEndYear);
+
+  return anchors.map(({ year, distanceYears, offsetFromStartPx, topPx }) => {
+    const distanceMs = distanceYears * MS_PER_YEAR;
+    const normalized = span === 0 ? 0 : distanceYears / span;
+
+    return {
+      year,
+      positionRatio: totalOffsetPx === 0 ? 0.5 : 1 - offsetFromStartPx / totalOffsetPx,
+      opacity: getTemporalYearIncrementOpacity(distanceMs),
+      blurPx: getTemporalYearIncrementBlur(distanceMs),
+      lineOpacity: clampNumber(0.72 - normalized * 0.54, 0.16, 0.72),
+      showLabel:
+        year === startYear ||
+        year === startYear + 1 ||
+        distanceYears <= 10 ||
+        (distanceYears <= 30 && distanceYears % 5 === 0) ||
+        year === resolvedEndYear ||
+        year % 10 === 0,
+      isPresent: year === startYear,
+      topPx,
+    };
+  });
+};
+
+export const buildTemporalOrderMonthTicks = (
+  increments: TemporalOrderYearIncrement[]
+): TemporalOrderMonthTick[] => {
+  const ticks: TemporalOrderMonthTick[] = [];
+
+  for (let index = 0; index < increments.length - 1; index += 1) {
+    const current = increments[index];
+    const next = increments[index + 1];
+    if (!current || !next) continue;
+
+    const gapPx = current.topPx - next.topPx;
+    if (gapPx <= 0) continue;
+
+    for (let month = 0; month < 12; month += 1) {
+      const monthRatio = (month + 1) / 12;
+      ticks.push({
+        key: `${current.year}-${month + 1}`,
+        topPx: current.topPx - gapPx * monthRatio,
+      });
+    }
+  }
+
+  return ticks;
+};
+
+const getCenturyViewDateOffsetPx = (
+  date: Date,
+  yearTopLookup: Map<number, number>,
+  fallbackTopPx: number
+): number => {
+  const year = date.getUTCFullYear();
+  const yearTopPx = yearTopLookup.get(year);
+  const nextYearTopPx = yearTopLookup.get(year + 1);
+
+  if (typeof yearTopPx !== 'number') {
+    return fallbackTopPx;
+  }
+
+  if (typeof nextYearTopPx !== 'number') {
+    return yearTopPx;
+  }
+
+  const yearStartMs = Date.UTC(year, 0, 1);
+  const nextYearStartMs = Date.UTC(year + 1, 0, 1);
+  const progress = clampNumber(
+    (date.getTime() - yearStartMs) / Math.max(nextYearStartMs - yearStartMs, 1),
+    0,
+    1
+  );
+
+  return yearTopPx - (yearTopPx - nextYearTopPx) * progress;
 };
 
 // ============================================================================
@@ -555,12 +945,13 @@ interface TemporalOrderContentProps {
   isCollapsed: boolean;
   lens: TemporalOrderLens;
   eventSources: TemporalOrderEventSource[];
+  yearIncrements: TemporalOrderYearIncrement[];
+  timelineLayout: TemporalOrderTimelineLayoutItem[];
   auraGraphData: ForceGraph3DData;
   graph2DData: TemporalOrderForceGraph2DData;
   flowGraphData: TemporalOrderQuantaFlowGraphData;
+  onCreateTemporalSpaceAtTimePoint: (attrs: TemporalOrderClickTimePointAttrs) => void;
 }
-
-type TemporalOrderLens = 'identity' | 'auraView' | 'graph2D' | 'flowGraph';
 
 interface TemporalOrderEventSource {
   key: string;
@@ -1154,23 +1545,109 @@ const TemporalOrderForceGraph2D: React.FC<{
   );
 };
 
+const TemporalOrderYearRail: React.FC<{
+  increments: TemporalOrderYearIncrement[];
+}> = ({ increments }) => {
+  if (!increments.length) return null;
+
+  const railHeight = (increments[0]?.topPx ?? 0) + CENTURY_VIEW_VERTICAL_PADDING_PX;
+  const monthTicks = buildTemporalOrderMonthTicks(increments);
+
+  return (
+    <div
+      aria-hidden="true"
+      className="temporal-order-year-rail"
+      style={{ minHeight: railHeight }}
+    >
+      <div
+        className="temporal-order-year-rail-axis"
+        style={{
+          top: CENTURY_VIEW_VERTICAL_PADDING_PX,
+          height: Math.max(railHeight - CENTURY_VIEW_VERTICAL_PADDING_PX * 2, 0),
+        }}
+      />
+      {monthTicks.map((tick) => (
+        <div
+          key={tick.key}
+          className="temporal-order-year-rail-month-row"
+          style={{ top: tick.topPx }}
+        >
+          <div className="temporal-order-year-rail-month-tick" />
+        </div>
+      ))}
+      {increments.map((increment) => {
+        return (
+          <div
+            key={increment.year}
+            className="temporal-order-year-rail-row"
+            style={{ top: increment.topPx }}
+          >
+            <div
+              className="temporal-order-year-rail-tick"
+              style={{
+                width: increment.isPresent ? 34 : increment.showLabel ? 22 : 14,
+                opacity: increment.lineOpacity,
+              }}
+            />
+            {increment.showLabel && (
+              <div
+                className={`temporal-order-year-rail-label${increment.isPresent ? ' is-present' : ''}`}
+                style={{
+                  opacity: increment.opacity,
+                }}
+              >
+                {increment.year}
+              </div>
+            )}
+            <div
+              className="temporal-order-year-rail-guideline"
+              style={{
+                opacity: increment.lineOpacity,
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   children,
   isCollapsed,
   lens,
   eventSources,
+  yearIncrements,
+  timelineLayout,
   auraGraphData,
   graph2DData,
   flowGraphData,
+  onCreateTemporalSpaceAtTimePoint,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentHostRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(200);
+  const [timelineHoverIndicator, setTimelineHoverIndicator] = useState<TemporalOrderHoverIndicatorState | null>(null);
   const isIdentityLens = lens === 'identity';
+  const isYearIncrementLens = lens === 'centuryView';
+  const isLinearLens = isIdentityLens || isYearIncrementLens;
   const isAuraLens = lens === 'auraView';
   const isGraph2DLens = lens === 'graph2D';
   const isFlowGraphLens = lens === 'flowGraph';
   const isImmersiveGraphLens = isAuraLens || isGraph2DLens || isFlowGraphLens;
   const hasGraphNodes = eventSources.length > 0;
+  const monthTicks = useMemo(() => buildTemporalOrderMonthTicks(yearIncrements), [yearIncrements]);
+  const yearTopLookup = useMemo(
+    () => new Map(yearIncrements.map((increment) => [increment.year, increment.topPx])),
+    [yearIncrements]
+  );
+  const centuryViewMinHeight = useMemo(() => {
+    if (!yearIncrements.length) return 100;
+    return Math.max(
+      100,
+      (yearIncrements[0]?.topPx ?? 0) + CENTURY_VIEW_VERTICAL_PADDING_PX
+    );
+  }, [yearIncrements]);
 
   // Track content height for the arrow
   useEffect(() => {
@@ -1185,19 +1662,384 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    const host = contentHostRef.current;
+    const contentNode = host?.querySelector('.temporal-order-node-view-content') as HTMLElement | null;
+
+    if (!host || !contentNode) return;
+
+    const wrapperNode =
+      contentNode.children.length === 1 &&
+      contentNode.firstElementChild instanceof HTMLElement &&
+      contentNode.firstElementChild.hasAttribute('data-node-view-wrapper')
+        ? contentNode.firstElementChild
+        : null;
+    const itemContainer = (wrapperNode instanceof HTMLElement ? wrapperNode : contentNode) as HTMLElement;
+    const itemElements = Array.from(itemContainer.children) as HTMLElement[];
+
+    const resetCenturyViewStyles = () => {
+      containerRef.current?.style.removeProperty('--temporal-order-century-timeline-width');
+      itemContainer.style.position = '';
+      if (wrapperNode instanceof HTMLElement) {
+        wrapperNode.style.marginTop = '';
+        wrapperNode.style.zoom = '';
+        wrapperNode.style.transformOrigin = '';
+        wrapperNode.style.minHeight = '';
+      }
+      itemElements.forEach((child) => {
+        child.style.marginTop = '';
+        child.style.zoom = '';
+        child.style.transformOrigin = '';
+        child.style.transform = '';
+        child.style.position = '';
+        child.style.top = '';
+        child.style.left = '';
+        child.style.width = '';
+        child.style.maxWidth = '';
+        child.style.removeProperty('--temporal-order-century-cloud-opacity');
+        child.removeAttribute('data-century-cloud');
+      });
+      itemContainer.style.minHeight = '';
+      contentNode.style.minHeight = '';
+    };
+
+    if (!isYearIncrementLens || !timelineLayout.length || !itemElements.length) {
+      resetCenturyViewStyles();
+      return;
+    }
+
+    resetCenturyViewStyles();
+    itemContainer.style.position = 'relative';
+
+    const yearTopLookup = new Map(yearIncrements.map((increment) => [increment.year, increment.topPx]));
+    const horizonEndYear = yearIncrements[yearIncrements.length - 1]?.year ?? new Date().getFullYear();
+    const nowMs = Date.now();
+    const itemCount = Math.min(itemElements.length, timelineLayout.length);
+    const contentWidth = Math.max(host.clientWidth - 96, CENTURY_VIEW_MIN_EVENT_WIDTH_PX);
+    const scheduledPlacements = timelineLayout
+      .slice(0, itemCount)
+      .map((layoutItem, index) => ({ index, layoutItem, child: itemElements[index] }))
+      .filter((placement) => placement.layoutItem?.date);
+    const unscheduledPlacements = timelineLayout
+      .slice(0, itemCount)
+      .map((layoutItem, index) => ({ index, layoutItem, child: itemElements[index] }))
+      .filter((placement) => !placement.layoutItem?.date);
+    const hasUnscheduledItems = unscheduledPlacements.length > 0;
+    const unscheduledColumnWidth = hasUnscheduledItems
+      ? clampNumber(
+          Math.round(contentWidth * 0.3),
+          CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX,
+          CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX
+        )
+      : 0;
+    const timelineWidth = hasUnscheduledItems
+      ? Math.max(
+          contentWidth - unscheduledColumnWidth - CENTURY_VIEW_UNSCHEDULED_GAP_PX,
+          CENTURY_VIEW_MIN_EVENT_WIDTH_PX
+        )
+      : contentWidth;
+    containerRef.current?.style.setProperty('--temporal-order-century-timeline-width', `${timelineWidth}px`);
+    let columnCount = Math.max(
+      1,
+      Math.floor(
+        (timelineWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
+          (CENTURY_VIEW_MAX_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
+      )
+    );
+    let cardWidth = Math.min(
+      CENTURY_VIEW_MAX_EVENT_WIDTH_PX,
+      Math.floor(
+        (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
+          Math.max(columnCount, 1)
+      )
+    );
+
+    while (columnCount > 1 && cardWidth < CENTURY_VIEW_MIN_EVENT_WIDTH_PX) {
+      columnCount -= 1;
+      cardWidth = Math.min(
+        CENTURY_VIEW_MAX_EVENT_WIDTH_PX,
+        Math.floor(
+          (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
+            Math.max(columnCount, 1)
+        )
+      );
+    }
+
+    cardWidth = Math.max(Math.min(cardWidth, CENTURY_VIEW_MAX_EVENT_WIDTH_PX), CENTURY_VIEW_MIN_EVENT_WIDTH_PX);
+    const unscheduledCardWidth = hasUnscheduledItems
+      ? Math.max(
+          Math.min(
+            unscheduledColumnWidth - 24,
+            CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX
+          ),
+          Math.min(CENTURY_VIEW_MIN_EVENT_WIDTH_PX + 84, unscheduledColumnWidth - 24)
+        )
+      : cardWidth;
+
+    for (let index = 0; index < itemCount; index += 1) {
+      const child = itemElements[index];
+      const layoutItem = timelineLayout[index];
+      const isUnscheduled = !layoutItem?.date;
+      const resolvedWidth = isUnscheduled ? unscheduledCardWidth : cardWidth;
+      child.style.width = `${cardWidth}px`;
+      child.style.maxWidth = `${isUnscheduled ? CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX : CENTURY_VIEW_MAX_EVENT_WIDTH_PX}px`;
+      child.style.width = `${resolvedWidth}px`;
+      if (isUnscheduled) {
+        child.style.setProperty('--temporal-order-century-cloud-opacity', '0.74');
+        child.setAttribute('data-century-cloud', 'true');
+      }
+    }
+
+    const placements = scheduledPlacements.map(({ index, layoutItem, child }) => {
+      const targetAnchorPx = getCenturyViewDateOffsetPx(
+        layoutItem.date as Date,
+        yearTopLookup,
+        yearTopLookup.get(layoutItem.year ?? NaN) ?? CENTURY_VIEW_VERTICAL_PADDING_PX
+      );
+      const childHeight = child.getBoundingClientRect().height;
+      const scale = getCenturyViewFutureEventScale(
+        layoutItem.date as Date,
+        nowMs,
+        horizonEndYear
+      );
+
+      return {
+        index,
+        child,
+        childHeight,
+        scale,
+        targetAnchorPx,
+        desiredTop: Math.max(CENTURY_VIEW_VERTICAL_PADDING_PX, targetAnchorPx - childHeight),
+      };
+    });
+
+    const laneBottoms = Array.from({ length: columnCount }, () => -Infinity);
+    let contentBottom = CENTURY_VIEW_VERTICAL_PADDING_PX;
+
+    placements
+      .slice()
+      .sort((left, right) => left.desiredTop - right.desiredTop)
+      .forEach((placement) => {
+        let laneIndex = laneBottoms.findIndex(
+          (laneBottom) => placement.desiredTop >= laneBottom + CENTURY_VIEW_ROW_GAP_PX
+        );
+        let resolvedTop = placement.desiredTop;
+
+        if (laneIndex === -1) {
+          laneIndex = laneBottoms.reduce(
+            (bestIndex, laneBottom, candidateIndex, allBottoms) =>
+              laneBottom < allBottoms[bestIndex] ? candidateIndex : bestIndex,
+            0
+          );
+          resolvedTop = laneBottoms[laneIndex] + CENTURY_VIEW_ROW_GAP_PX;
+        }
+
+        placement.child.style.position = 'absolute';
+        placement.child.style.marginTop = '0px';
+        placement.child.style.top = `${resolvedTop}px`;
+        placement.child.style.left = `${laneIndex * (cardWidth + CENTURY_VIEW_COLUMN_GAP_PX)}px`;
+        placement.child.style.transformOrigin = 'bottom left';
+        placement.child.style.transform = placement.scale < 0.999 ? `scale(${placement.scale})` : '';
+
+        laneBottoms[laneIndex] = resolvedTop + placement.childHeight;
+        contentBottom = Math.max(contentBottom, laneBottoms[laneIndex] + CENTURY_VIEW_ROW_GAP_PX);
+      });
+
+    if (hasUnscheduledItems) {
+      const cloudOffsetX = timelineWidth + CENTURY_VIEW_UNSCHEDULED_GAP_PX;
+      const cloudRadius = 92 + Math.min(unscheduledPlacements.length, 10) * 18;
+      const cloudPositions = buildTemporalOrderCardPositions(unscheduledPlacements.length, cloudRadius);
+      const maxAbsX = Math.max(...cloudPositions.map((position) => Math.abs(position.x)), 1);
+      const maxAbsY = Math.max(...cloudPositions.map((position) => Math.abs(position.y)), 1);
+      const cloudHorizontalRange = Math.max((unscheduledColumnWidth - unscheduledCardWidth) / 2 - 8, 0);
+      const cloudVerticalRange = 96 + Math.min(unscheduledPlacements.length, 8) * 22;
+      const cloudCenterX = cloudOffsetX + unscheduledColumnWidth / 2 - unscheduledCardWidth / 2;
+      const cloudCenterY = CENTURY_VIEW_VERTICAL_PADDING_PX + 160 + cloudVerticalRange / 2;
+
+      unscheduledPlacements.forEach(({ child }, index) => {
+        const position = cloudPositions[index] ?? { x: 0, y: 0 };
+        const childHeight = child.getBoundingClientRect().height;
+        const resolvedLeft =
+          cloudCenterX + (position.x / maxAbsX) * cloudHorizontalRange;
+        const resolvedTop = Math.max(
+          CENTURY_VIEW_VERTICAL_PADDING_PX,
+          cloudCenterY + (position.y / maxAbsY) * cloudVerticalRange - childHeight / 2
+        );
+
+        child.style.position = 'absolute';
+        child.style.marginTop = '0px';
+        child.style.left = `${resolvedLeft}px`;
+        child.style.top = `${resolvedTop}px`;
+        child.style.transformOrigin = 'top left';
+        child.style.transform = `scale(${CENTURY_VIEW_EVENT_BASE_SCALE})`;
+
+        contentBottom = Math.max(contentBottom, resolvedTop + childHeight + CENTURY_VIEW_ROW_GAP_PX);
+      });
+    }
+
+    for (let index = itemCount; index < itemElements.length; index += 1) {
+      itemElements[index].style.marginTop = '0px';
+    }
+
+    const resolvedMinHeight = `${Math.max(contentBottom + CENTURY_VIEW_VERTICAL_PADDING_PX, centuryViewMinHeight)}px`;
+    itemContainer.style.minHeight = resolvedMinHeight;
+    contentNode.style.minHeight = resolvedMinHeight;
+  }, [centuryViewMinHeight, contentHeight, isYearIncrementLens, timelineLayout, yearIncrements]);
+
+  const handleCenturyTimelineClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) return;
+
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    if (
+      target.closest('[data-temporal-space="true"]') ||
+      target.closest('[data-temporal-space-node-view="true"]') ||
+      target.closest('[data-temporal-order-node-view="true"] [contenteditable="true"]') ||
+      target.closest('.node-overlay-grip') ||
+      target.closest('[data-century-cloud="true"]') ||
+      target.closest('button, input, textarea, a')
+    ) {
+      return;
+    }
+
+    const host = contentHostRef.current;
+    const container = containerRef.current;
+    if (!host || !container || !yearIncrements.length) return;
+
+    const timelineWidthValue = Number.parseFloat(
+      container.style.getPropertyValue('--temporal-order-century-timeline-width') || ''
+    );
+    if (!Number.isFinite(timelineWidthValue)) return;
+
+    const hostRect = host.getBoundingClientRect();
+    const timelineLeft = hostRect.left + TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX;
+    const timelineRight = timelineLeft + timelineWidthValue;
+
+    if (event.clientX < timelineLeft || event.clientX > timelineRight) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const offsetTopPx = event.clientY - containerRect.top;
+    const resolvedDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
+    const nearestYear = yearIncrements.reduce<TemporalOrderYearIncrement | null>((best, increment) => {
+      if (!best) return increment;
+      return Math.abs(increment.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? increment : best;
+    }, null);
+    const nearestMonthTick = monthTicks.reduce<TemporalOrderMonthTick | null>((best, tick) => {
+      if (!best) return tick;
+      return Math.abs(tick.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? tick : best;
+    }, null);
+
+    const precision =
+      nearestYear && Math.abs(nearestYear.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX
+        ? 'year'
+        : nearestMonthTick && Math.abs(nearestMonthTick.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX
+          ? 'month'
+          : 'date';
+
+    event.preventDefault();
+    event.stopPropagation();
+    onCreateTemporalSpaceAtTimePoint(buildTemporalOrderClickTimePointAttrs(resolvedDate, precision));
+  }, [
+    isCollapsed,
+    isYearIncrementLens,
+    monthTicks,
+    onCreateTemporalSpaceAtTimePoint,
+    yearIncrements,
+  ]);
+
+  const handleCenturyTimelineMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    const container = containerRef.current;
+    const host = contentHostRef.current;
+    if (!container || !host) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    const timelineWidthValue = Number.parseFloat(
+      container.style.getPropertyValue('--temporal-order-century-timeline-width') || ''
+    );
+    if (!Number.isFinite(timelineWidthValue)) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    const hostRect = host.getBoundingClientRect();
+    const timelineLeft = hostRect.left + TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX;
+    const timelineRight = timelineLeft + timelineWidthValue;
+
+    if (event.clientX < timelineLeft || event.clientX > timelineRight) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const rawTopPx = event.clientY - containerRect.top;
+    const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
+    const hoverMode = horizontalRatio < 1 / 3 ? 'day' : horizontalRatio < 2 / 3 ? 'week' : 'month';
+    const rawDate = resolveCenturyViewClickDate(rawTopPx, yearIncrements);
+    const snappedDate = snapCenturyViewHoverDate(rawDate, hoverMode);
+    const snappedTopPx = getCenturyViewDateOffsetPx(
+      snappedDate,
+      yearTopLookup,
+      rawTopPx
+    );
+    const localLeftPx = event.clientX - containerRect.left;
+
+    setTimelineHoverIndicator({
+      topPx: snappedTopPx,
+      leftPx: localLeftPx,
+      label: formatCenturyViewHoverLabel(snappedDate, hoverMode),
+    });
+  }, [isCollapsed, isYearIncrementLens, yearIncrements, yearTopLookup]);
+
+  const handleCenturyTimelineMouseLeave = useCallback(() => {
+    setTimelineHoverIndicator(null);
+  }, []);
+
   return (
     <div
       ref={containerRef}
+      onClick={handleCenturyTimelineClick}
+      onMouseMove={handleCenturyTimelineMouseMove}
+      onMouseLeave={handleCenturyTimelineMouseLeave}
       style={{
         position: 'relative',
-        minHeight: isCollapsed ? 48 : isIdentityLens ? 100 : 480,
-        paddingLeft: isIdentityLens ? 8 : 0, // Only reserve arrow space for identity lens.
+        minHeight: isCollapsed ? 48 : isYearIncrementLens ? centuryViewMinHeight : isLinearLens ? 100 : 480,
+        paddingLeft: isLinearLens ? 8 : 0,
         borderRadius: isImmersiveGraphLens ? 16 : 0,
         overflow: isImmersiveGraphLens ? 'hidden' : 'visible',
       }}
     >
       {/* Temporal Arrow */}
-      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || !isIdentityLens} />
+      <TemporalArrow height={contentHeight} isCollapsed={isCollapsed || !isLinearLens} />
+
+      {isYearIncrementLens && timelineHoverIndicator && (
+        <>
+          <div
+            aria-hidden="true"
+            className="temporal-order-hover-line"
+            style={{ top: timelineHoverIndicator.topPx }}
+          />
+          <div
+            aria-hidden="true"
+            className="temporal-order-hover-label"
+            style={{
+              top: timelineHoverIndicator.topPx,
+              left: timelineHoverIndicator.leftPx,
+            }}
+          >
+            {timelineHoverIndicator.label}
+          </div>
+        </>
+      )}
 
       {/* Content */}
       <AnimatePresence>
@@ -1212,8 +2054,14 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
               position: 'relative',
             }}
           >
+            {isYearIncrementLens && (
+              <TemporalOrderYearRail
+                increments={yearIncrements}
+              />
+            )}
             <div
-              className={`temporal-order-content-host ${isIdentityLens ? 'is-linear' : 'is-graph-source'}`}
+              ref={contentHostRef}
+              className={`temporal-order-content-host ${isLinearLens ? 'is-linear' : 'is-graph-source'}${isYearIncrementLens ? ' is-year-increments' : ''}`}
             >
               {children}
             </div>
@@ -1459,6 +2307,7 @@ export const TemporalOrderExtension = TipTapNode.create({
 
             state.doc.descendants((node, pos) => {
               if (node.type.name !== 'temporalOrder') return;
+              const isYearIncrementLens = node.attrs.lens === 'centuryView';
 
               node.forEach((child, offset) => {
                 const childPos = pos + 1 + offset;
@@ -1481,12 +2330,17 @@ export const TemporalOrderExtension = TipTapNode.create({
                 }
 
                 const distanceMs = getTemporalDistanceMs(date, nowMs);
-                const opacity = getTemporalFadeOpacity(distanceMs);
+                const opacity = isYearIncrementLens
+                  ? getTemporalYearIncrementOpacity(distanceMs)
+                  : getTemporalFadeOpacity(distanceMs);
+                const filter = isYearIncrementLens
+                  ? `brightness(${getTemporalYearIncrementBrightness(distanceMs)})`
+                  : 'none';
                 const distanceDays = Math.round(distanceMs / (1000 * 60 * 60 * 24));
 
                 decorations.push(
                   Decoration.node(childPos, childPos + child.nodeSize, {
-                    style: `opacity: ${opacity}; transition: opacity 0.2s ease;`,
+                    style: `opacity: ${opacity}; filter: ${filter}; transition: opacity 0.2s ease, filter 0.2s ease;`,
                     'data-temporal-distance-days': String(distanceDays),
                   })
                 );
@@ -1508,7 +2362,13 @@ export const TemporalOrderExtension = TipTapNode.create({
       const lensAttr = props.node.attrs.lens;
       const legacyTimeMode = props.node.attrs.timeMode;
       const lens: TemporalOrderLens = (() => {
-        if (lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity') {
+        if (
+          lensAttr === 'auraView' ||
+          lensAttr === 'graph2D' ||
+          lensAttr === 'flowGraph' ||
+          lensAttr === 'identity' ||
+          lensAttr === 'centuryView'
+        ) {
           return lensAttr;
         }
         if (legacyTimeMode === 'nonLinear') {
@@ -1610,6 +2470,35 @@ export const TemporalOrderExtension = TipTapNode.create({
       const flowGraphData = useMemo(
         () => buildTemporalOrderQuantaFlowGraphData(eventSources),
         [eventSources]
+      );
+      const timelineLayout = useMemo<TemporalOrderTimelineLayoutItem[]>(() => {
+        const items: TemporalOrderTimelineLayoutItem[] = [];
+
+        props.node.forEach((child, offset) => {
+          const childQuantaId = (child.attrs as any)?.quantaId;
+          const earliestDate = extractEarliestDateFromNode(child);
+          const normalizedDate =
+            earliestDate && !Number.isNaN(earliestDate.getTime())
+              ? new Date(earliestDate.getTime())
+              : null;
+          items.push({
+            key:
+              typeof childQuantaId === 'string' && childQuantaId.trim()
+                ? childQuantaId
+                : `${child.type.name}-${offset}`,
+            year: normalizedDate?.getUTCFullYear() ?? normalizedDate?.getFullYear() ?? null,
+            date: normalizedDate,
+            slotKey: normalizedDate
+              ? `${normalizedDate.getUTCFullYear()}-${normalizedDate.getUTCMonth()}`
+              : null,
+          });
+        });
+
+        return items;
+      }, [props.node]);
+      const yearIncrements = useMemo(
+        () => buildTemporalOrderYearIncrements(),
+        []
       );
       const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D' || lens === 'flowGraph';
 
@@ -1746,6 +2635,34 @@ export const TemporalOrderExtension = TipTapNode.create({
         view.dispatch(tr.scrollIntoView());
       }, [props.editor, props.getPos]);
 
+      const handleCreateTemporalSpaceAtTimePoint = useCallback(
+        (attrs: TemporalOrderClickTimePointAttrs) => {
+          const pos = props.getPos();
+          if (typeof pos !== 'number') return;
+
+          props.editor
+            .chain()
+            .focus()
+            .insertContentAt(pos + 1, {
+              type: 'temporalSpace',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [
+                    {
+                      type: 'timepoint',
+                      attrs,
+                    },
+                    { type: 'text', text: ' ' },
+                  ],
+                },
+              ],
+            })
+            .run();
+        },
+        [props.editor, props.getPos]
+      );
+
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
@@ -1776,9 +2693,12 @@ export const TemporalOrderExtension = TipTapNode.create({
               isCollapsed={isCollapsed}
               lens={lens}
               eventSources={eventSources}
+              yearIncrements={yearIncrements}
+              timelineLayout={timelineLayout}
               auraGraphData={auraGraphData}
               graph2DData={graph2DData}
               flowGraphData={flowGraphData}
+              onCreateTemporalSpaceAtTimePoint={handleCreateTemporalSpaceAtTimePoint}
             >
               <NodeViewContent className="temporal-order-node-view-content" />
             </TemporalOrderContent>

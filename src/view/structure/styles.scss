@@ -67,6 +67,139 @@
   gap: 8px;
 }
 
+.temporal-order-content-host.is-year-increments {
+  position: relative;
+}
+
+.temporal-order-content-host.is-year-increments .temporal-order-node-view-content {
+  padding-left: 88px;
+  position: relative;
+  z-index: 1;
+  gap: 0;
+}
+
+.temporal-order-content-host.is-year-increments .temporal-order-node-view-content [data-century-cloud='true'] {
+  opacity: var(--temporal-order-century-cloud-opacity, 0.74);
+}
+
+.temporal-order-hover-line {
+  position: absolute;
+  left: 88px;
+  width: var(--temporal-order-century-timeline-width, 0px);
+  height: 1px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    90deg,
+    rgba(76, 86, 106, 0.55) 0%,
+    rgba(76, 86, 106, 0.42) 65%,
+    rgba(76, 86, 106, 0.18) 100%
+  );
+  box-shadow: 0 0 8px rgba(76, 86, 106, 0.08);
+}
+
+.temporal-order-hover-label {
+  position: absolute;
+  transform: translate(12px, calc(-100% - 8px));
+  max-width: 240px;
+  pointer-events: none;
+  z-index: 3;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(30, 41, 59, 0.92);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.temporal-order-year-rail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.temporal-order-year-rail-axis {
+  position: absolute;
+  left: 28px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(100, 100, 110, 0.08) 0%,
+    rgba(100, 100, 110, 0.3) 18%,
+    rgba(100, 100, 110, 0.55) 52%,
+    rgba(100, 100, 110, 0.22) 100%
+  );
+}
+
+.temporal-order-year-rail-row {
+  position: absolute;
+  left: 18px;
+  width: calc(var(--temporal-order-century-timeline-width, 0px) + 70px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+
+.temporal-order-year-rail-month-row {
+  position: absolute;
+  left: 23px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  transform: translateY(-50%);
+}
+
+.temporal-order-year-rail-tick {
+  height: 1px;
+  border-radius: 999px;
+  background: rgba(76, 86, 106, 0.72);
+  box-shadow: 0 0 10px rgba(76, 86, 106, 0.12);
+  flex-shrink: 0;
+}
+
+.temporal-order-year-rail-guideline {
+  height: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(76, 86, 106, 0.22) 0%,
+    rgba(76, 86, 106, 0.14) 55%,
+    rgba(76, 86, 106, 0.05) 100%
+  );
+}
+
+.temporal-order-year-rail-month-tick {
+  width: 8px;
+  height: 1px;
+  border-radius: 999px;
+  background: rgba(76, 86, 106, 0.35);
+  box-shadow: 0 0 6px rgba(76, 86, 106, 0.08);
+  flex-shrink: 0;
+}
+
+.temporal-order-year-rail-label {
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(49, 58, 76, 0.92);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transform-origin: left center;
+}
+
+.temporal-order-year-rail-label.is-present {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(28, 33, 46, 0.98);
+}
+
 .temporal-order-content-host.is-graph-source,
 .temporal-order-content-host.is-non-linear-source {
   position: absolute;
