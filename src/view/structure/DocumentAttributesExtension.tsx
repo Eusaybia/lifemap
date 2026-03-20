@@ -31,13 +31,15 @@ declare module '@tiptap/core' {
 }
 
 // Define the structure of the attributes
+export type EditorMode = 'editing' | 'mental-connection' | 'physical-connection';
+
 export interface DocumentAttributes {
   selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode' | 'dev-mode';
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
-  // Editor mode: 'editing' for normal text editing, 'connection' for drawing arrows between span groups
-  editorMode: 'editing' | 'connection';
+  // Editor mode: editing for text, mental connection for ethereal arrows, physical connection for black arrows
+  editorMode: EditorMode;
   // Focus mode: Array of quantaIds that have the "☀️ focus" tag
   // When non-empty, all nodes NOT in this array get dimmed (Aura component handles this)
   focusedNodeIds: string[];
@@ -55,6 +57,18 @@ export const defaultDocumentAttributes: DocumentAttributes = {
 
 // Key for localStorage
 const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
+
+const normalizeEditorMode = (editorMode: unknown): EditorMode => {
+  if (editorMode === 'physical-connection') return 'physical-connection';
+  if (editorMode === 'mental-connection' || editorMode === 'connection') return 'mental-connection';
+  return 'editing';
+};
+
+export const normalizeDocumentAttributes = (attributes: Partial<DocumentAttributes> | null | undefined): DocumentAttributes => ({
+  ...defaultDocumentAttributes,
+  ...attributes,
+  editorMode: normalizeEditorMode(attributes?.editorMode),
+});
 
 // Replace the Node extension with a simple Extension providing commands
 export const DocumentAttributeExtension = Extension.create({
@@ -117,7 +131,7 @@ export const DocumentAttributeExtension = Extension.create({
           try {
             const storedAttrs = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (storedAttrs) {
-              currentAttributes = { ...defaultDocumentAttributes, ...JSON.parse(storedAttrs) };
+              currentAttributes = normalizeDocumentAttributes(JSON.parse(storedAttrs));
             }
           } catch (error) {
             console.error("Error reading document attributes from localStorage:", error);
@@ -150,7 +164,7 @@ export const DocumentAttributeExtension = Extension.create({
             const storedAttrs = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (storedAttrs) {
               // Merge with defaults to ensure all keys are present
-              return { ...defaultDocumentAttributes, ...JSON.parse(storedAttrs) };
+              return normalizeDocumentAttributes(JSON.parse(storedAttrs));
             }
           } catch (error) {
             console.error("Error reading document attributes from localStorage:", error);

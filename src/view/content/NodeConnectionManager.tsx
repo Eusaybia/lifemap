@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { DocumentAttributes } from '../structure/DocumentAttributesExtension'
+import { DocumentAttributes, EditorMode, normalizeDocumentAttributes } from '../structure/DocumentAttributesExtension'
 
 // ============================================================================
 // NODE CONNECTION MANAGER
@@ -204,6 +204,22 @@ const buildQuadraticPath = (
   y2: number,
 ) => `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`
 
+const getQuadraticPoint = (
+  x1: number,
+  y1: number,
+  midX: number,
+  midY: number,
+  x2: number,
+  y2: number,
+  t: number,
+) => {
+  const invT = 1 - t
+  return {
+    x: invT * invT * x1 + 2 * invT * t * midX + t * t * x2,
+    y: invT * invT * y1 + 2 * invT * t * midY + t * t * y2,
+  }
+}
+
 const buildArrowPolygonPoints = (
   x: number,
   y: number,
@@ -280,30 +296,41 @@ const getEtherealFrame = (
  * - Connections persist in localStorage
  */
 export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HTMLElement> }> = ({ containerRef }) => {
-  const [editorMode, setEditorMode] = useState<'editing' | 'connection'>('editing')
+  const [editorMode, setEditorMode] = useState<EditorMode>('editing')
   const [connections, setConnections] = useState<NodeConnection[]>([])
   const [pendingSource, setPendingSource] = useState<{ id: string, type: ConnectableType } | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
   const [connectionPaths, setConnectionPaths] = useState<ConnectionPath[]>([])
   const [etherealTime, setEtherealTime] = useState(() => (typeof performance !== 'undefined' ? performance.now() : Date.now()))
+  const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null)
   const focusedEndByConnection = useRef<Record<string, 'head' | 'tail'>>({})
   const pendingRaf = useRef<number | null>(null)
-  const isConnectionMode = editorMode === 'connection'
+  const hoverHideTimeoutRef = useRef<number | null>(null)
+  const isConnectionMode = editorMode === 'mental-connection' || editorMode === 'physical-connection'
+  const isMentalConnectionMode = editorMode === 'mental-connection'
 
   // Load connections on mount
   useEffect(() => {
     setConnections(loadConnections())
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (hoverHideTimeoutRef.current !== null) {
+        window.clearTimeout(hoverHideTimeoutRef.current)
+      }
+    }
+  }, [])
+
   // Listen for document attribute updates
   useEffect(() => {
     const handleAttributeUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<DocumentAttributes>
-      const updatedAttributes = customEvent.detail
+      const updatedAttributes = normalizeDocumentAttributes(customEvent.detail)
       if (updatedAttributes?.editorMode) {
         console.log('[NodeConnectionManager] Mode changed to:', updatedAttributes.editorMode)
         setEditorMode(updatedAttributes.editorMode)
-        if (updatedAttributes.editorMode !== 'connection') {
+        if (updatedAttributes.editorMode === 'editing') {
           setPendingSource(null)
         }
       }
@@ -314,7 +341,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     try {
       const stored = localStorage.getItem(DOC_ATTRIBUTES_STORAGE_KEY)
       if (stored) {
-        const attrs = JSON.parse(stored) as DocumentAttributes
+        const attrs = normalizeDocumentAttributes(JSON.parse(stored) as DocumentAttributes)
         if (attrs.editorMode) {
           setEditorMode(attrs.editorMode)
         }
@@ -328,7 +355,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
   // Handle element clicks in Connection mode to create new connections
   const handleElementClick = useCallback((event: MouseEvent) => {
-    if (editorMode !== 'connection') return
+    if (!isConnectionMode) return
     
     const target = event.target as HTMLElement
     const elementInfo = findConnectableElement(target)
@@ -378,11 +405,11 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       
       setPendingSource(null)
     }
-  }, [editorMode, pendingSource, connections])
+  }, [connections, isConnectionMode, pendingSource])
 
   // Add/remove click listener based on mode
   useEffect(() => {
-    if (editorMode === 'connection') {
+    if (isConnectionMode) {
       document.addEventListener('click', handleElementClick, true)
       console.log('[NodeConnectionManager] Connection mode active')
     } else {
@@ -400,11 +427,11 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     return () => {
       document.removeEventListener('click', handleElementClick, true)
     }
-  }, [editorMode, handleElementClick, pendingSource])
+  }, [handleElementClick, isConnectionMode, pendingSource])
 
   // Track mouse position when in connection mode (for preview arrow cursor indicator)
   useEffect(() => {
-    if (editorMode !== 'connection') return
+    if (!isConnectionMode) return
     
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY })
@@ -414,7 +441,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [editorMode])
+  }, [isConnectionMode])
 
   const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right') => {
     const mapContainer = elem.querySelector('.mapboxgl-map')
@@ -529,7 +556,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   }, [containerRef, requestConnectionUpdate])
 
   useEffect(() => {
-    if (!isConnectionMode || connectionPaths.length === 0) return
+    if (connectionPaths.length === 0) return
 
     let rafId = 0
     const tick = (time: number) => {
@@ -541,7 +568,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     return () => {
       window.cancelAnimationFrame(rafId)
     }
-  }, [connectionPaths.length, isConnectionMode])
+  }, [connectionPaths.length])
 
   const handleConnectionClick = useCallback((conn: ConnectionPath, event: React.MouseEvent<SVGElement>) => {
     const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
@@ -586,10 +613,53 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     targetElem?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
+  const showConnectionDeleteButton = useCallback((connectionId: string) => {
+    if (hoverHideTimeoutRef.current !== null) {
+      window.clearTimeout(hoverHideTimeoutRef.current)
+      hoverHideTimeoutRef.current = null
+    }
+    setHoveredConnectionId(connectionId)
+  }, [])
+
+  const scheduleHideConnectionDeleteButton = useCallback((connectionId: string) => {
+    if (hoverHideTimeoutRef.current !== null) {
+      window.clearTimeout(hoverHideTimeoutRef.current)
+    }
+
+    hoverHideTimeoutRef.current = window.setTimeout(() => {
+      setHoveredConnectionId((current) => (current === connectionId ? null : current))
+      hoverHideTimeoutRef.current = null
+    }, 120)
+  }, [])
+
+  const handleDeleteConnection = useCallback((connectionId: string, event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const updatedConnections = connections.filter((conn) => conn.id !== connectionId)
+    delete focusedEndByConnection.current[connectionId]
+    setConnections(updatedConnections)
+    saveConnections(updatedConnections)
+    setHoveredConnectionId((current) => (current === connectionId ? null : current))
+  }, [connections])
+
   // Only render when needed
-  if (editorMode !== 'connection' && connections.length === 0) {
+  if (!isConnectionMode && connections.length === 0) {
     return null
   }
+
+  const hoveredConnection = connectionPaths.find((conn) => conn.id === hoveredConnectionId) ?? null
+  const hoveredConnectionDeleteAnchor = hoveredConnection
+    ? getQuadraticPoint(
+        hoveredConnection.x1,
+        hoveredConnection.y1,
+        hoveredConnection.midX,
+        hoveredConnection.midY,
+        hoveredConnection.x2,
+        hoveredConnection.y2,
+        0.5
+      )
+    : null
 
   return (
     <>
@@ -667,6 +737,37 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           </div>
         </div>
       )}
+
+      {hoveredConnection && hoveredConnectionDeleteAnchor && (
+        <button
+          type="button"
+          onMouseEnter={() => showConnectionDeleteButton(hoveredConnection.id)}
+          onMouseLeave={() => scheduleHideConnectionDeleteButton(hoveredConnection.id)}
+          onClick={(event) => handleDeleteConnection(hoveredConnection.id, event)}
+          style={{
+            position: 'fixed',
+            left: hoveredConnectionDeleteAnchor.x,
+            top: hoveredConnectionDeleteAnchor.y,
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'auto',
+            zIndex: 10003,
+            border: '1px solid rgba(255, 255, 255, 0.85)',
+            background: 'linear-gradient(180deg, rgba(222, 55, 55, 0.96), rgba(177, 25, 25, 0.96))',
+            color: '#fff8f8',
+            borderRadius: 999,
+            padding: '6px 10px',
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+            cursor: 'pointer',
+            boxShadow: '0 10px 28px rgba(120, 0, 0, 0.28), 0 0 18px rgba(255, 90, 90, 0.22)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          Delete
+        </button>
+      )}
       
       {/* Render all connections in a single overlay SVG */}
       <svg
@@ -682,13 +783,22 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         }}
       >
         {connectionPaths.map((conn) => {
-          const etherealFrame = isConnectionMode
-            ? getEtherealFrame(conn.id, conn.x1, conn.y1, conn.x2, conn.y2, conn.midX, conn.midY, etherealTime)
+          const etherealFrame = isMentalConnectionMode
+            ? getEtherealFrame(
+                conn.id,
+                conn.x1,
+                conn.y1,
+                conn.x2,
+                conn.y2,
+                conn.midX,
+                conn.midY,
+                etherealTime
+              )
             : null
 
           return (
           <g key={conn.id}>
-            {isConnectionMode && etherealFrame ? (
+            {etherealFrame ? (
               <>
                 <path
                   d={etherealFrame.mainPath}
@@ -756,6 +866,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   strokeLinecap="round"
                   fill="none"
                   style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
                 <polygon
@@ -764,6 +876,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   stroke="rgba(0, 0, 0, 0.001)"
                   strokeWidth={8}
                   style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
               </>
@@ -771,11 +885,12 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
               <>
                 <path
                   d={conn.d}
-                  // Black arrows represent the normal document-state connection rendering.
                   stroke="#262626"
                   strokeWidth={3}
                   fill="none"
                   style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
                 <polygon
@@ -784,6 +899,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   stroke="#262626"
                   strokeWidth={1}
                   style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
               </>

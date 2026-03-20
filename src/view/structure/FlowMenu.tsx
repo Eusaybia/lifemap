@@ -19,7 +19,7 @@ import { FlowSwitch, Option } from "./FlowSwitch"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
 import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
-import { defaultDocumentAttributes, DocumentAttributes } from "./DocumentAttributesExtension";
+import { defaultDocumentAttributes, DocumentAttributes, normalizeDocumentAttributes } from "./DocumentAttributesExtension";
 import { SalesGuideTemplate } from "../content/SalesGuideTemplate";
 import { backup, quantaBackup } from "../../backend/backup";
 import { yellow } from "@mui/material/colors";
@@ -64,7 +64,7 @@ const readDocumentAttributesFromStorage = (): DocumentAttributes => {
     try {
         const stored = window.localStorage.getItem(DOC_ATTRIBUTES_STORAGE_KEY)
         if (stored) {
-            return { ...defaultDocumentAttributes, ...JSON.parse(stored) }
+            return normalizeDocumentAttributes(JSON.parse(stored))
         }
     } catch (error) {
         console.error('[FlowMenu] Error reading document attributes from localStorage:', error)
@@ -89,8 +89,7 @@ const useDocumentAttributes = (): DocumentAttributes => {
             const customEvent = event as CustomEvent<DocumentAttributes>
             if (customEvent.detail) {
                 setDocumentAttributes({
-                    ...defaultDocumentAttributes,
-                    ...customEvent.detail,
+                    ...normalizeDocumentAttributes(customEvent.detail),
                 })
                 return
             }
@@ -1082,7 +1081,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                 }
             `}</style>
             <motion.div style={documentMenuStyle} className="document-flow-menu">
-                {/* Editor Mode Toggle - Editing vs Connection mode */}
+                {/* Editor Mode Toggle - Editing vs Mental/Physical Connection mode */}
                 <FlowSwitch value={editorMode} isLens>
                 <Option 
                     value="editing" 
@@ -1096,14 +1095,25 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option 
-                    value="connection" 
+                    value="mental-connection" 
                     onClick={() => {
-                        console.log('[DocumentFlowMenu] Switching to Connection mode');
-                        editor.commands.setDocumentAttribute({ editorMode: 'connection' });
+                        console.log('[DocumentFlowMenu] Switching to Mental Connection mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'mental-connection' });
                     }}
                 >
                     <motion.div>
-                        <span>🔗 Connection</span>
+                        <span>🔗 Mental Connection</span>
+                    </motion.div>
+                </Option>
+                <Option 
+                    value="physical-connection" 
+                    onClick={() => {
+                        console.log('[DocumentFlowMenu] Switching to Physical Connection mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'physical-connection' });
+                    }}
+                >
+                    <motion.div>
+                        <span>🏛️ Physical Connection</span>
                     </motion.div>
                 </Option>
             </FlowSwitch>
