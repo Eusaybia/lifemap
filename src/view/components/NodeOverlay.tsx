@@ -167,6 +167,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
 
   // Scan node for tags to determine glow effects
   const tags = useMemo(() => scanNodeForTags(nodeProps.node as ProseMirrorNode), [nodeProps.node])
+  const hasPrivateOverlay = isPrivate || tags.hasPrivateTag
 
   // Group/Node aura (derived from descendants) can also dim the container.
   const nodeAura = useMemo(
@@ -344,7 +345,7 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
           Using a semi-transparent white overlay creates a "faded" appearance that 
           de-emphasizes content while preserving readability and allowing 3D shadows
           to partially show through. */}
-      {(tags.hasUnimportantTag || auraDimOpacity > 0) && (
+      {!hasPrivateOverlay && (tags.hasUnimportantTag || auraDimOpacity > 0) && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{
@@ -369,8 +370,8 @@ export const NodeOverlay: React.FC<NodeOverlayProps> = ({
         />
       )}
 
-      {/* Private lens overlay - full coverage black overlay */}
-      {isPrivate && (
+      {/* Private lens/tag overlay - full coverage black overlay */}
+      {hasPrivateOverlay && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

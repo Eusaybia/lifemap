@@ -41,6 +41,9 @@ const IMPORTANT_TAG = "⭐️ important"
 const VERY_IMPORTANT_TAG = "🌟 very important"
 const UNIMPORTANT_TAG = "🌫️ unimportant"
 const NOT_A_PRIORITY_TAG = "not-a-priority"
+const PRIVATE_TAG = "private"
+const PRIVATE_TAG_LABEL = "#private"
+const PRIVATE_TAG_ID = "tag:private"
 
 export interface AuraProps {
   /** The ProseMirror node to scan for tags */
@@ -81,6 +84,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
   let hasVeryImportantTag = false
   let hasUnimportantTag = false
   let hasNotPriorityTag = false
+  let hasPrivateTag = false
   let hasUncheckedTodo = false
   let hasCheckItem = false
 
@@ -125,6 +129,13 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
           hasNotPriorityTag = true
         }
       }
+      if (
+        label?.toLowerCase() === PRIVATE_TAG_LABEL ||
+        dataTag?.toLowerCase() === PRIVATE_TAG ||
+        id === PRIVATE_TAG_ID
+      ) {
+        hasPrivateTag = true
+      }
     }
     // Check for task items
     if (childNode.type.name === 'taskItem') {
@@ -163,6 +174,7 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
     hasVeryImportantTag,
     hasUnimportantTag,
     hasNotPriorityTag,
+    hasPrivateTag,
     hasUncheckedTodo,
     hasCheckItem,
   }

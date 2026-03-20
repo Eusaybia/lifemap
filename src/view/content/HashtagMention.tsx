@@ -25,6 +25,9 @@ export interface Hashtag {
   aura?: AuraSpec
 }
 
+const PRIVATE_TAG_ID = 'tag:private'
+const PRIVATE_TAG_NAME = 'private'
+
 interface HashtagListProps extends SuggestionProps {
   items: Hashtag[]
 }
@@ -61,7 +64,7 @@ const getColorForHashtag = (tag: string): string => {
 // Popular Hashtags Database
 // ============================================================================
 
-const POPULAR_HASHTAGS: Hashtag[] = [
+export const POPULAR_HASHTAGS: Hashtag[] = [
   // Special Aura tags (trigger visual effects - see Aura.tsx)
   // Shortcuts: !!! for important, \/ for complete, fff for focus
   { id: 'tag:focus', label: '☀️ focus', color: '#ffb700' },
@@ -79,6 +82,7 @@ const POPULAR_HASHTAGS: Hashtag[] = [
   },
   { id: 'tag:complete', label: '✅ complete', color: '#10b981' },
   { id: 'tag:unimportant', label: '🌫️ unimportant', color: '#6b7280' },
+  { id: PRIVATE_TAG_ID, label: PRIVATE_TAG_NAME, color: '#111827' },
   
   // Productivity
   { id: 'tag:todo', label: 'todo', color: '#ef4444' },
@@ -159,7 +163,7 @@ const toHashtagInsertAttrs = (hashtag: Hashtag) => ({
   ...(hashtag.aura ? toAuraDataAttributes(hashtag.aura) : {}),
 })
 
-const fetchHashtags = (query: string): Hashtag[] => {
+export const fetchHashtags = (query: string): Hashtag[] => {
   const customHashtags = loadCustomHashtags()
   const allKnownHashtags = [...POPULAR_HASHTAGS, ...customHashtags]
   
