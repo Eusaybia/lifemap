@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useState, useMemo, useCallback, useR
 import dynamic from "next/dynamic";
 import { Node as ProseMirrorNode, Fragment, DOMParser, Schema } from "@tiptap/pm/model";
 import { Node as TipTapNode, NodeViewProps, JSONContent, isNodeSelection, wrappingInputRule } from "@tiptap/core";
-import { Plugin, PluginKey, Transaction } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection, Transaction } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,10 +69,100 @@ declare module '@tiptap/core' {
 }
 
 type TemporalOrderLens = 'identity' | 'centuryView' | 'auraView' | 'graph2D' | 'flowGraph';
+type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year';
+
+const TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER: TemporalOrderCenturySpecificity[] = [
+  'date',
+  'month',
+  'year',
+];
 
 // ============================================================================
 // Date Extraction Utilities
 // ============================================================================
+
+const inferTemporalOrderCenturySpecificity = (
+  attrs: Record<string, unknown>
+): TemporalOrderCenturySpecificity => {
+  const id = typeof attrs.id === 'string' ? attrs.id : '';
+  const formattedValue =
+    typeof attrs['data-formatted'] === 'string'
+      ? attrs['data-formatted'].trim()
+      : typeof attrs['data-relative-label'] === 'string'
+        ? attrs['data-relative-label'].trim()
+        : '';
+
+  if (id.startsWith('timepoint:year-') || /^\d{4}$/.test(formattedValue)) {
+    return 'year';
+  }
+
+  if (
+    id.startsWith('timepoint:month-') ||
+    id === 'timepoint:this-month' ||
+    id === 'timepoint:next-month' ||
+    /^[A-Za-z]+\s+\d{4}$/.test(formattedValue)
+  ) {
+    return 'month';
+  }
+
+  return 'date';
+};
+
+const extractEarliestTemporalMetadataFromNode = (
+  node: ProseMirrorNode
+): {
+  date: Date | null;
+  specificity: TemporalOrderCenturySpecificity | null;
+} => {
+  let earliestMatch:
+    | {
+        date: Date;
+        specificity: TemporalOrderCenturySpecificity;
+      }
+    | null = null;
+
+  node.descendants((childNode) => {
+    if (childNode.type.name !== 'timepoint') {
+      return;
+    }
+
+    const dateStr = childNode.attrs['data-date'] as string | null;
+    if (!dateStr) {
+      return;
+    }
+
+    try {
+      const date = new Date(dateStr);
+      if (Number.isNaN(date.getTime()) || date.getTime() <= 0) {
+        return;
+      }
+
+      const specificity = inferTemporalOrderCenturySpecificity(
+        childNode.attrs as Record<string, unknown>
+      );
+
+      if (
+        !earliestMatch ||
+        date < earliestMatch.date ||
+        (date.getTime() === earliestMatch.date.getTime() &&
+          TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER.indexOf(specificity) <
+            TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER.indexOf(earliestMatch.specificity))
+      ) {
+        earliestMatch = {
+          date,
+          specificity,
+        };
+      }
+    } catch {
+      // Invalid date string, skip
+    }
+  });
+
+  return {
+    date: earliestMatch?.date ?? null,
+    specificity: earliestMatch?.specificity ?? null,
+  };
+};
 
 /**
  * Extracts the earliest date from a node by scanning for TimePointMention nodes.
@@ -84,26 +174,7 @@ type TemporalOrderLens = 'identity' | 'centuryView' | 'auraView' | 'graph2D' | '
  * @returns Date object if found, null otherwise
  */
 const extractEarliestDateFromNode = (node: ProseMirrorNode): Date | null => {
-  let earliestDate: Date | null = null;
-
-  node.descendants((childNode) => {
-    if (childNode.type.name === 'timepoint') {
-      const dateStr = childNode.attrs['data-date'] as string | null;
-      if (dateStr) {
-        try {
-          const date = new Date(dateStr);
-          // Skip epoch dates (used for abstract/recurring timepoints)
-          if (date.getTime() > 0 && (!earliestDate || date < earliestDate)) {
-            earliestDate = date;
-          }
-        } catch (e) {
-          // Invalid date string, skip
-        }
-      }
-    }
-  });
-
-  return earliestDate;
+  return extractEarliestTemporalMetadataFromNode(node).date;
 };
 
 // ============================================================================
@@ -232,6 +303,7 @@ interface TemporalOrderTimelineLayoutItem {
   year: number | null;
   date: Date | null;
   slotKey: string | null;
+  specificity: TemporalOrderCenturySpecificity | null;
 }
 
 interface TemporalOrderMonthTick {
@@ -246,6 +318,7 @@ interface TemporalOrderCenturyViewPlacementInput {
   scale: number;
   yearKey: string | null;
   slotKey: string | null;
+  specificity: TemporalOrderCenturySpecificity;
 }
 
 interface TemporalOrderCenturyViewResolvedPlacement {
@@ -284,6 +357,9 @@ interface TemporalOrderHoverIndicatorState {
   label: string;
 }
 
+type TemporalOrderCenturyHoverMode = 'day' | 'week' | 'month';
+type TemporalOrderCenturyClickPrecision = 'year' | 'month' | 'date';
+
 const TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX = 8;
 const TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX = 5;
 const TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX = 88;
@@ -313,9 +389,21 @@ const TEMPORAL_ORDER_HOVER_MONTH_FORMATTER = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 });
 
+const resolveCenturyViewHoverMode = (horizontalRatio: number): TemporalOrderCenturyHoverMode => {
+  if (horizontalRatio < 1 / 3) {
+    return 'day';
+  }
+
+  if (horizontalRatio < 2 / 3) {
+    return 'week';
+  }
+
+  return 'month';
+};
+
 const buildTemporalOrderClickTimePointAttrs = (
   date: Date,
-  precision: 'year' | 'month' | 'date'
+  precision: TemporalOrderCenturyClickPrecision
 ): TemporalOrderClickTimePointAttrs => {
   if (precision === 'year') {
     const year = date.getFullYear();
@@ -401,7 +489,7 @@ const startOfWeek = (date: Date): Date => {
 
 const snapCenturyViewHoverDate = (
   date: Date,
-  mode: 'day' | 'week' | 'month'
+  mode: TemporalOrderCenturyHoverMode
 ): Date => {
   if (mode === 'month') {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -416,7 +504,7 @@ const snapCenturyViewHoverDate = (
 
 const formatCenturyViewHoverLabel = (
   date: Date,
-  mode: 'day' | 'week' | 'month'
+  mode: TemporalOrderCenturyHoverMode
 ): string => {
   if (mode === 'month') {
     return TEMPORAL_ORDER_HOVER_MONTH_FORMATTER.format(date);
@@ -427,6 +515,57 @@ const formatCenturyViewHoverLabel = (
   }
 
   return TEMPORAL_ORDER_HOVER_DAY_FORMATTER.format(date);
+};
+
+export const resolveCenturyViewClickSelection = (
+  offsetTopPx: number,
+  horizontalRatio: number,
+  yearIncrements: TemporalOrderYearIncrement[],
+  monthTicks: TemporalOrderMonthTick[]
+): {
+  date: Date;
+  precision: TemporalOrderCenturyClickPrecision;
+  hoverMode: TemporalOrderCenturyHoverMode;
+} => {
+  const hoverMode = resolveCenturyViewHoverMode(horizontalRatio);
+  const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
+  const nearestYear = yearIncrements.reduce<TemporalOrderYearIncrement | null>((best, increment) => {
+    if (!best) return increment;
+    return Math.abs(increment.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? increment : best;
+  }, null);
+  const nearestMonthTick = monthTicks.reduce<TemporalOrderMonthTick | null>((best, tick) => {
+    if (!best) return tick;
+    return Math.abs(tick.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? tick : best;
+  }, null);
+
+  if (
+    nearestYear &&
+    Math.abs(nearestYear.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX
+  ) {
+    return {
+      date: new Date(nearestYear.year, 0, 1),
+      precision: 'year',
+      hoverMode,
+    };
+  }
+
+  if (
+    hoverMode === 'month' ||
+    (nearestMonthTick &&
+      Math.abs(nearestMonthTick.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX)
+  ) {
+    return {
+      date: snapCenturyViewHoverDate(rawDate, 'month'),
+      precision: 'month',
+      hoverMode,
+    };
+  }
+
+  return {
+    date: snapCenturyViewHoverDate(rawDate, hoverMode === 'week' ? 'week' : 'day'),
+    precision: 'date',
+    hoverMode,
+  };
 };
 
 const getCenturyViewScaledOffsetPx = (
@@ -529,7 +668,7 @@ export const buildTemporalOrderMonthTicks = (
   return ticks;
 };
 
-const getCenturyViewDateOffsetPx = (
+export const getCenturyViewDateOffsetPx = (
   date: Date,
   yearTopLookup: Map<number, number>,
   fallbackTopPx: number
@@ -557,6 +696,29 @@ const getCenturyViewDateOffsetPx = (
   return yearTopPx - (yearTopPx - nextYearTopPx) * progress;
 };
 
+const getTemporalOrderCenturySpecificityRank = (
+  specificity: TemporalOrderCenturySpecificity,
+  presentSpecificities = TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER
+) => presentSpecificities.indexOf(specificity);
+
+const resolveTemporalOrderCenturyPreferredLane = (
+  specificity: TemporalOrderCenturySpecificity,
+  columnCount: number,
+  presentSpecificities: TemporalOrderCenturySpecificity[]
+) => {
+  if (columnCount <= 1) {
+    return 0;
+  }
+
+  const resolvedSpecificities = presentSpecificities.length
+    ? presentSpecificities
+    : TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER;
+  const maxRank = resolvedSpecificities.length - 1;
+  const specificityRank = getTemporalOrderCenturySpecificityRank(specificity, resolvedSpecificities);
+
+  return Math.round((specificityRank * (columnCount - 1)) / Math.max(maxRank, 1));
+};
+
 export const buildTemporalOrderCenturyViewPlacements = (
   placements: TemporalOrderCenturyViewPlacementInput[],
   columnCount: number,
@@ -568,13 +730,22 @@ export const buildTemporalOrderCenturyViewPlacements = (
   const resolvedColumnCount = Math.max(columnCount, 1);
   const laneTopEdges = Array.from({ length: resolvedColumnCount }, () => Number.POSITIVE_INFINITY);
   const resolvedPlacements: TemporalOrderCenturyViewResolvedPlacement[] = [];
-  const nextLaneByYearKey = new Map<string, number>();
-  const nextLaneBySlotKey = new Map<string, number>();
+  const presentSpecificities = TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER.filter((specificity) =>
+    placements.some((placement) => placement.specificity === specificity)
+  );
   let contentBottom = CENTURY_VIEW_VERTICAL_PADDING_PX;
 
-  const buildLanePreferenceOrder = (startLane: number) => {
-    return Array.from({ length: resolvedColumnCount }, (_, offset) => (startLane + offset) % resolvedColumnCount);
-  };
+  const buildLanePreferenceOrder = (preferredLane: number) =>
+    Array.from({ length: resolvedColumnCount }, (_, laneIndex) => laneIndex).sort((left, right) => {
+      const leftDistance = Math.abs(left - preferredLane);
+      const rightDistance = Math.abs(right - preferredLane);
+
+      if (leftDistance !== rightDistance) {
+        return leftDistance - rightDistance;
+      }
+
+      return right - left;
+    });
 
   placements
     .slice()
@@ -588,18 +759,13 @@ export const buildTemporalOrderCenturyViewPlacements = (
       return left.index - right.index;
     })
     .forEach((placement) => {
-      const preferredStartLane = (() => {
-        if (placement.slotKey && nextLaneBySlotKey.has(placement.slotKey)) {
-          return nextLaneBySlotKey.get(placement.slotKey) ?? 0;
-        }
-
-        if (placement.yearKey && nextLaneByYearKey.has(placement.yearKey)) {
-          return nextLaneByYearKey.get(placement.yearKey) ?? 0;
-        }
-
-        return 0;
-      })();
-      const lanePreferenceOrder = buildLanePreferenceOrder(preferredStartLane);
+      const lanePreferenceOrder = buildLanePreferenceOrder(
+        resolveTemporalOrderCenturyPreferredLane(
+          placement.specificity,
+          resolvedColumnCount,
+          presentSpecificities
+        )
+      );
       let bestLaneIndex = 0;
       let bestBottomPx = Number.NEGATIVE_INFINITY;
 
@@ -622,12 +788,6 @@ export const buildTemporalOrderCenturyViewPlacements = (
       const bottomPx = topPx + placement.childHeight;
 
       laneTopEdges[bestLaneIndex] = topPx;
-      if (placement.yearKey) {
-        nextLaneByYearKey.set(placement.yearKey, (bestLaneIndex + 1) % resolvedColumnCount);
-      }
-      if (placement.slotKey) {
-        nextLaneBySlotKey.set(placement.slotKey, (bestLaneIndex + 1) % resolvedColumnCount);
-      }
       contentBottom = Math.max(contentBottom, bottomPx + CENTURY_VIEW_ROW_GAP_PX);
 
       resolvedPlacements.push({
@@ -2158,6 +2318,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
         targetAnchorPx,
         yearKey,
         slotKey: layoutItem.slotKey ?? null,
+        specificity: layoutItem.specificity ?? 'date',
         bandTopPx,
         bandBottomPx,
       };
@@ -2294,26 +2455,17 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     }
 
     const offsetTopPx = rawTopPx - centuryTopInset;
-    const resolvedDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
-    const nearestYear = yearIncrements.reduce<TemporalOrderYearIncrement | null>((best, increment) => {
-      if (!best) return increment;
-      return Math.abs(increment.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? increment : best;
-    }, null);
-    const nearestMonthTick = monthTicks.reduce<TemporalOrderMonthTick | null>((best, tick) => {
-      if (!best) return tick;
-      return Math.abs(tick.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? tick : best;
-    }, null);
-
-    const precision =
-      nearestYear && Math.abs(nearestYear.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX
-        ? 'year'
-        : nearestMonthTick && Math.abs(nearestMonthTick.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX
-          ? 'month'
-          : 'date';
+    const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
+    const { date, precision } = resolveCenturyViewClickSelection(
+      offsetTopPx,
+      horizontalRatio,
+      yearIncrements,
+      monthTicks
+    );
 
     event.preventDefault();
     event.stopPropagation();
-    onCreateTemporalSpaceAtTimePoint(buildTemporalOrderClickTimePointAttrs(resolvedDate, precision));
+    onCreateTemporalSpaceAtTimePoint(buildTemporalOrderClickTimePointAttrs(date, precision));
   }, [
     centuryTopInset,
     isCollapsed,
@@ -2362,7 +2514,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
 
     const offsetTopPx = rawTopPx - centuryTopInset;
     const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
-    const hoverMode = horizontalRatio < 1 / 3 ? 'day' : horizontalRatio < 2 / 3 ? 'week' : 'month';
+    const hoverMode = resolveCenturyViewHoverMode(horizontalRatio);
     const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
     const snappedDate = snapCenturyViewHoverDate(rawDate, hoverMode);
     const snappedTopPx = getCenturyViewDateOffsetPx(
@@ -2856,7 +3008,7 @@ export const TemporalOrderExtension = TipTapNode.create({
 
         props.node.forEach((child, offset) => {
           const childQuantaId = (child.attrs as any)?.quantaId;
-          const earliestDate = extractEarliestDateFromNode(child);
+          const { date: earliestDate, specificity } = extractEarliestTemporalMetadataFromNode(child);
           const normalizedDate =
             earliestDate && !Number.isNaN(earliestDate.getTime())
               ? new Date(earliestDate.getTime())
@@ -2871,6 +3023,7 @@ export const TemporalOrderExtension = TipTapNode.create({
             slotKey: normalizedDate
               ? `${normalizedDate.getUTCFullYear()}-${normalizedDate.getUTCMonth()}`
               : null,
+            specificity,
           });
         });
 
@@ -3020,25 +3173,37 @@ export const TemporalOrderExtension = TipTapNode.create({
           const pos = props.getPos();
           if (typeof pos !== 'number') return;
 
-          props.editor
-            .chain()
-            .focus()
-            .insertContentAt(pos + 1, {
-              type: 'temporalSpace',
-              content: [
-                {
-                  type: 'paragraph',
-                  content: [
-                    {
-                      type: 'timepoint',
-                      attrs,
-                    },
-                    { type: 'text', text: ' ' },
-                  ],
-                },
-              ],
-            })
-            .run();
+          const insertPos = pos + 1;
+          const temporalSpaceContent = {
+            type: 'temporalSpace',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'timepoint',
+                    attrs,
+                  },
+                  { type: 'text', text: ' ' },
+                ],
+              },
+              {
+                type: 'paragraph',
+              },
+            ],
+          };
+
+          props.editor.commands.focus();
+          const temporalSpaceNode = props.editor.schema.nodeFromJSON(temporalSpaceContent);
+          const firstParagraphNode = temporalSpaceNode.firstChild;
+          const firstParagraphSize = firstParagraphNode?.nodeSize ?? 0;
+          const cursorPos = insertPos + firstParagraphSize + 2;
+          const { state, view } = props.editor;
+          const tr = state.tr.insert(insertPos, temporalSpaceNode);
+
+          tr.setSelection(TextSelection.create(tr.doc, cursorPos)).scrollIntoView();
+
+          view.dispatch(tr);
         },
         [props.editor, props.getPos]
       );

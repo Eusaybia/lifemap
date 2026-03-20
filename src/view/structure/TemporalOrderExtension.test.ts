@@ -5,6 +5,8 @@ import {
   buildTemporalOrderCenturyViewPlacements,
   buildTemporalOrderMonthTicks,
   buildTemporalOrderYearIncrements,
+  getCenturyViewDateOffsetPx,
+  resolveCenturyViewClickSelection,
   resolveTemporalOrderCenturyViewColumnCount,
 } from './TemporalOrderExtension';
 
@@ -55,9 +57,9 @@ test('buildTemporalOrderMonthTicks creates 12 monthly subdivisions per year inte
 test('buildTemporalOrderCenturyViewPlacements keeps future cards at or above their anchors', () => {
   const { placements } = buildTemporalOrderCenturyViewPlacements(
     [
-      { index: 0, targetAnchorPx: 820, childHeight: 260, scale: 0.7, yearKey: '2026', slotKey: '2026-10' },
-      { index: 1, targetAnchorPx: 760, childHeight: 180, scale: 0.7, yearKey: '2026', slotKey: '2026-08' },
-      { index: 2, targetAnchorPx: 700, childHeight: 160, scale: 0.7, yearKey: '2027', slotKey: '2027-02' },
+      { index: 0, targetAnchorPx: 820, childHeight: 260, scale: 0.7, yearKey: '2026', slotKey: '2026-10', specificity: 'date' },
+      { index: 1, targetAnchorPx: 760, childHeight: 180, scale: 0.7, yearKey: '2026', slotKey: '2026-08', specificity: 'date' },
+      { index: 2, targetAnchorPx: 700, childHeight: 160, scale: 0.7, yearKey: '2027', slotKey: '2027-02', specificity: 'date' },
     ],
     1,
     320
@@ -75,8 +77,8 @@ test('buildTemporalOrderCenturyViewPlacements keeps future cards at or above the
 test('buildTemporalOrderCenturyViewPlacements uses free columns before pushing cards upward', () => {
   const { placements } = buildTemporalOrderCenturyViewPlacements(
     [
-      { index: 0, targetAnchorPx: 760, childHeight: 210, scale: 0.7, yearKey: '2026', slotKey: '2026-10' },
-      { index: 1, targetAnchorPx: 720, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-08' },
+      { index: 0, targetAnchorPx: 760, childHeight: 210, scale: 0.7, yearKey: '2026', slotKey: '2026-10', specificity: 'date' },
+      { index: 1, targetAnchorPx: 720, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-08', specificity: 'date' },
     ],
     2,
     280
@@ -88,6 +90,56 @@ test('buildTemporalOrderCenturyViewPlacements uses free columns before pushing c
   expect(placementByIndex.get(1)?.laneIndex).toBe(1);
   expect(placementByIndex.get(0)?.bottomPx).toBe(760);
   expect(placementByIndex.get(1)?.bottomPx).toBe(720);
+});
+
+test('buildTemporalOrderCenturyViewPlacements keeps more specific cards to the left of less specific ones', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 210, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'date' },
+      { index: 1, targetAnchorPx: 760, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'month' },
+    ],
+    2,
+    280
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.laneIndex).toBe(0);
+  expect(placementByIndex.get(1)?.laneIndex).toBe(1);
+  expect((placementByIndex.get(0)?.leftPx ?? Infinity)).toBeLessThan(placementByIndex.get(1)?.leftPx ?? -Infinity);
+});
+
+test('buildTemporalOrderCenturyViewPlacements pushes month cards right of crowded date cards in the same band', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 780, childHeight: 260, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'date' },
+      { index: 1, targetAnchorPx: 760, childHeight: 180, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'date' },
+      { index: 2, targetAnchorPx: 750, childHeight: 140, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'month' },
+    ],
+    3,
+    240
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(2)?.laneIndex).toBeGreaterThanOrEqual(placementByIndex.get(0)?.laneIndex ?? 0);
+  expect(placementByIndex.get(2)?.laneIndex).toBeGreaterThanOrEqual(placementByIndex.get(1)?.laneIndex ?? 0);
+});
+
+test('buildTemporalOrderCenturyViewPlacements lets month cards use the left lanes when no more specific cards exist', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'month' },
+      { index: 1, targetAnchorPx: 720, childHeight: 160, scale: 0.7, yearKey: '2026', slotKey: '2026-11', specificity: 'month' },
+    ],
+    2,
+    280
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.laneIndex).toBe(0);
+  expect(placementByIndex.get(1)?.laneIndex).toBe(1);
 });
 
 test('buildTemporalOrderCenturyTopBandPlacements anchors atemporal cards at the top band', () => {
@@ -134,4 +186,42 @@ test('resolveTemporalOrderCenturyViewColumnCount does not spread cards wider tha
   );
 
   expect(columnCount).toBe(2);
+});
+
+test('resolveCenturyViewClickSelection uses month precision in the month hover region', () => {
+  const increments = buildTemporalOrderYearIncrements(2026, 2028);
+  const monthTicks = buildTemporalOrderMonthTicks(increments);
+  const yearTopLookup = new Map(increments.map((increment) => [increment.year, increment.topPx]));
+  const novemberOffsetPx = getCenturyViewDateOffsetPx(new Date(2026, 10, 15), yearTopLookup, 0);
+
+  const selection = resolveCenturyViewClickSelection(
+    novemberOffsetPx,
+    0.9,
+    increments,
+    monthTicks
+  );
+
+  expect(selection.precision).toBe('month');
+  expect(selection.date.getFullYear()).toBe(2026);
+  expect(selection.date.getMonth()).toBe(10);
+  expect(selection.date.getDate()).toBe(1);
+});
+
+test('resolveCenturyViewClickSelection keeps day precision in the day hover region', () => {
+  const increments = buildTemporalOrderYearIncrements(2026, 2028);
+  const monthTicks = buildTemporalOrderMonthTicks(increments);
+  const yearTopLookup = new Map(increments.map((increment) => [increment.year, increment.topPx]));
+  const novemberOffsetPx = getCenturyViewDateOffsetPx(new Date(2026, 10, 15), yearTopLookup, 0);
+
+  const selection = resolveCenturyViewClickSelection(
+    novemberOffsetPx,
+    0.1,
+    increments,
+    monthTicks
+  );
+
+  expect(selection.precision).toBe('date');
+  expect(selection.date.getFullYear()).toBe(2026);
+  expect(selection.date.getMonth()).toBe(10);
+  expect(selection.date.getDate()).toBeGreaterThan(1);
 });
