@@ -62,6 +62,7 @@ test('buildTemporalOrderCenturyViewPlacements keeps future cards at or above the
       { index: 2, targetAnchorPx: 700, childHeight: 160, scale: 0.7, yearKey: '2027', slotKey: '2027-02', specificity: 'date' },
     ],
     1,
+    320,
     320
   );
 
@@ -70,8 +71,9 @@ test('buildTemporalOrderCenturyViewPlacements keeps future cards at or above the
   expect(placementByIndex.get(0)?.bottomPx).toBeLessThanOrEqual(820);
   expect(placementByIndex.get(1)?.bottomPx).toBeLessThanOrEqual(760);
   expect(placementByIndex.get(2)?.bottomPx).toBeLessThanOrEqual(700);
-  expect(placementByIndex.get(1)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(0)?.topPx ?? 0) - 10);
-  expect(placementByIndex.get(2)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(1)?.topPx ?? 0) - 10);
+  expect(placementByIndex.get(1)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(0)?.visibleTopPx ?? 0) - 10);
+  expect(placementByIndex.get(2)?.bottomPx ?? Infinity).toBeLessThanOrEqual((placementByIndex.get(1)?.visibleTopPx ?? 0) - 10);
+  expect(placementByIndex.get(1)?.bottomPx ?? 0).toBeGreaterThan(placementByIndex.get(0)?.topPx ?? Infinity);
 });
 
 test('buildTemporalOrderCenturyViewPlacements uses free columns before pushing cards upward', () => {
@@ -81,7 +83,8 @@ test('buildTemporalOrderCenturyViewPlacements uses free columns before pushing c
       { index: 1, targetAnchorPx: 720, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-08', specificity: 'date' },
     ],
     2,
-    280
+    280,
+    560
   );
 
   const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
@@ -99,7 +102,8 @@ test('buildTemporalOrderCenturyViewPlacements keeps more specific cards to the l
       { index: 1, targetAnchorPx: 760, childHeight: 170, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'month' },
     ],
     2,
-    280
+    280,
+    560
   );
 
   const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
@@ -117,7 +121,8 @@ test('buildTemporalOrderCenturyViewPlacements pushes month cards right of crowde
       { index: 2, targetAnchorPx: 750, childHeight: 140, scale: 0.7, yearKey: '2026', slotKey: '2026-09', specificity: 'month' },
     ],
     3,
-    240
+    240,
+    720
   );
 
   const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
@@ -133,7 +138,8 @@ test('buildTemporalOrderCenturyViewPlacements lets month cards use the left lane
       { index: 1, targetAnchorPx: 720, childHeight: 160, scale: 0.7, yearKey: '2026', slotKey: '2026-11', specificity: 'month' },
     ],
     2,
-    280
+    280,
+    560
   );
 
   const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
@@ -142,12 +148,52 @@ test('buildTemporalOrderCenturyViewPlacements lets month cards use the left lane
   expect(placementByIndex.get(1)?.laneIndex).toBe(1);
 });
 
+test('buildTemporalOrderCenturyViewPlacements keeps someday cards stacked in the rightmost lane', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 170, scale: 0.76, yearKey: '2026', slotKey: '2026-09', specificity: 'date' },
+      { index: 1, targetAnchorPx: 720, childHeight: 160, scale: 0.76, yearKey: '2026', slotKey: '2026-10', specificity: 'month' },
+      { index: 2, targetAnchorPx: 700, childHeight: 160, scale: 0.76, yearKey: '2026', slotKey: '2026-11', specificity: 'someday' },
+      { index: 3, targetAnchorPx: 680, childHeight: 150, scale: 0.76, yearKey: '2026', slotKey: '2026-11', specificity: 'someday' },
+    ],
+    4,
+    280,
+    1120
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.laneIndex).toBe(0);
+  expect(placementByIndex.get(1)?.laneIndex).toBe(2);
+  expect(placementByIndex.get(2)?.laneIndex).toBe(3);
+  expect(placementByIndex.get(3)?.laneIndex).toBe(3);
+  expect((placementByIndex.get(3)?.bottomPx ?? Infinity)).toBeLessThanOrEqual((placementByIndex.get(2)?.visibleTopPx ?? 0) - 10);
+});
+
+test('buildTemporalOrderCenturyViewPlacements keeps someday-only cards in the rightmost lane', () => {
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 170, scale: 0.76, yearKey: '2026', slotKey: '2026-09', specificity: 'someday' },
+      { index: 1, targetAnchorPx: 720, childHeight: 160, scale: 0.76, yearKey: '2026', slotKey: '2026-10', specificity: 'someday' },
+    ],
+    4,
+    280,
+    1120
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+
+  expect(placementByIndex.get(0)?.laneIndex).toBe(3);
+  expect(placementByIndex.get(1)?.laneIndex).toBe(3);
+  expect((placementByIndex.get(0)?.leftPx ?? 0)).toBeGreaterThan(700);
+});
+
 test('buildTemporalOrderCenturyTopBandPlacements anchors atemporal cards at the top band', () => {
   const { placements, bandHeight } = buildTemporalOrderCenturyTopBandPlacements(
     [
-      { index: 0, childHeight: 160 },
-      { index: 1, childHeight: 180 },
-      { index: 2, childHeight: 140 },
+      { index: 0, childHeight: 160, scale: 0.76 },
+      { index: 1, childHeight: 180, scale: 0.76 },
+      { index: 2, childHeight: 140, scale: 0.76 },
     ],
     960,
     3,
@@ -161,12 +207,31 @@ test('buildTemporalOrderCenturyTopBandPlacements anchors atemporal cards at the 
   expect(bandHeight).toBeGreaterThan(0);
 });
 
+test('buildTemporalOrderCenturyViewPlacements packs lane width from scaled card width', () => {
+  const cardWidth = 300;
+  const { placements } = buildTemporalOrderCenturyViewPlacements(
+    [
+      { index: 0, targetAnchorPx: 760, childHeight: 210, scale: 0.76, yearKey: '2026', slotKey: '2026-10', specificity: 'date' },
+      { index: 1, targetAnchorPx: 720, childHeight: 170, scale: 0.76, yearKey: '2026', slotKey: '2026-08', specificity: 'date' },
+    ],
+    2,
+    cardWidth,
+    900
+  );
+
+  const placementByIndex = new Map(placements.map((placement) => [placement.index, placement]));
+  const laneGap = (placementByIndex.get(1)?.leftPx ?? 0) - (placementByIndex.get(0)?.leftPx ?? 0);
+
+  expect(laneGap).toBeCloseTo(cardWidth * 0.76 + 12, 3);
+  expect(laneGap).toBeLessThan(cardWidth);
+});
+
 test('resolveTemporalOrderCenturyViewColumnCount adds columns when a year band is overcrowded', () => {
   const columnCount = resolveTemporalOrderCenturyViewColumnCount(
     [
-      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, bandTopPx: 120, bandBottomPx: 520 },
-      { yearKey: '2026', slotKey: '2026-03', childHeight: 210, bandTopPx: 120, bandBottomPx: 520 },
-      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, bandTopPx: 120, bandBottomPx: 520 },
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 520 },
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 210, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 520 },
+      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 520 },
     ],
     760
   );
@@ -174,13 +239,32 @@ test('resolveTemporalOrderCenturyViewColumnCount adds columns when a year band i
   expect(columnCount).toBeGreaterThan(1);
 });
 
+test('resolveTemporalOrderCenturyViewColumnCount preserves a dedicated someday pane when width allows', () => {
+  const columnCount = resolveTemporalOrderCenturyViewColumnCount(
+    [
+      {
+        yearKey: '2030',
+        slotKey: '2030-01',
+        childHeight: 180,
+        scale: 0.76,
+        specificity: 'someday',
+        bandTopPx: 120,
+        bandBottomPx: 760,
+      },
+    ],
+    760
+  );
+
+  expect(columnCount).toBe(4);
+});
+
 test('resolveTemporalOrderCenturyViewColumnCount does not spread cards wider than needed', () => {
   const columnCount = resolveTemporalOrderCenturyViewColumnCount(
     [
-      { yearKey: '2026', slotKey: '2026-02', childHeight: 180, bandTopPx: 120, bandBottomPx: 760 },
-      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, bandTopPx: 120, bandBottomPx: 760 },
-      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, bandTopPx: 120, bandBottomPx: 760 },
-      { yearKey: '2026', slotKey: '2026-05', childHeight: 210, bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-02', childHeight: 180, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-03', childHeight: 220, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-04', childHeight: 200, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 760 },
+      { yearKey: '2026', slotKey: '2026-05', childHeight: 210, scale: 1, specificity: 'date', bandTopPx: 120, bandBottomPx: 760 },
     ],
     1800
   );
@@ -196,7 +280,7 @@ test('resolveCenturyViewClickSelection uses month precision in the month hover r
 
   const selection = resolveCenturyViewClickSelection(
     novemberOffsetPx,
-    0.9,
+    0.65,
     increments,
     monthTicks
   );
@@ -205,6 +289,23 @@ test('resolveCenturyViewClickSelection uses month precision in the month hover r
   expect(selection.date.getFullYear()).toBe(2026);
   expect(selection.date.getMonth()).toBe(10);
   expect(selection.date.getDate()).toBe(1);
+});
+
+test('resolveCenturyViewClickSelection uses someday precision in the rightmost hover region', () => {
+  const increments = buildTemporalOrderYearIncrements(2026, 2028);
+  const monthTicks = buildTemporalOrderMonthTicks(increments);
+  const yearTopLookup = new Map(increments.map((increment) => [increment.year, increment.topPx]));
+  const novemberOffsetPx = getCenturyViewDateOffsetPx(new Date(2026, 10, 15), yearTopLookup, 0);
+
+  const selection = resolveCenturyViewClickSelection(
+    novemberOffsetPx,
+    0.9,
+    increments,
+    monthTicks
+  );
+
+  expect(selection.precision).toBe('someday');
+  expect(selection.hoverMode).toBe('someday');
 });
 
 test('resolveCenturyViewClickSelection keeps day precision in the day hover region', () => {

@@ -69,13 +69,15 @@ declare module '@tiptap/core' {
 }
 
 type TemporalOrderLens = 'identity' | 'centuryView' | 'auraView' | 'graph2D' | 'flowGraph';
-type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year';
+type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year' | 'someday';
 
 const TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER: TemporalOrderCenturySpecificity[] = [
   'date',
   'month',
   'year',
+  'someday',
 ];
+const TEMPORAL_ORDER_CENTURY_PANE_COUNT = TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER.length;
 
 // ============================================================================
 // Date Extraction Utilities
@@ -85,12 +87,22 @@ const inferTemporalOrderCenturySpecificity = (
   attrs: Record<string, unknown>
 ): TemporalOrderCenturySpecificity => {
   const id = typeof attrs.id === 'string' ? attrs.id : '';
+  const rawLabel = typeof attrs.label === 'string' ? attrs.label.trim() : '';
+  const normalizedLabel = rawLabel.replace(/^[^\p{L}\p{N}]+/u, '').trim();
   const formattedValue =
     typeof attrs['data-formatted'] === 'string'
       ? attrs['data-formatted'].trim()
       : typeof attrs['data-relative-label'] === 'string'
         ? attrs['data-relative-label'].trim()
         : '';
+
+  if (
+    id === 'timepoint:someday' ||
+    /^Some day$/i.test(formattedValue) ||
+    /^Some day$/i.test(normalizedLabel)
+  ) {
+    return 'someday';
+  }
 
   if (id.startsWith('timepoint:year-') || /^\d{4}$/.test(formattedValue)) {
     return 'year';
@@ -127,7 +139,23 @@ const extractEarliestTemporalMetadataFromNode = (
     }
 
     const dateStr = childNode.attrs['data-date'] as string | null;
+    const timepointId = childNode.attrs.id as string | null;
+    const specificity = inferTemporalOrderCenturySpecificity(
+      childNode.attrs as Record<string, unknown>
+    );
+
     if (!dateStr) {
+      if (timepointId === 'timepoint:someday') {
+        const fallbackDate = new Date();
+        fallbackDate.setHours(0, 0, 0, 0);
+
+        if (!earliestMatch) {
+          earliestMatch = {
+            date: fallbackDate,
+            specificity,
+          };
+        }
+      }
       return;
     }
 
@@ -136,10 +164,6 @@ const extractEarliestTemporalMetadataFromNode = (
       if (Number.isNaN(date.getTime()) || date.getTime() <= 0) {
         return;
       }
-
-      const specificity = inferTemporalOrderCenturySpecificity(
-        childNode.attrs as Record<string, unknown>
-      );
 
       if (
         !earliestMatch ||
@@ -215,11 +239,17 @@ const CENTURY_VIEW_UNSCHEDULED_GAP_PX = 28;
 const CENTURY_VIEW_UNSCHEDULED_COLUMN_MIN_WIDTH_PX = 280;
 const CENTURY_VIEW_UNSCHEDULED_COLUMN_MAX_WIDTH_PX = 420;
 const CENTURY_VIEW_UNSCHEDULED_CARD_MAX_WIDTH_PX = 340;
-const CENTURY_VIEW_EVENT_BASE_SCALE = 0.84;
+const CENTURY_VIEW_EVENT_BASE_SCALE = 0.76;
 const CENTURY_VIEW_FUTURE_EVENT_MIN_SCALE = 0.72;
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
+
+const getCenturyViewScaledHeight = (childHeight: number, scale: number): number =>
+  Number((childHeight * scale).toFixed(3));
+
+const getCenturyViewScaledWidth = (childWidth: number, scale: number): number =>
+  Number((childWidth * scale).toFixed(3));
 
 const getTemporalDistanceMs = (date: Date, nowMs: number): number =>
   Math.abs(date.getTime() - nowMs);
@@ -327,12 +357,14 @@ interface TemporalOrderCenturyViewResolvedPlacement {
   topPx: number;
   leftPx: number;
   bottomPx: number;
+  visibleTopPx: number;
   scale: number;
 }
 
 interface TemporalOrderCenturyTopBandPlacementInput {
   index: number;
   childHeight: number;
+  scale: number;
 }
 
 interface TemporalOrderCenturyTopBandResolvedPlacement {
@@ -355,10 +387,11 @@ interface TemporalOrderHoverIndicatorState {
   topPx: number;
   leftPx: number;
   label: string;
+  mode: TemporalOrderCenturyHoverMode;
 }
 
-type TemporalOrderCenturyHoverMode = 'day' | 'week' | 'month';
-type TemporalOrderCenturyClickPrecision = 'year' | 'month' | 'date';
+type TemporalOrderCenturyHoverMode = 'day' | 'week' | 'month' | 'someday';
+type TemporalOrderCenturyClickPrecision = 'year' | 'month' | 'date' | 'someday';
 
 const TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX = 8;
 const TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX = 5;
@@ -390,21 +423,36 @@ const TEMPORAL_ORDER_HOVER_MONTH_FORMATTER = new Intl.DateTimeFormat('en-GB', {
 });
 
 const resolveCenturyViewHoverMode = (horizontalRatio: number): TemporalOrderCenturyHoverMode => {
-  if (horizontalRatio < 1 / 3) {
+  if (horizontalRatio < 0.25) {
     return 'day';
   }
 
-  if (horizontalRatio < 2 / 3) {
+  if (horizontalRatio < 0.5) {
     return 'week';
   }
 
-  return 'month';
+  if (horizontalRatio < 0.75) {
+    return 'month';
+  }
+
+  return 'someday';
 };
 
 const buildTemporalOrderClickTimePointAttrs = (
   date: Date,
   precision: TemporalOrderCenturyClickPrecision
 ): TemporalOrderClickTimePointAttrs => {
+  if (precision === 'someday') {
+    const anchorDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return {
+      id: 'timepoint:someday',
+      label: '⏳ Some day',
+      'data-date': anchorDate.toISOString(),
+      'data-formatted': 'Some day',
+      'data-relative-label': 'Some day',
+    };
+  }
+
   if (precision === 'year') {
     const year = date.getFullYear();
     const yearDate = new Date(year, 0, 1);
@@ -491,6 +539,10 @@ const snapCenturyViewHoverDate = (
   date: Date,
   mode: TemporalOrderCenturyHoverMode
 ): Date => {
+  if (mode === 'someday') {
+    return date;
+  }
+
   if (mode === 'month') {
     return new Date(date.getFullYear(), date.getMonth(), 1);
   }
@@ -506,6 +558,10 @@ const formatCenturyViewHoverLabel = (
   date: Date,
   mode: TemporalOrderCenturyHoverMode
 ): string => {
+  if (mode === 'someday') {
+    return 'Some day';
+  }
+
   if (mode === 'month') {
     return TEMPORAL_ORDER_HOVER_MONTH_FORMATTER.format(date);
   }
@@ -529,6 +585,15 @@ export const resolveCenturyViewClickSelection = (
 } => {
   const hoverMode = resolveCenturyViewHoverMode(horizontalRatio);
   const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
+
+  if (hoverMode === 'someday') {
+    return {
+      date: rawDate,
+      precision: 'someday',
+      hoverMode,
+    };
+  }
+
   const nearestYear = yearIncrements.reduce<TemporalOrderYearIncrement | null>((best, increment) => {
     if (!best) return increment;
     return Math.abs(increment.topPx - offsetTopPx) < Math.abs(best.topPx - offsetTopPx) ? increment : best;
@@ -710,9 +775,11 @@ const resolveTemporalOrderCenturyPreferredLane = (
     return 0;
   }
 
-  const resolvedSpecificities = presentSpecificities.length
-    ? presentSpecificities
-    : TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER;
+  const resolvedSpecificities = specificity === 'someday'
+    ? TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER
+    : presentSpecificities.length
+      ? presentSpecificities
+      : TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER;
   const maxRank = resolvedSpecificities.length - 1;
   const specificityRank = getTemporalOrderCenturySpecificityRank(specificity, resolvedSpecificities);
 
@@ -722,12 +789,17 @@ const resolveTemporalOrderCenturyPreferredLane = (
 export const buildTemporalOrderCenturyViewPlacements = (
   placements: TemporalOrderCenturyViewPlacementInput[],
   columnCount: number,
-  cardWidth: number
+  cardWidth: number,
+  availableWidth: number
 ): {
   placements: TemporalOrderCenturyViewResolvedPlacement[];
   contentBottom: number;
 } => {
   const resolvedColumnCount = Math.max(columnCount, 1);
+  const visibleCardWidth = getCenturyViewScaledWidth(cardWidth, CENTURY_VIEW_EVENT_BASE_SCALE);
+  const laneStepPx = visibleCardWidth + CENTURY_VIEW_COLUMN_GAP_PX;
+  const packedWidth = visibleCardWidth * resolvedColumnCount + CENTURY_VIEW_COLUMN_GAP_PX * Math.max(resolvedColumnCount - 1, 0);
+  const laneOffsetPx = Math.max((availableWidth - packedWidth) / 2, 0);
   const laneTopEdges = Array.from({ length: resolvedColumnCount }, () => Number.POSITIVE_INFINITY);
   const resolvedPlacements: TemporalOrderCenturyViewResolvedPlacement[] = [];
   const presentSpecificities = TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER.filter((specificity) =>
@@ -735,8 +807,15 @@ export const buildTemporalOrderCenturyViewPlacements = (
   );
   let contentBottom = CENTURY_VIEW_VERTICAL_PADDING_PX;
 
-  const buildLanePreferenceOrder = (preferredLane: number) =>
-    Array.from({ length: resolvedColumnCount }, (_, laneIndex) => laneIndex).sort((left, right) => {
+  const buildLanePreferenceOrder = (
+    preferredLane: number,
+    restrictToPreferredLane = false
+  ) => {
+    if (restrictToPreferredLane) {
+      return [preferredLane];
+    }
+
+    return Array.from({ length: resolvedColumnCount }, (_, laneIndex) => laneIndex).sort((left, right) => {
       const leftDistance = Math.abs(left - preferredLane);
       const rightDistance = Math.abs(right - preferredLane);
 
@@ -746,6 +825,7 @@ export const buildTemporalOrderCenturyViewPlacements = (
 
       return right - left;
     });
+  };
 
   placements
     .slice()
@@ -764,10 +844,12 @@ export const buildTemporalOrderCenturyViewPlacements = (
           placement.specificity,
           resolvedColumnCount,
           presentSpecificities
-        )
+        ),
+        placement.specificity === 'someday'
       );
       let bestLaneIndex = 0;
       let bestBottomPx = Number.NEGATIVE_INFINITY;
+      const scaledHeight = getCenturyViewScaledHeight(placement.childHeight, placement.scale);
 
       lanePreferenceOrder.forEach((laneIndex) => {
         const laneTopEdge = laneTopEdges[laneIndex];
@@ -786,16 +868,18 @@ export const buildTemporalOrderCenturyViewPlacements = (
         bestBottomPx - placement.childHeight
       );
       const bottomPx = topPx + placement.childHeight;
+      const visibleTopPx = bottomPx - scaledHeight;
 
-      laneTopEdges[bestLaneIndex] = topPx;
+      laneTopEdges[bestLaneIndex] = visibleTopPx;
       contentBottom = Math.max(contentBottom, bottomPx + CENTURY_VIEW_ROW_GAP_PX);
 
       resolvedPlacements.push({
         index: placement.index,
         laneIndex: bestLaneIndex,
         topPx,
-        leftPx: bestLaneIndex * (cardWidth + CENTURY_VIEW_COLUMN_GAP_PX),
+        leftPx: laneOffsetPx + bestLaneIndex * laneStepPx,
         bottomPx,
+        visibleTopPx,
         scale: placement.scale,
       });
     });
@@ -827,10 +911,10 @@ export const buildTemporalOrderCenturyTopBandPlacements = (
     { length: resolvedColumnCount },
     () => CENTURY_VIEW_VERTICAL_PADDING_PX
   );
-  const laneStepPx =
-    resolvedColumnCount > 1
-      ? Math.max((availableWidth - cardWidth) / (resolvedColumnCount - 1), 0)
-      : 0;
+  const visibleCardWidth = getCenturyViewScaledWidth(cardWidth, CENTURY_VIEW_EVENT_BASE_SCALE);
+  const laneStepPx = visibleCardWidth + CENTURY_VIEW_COLUMN_GAP_PX;
+  const packedWidth = visibleCardWidth * resolvedColumnCount + CENTURY_VIEW_COLUMN_GAP_PX * Math.max(resolvedColumnCount - 1, 0);
+  const laneOffsetPx = Math.max((availableWidth - packedWidth) / 2, 0);
   const resolvedPlacements: TemporalOrderCenturyTopBandResolvedPlacement[] = [];
 
   placements.forEach((placement) => {
@@ -846,14 +930,14 @@ export const buildTemporalOrderCenturyTopBandPlacements = (
     }
 
     const topPx = bestTopPx;
-    const bottomPx = topPx + placement.childHeight;
+    const bottomPx = topPx + getCenturyViewScaledHeight(placement.childHeight, placement.scale);
     laneBottomEdges[bestLaneIndex] = bottomPx + CENTURY_VIEW_ROW_GAP_PX;
 
     resolvedPlacements.push({
       index: placement.index,
       laneIndex: bestLaneIndex,
       topPx,
-      leftPx: laneStepPx * bestLaneIndex,
+      leftPx: laneOffsetPx + laneStepPx * bestLaneIndex,
       bottomPx,
     });
   });
@@ -866,7 +950,7 @@ export const buildTemporalOrderCenturyTopBandPlacements = (
 
 export const resolveTemporalOrderCenturyViewColumnCount = (
   placements: Array<
-    Pick<TemporalOrderCenturyViewPlacementInput, 'yearKey' | 'slotKey' | 'childHeight'> & {
+    Pick<TemporalOrderCenturyViewPlacementInput, 'yearKey' | 'slotKey' | 'childHeight' | 'scale' | 'specificity'> & {
       bandTopPx: number;
       bandBottomPx: number;
     }
@@ -882,7 +966,13 @@ export const resolveTemporalOrderCenturyViewColumnCount = (
         (CENTURY_VIEW_MIN_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
     )
   );
-  const maxUsableColumns = Math.max(1, Math.min(maxColumnsByWidth, placements.length));
+  const minimumSpecificityColumns = placements.some((placement) => placement.specificity === 'someday')
+    ? Math.min(maxColumnsByWidth, TEMPORAL_ORDER_CENTURY_PANE_COUNT)
+    : 1;
+  const maxUsableColumns = Math.max(
+    minimumSpecificityColumns,
+    Math.min(maxColumnsByWidth, placements.length)
+  );
 
   const canFitYearBandInColumns = (heights: number[], bandHeight: number, columnCount: number) => {
     if (!heights.length) return true;
@@ -925,20 +1015,22 @@ export const resolveTemporalOrderCenturyViewColumnCount = (
   const yearBands = new Map<string, { heights: number[]; bandHeight: number }>();
 
   placements.forEach((placement) => {
+    const scaledHeight = getCenturyViewScaledHeight(placement.childHeight, placement.scale);
+
     if (placement.yearKey) {
       yearCounts.set(placement.yearKey, (yearCounts.get(placement.yearKey) ?? 0) + 1);
 
       const bandHeight = Math.max(
         placement.bandBottomPx - placement.bandTopPx - CENTURY_VIEW_ROW_GAP_PX,
-        placement.childHeight
+        scaledHeight
       );
       const existingBand = yearBands.get(placement.yearKey);
       if (existingBand) {
-        existingBand.heights.push(placement.childHeight);
+        existingBand.heights.push(scaledHeight);
         existingBand.bandHeight = Math.max(existingBand.bandHeight, bandHeight);
       } else {
         yearBands.set(placement.yearKey, {
-          heights: [placement.childHeight],
+          heights: [scaledHeight],
           bandHeight,
         });
       }
@@ -957,7 +1049,7 @@ export const resolveTemporalOrderCenturyViewColumnCount = (
 
   const startingColumnCount = clampNumber(
     densityDrivenColumns,
-    1,
+    minimumSpecificityColumns,
     maxUsableColumns
   );
 
@@ -2243,6 +2335,11 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
         )
       )
     );
+    const minimumScheduledColumnCount = scheduledPlacements.some(
+      (placement) => placement.layoutItem?.specificity === 'someday'
+    )
+      ? Math.min(maxColumnsByWidth, TEMPORAL_ORDER_CENTURY_PANE_COUNT)
+      : 1;
     const computeCardWidth = (columnCount: number) =>
       Math.max(
         Math.min(
@@ -2324,7 +2421,11 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       };
     });
 
-    let columnCount = Math.min(maxColumnsByWidth, Math.max(1, scheduledPlacements.length > 1 ? 2 : 1));
+    let columnCount = clampNumber(
+      Math.min(maxColumnsByWidth, Math.max(1, scheduledPlacements.length > 1 ? 2 : 1)),
+      minimumScheduledColumnCount,
+      maxColumnsByWidth
+    );
     let cardWidth = computeCardWidth(columnCount);
     let unscheduledCardWidth = computeUnscheduledCardWidth(cardWidth);
     let placements = [] as ReturnType<typeof buildMeasuredPlacements>;
@@ -2350,6 +2451,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     const unscheduledMeasurements = unscheduledPlacements.map(({ index, child }) => ({
       index,
       childHeight: child.getBoundingClientRect().height,
+      scale: CENTURY_VIEW_EVENT_BASE_SCALE,
     }));
     const {
       placements: resolvedUnscheduledPlacements,
@@ -2372,7 +2474,8 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     } = buildTemporalOrderCenturyViewPlacements(
       placements,
       columnCount,
-      cardWidth
+      cardWidth,
+      timelineWidth
     );
     let contentBottom = scheduledContentBottom + resolvedCenturyTopInset;
 
@@ -2515,6 +2618,18 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     const offsetTopPx = rawTopPx - centuryTopInset;
     const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
     const hoverMode = resolveCenturyViewHoverMode(horizontalRatio);
+    const localLeftPx = event.clientX - containerRect.left;
+
+    if (hoverMode === 'someday') {
+      setTimelineHoverIndicator({
+        topPx: rawTopPx,
+        leftPx: localLeftPx,
+        label: 'Some day',
+        mode: hoverMode,
+      });
+      return;
+    }
+
     const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
     const snappedDate = snapCenturyViewHoverDate(rawDate, hoverMode);
     const snappedTopPx = getCenturyViewDateOffsetPx(
@@ -2522,12 +2637,12 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       yearTopLookup,
       offsetTopPx
     ) + centuryTopInset;
-    const localLeftPx = event.clientX - containerRect.left;
 
     setTimelineHoverIndicator({
       topPx: snappedTopPx,
       leftPx: localLeftPx,
       label: formatCenturyViewHoverLabel(snappedDate, hoverMode),
+      mode: hoverMode,
     });
   }, [centuryTopInset, isCollapsed, isYearIncrementLens, yearIncrements, yearTopLookup]);
 
@@ -2554,11 +2669,13 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
 
       {isYearIncrementLens && timelineHoverIndicator && (
         <>
-          <div
-            aria-hidden="true"
-            className="temporal-order-hover-line"
-            style={{ top: timelineHoverIndicator.topPx }}
-          />
+          {timelineHoverIndicator.mode !== 'someday' && (
+            <div
+              aria-hidden="true"
+              className="temporal-order-hover-line"
+              style={{ top: timelineHoverIndicator.topPx }}
+            />
+          )}
           <div
             aria-hidden="true"
             className="temporal-order-hover-label"
