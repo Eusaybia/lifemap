@@ -10,6 +10,16 @@ const MAPBOX_ACCESS_TOKEN =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
   ''
+const MAPBOX_GL_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
+const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker.js'
+const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+
+const configureMapboxWorker = () => {
+  const majorVersion = Number.parseInt(String((mapboxgl as typeof mapboxgl & { version?: string }).version || '').split('.')[0] || '0', 10)
+  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
+    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
+  }
+}
 
 interface MapMarker {
   lng: number
@@ -332,7 +342,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     const link = document.createElement('link')
     link.rel = 'stylesheet'
-    link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
+    link.href = MAPBOX_GL_CSS_URL
     link.setAttribute('data-mapbox-gl-css', 'true')
     document.head.appendChild(link)
   }, [])
@@ -440,37 +450,46 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     if (map.current || !mapContainer.current) return
     if (!MAPBOX_ACCESS_TOKEN) return
 
+    configureMapboxWorker()
     mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: style || 'mapbox://styles/mapbox/streets-v12',
-      center: center,
-      zoom: zoom,
-      attributionControl: false,
-    })
+    let mapInstance: mapboxgl.Map | null = null
+
+    try {
+      mapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: style || 'mapbox://styles/mapbox/streets-v12',
+        center: center,
+        zoom: zoom,
+        attributionControl: false,
+      })
+      map.current = mapInstance
+    } catch (error) {
+      console.error('[MapboxMap] Failed to initialize map:', error)
+      return
+    }
 
     // Set map as loaded when ready - also check if already loaded
-    if (map.current.loaded()) {
+    if (mapInstance.loaded()) {
       setMapLoaded(true)
-      map.current.resize()
+      mapInstance.resize()
     } else {
-      map.current.on('load', () => {
+      mapInstance.on('load', () => {
         setMapLoaded(true)
-        map.current?.resize()
+        mapInstance?.resize()
       })
     }
 
     // In node views, layout can settle after initial mount.
     // Force follow-up resizes so the map fills the card on first render.
-    const frameId = requestAnimationFrame(() => map.current?.resize())
-    const timeoutId = window.setTimeout(() => map.current?.resize(), 120)
+    const frameId = requestAnimationFrame(() => mapInstance?.resize())
+    const timeoutId = window.setTimeout(() => mapInstance?.resize(), 120)
 
     // Update attributes when map moves
-    map.current.on('moveend', () => {
-      if (map.current) {
-        const newCenter = map.current.getCenter()
-        const newZoom = map.current.getZoom()
+    mapInstance.on('moveend', () => {
+      if (mapInstance) {
+        const newCenter = mapInstance.getCenter()
+        const newZoom = mapInstance.getZoom()
         updateAttributes({
           center: [newCenter.lng, newCenter.lat],
           zoom: newZoom,
@@ -481,8 +500,15 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return () => {
       cancelAnimationFrame(frameId)
       window.clearTimeout(timeoutId)
-      map.current?.remove()
-      map.current = null
+      try {
+        mapInstance?.remove()
+      } catch (error) {
+        console.error('[MapboxMap] Failed to dispose map:', error)
+      } finally {
+        if (map.current === mapInstance) {
+          map.current = null
+        }
+      }
       setMapLoaded(false)
     }
   }, [])

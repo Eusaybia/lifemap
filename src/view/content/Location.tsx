@@ -4,11 +4,21 @@ import mapboxgl from 'mapbox-gl';
 import Map from 'react-map-gl';
 import { SearchBox } from '@mapbox/search-js-react';
 
+const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker.js';
+const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string };
+const configureMapboxWorker = () => {
+  const majorVersion = Number.parseInt(String((mapboxgl as typeof mapboxgl & { version?: string }).version || '').split('.')[0] || '0', 10);
+  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
+    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL;
+  }
+};
+
 export const mapboxAccessToken =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
   '';
 
+configureMapboxWorker()
 mapboxgl.accessToken = mapboxAccessToken
 
 interface LocationProps {

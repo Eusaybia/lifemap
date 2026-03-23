@@ -19,6 +19,16 @@ const MAPBOX_ACCESS_TOKEN =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
   ''
+const MAPBOX_GL_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
+const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker.js'
+const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+
+const configureMapboxWorker = () => {
+  const majorVersion = Number.parseInt(String((mapboxgl as typeof mapboxgl & { version?: string }).version || '').split('.')[0] || '0', 10)
+  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
+    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
+  }
+}
 
 // ============================================================================
 // Types
@@ -262,7 +272,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
   
   // Load Mapbox CSS BEFORE initializing map
   useEffect(() => {
-    const existingLink = document.querySelector('link[href*="mapbox-gl.css"]')
+    const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
     if (existingLink) {
       setCssLoaded(true)
       return
@@ -270,7 +280,8 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
     
     const link = document.createElement('link')
     link.rel = 'stylesheet'
-    link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.16.1/mapbox-gl.css'
+    link.href = MAPBOX_GL_CSS_URL
+    link.setAttribute('data-mapbox-gl-css', 'true')
     link.onload = () => setCssLoaded(true)
     document.head.appendChild(link)
     
@@ -317,6 +328,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
       // Default to Sydney if no coords
       const center: [number, number] = mapCoords || [151.2093, -33.8688]
 
+      configureMapboxWorker()
       mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
       
       try {
@@ -469,7 +481,11 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
       cancelled = true
       markerAdded.current = false
       if (mapInstance) {
-        mapInstance.remove()
+        try {
+          mapInstance.remove()
+        } catch (error) {
+          console.error('[LocationMention] Failed to dispose map:', error)
+        }
         mapInstance = null
       }
       map.current = null
