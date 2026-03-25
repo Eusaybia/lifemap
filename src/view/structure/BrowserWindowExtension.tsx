@@ -15,13 +15,29 @@ const DESKTOP_SURFACE_INSET = {
   left: 0,
 };
 
-type BrowserSurfaceState = {
+export type BrowserSurfaceState = {
   url: string;
   title: string;
   loading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
 };
+
+type BrowserSurfaceEventState = Partial<BrowserSurfaceState> & {
+  surfaceId?: string;
+  type?: string;
+};
+
+export const mergeBrowserSurfaceState = (
+  current: BrowserSurfaceState,
+  next: BrowserSurfaceEventState,
+): BrowserSurfaceState => ({
+  url: next.url ?? current.url,
+  title: next.title ?? current.title,
+  loading: typeof next.loading === "boolean" ? next.loading : current.loading,
+  canGoBack: typeof next.canGoBack === "boolean" ? next.canGoBack : current.canGoBack,
+  canGoForward: typeof next.canGoForward === "boolean" ? next.canGoForward : current.canGoForward,
+});
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -169,6 +185,14 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       props.updateAttributes({ url: trimmedNextUrl });
     },
     [props],
+  );
+
+  const applySurfaceState = useCallback(
+    (nextState: BrowserSurfaceState) => {
+      setBrowserState(nextState);
+      persistSurfaceUrlAttribute(nextState.url);
+    },
+    [persistSurfaceUrlAttribute],
   );
 
   const storedHeight = Number(props.node.attrs.height);
@@ -371,28 +395,48 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     if (hasSurfaceStateApi) {
       void runSurfaceRequest(() => surfaceApi.getState({ surfaceId })).then((result) => {
         if (isCancelled || !result?.state) return;
-        setBrowserState(result.state);
-        persistSurfaceUrlAttribute(result.state.url);
+        applySurfaceState(result.state);
       });
     }
 
     const unsubscribe = desktopApi.onSurfaceEvent((event) => {
       if (event.surfaceId !== surfaceId) return;
-      setBrowserState((current) => ({
-        url: event.url ?? current.url,
-        title: event.title ?? current.title,
-        loading: typeof event.loading === "boolean" ? event.loading : current.loading,
-        canGoBack: typeof event.canGoBack === "boolean" ? event.canGoBack : current.canGoBack,
-        canGoForward: typeof event.canGoForward === "boolean" ? event.canGoForward : current.canGoForward,
-      }));
-      persistSurfaceUrlAttribute(event.url);
+      setBrowserState((current) => {
+        const nextState = mergeBrowserSurfaceState(current, event);
+        persistSurfaceUrlAttribute(nextState.url);
+        return nextState;
+      });
     });
 
     return () => {
       isCancelled = true;
       unsubscribe?.();
     };
-  }, [desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, persistSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
+  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, persistSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
+
+  useEffect(() => {
+    if (!isDesktopSurfaceEnabled || !hasSurfaceStateApi) return;
+    if (!desktopApi || !surfaceApi) return;
+    if (surfaceLifecycleState !== "ready") return;
+
+    let isDisposed = false;
+    const syncSurfaceState = async () => {
+      const result = await runSurfaceRequest(() => surfaceApi.getState({ surfaceId }));
+      if (isDisposed || !result?.state) return;
+      applySurfaceState(result.state);
+    };
+
+    const intervalId = window.setInterval(() => {
+      void syncSurfaceState();
+    }, 1000);
+
+    void syncSurfaceState();
+
+    return () => {
+      isDisposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled) return;
@@ -492,6 +536,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
         padding={0}
       >
         <div
+          data-testid="browser-window-node"
           contentEditable={false}
           style={{
             position: "relative",
@@ -615,6 +660,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                 )}
               </div>
               <input
+                data-testid="browser-window-address-input"
                 type="text"
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
@@ -723,6 +769,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
               <div contentEditable={false}>
                 {shouldRenderDesktopSurface ? (
                   <div
+                    data-testid="browser-window-surface-host"
                     ref={hostRef}
                     onPointerDown={() => {
                       if (!desktopApi || !surfaceApi) return;
@@ -739,6 +786,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                   />
                 ) : resolvedUrl || !isDesktopSurfaceEnabled ? (
                   <iframe
+                    data-testid="browser-window-iframe"
                     src={resolvedUrl || DEFAULT_BROWSER_HOME}
                     loading="lazy"
                     style={{
