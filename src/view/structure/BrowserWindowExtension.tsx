@@ -5,13 +5,17 @@ import { NodeOverlay } from "../components/NodeOverlay";
 import { Group } from "./Group";
 
 const DEFAULT_IFRAME_HEIGHT = 360;
+const DEFAULT_IFRAME_WIDTH = 760;
 const MIN_IFRAME_HEIGHT = 160;
 const MAX_IFRAME_HEIGHT = 2400;
+const MIN_IFRAME_WIDTH = 360;
+const MAX_IFRAME_WIDTH = 2400;
 const DEFAULT_BROWSER_HOME = "https://kairoslifemap.com";
+const RESIZE_GUTTER_SIZE = 18;
 const DESKTOP_SURFACE_INSET = {
   top: 0,
-  right: 0,
-  bottom: 0,
+  right: RESIZE_GUTTER_SIZE,
+  bottom: RESIZE_GUTTER_SIZE,
   left: 0,
 };
 
@@ -21,6 +25,9 @@ export type BrowserSurfaceState = {
   loading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  errorCode: number | null;
+  errorDescription: string | null;
+  failedUrl: string | null;
 };
 
 type BrowserSurfaceEventState = Partial<BrowserSurfaceState> & {
@@ -37,6 +44,19 @@ export const mergeBrowserSurfaceState = (
   loading: typeof next.loading === "boolean" ? next.loading : current.loading,
   canGoBack: typeof next.canGoBack === "boolean" ? next.canGoBack : current.canGoBack,
   canGoForward: typeof next.canGoForward === "boolean" ? next.canGoForward : current.canGoForward,
+  errorCode: typeof next.errorCode === "number" ? next.errorCode : next.errorCode === null ? null : current.errorCode,
+  errorDescription:
+    typeof next.errorDescription === "string"
+      ? next.errorDescription
+      : next.errorDescription === null
+        ? null
+        : current.errorDescription,
+  failedUrl:
+    typeof next.failedUrl === "string"
+      ? next.failedUrl
+      : next.failedUrl === null
+        ? null
+        : current.failedUrl,
 });
 
 declare module "@tiptap/core" {
@@ -44,6 +64,7 @@ declare module "@tiptap/core" {
     browserWindow: {
       insertBrowserWindow: (attributes?: {
         url?: string;
+        width?: number;
         height?: number;
         sessionPartition?: string;
       }) => ReturnType;
@@ -92,21 +113,40 @@ const isIgnorableSurfaceError = (value: unknown): boolean => {
   ].some((fragment) => message.includes(fragment));
 };
 
+const logBrowserWindowFailure = (message: string, details?: Record<string, unknown>) => {
+  if (typeof window === "undefined") return;
+  const payload = details ? JSON.stringify(details) : "";
+  console.warn(`[BrowserWindowExtension] ${message}${payload ? ` ${payload}` : ""}`);
+};
+
 const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const rawUrl = String(props.node.attrs.url || "");
   const resolvedUrl = useMemo(() => normalizeUrl(rawUrl), [rawUrl]);
   const [inputValue, setInputValue] = useState(rawUrl);
+  const [isEditingAddressBar, setIsEditingAddressBar] = useState(false);
+  const [draftIframeWidth, setDraftIframeWidth] = useState<number | null>(null);
+  const [draftIframeHeight, setDraftIframeHeight] = useState<number | null>(null);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [browserState, setBrowserState] = useState<BrowserSurfaceState>(() => ({
     url: resolvedUrl,
     title: "",
     loading: false,
     canGoBack: false,
     canGoForward: false,
+    errorCode: null,
+    errorDescription: null,
+    failedUrl: null,
   }));
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const lastSentBoundsKeyRef = useRef<string | null>(null);
   const lastPersistedSurfaceUrlRef = useRef<string | null>(rawUrl.trim() || null);
   const syncInFlightRef = useRef(false);
+  const surfaceHasErrorRef = useRef(false);
+  const pendingSurfaceNavigationRef = useRef<{
+    targetUrl: string;
+    sourceUrl: string | null;
+  } | null>(null);
   const desktopApi = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     if (window.kairosDesktop) return window.kairosDesktop;
@@ -160,14 +200,22 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   );
 
   useEffect(() => {
-    setInputValue(rawUrl);
+    if (!isEditingAddressBar) {
+      setInputValue(rawUrl);
+    }
     lastPersistedSurfaceUrlRef.current = rawUrl.trim() || null;
-  }, [rawUrl]);
+  }, [isEditingAddressBar, rawUrl]);
 
   useEffect(() => {
     if (!browserState.url) return;
-    setInputValue(browserState.url);
-  }, [browserState.url]);
+    if (!isEditingAddressBar) {
+      setInputValue(browserState.url);
+    }
+  }, [browserState.url, isEditingAddressBar]);
+
+  useEffect(() => {
+    surfaceHasErrorRef.current = Boolean(browserState.errorDescription);
+  }, [browserState.errorDescription]);
 
   useEffect(() => {
     setBrowserState((current) => ({
@@ -187,18 +235,52 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     [props],
   );
 
+  const reconcileSurfaceUrlAttribute = useCallback(
+    (nextUrl: string | null | undefined) => {
+      const trimmedNextUrl = String(nextUrl ?? "").trim();
+      if (!trimmedNextUrl) return;
+      if (surfaceHasErrorRef.current) return;
+
+      const pendingNavigation = pendingSurfaceNavigationRef.current;
+      if (pendingNavigation) {
+        const sourceUrl = String(pendingNavigation.sourceUrl ?? "").trim();
+        if (sourceUrl && trimmedNextUrl === sourceUrl) {
+          return;
+        }
+        pendingSurfaceNavigationRef.current = null;
+      }
+
+      persistSurfaceUrlAttribute(trimmedNextUrl);
+    },
+    [persistSurfaceUrlAttribute],
+  );
+
   const applySurfaceState = useCallback(
     (nextState: BrowserSurfaceState) => {
       setBrowserState(nextState);
-      persistSurfaceUrlAttribute(nextState.url);
+      reconcileSurfaceUrlAttribute(nextState.url);
     },
-    [persistSurfaceUrlAttribute],
+    [reconcileSurfaceUrlAttribute],
   );
 
   const storedHeight = Number(props.node.attrs.height);
   const iframeHeight = Number.isFinite(storedHeight)
     ? Math.min(Math.max(storedHeight, MIN_IFRAME_HEIGHT), MAX_IFRAME_HEIGHT)
     : DEFAULT_IFRAME_HEIGHT;
+  const storedWidth = Number(props.node.attrs.width);
+  const iframeWidth = Number.isFinite(storedWidth)
+    ? Math.min(Math.max(storedWidth, MIN_IFRAME_WIDTH), MAX_IFRAME_WIDTH)
+    : null;
+  const shellWidth = draftIframeWidth ?? iframeWidth ?? DEFAULT_IFRAME_WIDTH;
+  const shellHeight = draftIframeHeight ?? iframeHeight;
+  const contentViewportWidth = Math.max(
+    MIN_IFRAME_WIDTH,
+    shellWidth - (!isInsideGraphNode ? RESIZE_GUTTER_SIZE : 0),
+  );
+  const contentViewportHeight = Math.max(
+    MIN_IFRAME_HEIGHT,
+    shellHeight - (!isInsideGraphNode ? RESIZE_GUTTER_SIZE : 0),
+  );
   const resolvedQuantaId = String(props.node.attrs.quantaId || "browser-window");
   const explicitPartitionKey = String(props.node.attrs.sessionPartition || "").trim();
   const normalizedPartition = `browser-${(explicitPartitionKey || resolvedQuantaId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
@@ -319,7 +401,8 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     const bounds = computeBounds();
     if (!bounds) return;
 
-    const hasArea = bounds.width > 1 && bounds.height > 1;
+    const shouldHideForError = surfaceHasErrorRef.current;
+    const hasArea = !shouldHideForError && bounds.width > 1 && bounds.height > 1;
     const nextBounds = hasArea ? bounds : { ...bounds, width: 0, height: 0 };
     const nextKey = `${nextBounds.x}:${nextBounds.y}:${nextBounds.width}:${nextBounds.height}`;
     if (!force && nextKey === lastSentBoundsKeyRef.current) return;
@@ -370,20 +453,27 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       setSurfaceLifecycleState("idle");
       void runSurfaceRequest(() => desktopApi.surface.destroy({ surfaceId }));
     };
-  }, [
-    computeBounds,
-    desktopApi,
-    isDesktopSurfaceEnabled,
-    normalizedPartition,
-    runSurfaceRequest,
-    surfaceId,
-    syncDesktopSurfaceBounds,
-  ]);
+  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, normalizedPartition, runSurfaceRequest, surfaceId, syncDesktopSurfaceBounds]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
     if (surfaceLifecycleState !== "ready") return;
     if (!resolvedUrl) return;
+    const currentSurfaceUrl = String(browserState.url || "").trim();
+    if (currentSurfaceUrl && currentSurfaceUrl === resolvedUrl) {
+      pendingSurfaceNavigationRef.current = null;
+      return;
+    }
+    pendingSurfaceNavigationRef.current = {
+      targetUrl: resolvedUrl,
+      sourceUrl: currentSurfaceUrl || null,
+    };
+    setBrowserState((current) => ({
+      ...current,
+      errorCode: null,
+      errorDescription: null,
+      failedUrl: null,
+    }));
     void runSurfaceRequest(() => desktopApi.surface.navigate({ surfaceId, url: resolvedUrl }));
   }, [desktopApi, isDesktopSurfaceEnabled, resolvedUrl, runSurfaceRequest, surfaceId, surfaceLifecycleState]);
 
@@ -401,9 +491,20 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
     const unsubscribe = desktopApi.onSurfaceEvent((event) => {
       if (event.surfaceId !== surfaceId) return;
+      if (event.type === "loadError") {
+        pendingSurfaceNavigationRef.current = null;
+        logBrowserWindowFailure("surface load error", {
+          surfaceId,
+          errorCode: event.errorCode,
+          errorDescription: event.errorDescription,
+          failedUrl: event.failedUrl,
+        });
+      }
       setBrowserState((current) => {
         const nextState = mergeBrowserSurfaceState(current, event);
-        persistSurfaceUrlAttribute(nextState.url);
+        if (event.type !== "loadError") {
+          reconcileSurfaceUrlAttribute(nextState.url);
+        }
         return nextState;
       });
     });
@@ -412,7 +513,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       isCancelled = true;
       unsubscribe?.();
     };
-  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, persistSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
+  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, reconcileSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !hasSurfaceStateApi) return;
@@ -494,6 +595,12 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const handleReload = () => {
     if (isDesktopSurfaceEnabled) {
+      setBrowserState((current) => ({
+        ...current,
+        errorCode: null,
+        errorDescription: null,
+        failedUrl: null,
+      }));
       if (browserState.loading && hasSurfaceStopApi) {
         void runSurfaceRequest(() => surfaceApi.stop({ surfaceId }));
         return;
@@ -507,6 +614,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   };
 
   const displayUrl = browserState.url || resolvedUrl;
+  const addressBarValue = isEditingAddressBar ? inputValue : displayUrl || inputValue;
   const urlObject = useMemo(() => {
     try {
       if (!displayUrl || typeof window === "undefined") return null;
@@ -526,16 +634,95 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const canGoBack = isDesktopSurfaceEnabled && hasSurfaceBackApi ? browserState.canGoBack : false;
   const canGoForward = isDesktopSurfaceEnabled && hasSurfaceForwardApi ? browserState.canGoForward : false;
   const shouldRenderDesktopSurface = isDesktopSurfaceEnabled && surfaceLifecycleState !== "failed";
+  const shouldShowDesktopFailure = shouldRenderDesktopSurface && Boolean(browserState.errorDescription);
+  const failureUrl = browserState.failedUrl || displayUrl || resolvedUrl || rawUrl;
+
+  const beginAddressBarEditing = () => {
+    const nextValue = displayUrl || rawUrl || "";
+    setInputValue(nextValue);
+    setIsEditingAddressBar(true);
+    window.requestAnimationFrame(() => {
+      const input = addressInputRef.current;
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(nextValue.length, nextValue.length);
+    });
+  };
+
+  const endAddressBarEditing = () => {
+    setIsEditingAddressBar(false);
+  };
+
+  const beginResize = (
+    event: React.PointerEvent<HTMLDivElement>,
+    mode: "width" | "both",
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const eventTarget = event.currentTarget;
+    eventTarget.setPointerCapture?.(event.pointerId);
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const measuredWidth = shellRef.current?.getBoundingClientRect().width ?? DEFAULT_IFRAME_WIDTH;
+    const startWidth = iframeWidth ?? measuredWidth;
+    const startHeight = iframeHeight;
+
+    setDraftIframeWidth(startWidth);
+    if (mode === "both") {
+      setDraftIframeHeight(startHeight);
+    }
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const nextWidth = Math.max(MIN_IFRAME_WIDTH, Math.min(startWidth + deltaX, MAX_IFRAME_WIDTH));
+      setDraftIframeWidth(nextWidth);
+
+      if (mode === "both") {
+        const deltaY = moveEvent.clientY - startY;
+        const nextHeight = Math.max(MIN_IFRAME_HEIGHT, Math.min(startHeight + deltaY, MAX_IFRAME_HEIGHT));
+        setDraftIframeHeight(nextHeight);
+      }
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+
+      if (eventTarget.hasPointerCapture?.(event.pointerId)) {
+        eventTarget.releasePointerCapture?.(event.pointerId);
+      }
+
+      const deltaX = upEvent.clientX - startX;
+      const committedWidth = Math.max(MIN_IFRAME_WIDTH, Math.min(startWidth + deltaX, MAX_IFRAME_WIDTH));
+      const nextAttributes: Record<string, number> = { width: committedWidth };
+
+      if (mode === "both") {
+        const deltaY = upEvent.clientY - startY;
+        nextAttributes.height = Math.max(MIN_IFRAME_HEIGHT, Math.min(startHeight + deltaY, MAX_IFRAME_HEIGHT));
+      }
+
+      props.updateAttributes(nextAttributes);
+      setDraftIframeWidth(null);
+      setDraftIframeHeight(null);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
 
   return (
-    <NodeViewWrapper style={{ padding: "4px 0", width: "100%" }}>
+    <NodeViewWrapper style={{ padding: "4px 0", display: "inline-block", width: "fit-content", maxWidth: "none", verticalAlign: "top" }}>
       <NodeOverlay
         nodeProps={props}
         nodeType="browserWindow"
         backgroundColor="transparent"
         padding={0}
+        style={{ width: "fit-content", maxWidth: "none" }}
       >
         <div
+          ref={shellRef}
           data-testid="browser-window-node"
           contentEditable={false}
           style={{
@@ -544,6 +731,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
             flexDirection: "column",
             gap: 0,
             height: "100%",
+            width: `${shellWidth}px`,
             borderRadius: "10px",
             boxShadow: "0 12px 30px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.08)",
             overflow: "hidden",
@@ -660,19 +848,37 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                 )}
               </div>
               <input
+                ref={addressInputRef}
                 data-testid="browser-window-address-input"
                 type="text"
-                value={inputValue}
+                value={addressBarValue}
                 onChange={(event) => setInputValue(event.target.value)}
-                onBlur={commitInputValue}
+                onFocus={() => {
+                  if (!isEditingAddressBar) {
+                    beginAddressBarEditing();
+                  }
+                }}
+                onBlur={() => {
+                  commitInputValue();
+                  endAddressBarEditing();
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
                     commitInputValue();
+                    endAddressBarEditing();
+                    event.currentTarget.blur();
+                  }
+                }}
+                onPointerDown={(event) => {
+                  if (!isEditingAddressBar) {
+                    event.preventDefault();
+                    beginAddressBarEditing();
                   }
                 }}
                 placeholder="Search Google or type a URL"
                 spellCheck={false}
+                title={displayUrl || rawUrl}
                 style={{
                   minWidth: 0,
                   width: "100%",
@@ -683,7 +889,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                   fontSize: "13.5px",
                   color: "#334155",
                   fontFamily: "system-ui, -apple-system, sans-serif",
-                  textAlign: "center",
+                  textAlign: "left",
                 }}
               />
               {/* Star/bookmark icon */}
@@ -767,7 +973,63 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
           >
             <Group lens="identity" quantaId={resolvedQuantaId} padding={0}>
               <div contentEditable={false}>
-                {shouldRenderDesktopSurface ? (
+                {shouldShowDesktopFailure ? (
+                  <div
+                    style={{
+                      width: `${contentViewportWidth}px`,
+                      height: `${contentViewportHeight}px`,
+                      borderBottomLeftRadius: "10px",
+                      borderBottomRightRadius: !isInsideGraphNode ? "0px" : "10px",
+                      background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                      color: "#334155",
+                      padding: "32px 28px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      gap: 14,
+                    }}
+                  >
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#0f172a" }}>
+                      This page could not be loaded
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.6, color: "#475569" }}>
+                      {browserState.errorDescription}
+                    </div>
+                    {failureUrl ? (
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "#64748b",
+                          wordBreak: "break-all",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          background: "#eef2f7",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        {failureUrl}
+                      </div>
+                    ) : null}
+                    <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                      <button
+                        type="button"
+                        onClick={handleReload}
+                        style={{
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          borderRadius: 8,
+                          padding: "10px 14px",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : shouldRenderDesktopSurface ? (
                   <div
                     data-testid="browser-window-surface-host"
                     ref={hostRef}
@@ -776,11 +1038,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                       void runSurfaceRequest(() => surfaceApi.focus({ surfaceId }));
                     }}
                     style={{
-                      width: "100%",
-                      height: `${iframeHeight}px`,
+                      width: `${contentViewportWidth}px`,
+                      height: `${contentViewportHeight}px`,
                       border: "none",
                       borderBottomLeftRadius: "10px",
-                      borderBottomRightRadius: "10px",
+                      borderBottomRightRadius: !isInsideGraphNode ? "0px" : "10px",
                       background: "rgba(248, 250, 252, 0.88)",
                     }}
                   />
@@ -790,11 +1052,11 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                     src={resolvedUrl || DEFAULT_BROWSER_HOME}
                     loading="lazy"
                     style={{
-                      width: "100%",
-                      height: `${iframeHeight}px`,
+                      width: `${contentViewportWidth}px`,
+                      height: `${contentViewportHeight}px`,
                       border: "none",
                       borderBottomLeftRadius: "10px",
-                      borderBottomRightRadius: "10px",
+                      borderBottomRightRadius: !isInsideGraphNode ? "0px" : "10px",
                       background: "white",
                     }}
                     title={`Browser Window: ${resolvedUrl || "Kairos"}`}
@@ -802,12 +1064,13 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                 ) : (
                   <div
                     style={{
-                      height: `${iframeHeight}px`,
+                      width: `${contentViewportWidth}px`,
+                      height: `${contentViewportHeight}px`,
                       display: "grid",
                       placeItems: "center",
                       border: "none",
                       borderBottomLeftRadius: "10px",
-                      borderBottomRightRadius: "10px",
+                      borderBottomRightRadius: !isInsideGraphNode ? "0px" : "10px",
                       background: "#ffffff",
                       color: "#64748b",
                       fontSize: 13,
@@ -823,41 +1086,39 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
             {/* Resize Handle (only show if not in a graph node, as graph nodes have their own resizer) */}
             {!isInsideGraphNode && (
+              <>
               <div
-                onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const startY = e.clientY;
-                const startHeight = iframeHeight;
-
-                const onPointerMove = (moveEvent: PointerEvent) => {
-                  const deltaY = moveEvent.clientY - startY;
-                  const newHeight = Math.max(MIN_IFRAME_HEIGHT, Math.min(startHeight + deltaY, MAX_IFRAME_HEIGHT));
-                  props.updateAttributes({ height: newHeight });
-                };
-
-                const onPointerUp = () => {
-                  window.removeEventListener("pointermove", onPointerMove);
-                  window.removeEventListener("pointerup", onPointerUp);
-                };
-
-                window.addEventListener("pointermove", onPointerMove);
-                window.addEventListener("pointerup", onPointerUp);
-              }}
+                onPointerDown={(e) => beginResize(e, "width")}
+                style={{
+                  position: "absolute",
+                  top: 54,
+                  right: 0,
+                  width: RESIZE_GUTTER_SIZE,
+                  height: `calc(100% - ${54 + RESIZE_GUTTER_SIZE}px)`,
+                  cursor: "ew-resize",
+                  zIndex: 12,
+                  background: "rgba(255, 255, 255, 0.001)",
+                  touchAction: "none",
+                }}
+              />
+              <div
+                onPointerDown={(e) => beginResize(e, "both")}
               style={{
                 position: "absolute",
-                bottom: 2,
-                right: 2,
-                width: 16,
-                height: 16,
-                cursor: "ns-resize",
-                zIndex: 10,
+                bottom: 0,
+                right: 0,
+                width: 22,
+                height: 22,
+                cursor: "nwse-resize",
+                zIndex: 13,
                 display: "flex",
                 alignItems: "flex-end",
                 justifyContent: "flex-end",
-                padding: 4,
+                padding: 5,
                 color: "#cbd5e1",
+                background: "rgba(255, 255, 255, 0.001)",
                 transition: "color 0.2s",
+                touchAction: "none",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "#94a3b8";
@@ -871,6 +1132,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
                 <path d="M21 8L8 21" />
               </svg>
             </div>
+            </>
             )}
           </div>
         </div>
@@ -895,6 +1157,20 @@ const BrowserWindowExtension = Node.create({
         renderHTML: (attributes) => ({
           "data-browser-url": attributes.url || DEFAULT_BROWSER_HOME,
         }),
+      },
+      width: {
+        default: null,
+        parseHTML: (element) => {
+          const rawWidth = element.getAttribute("data-browser-width");
+          const parsedWidth = Number(rawWidth);
+          return Number.isFinite(parsedWidth) ? parsedWidth : null;
+        },
+        renderHTML: (attributes) => {
+          const parsedWidth = Number(attributes.width);
+          return Number.isFinite(parsedWidth)
+            ? { "data-browser-width": String(parsedWidth) }
+            : {};
+        },
       },
       height: {
         default: DEFAULT_IFRAME_HEIGHT,
@@ -945,6 +1221,7 @@ const BrowserWindowExtension = Node.create({
       insertBrowserWindow:
         (attributes?: {
           url?: string;
+          width?: number;
           height?: number;
           sessionPartition?: string;
         }) =>
@@ -953,6 +1230,7 @@ const BrowserWindowExtension = Node.create({
             type: this.name,
             attrs: {
               url: attributes?.url ?? DEFAULT_BROWSER_HOME,
+              width: attributes?.width ?? null,
               height: attributes?.height ?? DEFAULT_IFRAME_HEIGHT,
               sessionPartition: attributes?.sessionPartition ?? generateBrowserSessionPartitionId(),
             },
