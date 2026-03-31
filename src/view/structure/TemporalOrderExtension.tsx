@@ -68,7 +68,7 @@ declare module '@tiptap/core' {
   }
 }
 
-type TemporalOrderLens = 'identity' | 'centuryView' | 'auraView' | 'graph2D' | 'flowGraph';
+type TemporalOrderLens = 'identity' | 'centuryView' | 'yearlyView' | 'auraView' | 'graph2D' | 'flowGraph';
 type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year' | 'someday';
 
 const TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER: TemporalOrderCenturySpecificity[] = [
@@ -227,6 +227,7 @@ const TEMPORAL_YEAR_INCREMENT_VISUAL_CONFIG = {
   minBrightness: 0.72,
   maxBrightness: 1,
 };
+const YEARLY_VIEW_RANGE_MS = MS_PER_YEAR;
 
 const CENTURY_VIEW_VERTICAL_PADDING_PX = 18;
 const CENTURY_VIEW_MAX_EVENT_WIDTH_PX = 500;
@@ -765,10 +766,14 @@ const getCenturyViewScaledOffsetPx = (
   return totalHeightPx * Math.pow(normalized, CENTURY_VIEW_LOG_SCALE_EXPONENT);
 };
 
-const buildCenturyViewYearAnchors = (startYear: number, endYear: number) => {
+const buildCenturyViewYearAnchors = (
+  startYear: number,
+  endYear: number,
+  minimumHeightPx = 960
+) => {
   const resolvedEndYear = Math.max(startYear, endYear);
   const totalGapCount = Math.max(resolvedEndYear - startYear, 0);
-  const totalHeightPx = Math.max(960, totalGapCount * 24);
+  const totalHeightPx = Math.max(minimumHeightPx, totalGapCount * 24);
   const anchors: Array<{
     year: number;
     distanceYears: number;
@@ -797,11 +802,18 @@ const buildCenturyViewYearAnchors = (startYear: number, endYear: number) => {
 
 export const buildTemporalOrderYearIncrements = (
   startYear = new Date().getFullYear(),
-  endYear = 2100
+  endYear = 2100,
+  options?: {
+    minimumHeightPx?: number;
+  }
 ): TemporalOrderYearIncrement[] => {
   const resolvedEndYear = Math.max(startYear, endYear);
   const span = resolvedEndYear - startYear;
-  const { anchors, totalOffsetPx } = buildCenturyViewYearAnchors(startYear, resolvedEndYear);
+  const { anchors, totalOffsetPx } = buildCenturyViewYearAnchors(
+    startYear,
+    resolvedEndYear,
+    options?.minimumHeightPx
+  );
 
   return anchors.map(({ year, distanceYears, offsetFromStartPx, topPx }) => {
     const distanceMs = distanceYears * MS_PER_YEAR;
@@ -2471,7 +2483,9 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   const [centuryTopInset, setCenturyTopInset] = useState(0);
   const [timelineHoverIndicator, setTimelineHoverIndicator] = useState<TemporalOrderHoverIndicatorState | null>(null);
   const isIdentityLens = lens === 'identity';
-  const isYearIncrementLens = lens === 'centuryView';
+  const isCenturyViewLens = lens === 'centuryView';
+  const isYearlyViewLens = lens === 'yearlyView';
+  const isYearIncrementLens = isCenturyViewLens || isYearlyViewLens;
   const isLinearLens = isIdentityLens || isYearIncrementLens;
   const isAuraLens = lens === 'auraView';
   const isGraph2DLens = lens === 'graph2D';
@@ -2483,6 +2497,16 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     () => new Map(yearIncrements.map((increment) => [increment.year, increment.topPx])),
     [yearIncrements]
   );
+  const yearlyViewRange = useMemo(() => {
+    if (!isYearlyViewLens) return null;
+
+    const start = new Date();
+    const end = new Date(start.getTime() + YEARLY_VIEW_RANGE_MS);
+    return {
+      startMs: start.getTime(),
+      endMs: end.getTime(),
+    };
+  }, [isYearlyViewLens]);
   const centuryViewMinHeight = useMemo(() => {
     if (!yearIncrements.length) return 100;
     return Math.max(
@@ -2592,6 +2616,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
         child.style.left = '';
         child.style.width = '';
         child.style.maxWidth = '';
+        child.style.display = '';
         child.style.removeProperty('--temporal-order-century-cloud-opacity');
         child.removeAttribute('data-century-cloud');
       });
@@ -2612,14 +2637,33 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     const nowMs = Date.now();
     const itemCount = Math.min(itemElements.length, timelineLayout.length);
     const contentWidth = Math.max(host.clientWidth - 96, CENTURY_VIEW_MIN_EVENT_WIDTH_PX);
+    const isTimelineItemVisible = (layoutItem: TemporalOrderTimelineLayoutItem | undefined) => {
+      if (!layoutItem) return false;
+      if (!isYearlyViewLens) return true;
+      if (!layoutItem.date) return false;
+
+      const dateMs = layoutItem.date.getTime();
+      const rangeStartMs = yearlyViewRange?.startMs ?? nowMs;
+      const rangeEndMs = yearlyViewRange?.endMs ?? (rangeStartMs + YEARLY_VIEW_RANGE_MS);
+      return dateMs >= rangeStartMs && dateMs <= rangeEndMs;
+    };
     const scheduledPlacements = timelineLayout
       .slice(0, itemCount)
       .map((layoutItem, index) => ({ index, layoutItem, child: itemElements[index] }))
-      .filter((placement) => placement.layoutItem?.date);
+      .filter((placement) => placement.layoutItem?.date && isTimelineItemVisible(placement.layoutItem));
     const unscheduledPlacements = timelineLayout
       .slice(0, itemCount)
       .map((layoutItem, index) => ({ index, layoutItem, child: itemElements[index] }))
-      .filter((placement) => !placement.layoutItem?.date);
+      .filter((placement) => !placement.layoutItem?.date && !isYearlyViewLens);
+    const visibleIndexes = new Set([
+      ...scheduledPlacements.map((placement) => placement.index),
+      ...unscheduledPlacements.map((placement) => placement.index),
+    ]);
+    for (let index = 0; index < itemCount; index += 1) {
+      const child = itemElements[index];
+      if (!child) continue;
+      child.style.display = visibleIndexes.has(index) ? '' : 'none';
+    }
     const hasUnscheduledItems = unscheduledPlacements.length > 0;
     const timelineWidth = contentWidth;
     containerRef.current?.style.setProperty('--temporal-order-century-timeline-width', `${timelineWidth}px`);
@@ -2813,7 +2857,16 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     )}px`;
     itemContainer.style.minHeight = resolvedMinHeight;
     contentNode.style.minHeight = resolvedMinHeight;
-  }, [centuryLayoutRevision, centuryViewMinHeight, contentHeight, isYearIncrementLens, timelineLayout, yearIncrements]);
+  }, [
+    centuryLayoutRevision,
+    centuryViewMinHeight,
+    contentHeight,
+    isYearIncrementLens,
+    isYearlyViewLens,
+    timelineLayout,
+    yearIncrements,
+    yearlyViewRange,
+  ]);
 
   const handleCenturyTimelineClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!isYearIncrementLens || isCollapsed) return;
@@ -3369,7 +3422,8 @@ export const TemporalOrderExtension = TipTapNode.create({
 
             state.doc.descendants((node, pos) => {
               if (node.type.name !== 'temporalOrder') return;
-              const isYearIncrementLens = node.attrs.lens === 'centuryView';
+              const isYearIncrementLens =
+                node.attrs.lens === 'centuryView' || node.attrs.lens === 'yearlyView';
 
               node.forEach((child, offset) => {
                 const childPos = pos + 1 + offset;
@@ -3429,7 +3483,8 @@ export const TemporalOrderExtension = TipTapNode.create({
           lensAttr === 'graph2D' ||
           lensAttr === 'flowGraph' ||
           lensAttr === 'identity' ||
-          lensAttr === 'centuryView'
+          lensAttr === 'centuryView' ||
+          lensAttr === 'yearlyView'
         ) {
           return lensAttr;
         }
@@ -3559,10 +3614,18 @@ export const TemporalOrderExtension = TipTapNode.create({
 
         return items;
       }, [props.node]);
-      const yearIncrements = useMemo(
-        () => buildTemporalOrderYearIncrements(),
-        []
-      );
+      const yearIncrements = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        return buildTemporalOrderYearIncrements(
+          currentYear,
+          lens === 'yearlyView' ? currentYear + 1 : 2100,
+          lens === 'yearlyView'
+            ? {
+                minimumHeightPx: 1040,
+              }
+            : undefined
+        );
+      }, [lens]);
       const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D' || lens === 'flowGraph';
 
       /**

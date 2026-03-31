@@ -1377,7 +1377,7 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     const isCollapsed = !!selectedNode?.attrs?.collapsed
     const lensAttr = selectedNode?.attrs?.lens
     const selectedLens =
-      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView'
+      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView' || lensAttr === 'yearlyView'
         ? lensAttr
         : selectedNode?.attrs?.timeMode === 'nonLinear'
           ? 'graph2D'
@@ -1406,6 +1406,16 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Century View
+                    </motion.div>
+                </Option>
+                <Option value={"yearlyView"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "yearlyView" })
+                }}>
+                    <motion.div>
+                        Yearly View
                     </motion.div>
                 </Option>
                 <Option value={"auraView"} onClick={() => {
