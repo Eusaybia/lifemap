@@ -28,7 +28,7 @@ export interface ForceGraph3DData {
 interface ForceGraph3DInstance {
   graphData: (data: ForceGraph3DData) => ForceGraph3DInstance;
   backgroundColor: (color: string) => ForceGraph3DInstance;
-  nodeLabel: (label: string) => ForceGraph3DInstance;
+  nodeLabel: (label: string | ((node: ForceGraph3DNode) => string)) => ForceGraph3DInstance;
   nodeColor: (colorAccessor: (node: ForceGraph3DNode) => string) => ForceGraph3DInstance;
   nodeVal: (valueAccessor: number | string | ((node: ForceGraph3DNode) => number)) => ForceGraph3DInstance;
   nodeThreeObject: (objectAccessor: (node: ForceGraph3DNode) => unknown) => ForceGraph3DInstance;
@@ -48,6 +48,7 @@ interface ForceGraph3DInstance {
   enablePointerInteraction: (enabled: boolean) => ForceGraph3DInstance;
   onEngineStop: (handler: () => void) => ForceGraph3DInstance;
   zoomToFit: (durationMs?: number, padding?: number) => ForceGraph3DInstance;
+  graph2ScreenCoords?: (x: number, y: number, z?: number) => { x: number; y: number };
   camera?: () => { position?: { x: number; y: number; z: number } };
   cameraPosition?: (
     position: { x?: number; y?: number; z?: number },
@@ -187,11 +188,22 @@ const resolveLabelTextHeight = (node: ForceGraph3DNode) => {
 const resolveLabelColor = (node: ForceGraph3DNode) => {
   const luminance = resolveAuraLuminance(node);
   if (luminance === null) {
-    return NODE_LABEL_COLORS.dark;
+    return "#d9def0";
   }
 
   const nodeColor = resolveNodeRenderColor(node);
-  return scaleHexColor(nodeColor, 0.78);
+  return scaleHexColor(nodeColor, 1.18);
+};
+
+const resolveLabelOffsetX = (node: ForceGraph3DNode) => {
+  const variation = (hashString(`${node.id}-offset-x`) % 100) / 100;
+  const direction = hashString(`${node.id}-offset-direction`) % 2 === 0 ? 1 : -1;
+  return direction * (4 + variation * 7);
+};
+
+const resolveLabelOffsetY = (node: ForceGraph3DNode) => {
+  const variation = (hashString(`${node.id}-offset-y`) % 100) / 100;
+  return -3.5 - variation * 5.5;
 };
 
 const SOURCE_GRAPH_DATA: ForceGraph3DData = {
@@ -357,6 +369,7 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
   fitZoomScale = 1,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const labelLayerRef = useRef<HTMLDivElement | null>(null);
   const graphRef = useRef<ForceGraph3DInstance | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const resolvedGraphData = useMemo(
@@ -374,14 +387,10 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
 
     let disposed = false;
     let resizeObserver: ResizeObserver | null = null;
-    let bloomPass:
-      | {
-          resolution?: { set: (x: number, y: number) => void };
-          dispose?: () => void;
-        }
-      | null = null;
     let fitTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
     let settleRefitTimeoutId: ReturnType<typeof window.setTimeout> | null = null;
+    let labelFrameId: number | null = null;
+    let labelElements: HTMLDivElement[] = [];
     let didInitialEngineFit = false;
 
     const applyFit = (graph: ForceGraph3DInstance, durationMs: number) => {
@@ -405,10 +414,10 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
 
     const initGraph = async () => {
       try {
-        const [THREE, { default: SpriteText }, { UnrealBloomPass }] = await Promise.all([
-          import("three"),
-          import("three-spritetext"),
-          import("three/examples/jsm/postprocessing/UnrealBloomPass.js"),
+        const [{ UnrealBloomPass }] = await Promise.all([
+          import(
+            /* webpackIgnore: true */ "https://esm.sh/three/examples/jsm/postprocessing/UnrealBloomPass.js"
+          ),
         ]);
         await Promise.all([ensureForceGraph3DScript(), ensureAstrologyFont()]);
         const ForceGraph3D = getForceGraph3DConstructor();
@@ -422,27 +431,53 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
 
         graphRef.current = graph;
 
+        const labelLayer = labelLayerRef.current;
+        if (labelLayer) {
+          labelLayer.innerHTML = "";
+          labelElements = resolvedGraphData.nodes.map((node) => {
+            const element = document.createElement("div");
+            element.textContent = node.id;
+            element.spellcheck = false;
+            element.setAttribute("contenteditable", "false");
+            element.setAttribute("autocorrect", "off");
+            element.setAttribute("autocapitalize", "off");
+            element.setAttribute("autocomplete", "off");
+            element.setAttribute("data-gramm", "false");
+            element.setAttribute("data-gramm_editor", "false");
+            element.setAttribute("data-enable-grammarly", "false");
+            element.style.position = "absolute";
+            element.style.left = "0";
+            element.style.top = "0";
+            element.style.transform = "translate(-9999px, -9999px)";
+            element.style.transformOrigin = "center center";
+            element.style.pointerEvents = "none";
+            element.style.whiteSpace = "nowrap";
+            element.style.fontFamily = ASTRO_FONT_FAMILY;
+            element.style.fontStyle = "italic";
+            element.style.fontWeight = "700";
+            element.style.fontSize = "11px";
+            element.style.letterSpacing = "0.08em";
+            element.style.lineHeight = "1";
+            element.style.color = resolveLabelColor(node);
+            element.style.padding = "0";
+            element.style.borderRadius = "0";
+            element.style.background = "transparent";
+            element.style.border = "none";
+            element.style.textShadow =
+              "0 0 10px rgba(217, 222, 240, 0.32), 0 1px 2px rgba(4, 8, 24, 0.85)";
+            element.style.boxShadow = "none";
+            element.style.opacity = "0";
+            labelLayer.appendChild(element);
+            return element;
+          });
+        }
+
         graph
           .graphData(resolvedGraphData)
           .backgroundColor("#000003")
-          .nodeLabel("id")
+          .nodeLabel(() => "")
           .nodeColor((node) => resolveNodeRenderColor(node))
           .nodeVal((node) => resolveNodeRenderValue(node))
-          .nodeThreeObject((node) => {
-            const sprite = new SpriteText(node.id);
-            if (sprite.material) {
-              sprite.material.depthWrite = false;
-            }
-            sprite.color = resolveLabelColor(node);
-            sprite.textHeight = resolveLabelTextHeight(node);
-            sprite.fontFace = ASTRO_FONT_FAMILY;
-            sprite.fontWeight = "italic 700";
-            if (sprite.center) {
-              sprite.center.y = 1.6;
-            }
-            return sprite;
-          })
-          .nodeThreeObjectExtend(true)
           .linkColor(() => "#e6f0ff")
           .linkOpacity(0.5)
           .linkWidth(0.8)
@@ -477,9 +512,52 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
           linkForce.distance(40);
         }
 
-        const bloom = new UnrealBloomPass(new THREE.Vector2(width, height), 2.5, 0.7, 0);
+        // Match the library's bloom example more closely:
+        // add the pass, tune its fields, and let 3d-force-graph own composer sizing/lifecycle.
+        const bloom = new UnrealBloomPass();
+        bloom.strength = 2.5;
+        bloom.radius = 0.7;
+        bloom.threshold = 0;
         graph.postProcessingComposer().addPass(bloom);
-        bloomPass = bloom;
+
+        const syncLabelPositions = () => {
+          if (disposed) return;
+          const nextGraph = graphRef.current;
+          const nextLabelLayer = labelLayerRef.current;
+          if (nextGraph && nextLabelLayer && nextGraph.graph2ScreenCoords) {
+            const viewportWidth = nextLabelLayer.clientWidth;
+            const viewportHeight = nextLabelLayer.clientHeight;
+
+            resolvedGraphData.nodes.forEach((node, index) => {
+              const element = labelElements[index];
+              const x = typeof node.x === "number" ? node.x : null;
+              const y = typeof node.y === "number" ? node.y : null;
+              const z = typeof node.z === "number" ? node.z : 0;
+
+              if (!element || x === null || y === null) {
+                if (element) element.style.opacity = "0";
+                return;
+              }
+
+              const coords = nextGraph.graph2ScreenCoords(x, y, z);
+              const projectedX = coords.x + resolveLabelOffsetX(node) * 3.2;
+              const projectedY = coords.y + resolveLabelOffsetY(node) * 3.4;
+              const isVisible =
+                projectedX >= -140 &&
+                projectedX <= viewportWidth + 140 &&
+                projectedY >= -60 &&
+                projectedY <= viewportHeight + 60;
+
+              element.style.color = resolveLabelColor(node);
+              element.style.opacity = isVisible ? "1" : "0";
+              element.style.transform = `translate(${projectedX}px, ${projectedY}px)`;
+            });
+          }
+
+          labelFrameId = window.requestAnimationFrame(syncLabelPositions);
+        };
+
+        labelFrameId = window.requestAnimationFrame(syncLabelPositions);
 
         fitTimeoutId = window.setTimeout(() => {
           if (disposed || !graphRef.current || didInitialEngineFit) return;
@@ -496,7 +574,6 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
           const nextHeight = Math.max(MIN_HEIGHT, Math.floor(entry.contentRect.height));
 
           nextGraph.width(nextWidth).height(nextHeight);
-          bloomPass?.resolution?.set(nextWidth, nextHeight);
           applyFit(nextGraph, 0);
         });
 
@@ -519,11 +596,13 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
       if (settleRefitTimeoutId !== null) {
         window.clearTimeout(settleRefitTimeoutId);
       }
+      if (labelFrameId !== null) {
+        window.cancelAnimationFrame(labelFrameId);
+      }
       resizeObserver?.disconnect();
-      // `3d-force-graph` owns the internal post-processing composer and only exposes
-      // a partial `_destructor()`. Manually disposing a locally-imported bloom pass
-      // during React unmount can cross `three` runtimes and crash inside cleanup.
-      bloomPass = null;
+      if (labelLayerRef.current) {
+        labelLayerRef.current.innerHTML = "";
+      }
       if (graphRef.current) {
         graphRef.current._destructor();
         graphRef.current = null;
@@ -557,6 +636,15 @@ export const ForceGraph3DFigure: React.FC<ForceGraph3DFigureProps> = ({
         style={{
           position: "absolute",
           inset: 0,
+        }}
+      />
+      <div
+        ref={labelLayerRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
         }}
       />
 

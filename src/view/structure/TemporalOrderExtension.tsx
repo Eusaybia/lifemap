@@ -383,6 +383,94 @@ interface TemporalOrderClickTimePointAttrs {
   'data-relative-label': string;
 }
 
+const isRetimableTimePointAttrs = (attrs: Record<string, unknown> | null | undefined): boolean => {
+  if (!attrs) return false;
+
+  const id = typeof attrs.id === 'string' ? attrs.id : '';
+  const specificity = inferTemporalOrderCenturySpecificity(attrs);
+  if (specificity === 'someday') {
+    return true;
+  }
+
+  const dateValue = typeof attrs['data-date'] === 'string' ? attrs['data-date'].trim() : '';
+  if (!dateValue) {
+    return false;
+  }
+
+  if (id.startsWith('timepoint:weekday-')) {
+    return false;
+  }
+
+  if (
+    id === 'timepoint:daily' ||
+    id === 'timepoint:this-week' ||
+    id === 'timepoint:this-month' ||
+    id === 'timepoint:next-week' ||
+    id === 'timepoint:next-month' ||
+    id === 'timepoint:this-summer' ||
+    id === 'timepoint:today' ||
+    id === 'timepoint:tomorrow' ||
+    id === 'timepoint:yesterday' ||
+    id === 'timepoint:current-focus'
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+const hasRetimableTemporalOrderNodeJson = (nodeJson: JSONContent | null | undefined): boolean => {
+  if (!nodeJson || typeof nodeJson !== 'object') {
+    return false;
+  }
+
+  if (
+    nodeJson.type === 'timepoint' &&
+    isRetimableTimePointAttrs((nodeJson.attrs ?? {}) as Record<string, unknown>)
+  ) {
+    return true;
+  }
+
+  const content = Array.isArray(nodeJson.content) ? nodeJson.content : [];
+  return content.some((child) => hasRetimableTemporalOrderNodeJson(child as JSONContent));
+};
+
+export const retimeTemporalOrderNodeJson = (
+  nodeJson: JSONContent,
+  attrs: TemporalOrderClickTimePointAttrs
+): JSONContent | null => {
+  let didUpdate = false;
+
+  const visit = (node: JSONContent): JSONContent => {
+    if (
+      !didUpdate &&
+      node.type === 'timepoint' &&
+      isRetimableTimePointAttrs((node.attrs ?? {}) as Record<string, unknown>)
+    ) {
+      didUpdate = true;
+      return {
+        ...node,
+        attrs: {
+          ...(node.attrs ?? {}),
+          ...attrs,
+        },
+      };
+    }
+
+    if (!Array.isArray(node.content) || !node.content.length) {
+      return node;
+    }
+
+    return {
+      ...node,
+      content: node.content.map((child) => visit(child as JSONContent)),
+    };
+  };
+
+  const updatedNodeJson = visit(nodeJson);
+  return didUpdate ? updatedNodeJson : null;
+};
+
 interface TemporalOrderHoverIndicatorState {
   topPx: number;
   leftPx: number;
@@ -391,7 +479,7 @@ interface TemporalOrderHoverIndicatorState {
 }
 
 type TemporalOrderCenturyHoverMode = 'day' | 'week' | 'month' | 'someday';
-type TemporalOrderCenturyClickPrecision = 'year' | 'month' | 'date' | 'someday';
+type TemporalOrderCenturyClickPrecision = 'year' | 'month' | 'week' | 'date' | 'someday';
 
 const TEMPORAL_ORDER_CLICK_YEAR_THRESHOLD_PX = 8;
 const TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX = 5;
@@ -438,7 +526,7 @@ const resolveCenturyViewHoverMode = (horizontalRatio: number): TemporalOrderCent
   return 'someday';
 };
 
-const buildTemporalOrderClickTimePointAttrs = (
+export const buildTemporalOrderClickTimePointAttrs = (
   date: Date,
   precision: TemporalOrderCenturyClickPrecision
 ): TemporalOrderClickTimePointAttrs => {
@@ -474,6 +562,21 @@ const buildTemporalOrderClickTimePointAttrs = (
       id: `timepoint:month-${year}-${month + 1}`,
       label: `📅 ${formatted}`,
       'data-date': monthDate.toISOString(),
+      'data-formatted': formatted,
+      'data-relative-label': formatted,
+    };
+  }
+
+  if (precision === 'week') {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const weekStart = new Date(year, month, day);
+    const formatted = `Week of ${day} ${TEMPORAL_ORDER_MONTH_NAMES[month]} ${year}`;
+    return {
+      id: `timepoint:week-${year}-${month + 1}-${day}`,
+      label: `📅 ${formatted}`,
+      'data-date': weekStart.toISOString(),
       'data-formatted': formatted,
       'data-relative-label': formatted,
     };
@@ -614,10 +717,25 @@ export const resolveCenturyViewClickSelection = (
     };
   }
 
+  if (hoverMode === 'month') {
+    return {
+      date: snapCenturyViewHoverDate(rawDate, 'month'),
+      precision: 'month',
+      hoverMode,
+    };
+  }
+
+  if (hoverMode === 'week') {
+    return {
+      date: snapCenturyViewHoverDate(rawDate, 'week'),
+      precision: 'week',
+      hoverMode,
+    };
+  }
+
   if (
-    hoverMode === 'month' ||
-    (nearestMonthTick &&
-      Math.abs(nearestMonthTick.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX)
+    nearestMonthTick &&
+    Math.abs(nearestMonthTick.topPx - offsetTopPx) <= TEMPORAL_ORDER_CLICK_MONTH_THRESHOLD_PX
   ) {
     return {
       date: snapCenturyViewHoverDate(rawDate, 'month'),
@@ -627,7 +745,7 @@ export const resolveCenturyViewClickSelection = (
   }
 
   return {
-    date: snapCenturyViewHoverDate(rawDate, hoverMode === 'week' ? 'week' : 'day'),
+    date: snapCenturyViewHoverDate(rawDate, 'day'),
     precision: 'date',
     hoverMode,
   };
@@ -1492,6 +1610,11 @@ interface TemporalOrderContentProps {
   graph2DData: TemporalOrderForceGraph2DData;
   flowGraphData: TemporalOrderQuantaFlowGraphData;
   onCreateTemporalSpaceAtTimePoint: (attrs: TemporalOrderClickTimePointAttrs) => void;
+  onCaptureDraggedNode: () => DraggedNodeInfo | null;
+  onRetimeDraggedNodeAtTimePoint: (
+    draggedNode: DraggedNodeInfo,
+    attrs: TemporalOrderClickTimePointAttrs
+  ) => boolean;
 }
 
 interface TemporalOrderEventSource {
@@ -1741,6 +1864,19 @@ const deriveTemporalOrderNodeAura = (node: ProseMirrorNode): AuraSpec | null => 
   return discoveredAura;
 };
 
+const hashTemporalAuraSeed = (value: string) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const resolveTemporalAuraUnit = (value: string) => {
+  return (hashTemporalAuraSeed(value) % 10_000) / 10_000;
+};
+
 const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[]): ForceGraph3DData => {
   if (eventSources.length === 0) {
     return {
@@ -1752,6 +1888,66 @@ const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[
   const nowMs = Date.now();
   const usedNodeIds = new Set<string>();
   const resolvedNodeIds: string[] = [];
+  const clusterAssignments: number[] = [];
+  const clusterSizes: number[] = [];
+  const AURA_CLUSTER_GAP_MS = MS_PER_YEAR * 0.75;
+  const AURA_CLUSTER_MAX_SIZE = 6;
+
+  let currentCluster = 0;
+  let previousDateMs: number | null = null;
+  let currentClusterSize = 0;
+
+  eventSources.forEach((source, index) => {
+    const nextDateMs = source.dateMs;
+    const shouldStartNewCluster =
+      index > 0 &&
+      ((previousDateMs !== null &&
+        nextDateMs !== null &&
+        Math.abs(nextDateMs - previousDateMs) > AURA_CLUSTER_GAP_MS) ||
+        (previousDateMs === null) !== (nextDateMs === null) ||
+        currentClusterSize >= AURA_CLUSTER_MAX_SIZE);
+
+    if (shouldStartNewCluster) {
+      currentCluster += 1;
+      currentClusterSize = 0;
+    }
+
+    clusterAssignments.push(currentCluster);
+    clusterSizes[currentCluster] = (clusterSizes[currentCluster] ?? 0) + 1;
+    currentClusterSize += 1;
+
+    if (nextDateMs !== null) {
+      previousDateMs = nextDateMs;
+    }
+  });
+
+  const clusterCounts = new Map<number, number>();
+  const totalClusterCount = Math.max(clusterSizes.length, 1);
+  const clusterAnchors = clusterSizes.map((_, clusterIndex) => {
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const radialProgress =
+      totalClusterCount <= 1 ? 0.22 : Math.sqrt((clusterIndex + 0.5) / totalClusterCount);
+    const orbitAngle =
+      clusterIndex * goldenAngle +
+      (resolveTemporalAuraUnit(`cluster:${clusterIndex}:angle`) - 0.5) * 0.34;
+    const orbitRadius =
+      (92 + radialProgress * (132 + Math.min(totalClusterCount, 9) * 20)) *
+      (0.9 + resolveTemporalAuraUnit(`cluster:${clusterIndex}:radius`) * 0.18);
+
+    return {
+      x:
+        Math.cos(orbitAngle) * orbitRadius * 1.02 +
+        (resolveTemporalAuraUnit(`cluster:${clusterIndex}:jitter-x`) - 0.5) * 64,
+      y:
+        Math.sin(orbitAngle) * orbitRadius * 0.84 +
+        (resolveTemporalAuraUnit(`cluster:${clusterIndex}:jitter-y`) - 0.5) * 76,
+      z: (resolveTemporalAuraUnit(`cluster:${clusterIndex}:jitter-z`) - 0.5) * 132,
+      spin:
+        orbitAngle +
+        (resolveTemporalAuraUnit(`cluster:${clusterIndex}:spin`) - 0.5) * 0.9,
+    };
+  });
+
   const nodes = eventSources.map((source, index) => {
     let graphNodeId = source.label || `Event ${index + 1}`;
     let suffix = 2;
@@ -1763,10 +1959,57 @@ const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[
     resolvedNodeIds.push(graphNodeId);
 
     const isFuture = source.dateMs !== null ? source.dateMs >= nowMs : index % 2 === 0;
+    const clusterIndex = clusterAssignments[index] ?? 0;
+    const clusterSize = clusterSizes[clusterIndex] ?? 1;
+    const localIndex = clusterCounts.get(clusterIndex) ?? 0;
+    clusterCounts.set(clusterIndex, localIndex + 1);
+
+    const clusterAnchor = clusterAnchors[clusterIndex] ?? { x: 0, y: 0, z: 0, spin: 0 };
+    const branchCount = clusterSize <= 2 ? clusterSize : Math.min(3, Math.max(2, Math.ceil(clusterSize / 2)));
+    const nodeSeedKey = `${source.key}:${graphNodeId}:${localIndex}`;
+    const branchIndex = localIndex <= 0 ? 0 : (localIndex - 1) % Math.max(branchCount, 1);
+    const branchDepth = localIndex <= 0 ? 0 : Math.floor((localIndex - 1) / Math.max(branchCount, 1)) + 1;
+    const branchArc = Math.PI * 1.78;
+    const branchBaseAngle =
+      clusterAnchor.spin -
+      branchArc / 2 +
+      (branchIndex / Math.max(branchCount - 1, 1)) * branchArc;
+    const branchAngle =
+      branchBaseAngle + (resolveTemporalAuraUnit(`${nodeSeedKey}:angle`) - 0.5) * 0.7;
+    const branchRadius =
+      localIndex <= 0
+        ? 0
+        : 26 +
+          branchDepth * (34 + resolveTemporalAuraUnit(`${nodeSeedKey}:radius`) * 22) +
+          resolveTemporalAuraUnit(`${nodeSeedKey}:fine-radius`) * 14;
+    const localX =
+      localIndex <= 0
+        ? (resolveTemporalAuraUnit(`${nodeSeedKey}:core-x`) - 0.5) * 18
+        : Math.cos(branchAngle) * branchRadius +
+          (branchIndex - (branchCount - 1) / 2) * 11;
+    const localY =
+      localIndex <= 0
+        ? (resolveTemporalAuraUnit(`${nodeSeedKey}:core-y`) - 0.5) * 18
+        : Math.sin(branchAngle) * branchRadius +
+          (resolveTemporalAuraUnit(`${nodeSeedKey}:lift`) - 0.5) * 28;
+    const localZ =
+      localIndex <= 0
+        ? (resolveTemporalAuraUnit(`${nodeSeedKey}:core-z`) - 0.5) * 24
+        : (resolveTemporalAuraUnit(`${nodeSeedKey}:depth`) - 0.5) * 88 + branchDepth * 10;
+    const x = clusterAnchor.x + localX;
+    const y = clusterAnchor.y + localY;
+    const z = clusterAnchor.z + localZ;
+
     return {
       id: graphNodeId,
       group: isFuture ? 1 : 2,
       tone: (isFuture ? 'light' : 'dark') as 'light' | 'dark',
+      x,
+      y,
+      z,
+      fx: x,
+      fy: y,
+      fz: z,
       ...(source.aura
         ? {
             color: source.aura.color,
@@ -1777,11 +2020,63 @@ const buildTemporalOrderAuraGraphData = (eventSources: TemporalOrderEventSource[
     };
   });
 
-  const links = resolvedNodeIds.slice(0, -1).map((nodeId, index) => ({
-    source: nodeId,
-    target: resolvedNodeIds[index + 1],
-    value: 1,
-  }));
+  const links: ForceGraph3DData["links"] = [];
+  const seenLinks = new Set<string>();
+  const addLink = (sourceIndex: number, targetIndex: number, value = 1) => {
+    if (sourceIndex === targetIndex) return;
+    const sourceId = resolvedNodeIds[sourceIndex];
+    const targetId = resolvedNodeIds[targetIndex];
+    if (!sourceId || !targetId) return;
+    const key = sourceId < targetId ? `${sourceId}::${targetId}` : `${targetId}::${sourceId}`;
+    if (seenLinks.has(key)) return;
+    seenLinks.add(key);
+    links.push({
+      source: sourceId,
+      target: targetId,
+      value,
+    });
+  };
+
+  resolvedNodeIds.slice(0, -1).forEach((_, index) => {
+    const sourceCluster = clusterAssignments[index] ?? 0;
+    const targetCluster = clusterAssignments[index + 1] ?? 0;
+    if (sourceCluster !== targetCluster) return;
+    addLink(index, index + 1, 1);
+  });
+
+  const clusterNodeIndexes = new Map<number, number[]>();
+  clusterAssignments.forEach((clusterIndex, index) => {
+    const bucket = clusterNodeIndexes.get(clusterIndex);
+    if (bucket) {
+      bucket.push(index);
+      return;
+    }
+    clusterNodeIndexes.set(clusterIndex, [index]);
+  });
+
+  clusterNodeIndexes.forEach((indexes) => {
+    if (indexes.length < 3) return;
+
+    for (let localIndex = 0; localIndex < indexes.length; localIndex += 1) {
+      const currentIndex = indexes[localIndex];
+
+      if (localIndex >= 2) {
+        addLink(currentIndex, indexes[localIndex - 2], 0.86);
+      }
+
+      if (localIndex >= 1 && localIndex < indexes.length - 1) {
+        addLink(indexes[localIndex - 1], indexes[localIndex + 1], 0.72);
+      }
+
+      if (indexes.length >= 5 && localIndex === 0) {
+        addLink(currentIndex, indexes[Math.min(3, indexes.length - 1)], 0.68);
+      }
+
+      if (indexes.length >= 6 && localIndex === indexes.length - 1) {
+        addLink(currentIndex, indexes[Math.max(indexes.length - 4, 0)], 0.68);
+      }
+    }
+  });
 
   return {
     nodes,
@@ -2164,10 +2459,13 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   graph2DData,
   flowGraphData,
   onCreateTemporalSpaceAtTimePoint,
+  onCaptureDraggedNode,
+  onRetimeDraggedNodeAtTimePoint,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentHostRef = useRef<HTMLDivElement>(null);
   const centuryLayoutFrameRef = useRef<number | null>(null);
+  const draggedTimelineNodeRef = useRef<DraggedNodeInfo | null>(null);
   const [contentHeight, setContentHeight] = useState(200);
   const [centuryLayoutRevision, setCenturyLayoutRevision] = useState(0);
   const [centuryTopInset, setCenturyTopInset] = useState(0);
@@ -2578,56 +2876,86 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     yearIncrements,
   ]);
 
-  const handleCenturyTimelineMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isYearIncrementLens || isCollapsed) {
-      setTimelineHoverIndicator(null);
-      return;
+  const resolveCenturyTimelineDropAttrs = useCallback((clientX: number, clientY: number) => {
+    const host = contentHostRef.current;
+    const container = containerRef.current;
+    if (!host || !container || !yearIncrements.length) return null;
+
+    const timelineWidthValue = Number.parseFloat(
+      container.style.getPropertyValue('--temporal-order-century-timeline-width') || ''
+    );
+    if (!Number.isFinite(timelineWidthValue)) return null;
+
+    const hostRect = host.getBoundingClientRect();
+    const timelineLeft = hostRect.left + TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX;
+    const timelineRight = timelineLeft + timelineWidthValue;
+
+    if (clientX < timelineLeft || clientX > timelineRight) {
+      return null;
     }
 
+    const containerRect = container.getBoundingClientRect();
+    const rawTopPx = clientY - containerRect.top;
+    if (rawTopPx < centuryTopInset) {
+      return null;
+    }
+
+    const offsetTopPx = rawTopPx - centuryTopInset;
+    const horizontalRatio = clampNumber((clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
+    const { date, precision } = resolveCenturyViewClickSelection(
+      offsetTopPx,
+      horizontalRatio,
+      yearIncrements,
+      monthTicks
+    );
+
+    if (precision === 'someday') {
+      return null;
+    }
+
+    return buildTemporalOrderClickTimePointAttrs(date, precision);
+  }, [centuryTopInset, monthTicks, yearIncrements]);
+
+  const resolveCenturyTimelineHoverIndicator = useCallback((clientX: number, clientY: number) => {
     const container = containerRef.current;
     const host = contentHostRef.current;
     if (!container || !host) {
-      setTimelineHoverIndicator(null);
-      return;
+      return null;
     }
 
     const timelineWidthValue = Number.parseFloat(
       container.style.getPropertyValue('--temporal-order-century-timeline-width') || ''
     );
     if (!Number.isFinite(timelineWidthValue)) {
-      setTimelineHoverIndicator(null);
-      return;
+      return null;
     }
 
     const hostRect = host.getBoundingClientRect();
     const timelineLeft = hostRect.left + TEMPORAL_ORDER_TIMELINE_LEFT_PADDING_PX;
     const timelineRight = timelineLeft + timelineWidthValue;
 
-    if (event.clientX < timelineLeft || event.clientX > timelineRight) {
-      setTimelineHoverIndicator(null);
-      return;
+    if (clientX < timelineLeft || clientX > timelineRight) {
+      return null;
     }
 
     const containerRect = container.getBoundingClientRect();
-    const rawTopPx = event.clientY - containerRect.top;
+    const rawTopPx = clientY - containerRect.top;
     if (rawTopPx < centuryTopInset) {
-      setTimelineHoverIndicator(null);
-      return;
+      return null;
     }
 
     const offsetTopPx = rawTopPx - centuryTopInset;
-    const horizontalRatio = clampNumber((event.clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
+    const horizontalRatio = clampNumber((clientX - timelineLeft) / Math.max(timelineWidthValue, 1), 0, 0.999);
     const hoverMode = resolveCenturyViewHoverMode(horizontalRatio);
-    const localLeftPx = event.clientX - containerRect.left;
+    const localLeftPx = clientX - containerRect.left;
 
     if (hoverMode === 'someday') {
-      setTimelineHoverIndicator({
+      return {
         topPx: rawTopPx,
         leftPx: localLeftPx,
         label: 'Some day',
         mode: hoverMode,
-      });
-      return;
+      } satisfies TemporalOrderHoverIndicatorState;
     }
 
     const rawDate = resolveCenturyViewClickDate(offsetTopPx, yearIncrements);
@@ -2638,13 +2966,94 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       offsetTopPx
     ) + centuryTopInset;
 
-    setTimelineHoverIndicator({
+    return {
       topPx: snappedTopPx,
       leftPx: localLeftPx,
       label: formatCenturyViewHoverLabel(snappedDate, hoverMode),
       mode: hoverMode,
-    });
-  }, [centuryTopInset, isCollapsed, isYearIncrementLens, yearIncrements, yearTopLookup]);
+    } satisfies TemporalOrderHoverIndicatorState;
+  }, [centuryTopInset, yearIncrements, yearTopLookup]);
+
+  const handleCenturyTimelineDragEnter = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) return;
+
+    const draggedNode = onCaptureDraggedNode();
+    if (!draggedNode || !hasRetimableTemporalOrderNodeJson(draggedNode.nodeJson as JSONContent)) {
+      return;
+    }
+
+    if (!resolveCenturyTimelineDropAttrs(event.clientX, event.clientY)) {
+      return;
+    }
+
+    draggedTimelineNodeRef.current = draggedNode;
+    setTimelineHoverIndicator(resolveCenturyTimelineHoverIndicator(event.clientX, event.clientY));
+  }, [isCollapsed, isYearIncrementLens, onCaptureDraggedNode, resolveCenturyTimelineDropAttrs, resolveCenturyTimelineHoverIndicator]);
+
+  const handleCenturyTimelineDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) return;
+
+    const draggedNode = draggedTimelineNodeRef.current;
+    if (!draggedNode || !hasRetimableTemporalOrderNodeJson(draggedNode.nodeJson as JSONContent)) {
+      return;
+    }
+
+    const hoverIndicator = resolveCenturyTimelineHoverIndicator(event.clientX, event.clientY);
+    setTimelineHoverIndicator(hoverIndicator);
+
+    if (!hoverIndicator) {
+      return;
+    }
+
+    if (!resolveCenturyTimelineDropAttrs(event.clientX, event.clientY)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }, [isCollapsed, isYearIncrementLens, resolveCenturyTimelineDropAttrs, resolveCenturyTimelineHoverIndicator]);
+
+  const handleCenturyTimelineDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+
+    draggedTimelineNodeRef.current = null;
+    setTimelineHoverIndicator(null);
+  }, []);
+
+  const handleCenturyTimelineDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) return;
+
+    const draggedNode = draggedTimelineNodeRef.current;
+    draggedTimelineNodeRef.current = null;
+    setTimelineHoverIndicator(null);
+
+    if (!draggedNode || !hasRetimableTemporalOrderNodeJson(draggedNode.nodeJson as JSONContent)) {
+      return;
+    }
+
+    const attrs = resolveCenturyTimelineDropAttrs(event.clientX, event.clientY);
+    if (!attrs) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onRetimeDraggedNodeAtTimePoint(draggedNode, attrs);
+  }, [isCollapsed, isYearIncrementLens, onRetimeDraggedNodeAtTimePoint, resolveCenturyTimelineDropAttrs]);
+
+  const handleCenturyTimelineMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isYearIncrementLens || isCollapsed) {
+      setTimelineHoverIndicator(null);
+      return;
+    }
+
+    setTimelineHoverIndicator(resolveCenturyTimelineHoverIndicator(event.clientX, event.clientY));
+  }, [isCollapsed, isYearIncrementLens, resolveCenturyTimelineHoverIndicator]);
 
   const handleCenturyTimelineMouseLeave = useCallback(() => {
     setTimelineHoverIndicator(null);
@@ -2654,6 +3063,10 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     <div
       ref={containerRef}
       onClick={handleCenturyTimelineClick}
+      onDragEnter={handleCenturyTimelineDragEnter}
+      onDragOver={handleCenturyTimelineDragOver}
+      onDragLeave={handleCenturyTimelineDragLeave}
+      onDrop={handleCenturyTimelineDrop}
       onMouseMove={handleCenturyTimelineMouseMove}
       onMouseLeave={handleCenturyTimelineMouseLeave}
       style={{
@@ -3325,6 +3738,29 @@ export const TemporalOrderExtension = TipTapNode.create({
         [props.editor, props.getPos]
       );
 
+      const handleRetimeDraggedNodeAtTimePoint = useCallback(
+        (draggedNode: DraggedNodeInfo, attrs: TemporalOrderClickTimePointAttrs) => {
+          const { from, to, nodeJson, nodeTypeName } = draggedNode;
+          const { state, view } = props.editor;
+          const currentNode = state.doc.nodeAt(from);
+
+          if (!currentNode || currentNode.type.name !== nodeTypeName) {
+            return false;
+          }
+
+          const updatedNodeJson = retimeTemporalOrderNodeJson(nodeJson as JSONContent, attrs);
+          if (!updatedNodeJson) {
+            return false;
+          }
+
+          const updatedNode = props.editor.schema.nodeFromJSON(updatedNodeJson);
+          const tr = state.tr.replaceWith(from, to, updatedNode).scrollIntoView();
+          view.dispatch(tr);
+          return true;
+        },
+        [props.editor]
+      );
+
       return (
         <NodeViewWrapper
           data-temporal-order-node-view="true"
@@ -3361,6 +3797,8 @@ export const TemporalOrderExtension = TipTapNode.create({
               graph2DData={graph2DData}
               flowGraphData={flowGraphData}
               onCreateTemporalSpaceAtTimePoint={handleCreateTemporalSpaceAtTimePoint}
+              onCaptureDraggedNode={handleDropZoneDragEnter}
+              onRetimeDraggedNodeAtTimePoint={handleRetimeDraggedNodeAtTimePoint}
             >
               <NodeViewContent className="temporal-order-node-view-content" />
             </TemporalOrderContent>
