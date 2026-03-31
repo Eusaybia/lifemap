@@ -10,14 +10,114 @@ const MAPBOX_ACCESS_TOKEN =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
   ''
-const MAPBOX_GL_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v3.12.0/mapbox-gl.css'
-const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker.js'
+const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
+const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
+const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
+const MAPBOX_STATIC_DEFAULT_STYLE = 'mapbox://styles/mapbox/streets-v12'
+const ENABLE_INTERACTIVE_MAP = true
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 
 const configureMapboxWorker = () => {
-  const majorVersion = Number.parseInt(String((mapboxgl as typeof mapboxgl & { version?: string }).version || '').split('.')[0] || '0', 10)
+  const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
   if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
     mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
+  }
+}
+
+const resolveMapboxStyle = (requestedStyle?: string): string => {
+  return requestedStyle?.trim() || MAPBOX_STATIC_DEFAULT_STYLE
+}
+
+let mapboxCssReadyPromise: Promise<void> | null = null
+
+const ensureMapboxCssLoaded = (): Promise<void> => {
+  if (typeof document === 'undefined') {
+    return Promise.resolve()
+  }
+
+  const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
+  if (existingLink) {
+    if (existingLink.dataset.loaded === 'true' || !!existingLink.sheet) {
+      existingLink.dataset.loaded = 'true'
+      return Promise.resolve()
+    }
+
+    if (!mapboxCssReadyPromise) {
+      mapboxCssReadyPromise = new Promise((resolve, reject) => {
+        const handleLoad = () => {
+          existingLink.dataset.loaded = 'true'
+          mapboxCssReadyPromise = Promise.resolve()
+          resolve()
+        }
+        const handleError = () => {
+          mapboxCssReadyPromise = null
+          reject(new Error('Failed to load Mapbox GL CSS'))
+        }
+
+        existingLink.addEventListener('load', handleLoad, { once: true })
+        existingLink.addEventListener('error', handleError, { once: true })
+      })
+    }
+
+    return mapboxCssReadyPromise
+  }
+
+  mapboxCssReadyPromise = new Promise((resolve, reject) => {
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = MAPBOX_GL_CSS_URL
+    link.setAttribute('data-mapbox-gl-css', 'true')
+    link.addEventListener(
+      'load',
+      () => {
+        link.dataset.loaded = 'true'
+        mapboxCssReadyPromise = Promise.resolve()
+        resolve()
+      },
+      { once: true },
+    )
+    link.addEventListener(
+      'error',
+      () => {
+        mapboxCssReadyPromise = null
+        reject(new Error('Failed to load Mapbox GL CSS'))
+      },
+      { once: true },
+    )
+    document.head.appendChild(link)
+  })
+
+  return mapboxCssReadyPromise
+}
+
+const forceMapboxLayout = (container: HTMLDivElement | null) => {
+  if (!container) return
+
+  container.style.position = 'relative'
+  container.style.width = '100%'
+  container.style.height = '100%'
+  container.style.minWidth = '100%'
+  container.style.minHeight = '100%'
+  container.style.overflow = 'hidden'
+
+  const mapRoot = container.querySelector<HTMLElement>('.mapboxgl-map')
+  const canvasContainer = container.querySelector<HTMLElement>('.mapboxgl-canvas-container')
+  const canvas = container.querySelector<HTMLCanvasElement>('.mapboxgl-canvas')
+
+  if (mapRoot) {
+    mapRoot.style.position = 'relative'
+    mapRoot.style.width = '100%'
+    mapRoot.style.height = '100%'
+  }
+
+  if (canvasContainer) {
+    canvasContainer.style.width = '100%'
+    canvasContainer.style.height = '100%'
+  }
+
+  if (canvas) {
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
   }
 }
 
@@ -60,6 +160,11 @@ interface TemporalSpaceContext {
 interface AnchorPoint {
   lng: number
   lat: number
+}
+
+interface MapViewportSize {
+  width: number
+  height: number
 }
 
 const parseCoords = (rawCoords: unknown): [number, number] | null => {
@@ -145,8 +250,47 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
   return null
 }
 
+const buildStaticMapUrl = (
+  requestedStyle: string | undefined,
+  markers: MapMarker[],
+  center: [number, number],
+  zoom: number,
+  viewportSize: MapViewportSize,
+): string | null => {
+  if (!MAPBOX_ACCESS_TOKEN) return null
+
+  const staticStyle = requestedStyle?.trim() || MAPBOX_STATIC_DEFAULT_STYLE
+  const stylePath = staticStyle.replace(/^mapbox:\/\/styles\//, '')
+  if (!stylePath) return null
+
+  const width = Math.max(320, Math.min(Math.round(viewportSize.width || 1280), 1280))
+  const height = Math.max(180, Math.min(Math.round(viewportSize.height || 280), 1280))
+  const dimensions = `${width}x${height}@2x`
+  const markerOverlay = markers
+    .slice(0, 20)
+    .map((marker) => `pin-s+e11d48(${marker.lng.toFixed(5)},${marker.lat.toFixed(5)})`)
+    .join(',')
+
+  const viewportPath = markerOverlay
+    ? `${markerOverlay}/auto`
+    : `${center[0].toFixed(5)},${center[1].toFixed(5)},${zoom.toFixed(2)},0`
+
+  const query = new URLSearchParams({
+    access_token: MAPBOX_ACCESS_TOKEN,
+    attribution: 'false',
+    logo: 'false',
+  })
+
+  if (markerOverlay) {
+    query.set('padding', '48')
+  }
+
+  return `https://api.mapbox.com/styles/v1/${stylePath}/static/${viewportPath}/${dimensions}?${query.toString()}`
+}
+
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes } = props
+  const mapSurface = useRef<HTMLDivElement>(null)
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -158,9 +302,11 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [isInteractiveMapReady, setIsInteractiveMapReady] = useState(false)
   const [isInsideTemporalSpace, setIsInsideTemporalSpace] = useState(false)
   const [temporalLocationCandidates, setTemporalLocationCandidates] = useState<TemporalLocationCandidate[]>([])
   const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
+  const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
 
   // Cast attrs to our custom type for type-safe access
   const attrs = node.attrs as unknown as MapboxMapAttrs
@@ -175,6 +321,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return dedupeMarkers([...markers])
   }, [isInsideTemporalSpace, temporalSpaceMarkers, markers])
   const hasTemporalPins = temporalSpaceMarkers.length > 0
+  const staticMapImageUrl = useMemo(
+    () => buildStaticMapUrl(style, activeMarkers, center, zoom, mapViewportSize),
+    [style, activeMarkers, center, zoom, mapViewportSize],
+  )
   const anchorPoints = useMemo<AnchorPoint[]>(() => {
     const anchorsFromLocations = temporalLocationCandidates
       .filter((candidate) => !!candidate.coords)
@@ -337,14 +487,37 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   // Load Mapbox CSS once globally so marker styling stays stable even when
   // multiple map nodes mount/unmount in the editor.
   useEffect(() => {
-    const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
-    if (existingLink) return
+    ensureMapboxCssLoaded().catch((error) => {
+      console.error('[MapboxMap] Failed to ensure Mapbox GL CSS:', error)
+    })
+  }, [])
 
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = MAPBOX_GL_CSS_URL
-    link.setAttribute('data-mapbox-gl-css', 'true')
-    document.head.appendChild(link)
+  useEffect(() => {
+    if (!mapSurface.current) return
+
+    const syncViewportSize = () => {
+      if (!mapSurface.current) return
+      const nextWidth = mapSurface.current.clientWidth
+      const nextHeight = mapSurface.current.clientHeight
+      if (!nextWidth || !nextHeight) return
+
+      setMapViewportSize((previous) => {
+        if (previous.width === nextWidth && previous.height === nextHeight) {
+          return previous
+        }
+        return { width: nextWidth, height: nextHeight }
+      })
+    }
+
+    syncViewportSize()
+    const observer = new ResizeObserver(syncViewportSize)
+    observer.observe(mapSurface.current)
+    window.addEventListener('resize', syncViewportSize)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', syncViewportSize)
+    }
   }, [])
 
   // Helper function to add a marker to the map
@@ -447,57 +620,121 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
   // Initialize map
   useEffect(() => {
-    if (map.current || !mapContainer.current) return
-    if (!MAPBOX_ACCESS_TOKEN) return
-
-    configureMapboxWorker()
-    mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
-
-    let mapInstance: mapboxgl.Map | null = null
-
-    try {
-      mapInstance = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: style || 'mapbox://styles/mapbox/streets-v12',
-        center: center,
-        zoom: zoom,
-        attributionControl: false,
-      })
-      map.current = mapInstance
-    } catch (error) {
-      console.error('[MapboxMap] Failed to initialize map:', error)
+    if (!ENABLE_INTERACTIVE_MAP) {
+      setIsInteractiveMapReady(false)
       return
     }
 
-    // Set map as loaded when ready - also check if already loaded
-    if (mapInstance.loaded()) {
-      setMapLoaded(true)
-      mapInstance.resize()
-    } else {
-      mapInstance.on('load', () => {
+    if (map.current || !mapContainer.current) return
+    if (!MAPBOX_ACCESS_TOKEN) return
+
+    let cancelled = false
+    let mapInstance: mapboxgl.Map | null = null
+    let frameId = 0
+    let timeoutId = 0
+    let didFallback = false
+
+    const initializeMap = async () => {
+      try {
+        await ensureMapboxCssLoaded()
+      } catch (error) {
+        console.error('[MapboxMap] Failed to load Mapbox CSS before init:', error)
+      }
+
+      if (cancelled || !mapContainer.current || map.current) return
+
+      forceMapboxLayout(mapContainer.current)
+      configureMapboxWorker()
+      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+
+      try {
+        mapInstance = new mapboxgl.Map({
+          container: mapContainer.current,
+          style: resolveMapboxStyle(style),
+          center: center,
+          zoom: zoom,
+          attributionControl: false,
+        })
+        map.current = mapInstance
+      } catch (error) {
+        console.error('[MapboxMap] Failed to initialize map:', error)
+        return
+      }
+
+      const failToStaticMap = (error: unknown) => {
+        if (didFallback) return
+        didFallback = true
+        setIsInteractiveMapReady(false)
+        console.warn('[MapboxMap] Falling back to static map image:', error)
+        try {
+          mapInstance?.remove()
+        } catch (disposeError) {
+          console.warn('[MapboxMap] Failed to dispose broken live map:', disposeError)
+        } finally {
+          if (map.current === mapInstance) {
+            map.current = null
+          }
+        }
+      }
+
+      mapInstance.on('error', (event) => {
+        const message =
+          event?.error instanceof Error
+            ? event.error.message
+            : typeof event?.error === 'string'
+              ? event.error
+              : ''
+
+        if (!message) return
+        if (
+          message.includes('not iterable') ||
+          message.includes('composite') ||
+          message.includes("reading 'send'")
+        ) {
+          failToStaticMap(event.error)
+        }
+      })
+
+      if (mapInstance.loaded()) {
         setMapLoaded(true)
+        setIsInteractiveMapReady(true)
+        forceMapboxLayout(mapContainer.current)
+        mapInstance.resize()
+      } else {
+        mapInstance.on('load', () => {
+          if (!mapContainer.current) return
+          setMapLoaded(true)
+          setIsInteractiveMapReady(true)
+          forceMapboxLayout(mapContainer.current)
+          mapInstance?.resize()
+        })
+      }
+
+      frameId = requestAnimationFrame(() => {
+        forceMapboxLayout(mapContainer.current)
         mapInstance?.resize()
+      })
+      timeoutId = window.setTimeout(() => {
+        forceMapboxLayout(mapContainer.current)
+        mapInstance?.resize()
+      }, 120)
+
+      mapInstance.on('moveend', () => {
+        if (mapInstance) {
+          const newCenter = mapInstance.getCenter()
+          const newZoom = mapInstance.getZoom()
+          updateAttributes({
+            center: [newCenter.lng, newCenter.lat],
+            zoom: newZoom,
+          })
+        }
       })
     }
 
-    // In node views, layout can settle after initial mount.
-    // Force follow-up resizes so the map fills the card on first render.
-    const frameId = requestAnimationFrame(() => mapInstance?.resize())
-    const timeoutId = window.setTimeout(() => mapInstance?.resize(), 120)
-
-    // Update attributes when map moves
-    mapInstance.on('moveend', () => {
-      if (mapInstance) {
-        const newCenter = mapInstance.getCenter()
-        const newZoom = mapInstance.getZoom()
-        updateAttributes({
-          center: [newCenter.lng, newCenter.lat],
-          zoom: newZoom,
-        })
-      }
-    })
+    initializeMap()
 
     return () => {
+      cancelled = true
       cancelAnimationFrame(frameId)
       window.clearTimeout(timeoutId)
       try {
@@ -510,6 +747,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         }
       }
       setMapLoaded(false)
+      setIsInteractiveMapReady(false)
     }
   }, [])
 
@@ -517,7 +755,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   useEffect(() => {
     if (!map.current || !mapContainer.current) return
 
-    const resizeMap = () => map.current?.resize()
+    const resizeMap = () => {
+      forceMapboxLayout(mapContainer.current)
+      map.current?.resize()
+    }
     const observer = new ResizeObserver(resizeMap)
     observer.observe(mapContainer.current)
     window.addEventListener('resize', resizeMap)
@@ -678,12 +919,30 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             doesn't dominate the timeline card — keeps the location context
             visible without pushing surrounding content too far apart. */}
         <div
+          ref={mapSurface}
           style={{
             position: 'relative',
             width: '100%',
             height: 280,
           }}
         >
+          {staticMapImageUrl && !isInteractiveMapReady && (
+            <img
+              aria-hidden="true"
+              alt=""
+              referrerPolicy="no-referrer"
+              src={staticMapImageUrl}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+
           {/* ARCHITECTURE: Keep the search UI as a floating overlay so the
               map remains the primary surface and the controls are always
               within reach (top-right) without adding layout height. */}
@@ -826,8 +1085,11 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           <div
             ref={mapContainer}
             style={{
+              position: 'absolute',
+              inset: 0,
               width: '100%',
               height: '100%',
+              opacity: isInteractiveMapReady ? 1 : 0,
             }}
           />
 
