@@ -5,6 +5,16 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import mapboxgl from 'mapbox-gl'
 
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_STYLE,
+  DEFAULT_MAP_ZOOM,
+  MapboxMapAttrs,
+  MapMarker,
+  needsMapboxMapAttrRepair,
+  sanitizeMapboxMapAttrs,
+} from './MapboxMapAttrs'
+
 // Mapbox access token (must be provided by environment variable)
 const MAPBOX_ACCESS_TOKEN =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
@@ -13,7 +23,7 @@ const MAPBOX_ACCESS_TOKEN =
 const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
 const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
-const MAPBOX_STATIC_DEFAULT_STYLE = 'mapbox://styles/mapbox/streets-v12'
+const MAPBOX_STATIC_DEFAULT_STYLE = DEFAULT_MAP_STYLE
 const ENABLE_INTERACTIVE_MAP = true
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 
@@ -119,20 +129,6 @@ const forceMapboxLayout = (container: HTMLDivElement | null) => {
     canvas.style.width = '100%'
     canvas.style.height = '100%'
   }
-}
-
-interface MapMarker {
-  lng: number
-  lat: number
-  label?: string
-}
-
-// Custom attrs for this node - accessed via node.attrs with type assertion
-interface MapboxMapAttrs {
-  center: [number, number]
-  zoom: number
-  markers: MapMarker[]
-  style: string
 }
 
 interface LocationNodeAttrs {
@@ -308,9 +304,15 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
   const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
 
-  // Cast attrs to our custom type for type-safe access
-  const attrs = node.attrs as unknown as MapboxMapAttrs
+  const attrs = useMemo<MapboxMapAttrs>(() => sanitizeMapboxMapAttrs(node.attrs), [node.attrs])
   const { center, zoom, markers, style } = attrs
+
+  useEffect(() => {
+    if (!needsMapboxMapAttrRepair(node.attrs)) return
+
+    updateAttributes(attrs)
+  }, [attrs, node.attrs, updateAttributes])
+
   const activeMarkers = useMemo(() => {
     // Inside a temporalSpace card, treat location tags as the source of truth.
     // This prevents stale persisted map attrs.markers (e.g. old Shanghai pin)
@@ -1149,16 +1151,16 @@ export const MapboxMapExtension = Node.create({
   addAttributes() {
     return {
       center: {
-        default: [-74.5, 40], // Default to New York area
+        default: DEFAULT_MAP_CENTER,
       },
       zoom: {
-        default: 9,
+        default: DEFAULT_MAP_ZOOM,
       },
       markers: {
         default: [],
       },
       style: {
-        default: 'mapbox://styles/mapbox/streets-v12',
+        default: DEFAULT_MAP_STYLE,
       },
     }
   },
