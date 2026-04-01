@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { JSDOM } from 'jsdom';
 
 import {
   buildTemporalOrderCenturyTopBandPlacements,
@@ -8,7 +9,34 @@ import {
   getCenturyViewDateOffsetPx,
   resolveCenturyViewClickSelection,
   resolveTemporalOrderCenturyViewColumnCount,
+  sanitizeClipboardHtmlContainer,
 } from './TemporalOrderExtension';
+
+test('sanitizeClipboardHtmlContainer removes style tags and unwraps node overlays', () => {
+  const dom = new JSDOM('<div></div>');
+  const container = dom.window.document.createElement('div');
+  container.innerHTML = `
+    <div data-node-overlay="true">
+      <select><option>Show all</option></select>
+      <button>Open</button>
+      <style>.scrollview::-webkit-scrollbar { display: none; }</style>
+      <div data-temporal-space="true"><p>Explore China</p></div>
+    </div>
+    <div class="node-overlay-grip-handle">grip</div>
+  `;
+
+  sanitizeClipboardHtmlContainer(container);
+
+  expect(container.querySelector('style')).toBeNull();
+  expect(container.querySelector('.node-overlay-grip-handle')).toBeNull();
+  expect(container.querySelector('[data-node-overlay="true"]')).toBeNull();
+  expect(container.querySelector('select')).toBeNull();
+  expect(container.querySelector('button')).toBeNull();
+
+  const temporalSpace = container.querySelector('[data-temporal-space="true"]');
+  expect(temporalSpace).not.toBeNull();
+  expect(temporalSpace?.textContent).toContain('Explore China');
+});
 
 test('buildTemporalOrderYearIncrements creates a present-to-2100 ladder', () => {
   const increments = buildTemporalOrderYearIncrements(2026, 2100);

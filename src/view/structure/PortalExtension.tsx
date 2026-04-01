@@ -97,9 +97,11 @@ const PortalExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: "div",
-        attrs: {
-          "data-portal": "true",
+        tag: 'div[data-portal="true"]',
+        getAttrs: (element) => {
+          if (typeof element === 'string') return false;
+          const hasAttr = element.getAttribute('data-portal') === 'true';
+          return hasAttr ? {} : false;
         },
       },
     ];

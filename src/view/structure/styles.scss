@@ -16,6 +16,15 @@
   box-shadow: 0 0 5px #ff7f00, 0 0 20px #ff7f00, 0 0 30px #ff7f00, 0 0 40px #ff7f00;
 }
 
+.scrollview {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollview::-webkit-scrollbar {
+  display: none;
+}
+
 .temporal-order-time-mode-toggle {
   position: absolute;
   top: -12px;

@@ -21,13 +21,18 @@ export const ExperimentalPortalExtension = Node.create({
     parseHTML() {
         return [
             {
-                tag: 'div',
+                tag: 'div[data-experimental-portal="true"]',
+                getAttrs: (element) => {
+                    if (typeof element === 'string') return false
+                    const hasAttr = element.getAttribute('data-experimental-portal') === 'true'
+                    return hasAttr ? {} : false
+                },
             },
         ]
     },
 
     renderHTML({ node, HTMLAttributes }) {
-        return ['div', { ...HTMLAttributes, 'data-id': node.attrs.id }, 0]
+        return ['div', { ...HTMLAttributes, 'data-id': node.attrs.id, 'data-experimental-portal': 'true' }, 0]
     },
 
     addInputRules() {

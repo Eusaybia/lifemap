@@ -44,14 +44,6 @@ export const ScrollView = (props: { children: any, lens: ScrollViewLenses, quant
                 msOverflowStyle: "none", // IE and Edge
             }}
         >
-            {/* Hide scrollbar for webkit browsers */}
-            <style>
-                {`
-                .scrollview::-webkit-scrollbar {
-                    display: none;
-                }
-                `}
-            </style>
             <Grip/>
             {props.children}
         </motion.div>

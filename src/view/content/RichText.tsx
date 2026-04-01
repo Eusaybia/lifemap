@@ -90,6 +90,12 @@ import { Plugin, Transaction } from 'prosemirror-state'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import * as Y from 'yjs'
 import { TiptapTransformer } from '@hocuspocus/transformer'
+import {
+  buildInternalClipboardSlice,
+  parseInternalClipboardNodes,
+  readInternalClipboardPayload,
+  writeInternalClipboardSelection,
+} from '../clipboard/InternalClipboard'
 
 // Template quanta ID - this is the editable template in the Daily carousel
 // When empty, it will be initialized from the hardcoded TEMPLATE_SCHEMA in DailyScheduleTemplate.ts
@@ -1120,6 +1126,72 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     editorProps: {
       attributes: {
         class: 'tiptap focus:outline-none',
+      },
+      handleDOMEvents: {
+        copy: (view, event) => {
+          if (!(event instanceof ClipboardEvent) || typeof document === 'undefined') {
+            return false
+          }
+
+          const handled = writeInternalClipboardSelection({
+            clipboardData: event.clipboardData,
+            selection: view.state.selection,
+            schema: view.state.schema,
+            document,
+          })
+
+          if (!handled) {
+            return false
+          }
+
+          event.preventDefault()
+          return true
+        },
+        cut: (view, event) => {
+          if (!(event instanceof ClipboardEvent) || typeof document === 'undefined') {
+            return false
+          }
+
+          const handled = writeInternalClipboardSelection({
+            clipboardData: event.clipboardData,
+            selection: view.state.selection,
+            schema: view.state.schema,
+            document,
+          })
+
+          if (!handled) {
+            return false
+          }
+
+          event.preventDefault()
+          view.dispatch(
+            view.state.tr.deleteSelection().scrollIntoView().setMeta('uiEvent', 'cut')
+          )
+          return true
+        },
+        paste: (view, event) => {
+          if (!(event instanceof ClipboardEvent)) {
+            return false
+          }
+
+          const internalNodes = parseInternalClipboardNodes(
+            readInternalClipboardPayload(event.clipboardData),
+            view.state.schema
+          )
+
+          if (!internalNodes.length) {
+            return false
+          }
+
+          event.preventDefault()
+          view.dispatch(
+            view.state.tr
+              .replaceSelection(buildInternalClipboardSlice(internalNodes))
+              .scrollIntoView()
+              .setMeta('uiEvent', 'paste')
+          )
+          return true
+        },
       },
     },
     content: (informationType === "yDoc") ? null : information,

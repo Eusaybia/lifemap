@@ -97,9 +97,11 @@ const ExternalPortalExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: "div",
-        attrs: {
-          "data-external-portal": "true",
+        tag: 'div[data-external-portal="true"]',
+        getAttrs: (element) => {
+          if (typeof element === 'string') return false;
+          const hasAttr = element.getAttribute('data-external-portal') === 'true';
+          return hasAttr ? {} : false;
         },
       },
     ];

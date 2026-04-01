@@ -139,9 +139,11 @@ export const ScrollViewExtension = TipTapNode.create({
   parseHTML() {
     return [
       {
-        tag: "div",
-        attrs: {
-          "data-scrollview": "true",
+        tag: 'div[data-scrollview="true"]',
+        getAttrs: (element) => {
+          if (typeof element === 'string') return false;
+          const hasAttr = element.getAttribute('data-scrollview') === 'true';
+          return hasAttr ? {} : false;
         },
       },
     ];

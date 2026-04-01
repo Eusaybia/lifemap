@@ -11,6 +11,7 @@ import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
 import { ReferenceReactFlowCanvas } from "./ReferenceReactFlowCanvas";
 import { TemporalEventCanvasNode, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
+import { parseInternalClipboardNodes, readInternalClipboardPayload } from "../clipboard/InternalClipboard";
 import './styles.scss';
 
 // ============================================================================
@@ -164,7 +165,34 @@ const sortChildrenByDate = (
 interface ClipboardPayload {
   html: string | null;
   text: string | null;
+  internal: string | null;
 }
+
+const sanitizeClipboardHtmlContainer = (container: HTMLElement) => {
+  container.querySelectorAll('style, script, noscript').forEach((node) => node.remove());
+  container
+    .querySelectorAll('[data-drag-handle], .node-overlay-grip-handle, input, button, select, option, svg')
+    .forEach((node) => node.remove());
+
+  const unwrapSelectors = [
+    '[data-node-overlay="true"]',
+    '[data-scrollview-node-view="true"]',
+    '[data-group-node-view="true"]',
+    '[data-temporal-space-node-view="true"]',
+    '[data-portal-lens]',
+  ];
+
+  unwrapSelectors.forEach((selector) => {
+    container.querySelectorAll(selector).forEach((node) => {
+      const parent = node.parentNode;
+      if (!parent) return;
+      while (node.firstChild) {
+        parent.insertBefore(node.firstChild, node);
+      }
+      parent.removeChild(node);
+    });
+  });
+};
 
 /**
  * ARCHITECTURE: Prefer HTML clipboard parsing to preserve rich formatting,
@@ -174,9 +202,15 @@ const parseClipboardPayloadToNodes = (
   payload: ClipboardPayload,
   schema: Schema
 ): ProseMirrorNode[] => {
+  const internalNodes = parseInternalClipboardNodes(payload.internal, schema);
+  if (internalNodes.length) {
+    return internalNodes;
+  }
+
   if (payload.html && typeof document !== 'undefined') {
     const container = document.createElement('div');
     container.innerHTML = payload.html;
+    sanitizeClipboardHtmlContainer(container);
     const parser = DOMParser.fromSchema(schema);
     const slice = parser.parseSlice(container);
     const nodes: ProseMirrorNode[] = [];
@@ -380,14 +414,15 @@ const DropZone: React.FC<DropZoneProps> = ({
 
     const html = e.clipboardData?.getData('text/html') || null;
     const text = e.clipboardData?.getData('text/plain') || null;
+    const internal = readInternalClipboardPayload(e.clipboardData);
 
-    if (!html && !text) {
+    if (!internal && !html && !text) {
       return;
     }
 
     isProcessingRef.current = true;
     setIsDragOver(false);
-    onPaste({ html, text });
+    onPaste({ html, text, internal });
 
     setTimeout(() => {
       isProcessingRef.current = false;
