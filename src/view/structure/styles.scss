@@ -225,7 +225,8 @@
 }
 
 .temporal-order-graph-layer,
-.temporal-order-flow-layer {
+.temporal-order-flow-layer,
+.temporal-order-globe-layer {
   position: relative;
   width: 100%;
   min-height: 480px;
@@ -247,20 +248,29 @@
   background: transparent;
 }
 
+.temporal-order-globe-layer.is-edge-to-edge {
+  border-radius: 0;
+  border: none;
+  background: transparent;
+}
+
 .temporal-order-graph-canvas,
-.temporal-order-flow-canvas {
+.temporal-order-flow-canvas,
+.temporal-order-globe-canvas {
   width: 100%;
   min-height: 480px;
   height: 480px;
   position: relative;
 }
 
-.temporal-order-graph-canvas-host {
+.temporal-order-graph-canvas-host,
+.temporal-order-globe-canvas-host {
   position: absolute;
   inset: 0;
 }
 
-.temporal-order-graph-canvas-error {
+.temporal-order-graph-canvas-error,
+.temporal-order-globe-canvas-error {
   position: absolute;
   inset: 0;
   display: flex;

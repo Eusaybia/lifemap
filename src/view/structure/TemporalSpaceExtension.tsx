@@ -136,6 +136,8 @@ export const shouldHideTemporalSpace = (
 // Match for angle brackets with text in between: <some text>
 export const temporalSpaceInputRegex = /<([^<>]*)>/;
 
+const TEMPORAL_SPACE_PREVIEW_MAX_HEIGHT_PX = 100;
+
 export const TemporalSpaceExtension = TipTapNode.create({
   name: "temporalSpace",
   group: "block",
@@ -347,7 +349,18 @@ export const TemporalSpaceExtension = TipTapNode.create({
       const isHidden = shouldHideTemporalSpace(props.node.toJSON(), docAttributes.selectedEventLens, docAttributes.selectedFocusLens);
       const dimmingOpacity = (docAttributes.selectedFocusLens === 'call-mode' && !isCentered) ? 0.8 : 0;
 
-      const isCollapsed = props.node.attrs.lens === 'collapsed';
+      const lens = typeof props.node.attrs.lens === 'string' ? props.node.attrs.lens : 'identity';
+      const isCollapsed = lens === 'collapsed';
+      const isPreview = lens === 'preview' || lens === 'compact';
+      const overlayPadding = isCollapsed
+        ? '10px 20px'
+        : '20px';
+      const innerMargin = isCollapsed
+        ? '-10px -20px'
+        : '-20px';
+      const innerPadding = isCollapsed
+        ? '10px 20px'
+        : '20px';
 
       return (
         <NodeViewWrapper
@@ -372,7 +385,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
               inset -1px 0 0 rgba(0, 0, 0, 0.03)
             `}
             borderRadius={12}
-            padding={isCollapsed ? '10px 20px' : '20px'}
+            padding={overlayPadding}
             // ARCHITECTURE DECISION: Transparent background for 3D scene integration
             // ===================================================================
             // When embedded in 3D scenes (natural-calendar-v3, notes-natural-ui),
@@ -384,12 +397,14 @@ export const TemporalSpaceExtension = TipTapNode.create({
               style={{
                 position: 'relative',
                 minHeight: isCollapsed ? 48 : 20,
+                maxHeight: isPreview ? TEMPORAL_SPACE_PREVIEW_MAX_HEIGHT_PX : undefined,
+                overflow: isPreview ? 'hidden' : 'visible',
               // ARCHITECTURE DECISION: Frosted glass blur to the edges
               // =====================================================
               // NodeOverlay applies padding, so we extend the blur layer to the
               // card edges with negative margins while keeping content padding.
-              margin: isCollapsed ? '-10px -20px' : '-20px',
-              padding: isCollapsed ? '10px 20px' : '20px',
+              margin: innerMargin,
+              padding: innerPadding,
               borderRadius: 12,
               // Frosted glass backdrop blur effect
               backdropFilter: 'blur(12px)',
@@ -408,11 +423,18 @@ export const TemporalSpaceExtension = TipTapNode.create({
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2 }}
-                    style={{ position: 'relative', zIndex: 1 }}
+                    style={{
+                      position: 'relative',
+                      zIndex: 1,
+                      overflow: isPreview ? 'hidden' : 'visible',
+                    }}
                   >
                     {(() => {
-                      switch (props.node.attrs.lens) {
+                      switch (lens) {
                         case "identity":
+                          return <NodeViewContent />;
+                        case "preview":
+                        case "compact":
                           return <NodeViewContent />;
                         case "hideUnimportantNodes":
                           return <div>Important Nodes Only (Pending)</div>;
@@ -423,6 +445,23 @@ export const TemporalSpaceExtension = TipTapNode.create({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {isPreview && !isCollapsed && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 40,
+                    borderRadius: '0 0 12px 12px',
+                    background: 'linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1))',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                  }}
+                />
+              )}
 
               {/* Call-mode dimming overlay - dims non-centered nodes during call-mode */}
               <motion.div
@@ -435,7 +474,7 @@ export const TemporalSpaceExtension = TipTapNode.create({
                   backgroundColor: 'black',
                   borderRadius: 12,
                   pointerEvents: 'none',
-                  zIndex: 2,
+                  zIndex: 3,
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: dimmingOpacity }}

@@ -43,7 +43,7 @@ export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties 
         backgroundColor: `rgba(217, 217, 217, 0.20)`,
         backdropFilter: `blur(12px)`,
         overflow: allowScroll ? "scroll" : "visible",
-        zIndex: 1,
+        zIndex: 1000,
         alignContent: "center",
         flexWrap: "nowrap",
         gap: "10px",
@@ -1309,6 +1309,13 @@ const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
                         📦 Collapsed
                     </motion.div>
                 </Option>
+                <Option value={"preview"} onClick={() => {
+                    props.editor.commands.setTemporalSpaceLens({ lens: "preview" })
+                }}>
+                    <motion.div>
+                        Preview
+                    </motion.div>
+                </Option>
             </FlowSwitch>
             <Tag>
                 Temporal Space
@@ -1377,7 +1384,7 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     const isCollapsed = !!selectedNode?.attrs?.collapsed
     const lensAttr = selectedNode?.attrs?.lens
     const selectedLens =
-      lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView' || lensAttr === 'yearlyView'
+      lensAttr === 'globeView' || lensAttr === 'map2DView' || lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView' || lensAttr === 'yearlyView'
         ? lensAttr
         : selectedNode?.attrs?.timeMode === 'nonLinear'
           ? 'graph2D'
@@ -1416,6 +1423,26 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Yearly View
+                    </motion.div>
+                </Option>
+                <Option value={"globeView"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "globeView" })
+                }}>
+                    <motion.div>
+                        Globe
+                    </motion.div>
+                </Option>
+                <Option value={"map2DView"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "map2DView" })
+                }}>
+                    <motion.div>
+                        2D Map
                     </motion.div>
                 </Option>
                 <Option value={"auraView"} onClick={() => {
@@ -2177,6 +2204,38 @@ export const FlowMenu = (props: { editor: Editor }) => {
     }, [])
     
     const selection = props.editor!.view.state.selection
+    const getReferencedVirtualElement = React.useCallback(() => {
+        if (currentNodeType !== 'temporalOrder') {
+            return null
+        }
+
+        const { selection } = props.editor.state
+        const editorView = props.editor.view
+
+        const findTemporalOrderWrapper = (node: Node | null): HTMLElement | null => {
+            const element = node instanceof HTMLElement ? node : node?.parentElement ?? null
+            return element?.closest('[data-temporal-order-node-view="true"]') as HTMLElement | null
+        }
+
+        let temporalOrderWrapper: HTMLElement | null = null
+
+        if (isNodeSelection(selection)) {
+            temporalOrderWrapper = findTemporalOrderWrapper(editorView.nodeDOM(selection.from))
+        }
+
+        if (!temporalOrderWrapper) {
+            temporalOrderWrapper = findTemporalOrderWrapper(editorView.domAtPos(selection.from).node)
+        }
+
+        if (!temporalOrderWrapper) {
+            return null
+        }
+
+        return {
+            getBoundingClientRect: () => temporalOrderWrapper.getBoundingClientRect(),
+            getClientRects: () => [temporalOrderWrapper.getBoundingClientRect()],
+        }
+    }, [currentNodeType, props.editor])
 
     // Listen for selection updates and re-render when node type changes
     React.useEffect(() => {
@@ -2217,11 +2276,12 @@ export const FlowMenu = (props: { editor: Editor }) => {
     return (
         <BubbleMenu
             editor={props.editor}
+            getReferencedVirtualElement={getReferencedVirtualElement}
             options={{
+                strategy: "fixed",
                 placement: "top",
-                // Keep the bubble menu open when interacting with FlowSwitch
-                // hideOnClick: false, // May need adjustment based on FlowSwitch behavior
-                // appendTo: () => document.body, // Helps with positioning issues sometimes
+                offset: 24,
+                appendTo: () => document.body,
             }}
             // Show for both text selections AND node selections (portal, externalPortal, group, etc.)
             shouldShow={({ editor, state }) => {

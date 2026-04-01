@@ -137,12 +137,14 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     errorDescription: null,
     failedUrl: null,
   }));
+  const [isUserVisibleLoading, setIsUserVisibleLoading] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const lastSentBoundsKeyRef = useRef<string | null>(null);
   const lastPersistedSurfaceUrlRef = useRef<string | null>(rawUrl.trim() || null);
   const syncInFlightRef = useRef(false);
   const surfaceHasErrorRef = useRef(false);
+  const reloadRequestedRef = useRef(false);
   const pendingSurfaceNavigationRef = useRef<{
     targetUrl: string;
     sourceUrl: string | null;
@@ -259,6 +261,12 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     (nextState: BrowserSurfaceState) => {
       setBrowserState(nextState);
       reconcileSurfaceUrlAttribute(nextState.url);
+      if (!nextState.loading) {
+        reloadRequestedRef.current = false;
+        setIsUserVisibleLoading(false);
+      } else if (pendingSurfaceNavigationRef.current || reloadRequestedRef.current) {
+        setIsUserVisibleLoading(true);
+      }
     },
     [reconcileSurfaceUrlAttribute],
   );
@@ -462,12 +470,18 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     const currentSurfaceUrl = String(browserState.url || "").trim();
     if (currentSurfaceUrl && currentSurfaceUrl === resolvedUrl) {
       pendingSurfaceNavigationRef.current = null;
+      if (!browserState.loading) {
+        reloadRequestedRef.current = false;
+        setIsUserVisibleLoading(false);
+      }
       return;
     }
     pendingSurfaceNavigationRef.current = {
       targetUrl: resolvedUrl,
       sourceUrl: currentSurfaceUrl || null,
     };
+    reloadRequestedRef.current = false;
+    setIsUserVisibleLoading(true);
     setBrowserState((current) => ({
       ...current,
       errorCode: null,
@@ -493,12 +507,22 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       if (event.surfaceId !== surfaceId) return;
       if (event.type === "loadError") {
         pendingSurfaceNavigationRef.current = null;
+        reloadRequestedRef.current = false;
+        setIsUserVisibleLoading(false);
         logBrowserWindowFailure("surface load error", {
           surfaceId,
           errorCode: event.errorCode,
           errorDescription: event.errorDescription,
           failedUrl: event.failedUrl,
         });
+      }
+      if (event.type === "loadState") {
+        if (event.loading === false) {
+          reloadRequestedRef.current = false;
+          setIsUserVisibleLoading(false);
+        } else if (pendingSurfaceNavigationRef.current || reloadRequestedRef.current) {
+          setIsUserVisibleLoading(true);
+        }
       }
       setBrowserState((current) => {
         const nextState = mergeBrowserSurfaceState(current, event);
@@ -601,11 +625,16 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
         errorDescription: null,
         failedUrl: null,
       }));
-      if (browserState.loading && hasSurfaceStopApi) {
+      if (isUserVisibleLoading && hasSurfaceStopApi) {
+        pendingSurfaceNavigationRef.current = null;
+        reloadRequestedRef.current = false;
+        setIsUserVisibleLoading(false);
         void runSurfaceRequest(() => surfaceApi.stop({ surfaceId }));
         return;
       }
       if (hasSurfaceReloadApi) {
+        reloadRequestedRef.current = true;
+        setIsUserVisibleLoading(true);
         void runSurfaceRequest(() => surfaceApi.reload({ surfaceId }));
         return;
       }
@@ -633,6 +662,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     : "Enter a web address";
   const canGoBack = isDesktopSurfaceEnabled && hasSurfaceBackApi ? browserState.canGoBack : false;
   const canGoForward = isDesktopSurfaceEnabled && hasSurfaceForwardApi ? browserState.canGoForward : false;
+  const shouldShowStopControl = isDesktopSurfaceEnabled ? isUserVisibleLoading : browserState.loading;
   const shouldRenderDesktopSurface = isDesktopSurfaceEnabled && surfaceLifecycleState !== "failed";
   const shouldShowDesktopFailure = shouldRenderDesktopSurface && Boolean(browserState.errorDescription);
   const failureUrl = browserState.failedUrl || displayUrl || resolvedUrl || rawUrl;
@@ -762,7 +792,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
               {[
                 { label: "←", onClick: handleNavigateBack, disabled: !canGoBack, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> },
                 { label: "→", onClick: handleNavigateForward, disabled: !canGoForward, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg> },
-                { label: browserState.loading ? "✕" : "↻", onClick: handleReload, disabled: false, icon: browserState.loading ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg> },
+                { label: shouldShowStopControl ? "✕" : "↻", onClick: handleReload, disabled: false, icon: shouldShowStopControl ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg> },
               ].map((control) => (
                 <button
                   key={control.label}

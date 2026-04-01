@@ -2,11 +2,14 @@ import { expect, test } from 'vitest';
 import { JSDOM } from 'jsdom';
 
 import {
+  buildTemporalOrderClickTimePointAttrs,
   buildTemporalOrderCenturyTopBandPlacements,
   buildTemporalOrderCenturyViewPlacements,
   buildTemporalOrderMonthTicks,
   buildTemporalOrderYearIncrements,
+  extractTemporalOrderLocationsFromJSONContent,
   getCenturyViewDateOffsetPx,
+  retimeTemporalOrderNodeJson,
   resolveCenturyViewClickSelection,
   resolveTemporalOrderCenturyViewColumnCount,
   sanitizeClipboardHtmlContainer,
@@ -336,6 +339,31 @@ test('resolveCenturyViewClickSelection uses someday precision in the rightmost h
   expect(selection.hoverMode).toBe('someday');
 });
 
+test('resolveCenturyViewClickSelection uses week precision in the week hover region', () => {
+  const increments = buildTemporalOrderYearIncrements(2026, 2028);
+  const monthTicks = buildTemporalOrderMonthTicks(increments);
+  const yearTopLookup = new Map(increments.map((increment) => [increment.year, increment.topPx]));
+  const novemberOffsetPx = getCenturyViewDateOffsetPx(new Date(2026, 10, 15), yearTopLookup, 0);
+
+  const selection = resolveCenturyViewClickSelection(
+    novemberOffsetPx,
+    0.35,
+    increments,
+    monthTicks
+  );
+
+  expect(selection.precision).toBe('week');
+  expect(selection.hoverMode).toBe('week');
+});
+
+test('buildTemporalOrderClickTimePointAttrs creates week timepoints for week precision', () => {
+  const attrs = buildTemporalOrderClickTimePointAttrs(new Date(2026, 4, 18), 'week');
+
+  expect(attrs.id).toBe('timepoint:week-2026-5-18');
+  expect(attrs.label).toBe('📅 Week of 18 May 2026');
+  expect(attrs['data-formatted']).toBe('Week of 18 May 2026');
+});
+
 test('resolveCenturyViewClickSelection keeps day precision in the day hover region', () => {
   const increments = buildTemporalOrderYearIncrements(2026, 2028);
   const monthTicks = buildTemporalOrderMonthTicks(increments);
@@ -353,4 +381,186 @@ test('resolveCenturyViewClickSelection keeps day precision in the day hover regi
   expect(selection.date.getFullYear()).toBe(2026);
   expect(selection.date.getMonth()).toBe(10);
   expect(selection.date.getDate()).toBeGreaterThan(1);
+});
+
+test('retimeTemporalOrderNodeJson converts someday mentions into concrete month timepoints', () => {
+  const updated = retimeTemporalOrderNodeJson(
+    {
+      type: 'temporalSpace',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'timepoint',
+              attrs: {
+                id: 'timepoint:someday',
+                label: '⏳ Some day',
+                'data-date': '',
+                'data-formatted': 'Some day',
+                'data-relative-label': 'Some day',
+              },
+            },
+            { type: 'text', text: ' Build the thing' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'timepoint:month-2026-11',
+      label: '📅 November 2026',
+      'data-date': '2026-11-01T00:00:00.000Z',
+      'data-formatted': 'November 2026',
+      'data-relative-label': 'November 2026',
+    }
+  );
+
+  const timepointAttrs = updated?.content?.[0]?.content?.[0]?.attrs as Record<string, string> | undefined;
+
+  expect(timepointAttrs?.id).toBe('timepoint:month-2026-11');
+  expect(timepointAttrs?.label).toBe('📅 November 2026');
+  expect(timepointAttrs?.['data-date']).toBe('2026-11-01T00:00:00.000Z');
+});
+
+test('retimeTemporalOrderNodeJson retimes existing dated mentions to a new concrete date', () => {
+  const updated = retimeTemporalOrderNodeJson(
+    {
+      type: 'temporalSpace',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'timepoint',
+              attrs: {
+                id: 'timepoint:date-2026-5-25',
+                label: '📅 25 May 2026',
+                'data-date': '2026-05-25T00:00:00.000Z',
+                'data-formatted': '25 May 2026',
+                'data-relative-label': '25 May 2026',
+              },
+            },
+            { type: 'text', text: ' Natural UI open source' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'timepoint:month-2026-8',
+      label: '📅 August 2026',
+      'data-date': '2026-08-01T00:00:00.000Z',
+      'data-formatted': 'August 2026',
+      'data-relative-label': 'August 2026',
+    }
+  );
+
+  const timepointAttrs = updated?.content?.[0]?.content?.[0]?.attrs as Record<string, string> | undefined;
+
+  expect(timepointAttrs?.id).toBe('timepoint:month-2026-8');
+  expect(timepointAttrs?.label).toBe('📅 August 2026');
+  expect(timepointAttrs?.['data-date']).toBe('2026-08-01T00:00:00.000Z');
+});
+
+test('extractTemporalOrderLocationsFromJSONContent reads inline location mentions and manual map markers', () => {
+  const locations = extractTemporalOrderLocationsFromJSONContent({
+    type: 'temporalSpace',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'location',
+            attrs: {
+              id: 'sydney',
+              label: '📍 Sydney',
+              'data-name': 'Sydney',
+              'data-country': 'Australia',
+              'data-coords': JSON.stringify([151.2093, -33.8688]),
+            },
+          },
+        ],
+      },
+      {
+        type: 'mapboxMap',
+        attrs: {
+          markers: [
+            { lng: -122.4194, lat: 37.7749, label: 'San Francisco' },
+            { lng: -122.4194, lat: 37.7749, label: 'San Francisco' },
+          ],
+        },
+      },
+    ],
+  });
+
+  expect(locations).toEqual([
+    {
+      id: 'sydney',
+      name: 'Sydney',
+      label: 'Sydney',
+      country: 'Australia',
+      coords: [151.2093, -33.8688],
+    },
+    {
+      name: 'San Francisco',
+      label: 'San Francisco',
+      coords: [-122.4194, 37.7749],
+    },
+  ]);
+});
+
+test('extractTemporalOrderLocationsFromJSONContent keeps unresolved custom locations for later geocoding', () => {
+  const locations = extractTemporalOrderLocationsFromJSONContent({
+    type: 'temporalSpace',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'location',
+            attrs: {
+              label: '📍 Cusco',
+              'data-name': 'Cusco',
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  expect(locations).toEqual([
+    {
+      name: 'Cusco',
+      label: 'Cusco',
+      country: undefined,
+      coords: null,
+    },
+  ]);
+});
+
+test('extractTemporalOrderLocationsFromJSONContent reads legacy block location nodes from nested text', () => {
+  const locations = extractTemporalOrderLocationsFromJSONContent({
+    type: 'temporalSpace',
+    content: [
+      {
+        type: 'location',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Alexandria, Egypt' },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  expect(locations).toEqual([
+    {
+      name: 'Alexandria, Egypt',
+      label: 'Alexandria, Egypt',
+      country: undefined,
+      coords: null,
+    },
+  ]);
 });

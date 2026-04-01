@@ -1,7 +1,7 @@
 import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
-import { playUiSound, useScrollEnd } from '../../utils/utils';
+import { playUiSound } from '../../utils/utils';
 import { FlowSwitchValue, getFlowSwitchOptionElements, resolveFlowSwitchValue } from './FlowSwitch.utils';
 
 interface OptionButtonProps {
@@ -43,12 +43,13 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
     // TODO: The switch should only update once it's released, at least on touch and scrollpad based platforms
     // But this doesn't seem possible to detect currently
-    const [releaseSelected, setReleaseSelected] = React.useState<number>(0)
     const [isUserScrolling, setIsUserScrolling] = React.useState(false);
     const [selectedIndex, setSelectedIndex] = React.useState<number>(0);
     const isProgrammaticScroll = React.useRef(false);
     const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const lastValueRef = React.useRef<FlowSwitchValue | undefined>(props.value);
+    const pendingScrollSelectIndexRef = React.useRef<number | null>(null);
+    const skipNextAutoScrollRef = React.useRef(false);
 
     const logDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
         if (!props.diagnosticsEnabled) return
@@ -105,13 +106,12 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                     scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
                 })
                 
-                // If scrollToSelect is enabled and user is scrolling, trigger the option's onClick
-                if (props.scrollToSelect && isUserScrolling && child?.props?.onClick) {
-                    logDiagnostics('scrollToSelect:onClick', {
+                if (props.scrollToSelect && isUserScrolling) {
+                    pendingScrollSelectIndexRef.current = index
+                    logDiagnostics('scrollToSelect:pending', {
                         index,
                         optionValue: child?.props?.value,
                     })
-                    child.props.onClick();
                 }
             }}
             key={index}
@@ -124,6 +124,14 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     React.useEffect(() => {
         // Skip auto-scroll if disabled (for keyboard-controlled navigation)
         if (props.disableAutoScroll) return;
+        if (skipNextAutoScrollRef.current) {
+            skipNextAutoScrollRef.current = false;
+            logDiagnostics('autoScroll:skipped', {
+                selectedValue: resolvedValue,
+                requestedValue: props.value,
+            })
+            return;
+        }
 
         if (lastValueRef.current !== resolvedValue) {
             logDiagnostics('valueChanged', {
@@ -188,15 +196,6 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
     }, [props.value, props.disableAutoScroll, logDiagnostics, optionValuesSignature, resolvedValue])
 
-    useScrollEnd(() => {
-        if (props.onChange) {
-            // props.onChange(selectedIndex);
-        }
-
-        // switchElements[selectedIndex].props.onClick()
-
-    }, 2000)
-
     // Cleanup timeout on unmount
     React.useEffect(() => {
         return () => {
@@ -227,17 +226,31 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
         }
         scrollTimeoutRef.current = setTimeout(() => {
             setIsUserScrolling(false);
+            const pendingIndex = pendingScrollSelectIndexRef.current
+            const pendingChild = pendingIndex !== null ? validChildren[pendingIndex] : null
+
+            if (props.scrollToSelect && pendingChild?.props?.onClick) {
+                logDiagnostics('scrollToSelect:commit', {
+                    index: pendingIndex,
+                    optionValue: pendingChild.props.value,
+                    scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
+                })
+                skipNextAutoScrollRef.current = true
+                pendingChild.props.onClick()
+            }
+
+            pendingScrollSelectIndexRef.current = null
             logDiagnostics('handleScroll:user:end', {
                 selectedIndex,
                 selectedValue: validChildren[selectedIndex]?.props?.value ?? null,
                 scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
             })
-        }, 150);
-    }, [logDiagnostics, selectedIndex, validChildren]);
+        }, 300);
+    }, [logDiagnostics, props.scrollToSelect, selectedIndex, validChildren]);
 
     return (
         <motion.div className="flow-menu"
-            key={props.value}
+            key={props.disableAutoScroll ? "flow-switch-stable" : String(props.value)}
             ref={setRefs}
             onScroll={handleScroll}
             data-testid={props.testId}

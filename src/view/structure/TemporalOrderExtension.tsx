@@ -14,6 +14,7 @@ import { scanNodeForTags } from "../components/Aura";
 import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
 import { AuraSpec, readAuraFromAttrs, readTimepointAuraFromAttrs } from "../aura/AuraModel";
 import { TemporalEventCardRenderer, type TemporalEventCanvasNodeData } from "./TemporalEventCanvasNode";
+import type { TemporalOrderGlobeLocation } from "./TemporalOrderGlobeView";
 import type { QuantaFlowGraphNodeData } from "../components/QuantaFlowGraph";
 import { parseInternalClipboardNodes, readInternalClipboardPayload } from "../clipboard/InternalClipboard";
 import './styles.scss';
@@ -26,6 +27,30 @@ const TemporalOrderQuantaFlowGraph = dynamic(() => import('../components/QuantaF
     </div>
   ),
 });
+
+const TemporalOrderGlobeView = dynamic(
+  () => import('./TemporalOrderGlobeView').then((module) => module.TemporalOrderGlobeView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="temporal-order-globe-canvas-error">
+        Loading globe...
+      </div>
+    ),
+  }
+);
+
+const TemporalOrder2DMapView = dynamic(
+  () => import('./TemporalOrderGlobeView').then((module) => module.TemporalOrder2DMapView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="temporal-order-globe-canvas-error">
+        Loading map...
+      </div>
+    ),
+  }
+);
 
 // ============================================================================
 // TEMPORAL ORDER EXTENSION
@@ -69,7 +94,7 @@ declare module '@tiptap/core' {
   }
 }
 
-type TemporalOrderLens = 'identity' | 'centuryView' | 'yearlyView' | 'auraView' | 'graph2D' | 'flowGraph';
+type TemporalOrderLens = 'identity' | 'centuryView' | 'yearlyView' | 'globeView' | 'map2DView' | 'auraView' | 'graph2D' | 'flowGraph';
 type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year' | 'someday';
 
 const TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER: TemporalOrderCenturySpecificity[] = [
@@ -183,9 +208,23 @@ const extractEarliestTemporalMetadataFromNode = (
     }
   });
 
+  const resolvedMatch = earliestMatch as
+    | {
+        date: Date;
+        specificity: TemporalOrderCenturySpecificity;
+      }
+    | null;
+
+  if (!resolvedMatch) {
+    return {
+      date: null,
+      specificity: null,
+    };
+  }
+
   return {
-    date: earliestMatch?.date ?? null,
-    specificity: earliestMatch?.specificity ?? null,
+    date: resolvedMatch.date,
+    specificity: resolvedMatch.specificity,
   };
 };
 
@@ -1651,6 +1690,7 @@ interface TemporalOrderContentProps {
   isCollapsed: boolean;
   lens: TemporalOrderLens;
   eventSources: TemporalOrderEventSource[];
+  globeLocations: TemporalOrderGlobeLocation[];
   yearIncrements: TemporalOrderYearIncrement[];
   timelineLayout: TemporalOrderTimelineLayoutItem[];
   auraGraphData: ForceGraph3DData;
@@ -1672,6 +1712,7 @@ interface TemporalOrderEventSource {
   hasMap: boolean;
   dateMs: number | null;
   aura: AuraSpec | null;
+  locations: TemporalOrderEventLocation[];
 }
 
 interface TemporalOrderForceGraph2DNode {
@@ -1789,6 +1830,16 @@ const walkJSONContent = (
   node.content?.forEach((child) => walkJSONContent(child, visitor));
 };
 
+const extractTextFromJSONNode = (node: JSONContent | null | undefined): string => {
+  const chunks: string[] = [];
+  walkJSONContent(node, (current) => {
+    if (current.type === 'text' && typeof current.text === 'string' && current.text.trim()) {
+      chunks.push(current.text.trim());
+    }
+  });
+  return chunks.join(' ').replace(/\s+/g, ' ').trim();
+};
+
 const extractTextPreviewFromJSONContent = (content: JSONContent): string => {
   const chunks: string[] = [];
   walkJSONContent(content, (node) => {
@@ -1824,6 +1875,122 @@ const extractTimeLabelFromJSONContent = (content: JSONContent): string | null =>
     }
   });
   return discovered;
+};
+
+interface TemporalOrderEventLocation {
+  id?: string;
+  name: string;
+  label: string;
+  country?: string;
+  coords: [number, number] | null;
+}
+
+const parseTemporalOrderLocationCoords = (rawCoords: unknown): [number, number] | null => {
+  if (Array.isArray(rawCoords) && rawCoords.length === 2) {
+    const lng = Number(rawCoords[0]);
+    const lat = Number(rawCoords[1]);
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      return [lng, lat];
+    }
+    return null;
+  }
+
+  if (typeof rawCoords !== 'string' || !rawCoords.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawCoords);
+    if (Array.isArray(parsed) && parsed.length === 2) {
+      const lng = Number(parsed[0]);
+      const lat = Number(parsed[1]);
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        return [lng, lat];
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+export const extractTemporalOrderLocationsFromJSONContent = (
+  content: JSONContent
+): TemporalOrderEventLocation[] => {
+  const extractedLocations: TemporalOrderEventLocation[] = [];
+  const seenLocations = new Set<string>();
+
+  const pushLocation = (location: TemporalOrderEventLocation) => {
+    const coordsKey = location.coords
+      ? `${location.coords[0].toFixed(5)},${location.coords[1].toFixed(5)}`
+      : 'unknown';
+    const locationKey = `${location.name.toLowerCase()}::${(location.country || '').toLowerCase()}::${coordsKey}`;
+    if (seenLocations.has(locationKey)) {
+      return;
+    }
+    seenLocations.add(locationKey);
+    extractedLocations.push(location);
+  };
+
+  walkJSONContent(content, (node) => {
+    const attrs = (node.attrs || {}) as Record<string, unknown>;
+
+    if (node.type === 'location') {
+      const nestedTextLabel = extractTextFromJSONNode(node).replace(/^📍\s*/, '').trim();
+      const name =
+        (typeof attrs['data-name'] === 'string' && attrs['data-name'].trim()) ||
+        (typeof attrs.label === 'string' && attrs.label.replace(/^📍\s*/, '').trim()) ||
+        nestedTextLabel ||
+        '';
+
+      if (!name) {
+        return;
+      }
+
+      pushLocation({
+        id: typeof attrs.id === 'string' ? attrs.id : undefined,
+        name,
+        label:
+          (typeof attrs.label === 'string' && attrs.label.replace(/^📍\s*/, '').trim()) ||
+          nestedTextLabel ||
+          name,
+        country: typeof attrs['data-country'] === 'string' ? attrs['data-country'] : undefined,
+        coords: parseTemporalOrderLocationCoords(attrs['data-coords']),
+      });
+      return;
+    }
+
+    if (node.type !== 'mapboxMap') {
+      return;
+    }
+
+    const rawMarkers = Array.isArray(attrs.markers) ? attrs.markers : [];
+    rawMarkers.forEach((rawMarker) => {
+      if (!rawMarker || typeof rawMarker !== 'object') {
+        return;
+      }
+
+      const marker = rawMarker as Record<string, unknown>;
+      const lng = Number(marker.lng);
+      const lat = Number(marker.lat);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+        return;
+      }
+
+      const label =
+        (typeof marker.label === 'string' && marker.label.trim()) ||
+        'Pinned location';
+
+      pushLocation({
+        name: label,
+        label,
+        coords: [lng, lat],
+      });
+    });
+  });
+
+  return extractedLocations;
 };
 
 const splitTextIntoPreviewLines = (text: string, maxCharsPerLine = 42, maxLines = 3): string[] => {
@@ -2228,6 +2395,23 @@ const buildTemporalOrderQuantaFlowGraphData = (
   };
 };
 
+const buildTemporalOrderGlobeLocations = (
+  eventSources: TemporalOrderEventSource[]
+): TemporalOrderGlobeLocation[] => {
+  return eventSources.flatMap((source) =>
+    source.locations.map((location, index) => ({
+      id: `${source.nodeId}-location-${index}`,
+      name: location.name,
+      label: location.label,
+      country: location.country,
+      coords: location.coords,
+      eventLabel: source.label,
+      eventNodeId: source.nodeId,
+      dateMs: source.dateMs,
+    }))
+  );
+};
+
 const cloneTemporalOrderForceGraph2DData = (
   data: TemporalOrderForceGraph2DData
 ): TemporalOrderForceGraph2DData => ({
@@ -2500,6 +2684,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   isCollapsed,
   lens,
   eventSources,
+  globeLocations,
   yearIncrements,
   timelineLayout,
   auraGraphData,
@@ -2522,10 +2707,12 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   const isYearlyViewLens = lens === 'yearlyView';
   const isYearIncrementLens = isCenturyViewLens || isYearlyViewLens;
   const isLinearLens = isIdentityLens || isYearIncrementLens;
+  const isGlobeLens = lens === 'globeView';
+  const isMap2DLens = lens === 'map2DView';
   const isAuraLens = lens === 'auraView';
   const isGraph2DLens = lens === 'graph2D';
   const isFlowGraphLens = lens === 'flowGraph';
-  const isImmersiveGraphLens = isAuraLens || isGraph2DLens || isFlowGraphLens;
+  const isImmersiveGraphLens = isGlobeLens || isMap2DLens || isAuraLens || isGraph2DLens || isFlowGraphLens;
   const hasGraphNodes = eventSources.length > 0;
   const monthTicks = useMemo(() => buildTemporalOrderMonthTicks(yearIncrements), [yearIncrements]);
   const yearTopLookup = useMemo(
@@ -2637,13 +2824,13 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       itemContainer.style.position = '';
       if (wrapperNode instanceof HTMLElement) {
         wrapperNode.style.marginTop = '';
-        wrapperNode.style.zoom = '';
+        wrapperNode.style.removeProperty('zoom');
         wrapperNode.style.transformOrigin = '';
         wrapperNode.style.minHeight = '';
       }
       itemElements.forEach((child) => {
         child.style.marginTop = '';
-        child.style.zoom = '';
+        child.style.removeProperty('zoom');
         child.style.transformOrigin = '';
         child.style.transform = '';
         child.style.position = '';
@@ -3217,14 +3404,20 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             </div>
 
             <AnimatePresence>
-              {(isAuraLens || isGraph2DLens || isFlowGraphLens) && (
+              {(isGlobeLens || isMap2DLens || isAuraLens || isGraph2DLens || isFlowGraphLens) && (
                 <motion.div
                   key={`temporal-order-graph-${lens}`}
                   initial={{ opacity: 0, scale: 0.985 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.985 }}
                   transition={{ duration: 0.28 }}
-                  className={isAuraLens ? "temporal-order-graph-layer is-edge-to-edge" : "temporal-order-flow-layer is-edge-to-edge"}
+                  className={
+                    isAuraLens
+                      ? "temporal-order-graph-layer is-edge-to-edge"
+                      : isGlobeLens || isMap2DLens
+                        ? "temporal-order-globe-layer is-edge-to-edge"
+                        : "temporal-order-flow-layer is-edge-to-edge"
+                  }
                 >
                   {isAuraLens ? (
                     <ForceGraph3DFigure
@@ -3236,6 +3429,14 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                       autoFitDelayMs={520}
                       edgeToEdge
                       fitZoomScale={0.72}
+                    />
+                  ) : isGlobeLens ? (
+                    <TemporalOrderGlobeView
+                      locations={globeLocations}
+                    />
+                  ) : isMap2DLens ? (
+                    <TemporalOrder2DMapView
+                      locations={globeLocations}
                     />
                   ) : isGraph2DLens ? (
                     <TemporalOrderForceGraph2D
@@ -3514,6 +3715,8 @@ export const TemporalOrderExtension = TipTapNode.create({
       const legacyTimeMode = props.node.attrs.timeMode;
       const lens: TemporalOrderLens = (() => {
         if (
+          lensAttr === 'globeView' ||
+          lensAttr === 'map2DView' ||
           lensAttr === 'auraView' ||
           lensAttr === 'graph2D' ||
           lensAttr === 'flowGraph' ||
@@ -3574,6 +3777,8 @@ export const TemporalOrderExtension = TipTapNode.create({
           const nodeId = buildTemporalOrderNodeId(label, index, usedNodeIds);
           const date = extractEarliestDateFromNode(candidateNode);
           const aura = deriveTemporalOrderNodeAura(candidateNode);
+          const content = candidateNode.toJSON() as JSONContent;
+          const locations = extractTemporalOrderLocationsFromJSONContent(content);
 
           let hasMap = false;
           let hasMeaningfulContent = false;
@@ -3599,10 +3804,11 @@ export const TemporalOrderExtension = TipTapNode.create({
             key,
             nodeId,
             label,
-            content: candidateNode.toJSON() as JSONContent,
+            content,
             hasMap,
             dateMs: date ? date.getTime() : null,
             aura,
+            locations,
           });
 
           index += 1;
@@ -3613,6 +3819,10 @@ export const TemporalOrderExtension = TipTapNode.create({
       }, [props.node]);
       const auraGraphData = useMemo(
         () => buildTemporalOrderAuraGraphData(eventSources),
+        [eventSources]
+      );
+      const globeLocations = useMemo(
+        () => buildTemporalOrderGlobeLocations(eventSources),
         [eventSources]
       );
       const graph2DData = useMemo(
@@ -3661,7 +3871,8 @@ export const TemporalOrderExtension = TipTapNode.create({
             : undefined
         );
       }, [lens]);
-      const isImmersiveGraphLens = lens === 'auraView' || lens === 'graph2D' || lens === 'flowGraph';
+      const isImmersiveGraphLens =
+        lens === 'globeView' || lens === 'map2DView' || lens === 'auraView' || lens === 'graph2D' || lens === 'flowGraph';
 
       /**
        * ARCHITECTURE: Capture dragged node on dragenter
@@ -3889,6 +4100,7 @@ export const TemporalOrderExtension = TipTapNode.create({
               isCollapsed={isCollapsed}
               lens={lens}
               eventSources={eventSources}
+              globeLocations={globeLocations}
               yearIncrements={yearIncrements}
               timelineLayout={timelineLayout}
               auraGraphData={auraGraphData}
