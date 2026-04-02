@@ -1,6 +1,16 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import mapboxgl from 'mapbox-gl'
+
+import { DEFAULT_MAP_STYLE, type MapMarker } from '../content/MapboxMapAttrs'
+import {
+  buildStaticMapUrl,
+  ensureMapboxCssLoaded,
+  forceMapboxLayout,
+  MAPBOX_ACCESS_TOKEN,
+  type MapViewportSize,
+} from '../content/MapboxMapShared'
 
 declare global {
   interface Window {
@@ -39,23 +49,37 @@ type MapboxGlobal = {
   version?: string
 }
 
-const MAPBOX_ACCESS_TOKEN =
-  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
-  process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
-  ''
+const MAPBOX_IMPORTED_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
+const MAPBOX_IMPORTED_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_IMPORTED_GL_VERSION}/mapbox-gl.css`
+const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
+const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 const MAPBOX_GL_VERSION = '3.12.0'
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
 const MAPBOX_GL_JS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.js`
 const DEFAULT_CENTER: [number, number] = [151.2093, -33.8688]
 const DEFAULT_ZOOM = 1.3
-const MAPBOX_GLOBE_STYLE = 'mapbox://styles/mapbox/satellite-v9'
-const MAPBOX_2D_STYLE = 'mapbox://styles/mapbox/streets-v12'
+const MAPBOX_GLOBE_STYLE = DEFAULT_MAP_STYLE
+const MAPBOX_2D_STYLE = DEFAULT_MAP_STYLE
 const MARKER_SOURCE_ID = 'temporal-order-globe-markers'
 const MARKER_LAYER_ID = 'temporal-order-globe-marker'
 const MARKER_LABEL_LAYER_ID = 'temporal-order-globe-marker-label'
 type TemporalOrderMapMode = 'globe' | 'map2D'
+const MAPBOX_GLOBE_FOG = {
+  color: 'rgb(228, 236, 255)',
+  'high-color': 'rgb(120, 158, 255)',
+  'space-color': 'rgb(8, 14, 28)',
+  'horizon-blend': 0.28,
+  'star-intensity': 0.08,
+}
 
 let mapboxLoadPromise: Promise<void> | null = null
+
+const configureMapboxWorker = () => {
+  const majorVersion = Number.parseInt(MAPBOX_IMPORTED_GL_VERSION.split('.')[0] || '0', 10)
+  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
+    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
+  }
+}
 
 const getMapboxGlobal = (): MapboxGlobal | null => {
   if (typeof window === 'undefined' || !window.mapboxgl || typeof window.mapboxgl.Map !== 'function') {
@@ -670,16 +694,447 @@ const TemporalOrderGeoMapView: React.FC<{
   )
 }
 
+const TemporalOrderImportedMapView: React.FC<{
+  locations: TemporalOrderGlobeLocation[]
+  mode: 'globe' | 'map2D'
+}> = ({ locations, mode }) => {
+  const mapSurfaceRef = useRef<HTMLDivElement | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const markersRef = useRef<mapboxgl.Marker[]>([])
+  const autoFitSignatureRef = useRef('')
+  const geocodeCacheRef = useRef<Map<string, [number, number] | null>>(new Map())
+  const [markers, setMarkers] = useState<MapMarker[]>([])
+  const [isResolving, setIsResolving] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [isInteractiveMapReady, setIsInteractiveMapReady] = useState(false)
+  const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
+  const mapStyle = mode === 'globe' ? MAPBOX_GLOBE_STYLE : MAPBOX_2D_STYLE
+  const isGlobeMode = mode === 'globe'
+
+  const stopEditorEventBubble = useCallback((event: React.SyntheticEvent) => {
+    event.stopPropagation()
+  }, [])
+
+  const normalizedLocations = useMemo(
+    () => locations.filter((location) => location.name || location.label),
+    [locations],
+  )
+
+  const resolveLocationCoords = useCallback(
+    async (location: TemporalOrderGlobeLocation): Promise<[number, number] | null> => {
+      if (location.coords) {
+        return location.coords
+      }
+
+      const query = [location.name, location.country].filter(Boolean).join(', ').trim()
+      if (!query) {
+        return null
+      }
+
+      const cacheKey = query.toLowerCase()
+      if (geocodeCacheRef.current.has(cacheKey)) {
+        return geocodeCacheRef.current.get(cacheKey) || null
+      }
+
+      const fallbackCoords = resolveFallbackCoords(query)
+      if (!MAPBOX_ACCESS_TOKEN) {
+        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+        return fallbackCoords
+      }
+
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`,
+        )
+        const data = await response.json()
+        const center = data?.features?.[0]?.center
+        const coords =
+          Array.isArray(center) && center.length === 2
+            ? ([Number(center[0]), Number(center[1])] as [number, number])
+            : fallbackCoords
+        geocodeCacheRef.current.set(cacheKey, coords)
+        return coords
+      } catch {
+        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+        return fallbackCoords
+      }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    ensureMapboxCssLoaded(MAPBOX_IMPORTED_GL_CSS_URL).catch((error) => {
+      console.error('[TemporalOrder2DMapView] Failed to ensure Mapbox GL CSS:', error)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!mapSurfaceRef.current) return
+
+    const syncViewportSize = () => {
+      if (!mapSurfaceRef.current) return
+      const nextWidth = mapSurfaceRef.current.clientWidth
+      const nextHeight = mapSurfaceRef.current.clientHeight
+      if (!nextWidth || !nextHeight) return
+
+      setMapViewportSize((previous) => {
+        if (previous.width === nextWidth && previous.height === nextHeight) {
+          return previous
+        }
+        return { width: nextWidth, height: nextHeight }
+      })
+    }
+
+    syncViewportSize()
+    const observer = new ResizeObserver(syncViewportSize)
+    observer.observe(mapSurfaceRef.current)
+    window.addEventListener('resize', syncViewportSize)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', syncViewportSize)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!normalizedLocations.length) {
+      setMarkers([])
+      setIsResolving(false)
+      setLoadError(null)
+      return
+    }
+
+    setIsResolving(true)
+    setLoadError(null)
+
+    Promise.all(
+      normalizedLocations.map(async (location) => {
+        const coords = await resolveLocationCoords(location)
+        if (!coords) return null
+        return {
+          lng: coords[0],
+          lat: coords[1],
+          label: location.label || location.name,
+        } satisfies MapMarker
+      }),
+    )
+      .then((resolvedMarkers) => {
+        if (cancelled) return
+
+        const validMarkers = resolvedMarkers.filter(Boolean) as MapMarker[]
+        const dedupedMarkers = validMarkers.filter((marker, index, input) => (
+          input.findIndex((candidate) => (
+            candidate.lng.toFixed(6) === marker.lng.toFixed(6) &&
+            candidate.lat.toFixed(6) === marker.lat.toFixed(6)
+          )) === index
+        ))
+
+        setMarkers(dedupedMarkers)
+        setIsResolving(false)
+      })
+      .catch((error) => {
+        console.error('[TemporalOrder2DMapView] Failed to resolve locations:', error)
+        if (cancelled) return
+        setMarkers([])
+        setIsResolving(false)
+        setLoadError('Unable to resolve event locations for the map.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [normalizedLocations, resolveLocationCoords])
+
+  const staticMapImageUrl = useMemo(
+    () => buildStaticMapUrl(mapStyle, markers, DEFAULT_CENTER, DEFAULT_ZOOM, mapViewportSize, mapStyle),
+    [mapStyle, markers, mapViewportSize],
+  )
+
+  const addMarkerToMap = useCallback((markerData: MapMarker) => {
+    if (!mapRef.current) return null
+
+    const marker = isGlobeMode
+      ? new mapboxgl.Marker({
+          element: (() => {
+            const element = document.createElement('div')
+            element.className = 'temporal-order-globe-marker'
+            element.setAttribute('aria-hidden', 'true')
+            return element
+          })(),
+          anchor: 'center',
+        })
+          .setLngLat([markerData.lng, markerData.lat])
+          .addTo(mapRef.current)
+      : new mapboxgl.Marker({
+          color: '#e11d48',
+          scale: 1.1,
+        })
+          .setLngLat([markerData.lng, markerData.lat])
+          .addTo(mapRef.current)
+
+    return marker
+  }, [isGlobeMode])
+
+  useEffect(() => {
+    if (mapRef.current || !mapContainerRef.current) return
+    if (!MAPBOX_ACCESS_TOKEN) {
+      setIsInteractiveMapReady(false)
+      return
+    }
+
+    let cancelled = false
+    let mapInstance: mapboxgl.Map | null = null
+    let frameId = 0
+    let timeoutId = 0
+    let didFallback = false
+
+    const initializeMap = async () => {
+      try {
+        await ensureMapboxCssLoaded(MAPBOX_IMPORTED_GL_CSS_URL)
+      } catch (error) {
+        console.error('[TemporalOrder2DMapView] Failed to load Mapbox CSS before init:', error)
+      }
+
+      if (cancelled || !mapContainerRef.current || mapRef.current) return
+
+      forceMapboxLayout(mapContainerRef.current)
+      configureMapboxWorker()
+      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+
+      try {
+        mapInstance = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: mapStyle,
+          projection: isGlobeMode ? 'globe' : 'mercator',
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
+          attributionControl: false,
+        })
+        mapRef.current = mapInstance
+      } catch (error) {
+        console.error('[TemporalOrder2DMapView] Failed to initialize map:', error)
+        return
+      }
+
+      const failToStaticMap = (error: unknown) => {
+        if (didFallback) return
+        didFallback = true
+        setIsInteractiveMapReady(false)
+        console.warn('[TemporalOrder2DMapView] Falling back to static map image:', error)
+        try {
+          mapInstance?.remove()
+        } catch (disposeError) {
+          console.warn('[TemporalOrder2DMapView] Failed to dispose broken live map:', disposeError)
+        } finally {
+          if (mapRef.current === mapInstance) {
+            mapRef.current = null
+          }
+        }
+      }
+
+      mapInstance.on('error', (event) => {
+        const message =
+          event?.error instanceof Error
+            ? event.error.message
+            : typeof event?.error === 'string'
+              ? event.error
+              : ''
+
+        if (!message) return
+        if (
+          message.includes('not iterable') ||
+          message.includes('composite') ||
+          message.includes("reading 'send'")
+        ) {
+          failToStaticMap(event.error)
+          return
+        }
+        setLoadError(message)
+      })
+
+      if (mapInstance.loaded()) {
+        setMapLoaded(true)
+        setIsInteractiveMapReady(true)
+        mapInstance.setFog(isGlobeMode ? MAPBOX_GLOBE_FOG : null)
+        mapInstance.setProjection(isGlobeMode ? 'globe' : 'mercator')
+        forceMapboxLayout(mapContainerRef.current)
+        mapInstance.resize()
+      } else {
+        mapInstance.on('load', () => {
+          if (!mapContainerRef.current) return
+          setMapLoaded(true)
+          setIsInteractiveMapReady(true)
+          mapInstance?.setFog(isGlobeMode ? MAPBOX_GLOBE_FOG : null)
+          mapInstance?.setProjection(isGlobeMode ? 'globe' : 'mercator')
+          forceMapboxLayout(mapContainerRef.current)
+          mapInstance?.resize()
+        })
+      }
+
+      frameId = requestAnimationFrame(() => {
+        forceMapboxLayout(mapContainerRef.current)
+        mapInstance?.resize()
+      })
+      timeoutId = window.setTimeout(() => {
+        forceMapboxLayout(mapContainerRef.current)
+        mapInstance?.resize()
+      }, 120)
+    }
+
+    void initializeMap()
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frameId)
+      window.clearTimeout(timeoutId)
+      try {
+        mapInstance?.remove()
+      } catch (error) {
+        console.error('[TemporalOrder2DMapView] Failed to dispose map:', error)
+      } finally {
+        if (mapRef.current === mapInstance) {
+          mapRef.current = null
+        }
+      }
+      setMapLoaded(false)
+      setIsInteractiveMapReady(false)
+    }
+  }, [isGlobeMode, mapStyle])
+
+  useEffect(() => {
+    if (!mapRef.current || !mapContainerRef.current) return
+
+    const resizeMap = () => {
+      forceMapboxLayout(mapContainerRef.current)
+      mapRef.current?.resize()
+    }
+    const observer = new ResizeObserver(resizeMap)
+    observer.observe(mapContainerRef.current)
+    window.addEventListener('resize', resizeMap)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', resizeMap)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    const syncMarkers = () => {
+      markersRef.current.forEach((marker) => marker.remove())
+      markersRef.current = []
+
+      markers.forEach((markerData) => {
+        const marker = addMarkerToMap(markerData)
+        if (marker) {
+          markersRef.current.push(marker)
+        }
+      })
+
+      if (markers.length === 0 || !mapRef.current) {
+        autoFitSignatureRef.current = ''
+        return
+      }
+
+      const nextSignature = markers
+        .map((markerData) => `${markerData.lng.toFixed(4)},${markerData.lat.toFixed(4)}`)
+        .sort()
+        .join('|')
+
+      if (autoFitSignatureRef.current === nextSignature) return
+      autoFitSignatureRef.current = nextSignature
+
+      if (markers.length === 1) {
+        const onlyMarker = markers[0]
+        mapRef.current.easeTo({
+          center: [onlyMarker.lng, onlyMarker.lat],
+          zoom: Math.max(mapRef.current.getZoom(), isGlobeMode ? 2.1 : 11),
+          duration: 600,
+        })
+        return
+      }
+
+      const bounds = new mapboxgl.LngLatBounds()
+      markers.forEach((markerData) => {
+        bounds.extend([markerData.lng, markerData.lat])
+      })
+      mapRef.current.fitBounds(bounds, {
+        padding: isGlobeMode ? 72 : 60,
+        maxZoom: isGlobeMode ? 2.25 : 11,
+        duration: 700,
+      })
+    }
+
+    if (mapRef.current.loaded()) {
+      syncMarkers()
+    } else {
+      mapRef.current.once('load', syncMarkers)
+    }
+  }, [addMarkerToMap, isGlobeMode, mapLoaded, markers])
+
+  const statusMessage = useMemo(() => {
+    if (loadError) return loadError
+    if (isResolving) return 'Resolving event locations...'
+    if (!normalizedLocations.length) return 'No event locations found in this timeline.'
+    if (!markers.length) return 'No mappable event locations found yet.'
+    return null
+  }, [isResolving, loadError, markers.length, normalizedLocations.length])
+
+  return (
+    <div
+      className="temporal-order-globe-canvas"
+      onMouseDown={stopEditorEventBubble}
+      onMouseUp={stopEditorEventBubble}
+      onPointerDown={stopEditorEventBubble}
+      onPointerUp={stopEditorEventBubble}
+      onTouchStart={stopEditorEventBubble}
+      onWheel={stopEditorEventBubble}
+    >
+      <div
+        ref={mapSurfaceRef}
+        className="temporal-order-globe-canvas-host"
+        style={{ position: 'relative', inset: 'auto', width: '100%', height: '100%' }}
+      >
+        {staticMapImageUrl && !isInteractiveMapReady && (
+          <img
+            aria-hidden="true"
+            alt=""
+            referrerPolicy="no-referrer"
+            src={staticMapImageUrl}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+        <div ref={mapContainerRef} className="temporal-order-globe-canvas-host" />
+      </div>
+      {statusMessage && (
+        <div className="temporal-order-globe-canvas-error">{statusMessage}</div>
+      )}
+    </div>
+  )
+}
+
 export const TemporalOrderGlobeView: React.FC<{
   locations: TemporalOrderGlobeLocation[]
 }> = ({ locations }) => (
-  <TemporalOrderGeoMapView locations={locations} mode="globe" />
+  <TemporalOrderImportedMapView locations={locations} mode="globe" />
 )
 
 export const TemporalOrder2DMapView: React.FC<{
   locations: TemporalOrderGlobeLocation[]
 }> = ({ locations }) => (
-  <TemporalOrderGeoMapView locations={locations} mode="map2D" />
+  <TemporalOrderImportedMapView locations={locations} mode="map2D" />
 )
 
 export default TemporalOrderGlobeView

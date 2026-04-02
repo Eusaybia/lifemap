@@ -14,12 +14,14 @@ import {
   needsMapboxMapAttrRepair,
   sanitizeMapboxMapAttrs,
 } from './MapboxMapAttrs'
+import {
+  buildStaticMapUrl,
+  ensureMapboxCssLoaded,
+  forceMapboxLayout,
+  MAPBOX_ACCESS_TOKEN,
+  type MapViewportSize,
+} from './MapboxMapShared'
 
-// Mapbox access token (must be provided by environment variable)
-const MAPBOX_ACCESS_TOKEN =
-  process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
-  process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
-  ''
 const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
 const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
@@ -36,99 +38,6 @@ const configureMapboxWorker = () => {
 
 const resolveMapboxStyle = (requestedStyle?: string): string => {
   return requestedStyle?.trim() || MAPBOX_STATIC_DEFAULT_STYLE
-}
-
-let mapboxCssReadyPromise: Promise<void> | null = null
-
-const ensureMapboxCssLoaded = (): Promise<void> => {
-  if (typeof document === 'undefined') {
-    return Promise.resolve()
-  }
-
-  const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
-  if (existingLink) {
-    if (existingLink.dataset.loaded === 'true' || !!existingLink.sheet) {
-      existingLink.dataset.loaded = 'true'
-      return Promise.resolve()
-    }
-
-    if (!mapboxCssReadyPromise) {
-      mapboxCssReadyPromise = new Promise((resolve, reject) => {
-        const handleLoad = () => {
-          existingLink.dataset.loaded = 'true'
-          mapboxCssReadyPromise = Promise.resolve()
-          resolve()
-        }
-        const handleError = () => {
-          mapboxCssReadyPromise = null
-          reject(new Error('Failed to load Mapbox GL CSS'))
-        }
-
-        existingLink.addEventListener('load', handleLoad, { once: true })
-        existingLink.addEventListener('error', handleError, { once: true })
-      })
-    }
-
-    return mapboxCssReadyPromise
-  }
-
-  mapboxCssReadyPromise = new Promise((resolve, reject) => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = MAPBOX_GL_CSS_URL
-    link.setAttribute('data-mapbox-gl-css', 'true')
-    link.addEventListener(
-      'load',
-      () => {
-        link.dataset.loaded = 'true'
-        mapboxCssReadyPromise = Promise.resolve()
-        resolve()
-      },
-      { once: true },
-    )
-    link.addEventListener(
-      'error',
-      () => {
-        mapboxCssReadyPromise = null
-        reject(new Error('Failed to load Mapbox GL CSS'))
-      },
-      { once: true },
-    )
-    document.head.appendChild(link)
-  })
-
-  return mapboxCssReadyPromise
-}
-
-const forceMapboxLayout = (container: HTMLDivElement | null) => {
-  if (!container) return
-
-  container.style.position = 'relative'
-  container.style.width = '100%'
-  container.style.height = '100%'
-  container.style.minWidth = '100%'
-  container.style.minHeight = '100%'
-  container.style.overflow = 'hidden'
-
-  const mapRoot = container.querySelector<HTMLElement>('.mapboxgl-map')
-  const canvasContainer = container.querySelector<HTMLElement>('.mapboxgl-canvas-container')
-  const canvas = container.querySelector<HTMLCanvasElement>('.mapboxgl-canvas')
-
-  if (mapRoot) {
-    mapRoot.style.position = 'relative'
-    mapRoot.style.width = '100%'
-    mapRoot.style.height = '100%'
-  }
-
-  if (canvasContainer) {
-    canvasContainer.style.width = '100%'
-    canvasContainer.style.height = '100%'
-  }
-
-  if (canvas) {
-    canvas.style.width = '100%'
-    canvas.style.height = '100%'
-  }
 }
 
 interface LocationNodeAttrs {
@@ -156,11 +65,6 @@ interface TemporalSpaceContext {
 interface AnchorPoint {
   lng: number
   lat: number
-}
-
-interface MapViewportSize {
-  width: number
-  height: number
 }
 
 const parseCoords = (rawCoords: unknown): [number, number] | null => {
@@ -246,44 +150,6 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
   return null
 }
 
-const buildStaticMapUrl = (
-  requestedStyle: string | undefined,
-  markers: MapMarker[],
-  center: [number, number],
-  zoom: number,
-  viewportSize: MapViewportSize,
-): string | null => {
-  if (!MAPBOX_ACCESS_TOKEN) return null
-
-  const staticStyle = requestedStyle?.trim() || MAPBOX_STATIC_DEFAULT_STYLE
-  const stylePath = staticStyle.replace(/^mapbox:\/\/styles\//, '')
-  if (!stylePath) return null
-
-  const width = Math.max(320, Math.min(Math.round(viewportSize.width || 1280), 1280))
-  const height = Math.max(180, Math.min(Math.round(viewportSize.height || 280), 1280))
-  const dimensions = `${width}x${height}@2x`
-  const markerOverlay = markers
-    .slice(0, 20)
-    .map((marker) => `pin-s+e11d48(${marker.lng.toFixed(5)},${marker.lat.toFixed(5)})`)
-    .join(',')
-
-  const viewportPath = markerOverlay
-    ? `${markerOverlay}/auto`
-    : `${center[0].toFixed(5)},${center[1].toFixed(5)},${zoom.toFixed(2)},0`
-
-  const query = new URLSearchParams({
-    access_token: MAPBOX_ACCESS_TOKEN,
-    attribution: 'false',
-    logo: 'false',
-  })
-
-  if (markerOverlay) {
-    query.set('padding', '48')
-  }
-
-  return `https://api.mapbox.com/styles/v1/${stylePath}/static/${viewportPath}/${dimensions}?${query.toString()}`
-}
-
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes } = props
   const mapSurface = useRef<HTMLDivElement>(null)
@@ -324,7 +190,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   }, [isInsideTemporalSpace, temporalSpaceMarkers, markers])
   const hasTemporalPins = temporalSpaceMarkers.length > 0
   const staticMapImageUrl = useMemo(
-    () => buildStaticMapUrl(style, activeMarkers, center, zoom, mapViewportSize),
+    () => buildStaticMapUrl(style, activeMarkers, center, zoom, mapViewportSize, MAPBOX_STATIC_DEFAULT_STYLE),
     [style, activeMarkers, center, zoom, mapViewportSize],
   )
   const anchorPoints = useMemo<AnchorPoint[]>(() => {
@@ -489,7 +355,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   // Load Mapbox CSS once globally so marker styling stays stable even when
   // multiple map nodes mount/unmount in the editor.
   useEffect(() => {
-    ensureMapboxCssLoaded().catch((error) => {
+    ensureMapboxCssLoaded(MAPBOX_GL_CSS_URL).catch((error) => {
       console.error('[MapboxMap] Failed to ensure Mapbox GL CSS:', error)
     })
   }, [])
@@ -638,7 +504,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     const initializeMap = async () => {
       try {
-        await ensureMapboxCssLoaded()
+        await ensureMapboxCssLoaded(MAPBOX_GL_CSS_URL)
       } catch (error) {
         console.error('[MapboxMap] Failed to load Mapbox CSS before init:', error)
       }
