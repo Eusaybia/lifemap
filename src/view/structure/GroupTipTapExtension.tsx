@@ -5,6 +5,7 @@ import { Plugin, PluginKey } from "prosemirror-state";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
 import { Group, GroupLenses } from "./Group";
 import { ForceGraph3DData, ForceGraph3DFigure } from "./GlowNetworkExtension";
+import { TemporalOrder2DMapView, TemporalOrderGlobeView, type TemporalOrderGlobeLocation } from "./TemporalOrderGlobeView";
 import './styles.scss';
 import { motion, useMotionTemplate, useTransform, AnimatePresence } from "framer-motion";
 import { offWhite } from "../Theme";
@@ -236,6 +237,112 @@ const deriveAuraForNode = (node: ProseMirrorNode): AuraSpec | null => {
   const sources: Array<{ aura: AuraSpec; weight: number }> = [];
   collectAuraSources(node, 0, sources);
   return blendWeightedAuras(sources);
+};
+
+interface GroupLocationNodeAttrs {
+  id?: string
+  label?: string
+  'data-name'?: string
+  'data-country'?: string
+  'data-coords'?: string | [number, number] | null
+}
+
+const parseGroupLocationCoords = (rawCoords: unknown): [number, number] | null => {
+  if (Array.isArray(rawCoords) && rawCoords.length === 2) {
+    const lng = Number(rawCoords[0]);
+    const lat = Number(rawCoords[1]);
+    if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat];
+    return null;
+  }
+
+  if (typeof rawCoords !== 'string' || !rawCoords.trim()) return null;
+
+  try {
+    const parsed = JSON.parse(rawCoords);
+    if (Array.isArray(parsed) && parsed.length === 2) {
+      const lng = Number(parsed[0]);
+      const lat = Number(parsed[1]);
+      if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat];
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const extractGroupMapLocations = (groupNode: ProseMirrorNode): TemporalOrderGlobeLocation[] => {
+  const extractedLocations: TemporalOrderGlobeLocation[] = [];
+  const seenLocations = new Set<string>();
+
+  const pushLocation = (location: TemporalOrderGlobeLocation) => {
+    const coordsKey = location.coords
+      ? `${location.coords[0].toFixed(6)},${location.coords[1].toFixed(6)}`
+      : 'null';
+    const locationKey = `${location.name.toLowerCase()}::${(location.country || '').toLowerCase()}::${coordsKey}`;
+    if (seenLocations.has(locationKey)) {
+      return;
+    }
+    seenLocations.add(locationKey);
+    extractedLocations.push(location);
+  };
+
+  groupNode.descendants((childNode) => {
+    if (childNode.type.name === 'location') {
+      const attrs = (childNode.attrs || {}) as GroupLocationNodeAttrs;
+      const label =
+        (typeof attrs.label === 'string' && attrs.label.replace(/^📍\s*/, '').trim()) ||
+        (typeof attrs['data-name'] === 'string' && attrs['data-name'].trim()) ||
+        childNode.textContent.replace(/^📍\s*/, '').trim();
+      const name =
+        (typeof attrs['data-name'] === 'string' && attrs['data-name'].trim()) ||
+        label;
+
+      if (!name) return true;
+
+      pushLocation({
+        id: typeof attrs.id === 'string' ? attrs.id : `${name}:${attrs['data-country'] || ''}`,
+        name,
+        label: label || name,
+        country: typeof attrs['data-country'] === 'string' ? attrs['data-country'] : undefined,
+        coords: parseGroupLocationCoords(attrs['data-coords']),
+        eventLabel: label || name,
+        eventNodeId: typeof attrs.id === 'string' ? attrs.id : name,
+        dateMs: null,
+      });
+      return true;
+    }
+
+    if (childNode.type.name === 'mapboxMap') {
+      const rawMarkers = Array.isArray(childNode.attrs?.markers) ? childNode.attrs.markers : [];
+      rawMarkers.forEach((rawMarker: unknown, index: number) => {
+        if (!rawMarker || typeof rawMarker !== 'object') return;
+
+        const marker = rawMarker as Record<string, unknown>;
+        const lng = Number(marker.lng);
+        const lat = Number(marker.lat);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+        const label =
+          (typeof marker.label === 'string' && marker.label.trim()) ||
+          `Map marker ${index + 1}`;
+
+        pushLocation({
+          id: `group-map-marker-${index}-${lng.toFixed(6)}-${lat.toFixed(6)}`,
+          name: label,
+          label,
+          coords: [lng, lat],
+          eventLabel: label,
+          eventNodeId: `group-map-marker-${index}`,
+          dateMs: null,
+        });
+      });
+    }
+
+    return true;
+  });
+
+  return extractedLocations;
 };
 
 declare module '@tiptap/core' {
@@ -713,6 +820,8 @@ export const GroupExtension = TipTapNode.create({
           ? "auraView"
           : props.node.attrs.lens;
       const isAuraLens = currentLens === "auraView";
+      const isGlobeLens = currentLens === "globeView";
+      const isMap2DLens = currentLens === "map2DView";
       const shouldFillEmbeddedGraphPane = (() => {
         if (typeof window === 'undefined') return false;
         if (currentLens !== 'identity') return false;
@@ -738,6 +847,10 @@ export const GroupExtension = TipTapNode.create({
       })();
       const glowVisualisationData = React.useMemo(
         () => buildGlowVisualisationData(props.node),
+        [props.node]
+      );
+      const groupMapLocations = React.useMemo(
+        () => extractGroupMapLocations(props.node),
         [props.node]
       );
       
@@ -950,7 +1063,7 @@ export const GroupExtension = TipTapNode.create({
                 nodeProps={props}
                 nodeType="group"
                 boxShadow={GROUP_NODE_BOX_SHADOW}
-                padding={isAuraLens ? 0 : '20px'}
+                padding={(isAuraLens || isGlobeLens || isMap2DLens) ? 0 : '20px'}
                 style={{
                   display: isHidden ? 'none' : (shouldFillEmbeddedGraphPane ? 'flex' : 'block'),
                   flexDirection: shouldFillEmbeddedGraphPane ? 'column' : undefined,
@@ -1000,6 +1113,18 @@ export const GroupExtension = TipTapNode.create({
                               autoFitDelayMs={500}
                               edgeToEdge
                               fitZoomScale={0.62}
+                            />
+                          );
+                        case "globeView":
+                          return (
+                            <TemporalOrderGlobeView
+                              locations={groupMapLocations}
+                            />
+                          );
+                        case "map2DView":
+                          return (
+                            <TemporalOrder2DMapView
+                              locations={groupMapLocations}
                             />
                           );
                         default:

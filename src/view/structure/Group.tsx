@@ -11,6 +11,8 @@ export type GroupLenses =
     | "chip"
     | "collapsed"
     | "preview"
+    | "globeView"
+    | "map2DView"
     | "glowVisualisation"
     | "auraView";
 
@@ -42,6 +44,7 @@ export const Group = (props: {
     const isPreview = props.lens === 'preview';
     const isPrivate = props.lens === 'private';
     const isAuraView = props.lens === 'glowVisualisation' || props.lens === 'auraView';
+    const isMapView = props.lens === 'map2DView' || props.lens === 'globeView';
     const usesFillHeightLayout = props.fillHeight === true;
 
     return (
@@ -69,10 +72,10 @@ export const Group = (props: {
                 position: "relative", // Keep relative for Grip positioning
                 minHeight: isCollapsed ? 48 : 20,
                 maxHeight: (isPreview || isPrivate) ? 100 : undefined,
-                overflow: (isPreview || isPrivate || isAuraView) ? "hidden" : "visible",
+                overflow: (isPreview || isPrivate || isAuraView || isMapView) ? "hidden" : "visible",
                 borderRadius: `10px`,
                 // Note: boxShadow removed - now provided by NodeOverlay wrapper
-                padding: props.padding ?? (isCollapsed ? '10px 20px' : (isAuraView ? 0 : '20px')),
+                padding: props.padding ?? (isCollapsed ? '10px 20px' : ((isAuraView || isMapView) ? 0 : '20px')),
                 // ARCHITECTURE DECISION: some embedded graph surfaces need the Group shell
                 // to participate in a flex-height contract instead of sizing itself purely
                 // from document content. Keep this opt-in so normal Lifemap blocks still use

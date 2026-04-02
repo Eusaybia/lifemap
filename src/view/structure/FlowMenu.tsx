@@ -1168,6 +1168,20 @@ const GroupLoupe = React.memo((props: { editor: Editor }) => {
                         ✨ Aura view
                     </motion.div>
                 </Option>
+                <Option value={"globeView"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "globeView" })
+                }}>
+                    <motion.div>
+                        🌍 Globe
+                    </motion.div>
+                </Option>
+                <Option value={"map2DView"} onClick={() => {
+                    props.editor.commands.setGroupLens({ lens: "map2DView" })
+                }}>
+                    <motion.div>
+                        🗺️ 2D Map
+                    </motion.div>
+                </Option>
                 <Option value={"collapsed"} onClick={() => {
                     props.editor.commands.setGroupLens({ lens: "collapsed" })
                 }}>
