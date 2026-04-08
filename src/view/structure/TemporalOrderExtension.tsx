@@ -284,6 +284,21 @@ const hasMeaningfulTemporalOrderNodeContent = (node: ProseMirrorNode): { hasMap:
   return { hasMap, hasMeaningfulContent };
 };
 
+const hasTemporalOrderLocationTag = (node: ProseMirrorNode): boolean => {
+  let hasLocationTag = false;
+
+  node.descendants((descendant) => {
+    if (descendant.type.name === 'location') {
+      hasLocationTag = true;
+      return false;
+    }
+
+    return true;
+  });
+
+  return hasLocationTag;
+};
+
 const buildTemporalOrderEventSourcesFromNode = (
   rootNode: ProseMirrorNode,
   keyPrefix = ''
@@ -381,6 +396,52 @@ const fetchTemporalOrderContentFromIndexedDB = async (
   });
 };
 
+const hasTemporalOrderYjsStores = async (databaseName: string): Promise<boolean> => {
+  if (typeof indexedDB === 'undefined') {
+    return false;
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    try {
+      const request = indexedDB.open(databaseName);
+
+      request.onerror = () => {
+        finish(false);
+      };
+
+      request.onsuccess = () => {
+        const database = request.result;
+        const hasRequiredStores =
+          database.objectStoreNames.contains('updates') &&
+          database.objectStoreNames.contains('custom');
+        database.close();
+        finish(hasRequiredStores);
+      };
+
+      request.onblocked = () => {
+        finish(false);
+      };
+
+      request.onupgradeneeded = () => {
+        if (request.transaction) {
+          request.transaction.abort();
+        }
+        finish(false);
+      };
+    } catch {
+      finish(false);
+    }
+  });
+};
+
 const listTemporalOrderUserRoomNames = async (userId: string): Promise<string[]> => {
   if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') {
     return [];
@@ -389,7 +450,7 @@ const listTemporalOrderUserRoomNames = async (userId: string): Promise<string[]>
   const databases = await indexedDB.databases();
   const prefix = `${userId}/`;
 
-  return databases
+  const candidateNames = databases
     .map((database) => database.name)
     .filter((name): name is string => {
       if (typeof name !== 'string' || !name.trim()) {
@@ -403,6 +464,15 @@ const listTemporalOrderUserRoomNames = async (userId: string): Promise<string[]>
       return userId === '000000' && !name.includes('/');
     })
     .sort((left, right) => left.localeCompare(right));
+
+  const results = await Promise.all(
+    candidateNames.map(async (name) => ({
+      name,
+      isYjsStore: await hasTemporalOrderYjsStores(name),
+    }))
+  );
+
+  return results.filter((result) => result.isYjsStore).map((result) => result.name);
 };
 
 const readTemporalOrderUserIdFromLocation = (): string => {
@@ -2862,21 +2932,31 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
   yearIncrements: TemporalOrderYearIncrement[];
   yearlyViewRange: { startMs: number; endMs: number } | null;
   minimumHeightPx: number;
-}> = ({ eventSources, yearIncrements, yearlyViewRange, minimumHeightPx }) => {
+  onTopInsetChange: (value: number) => void;
+}> = ({ eventSources, yearIncrements, yearlyViewRange, minimumHeightPx, onTopInsetChange }) => {
   const hostRef = useRef<HTMLDivElement>(null);
+  const undatedSectionRef = useRef<HTMLDivElement>(null);
   const cardElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
   const layoutFrameRef = useRef<number | null>(null);
   const [layoutRevision, setLayoutRevision] = useState(0);
-  const [contentMinHeight, setContentMinHeight] = useState(minimumHeightPx);
+  const [datedContentMinHeight, setDatedContentMinHeight] = useState(minimumHeightPx);
+  const [undatedSectionHeight, setUndatedSectionHeight] = useState(0);
 
-  const visibleSources = useMemo(() => {
+  const datedSources = useMemo(() => {
     return eventSources.filter((source) => {
-      if (!source.date) return false;
+      if (!source.date) {
+        return false;
+      }
       if (!yearlyViewRange) return true;
       const dateMs = source.date.getTime();
       return dateMs >= yearlyViewRange.startMs && dateMs <= yearlyViewRange.endMs;
     });
   }, [eventSources, yearlyViewRange]);
+  const undatedSources = useMemo(
+    () => eventSources.filter((source) => !source.date),
+    [eventSources]
+  );
+  const topInsetPx = undatedSources.length > 0 ? undatedSectionHeight + CENTURY_VIEW_UNSCHEDULED_GAP_PX : 0;
 
   const scheduleLayout = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -2897,6 +2977,29 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
   }, []);
 
   useEffect(() => {
+    onTopInsetChange(topInsetPx);
+  }, [onTopInsetChange, topInsetPx]);
+
+  useEffect(() => {
+    const undatedSection = undatedSectionRef.current;
+    if (!undatedSection) {
+      setUndatedSectionHeight(0);
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const nextHeight = entries[0]?.contentRect.height ?? 0;
+      setUndatedSectionHeight((previous) => (previous === nextHeight ? previous : nextHeight));
+    });
+
+    observer.observe(undatedSection);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [undatedSources]);
+
+  useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
@@ -2906,7 +3009,7 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
 
     observer.observe(host);
 
-    visibleSources.forEach((source) => {
+    datedSources.forEach((source) => {
       const element = cardElementsRef.current[source.key];
       if (element) {
         observer.observe(element);
@@ -2916,18 +3019,18 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
     return () => {
       observer.disconnect();
     };
-  }, [scheduleLayout, visibleSources]);
+  }, [datedSources, scheduleLayout]);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
-    const cardElements = visibleSources
+    const cardElements = datedSources
       .map((source) => ({ source, element: cardElementsRef.current[source.key] }))
       .filter((entry): entry is { source: TemporalOrderEventSource; element: HTMLDivElement } => entry.element instanceof HTMLDivElement);
 
     if (!cardElements.length) {
-      setContentMinHeight(minimumHeightPx);
+      setDatedContentMinHeight(Math.max(minimumHeightPx - topInsetPx, 100));
       return;
     }
 
@@ -3046,15 +3149,15 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
       element.style.transform = placement.scale < 0.999 ? `scale(${placement.scale})` : '';
     });
 
-    setContentMinHeight(
+    setDatedContentMinHeight(
       Math.max(
         contentBottom + CENTURY_VIEW_VERTICAL_PADDING_PX,
-        minimumHeightPx
+        Math.max(minimumHeightPx - topInsetPx, 100)
       )
     );
-  }, [layoutRevision, minimumHeightPx, visibleSources, yearIncrements]);
+  }, [datedSources, layoutRevision, minimumHeightPx, topInsetPx, yearIncrements]);
 
-  if (!visibleSources.length) {
+  if (!datedSources.length && !undatedSources.length) {
     return (
       <div
         ref={hostRef}
@@ -3068,25 +3171,67 @@ const TemporalOrderGlobalYearlyCards: React.FC<{
     <div
       ref={hostRef}
       className="temporal-order-global-yearly-host"
-      style={{ position: 'relative', minHeight: contentMinHeight }}
+      style={{ position: 'relative', minHeight: minimumHeightPx }}
     >
-      {visibleSources.map((source) => (
+      {undatedSources.length > 0 && (
         <div
-          key={source.key}
-          ref={(element) => {
-            cardElementsRef.current[source.key] = element;
+          ref={undatedSectionRef}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: `${CENTURY_VIEW_COLUMN_GAP_PX}px`,
+            marginBottom: `${CENTURY_VIEW_UNSCHEDULED_GAP_PX}px`,
           }}
-          data-temporal-order-global-card="true"
         >
-          <TemporalEventCardRenderer
-            data={{
-              nodeId: source.nodeId,
-              label: truncateTemporalOrderLabel(source.label, 54),
-              content: source.content,
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'rgba(71, 85, 105, 0.88)',
             }}
-          />
+          >
+            Without Timepoint
+          </div>
+          {undatedSources.map((source) => (
+            <div key={source.key} data-temporal-order-global-card="true">
+              <TemporalEventCardRenderer
+                data={{
+                  nodeId: source.nodeId,
+                  label: truncateTemporalOrderLabel(source.label, 54),
+                  content: source.content,
+                }}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+      <div
+        style={{
+          position: 'relative',
+          minHeight: datedContentMinHeight,
+        }}
+      >
+        {datedSources.map((source) => (
+          <div
+            key={source.key}
+            ref={(element) => {
+              cardElementsRef.current[source.key] = element;
+            }}
+            data-temporal-order-global-card="true"
+          >
+            <TemporalEventCardRenderer
+              data={{
+                nodeId: source.nodeId,
+                label: truncateTemporalOrderLabel(source.label, 54),
+                content: source.content,
+              }}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -3113,6 +3258,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   const [contentHeight, setContentHeight] = useState(200);
   const [centuryLayoutRevision, setCenturyLayoutRevision] = useState(0);
   const [centuryTopInset, setCenturyTopInset] = useState(0);
+  const [globalYearlyTopInset, setGlobalYearlyTopInset] = useState(0);
   const [timelineHoverIndicator, setTimelineHoverIndicator] = useState<TemporalOrderHoverIndicatorState | null>(null);
   const isIdentityLens = lens === 'identity';
   const isCenturyViewLens = lens === 'centuryView';
@@ -3149,6 +3295,13 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       (yearIncrements[0]?.topPx ?? 0) + CENTURY_VIEW_VERTICAL_PADDING_PX
     );
   }, [yearIncrements]);
+  const effectiveTopInset = isGlobalYearlyViewLens ? globalYearlyTopInset : centuryTopInset;
+
+  useEffect(() => {
+    if (!isGlobalYearlyViewLens && globalYearlyTopInset !== 0) {
+      setGlobalYearlyTopInset(0);
+    }
+  }, [globalYearlyTopInset, isGlobalYearlyViewLens]);
 
   const scheduleCenturyViewLayout = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -3760,7 +3913,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
       onMouseLeave={handleCenturyTimelineMouseLeave}
       style={{
         position: 'relative',
-        minHeight: isCollapsed ? 48 : isYearIncrementLens ? centuryViewMinHeight + centuryTopInset : isLinearLens ? 100 : 480,
+        minHeight: isCollapsed ? 48 : isYearIncrementLens ? centuryViewMinHeight + effectiveTopInset : isLinearLens ? 100 : 480,
         paddingLeft: isLinearLens ? 8 : 0,
         borderRadius: isImmersiveGraphLens ? 16 : 0,
         overflow: isImmersiveGraphLens ? 'hidden' : 'visible',
@@ -3807,7 +3960,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
             {isYearIncrementLens && (
               <TemporalOrderYearRail
                 increments={yearIncrements}
-                topOffsetPx={centuryTopInset}
+                topOffsetPx={effectiveTopInset}
               />
             )}
             <div
@@ -3819,7 +3972,8 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
                   eventSources={eventSources}
                   yearIncrements={yearIncrements}
                   yearlyViewRange={yearlyViewRange}
-                  minimumHeightPx={centuryViewMinHeight + centuryTopInset}
+                  minimumHeightPx={centuryViewMinHeight + globalYearlyTopInset}
+                  onTopInsetChange={setGlobalYearlyTopInset}
                 />
               ) : (
                 children
@@ -4183,7 +4337,16 @@ export const TemporalOrderExtension = TipTapNode.create({
             try {
               const normalizedContent = normalizeTemporalOrderContentToDoc(content);
               const documentNode = props.editor.schema.nodeFromJSON(normalizedContent);
-              loadedSources.push(...buildTemporalOrderEventSourcesFromNode(documentNode, roomName));
+              loadedSources.push(
+                ...buildTemporalOrderEventSourcesFromNode(documentNode, roomName).filter((source) => {
+                  try {
+                    const sourceNode = props.editor.schema.nodeFromJSON(source.content);
+                    return hasTemporalOrderLocationTag(sourceNode);
+                  } catch {
+                    return false;
+                  }
+                })
+              );
             } catch {
               continue;
             }
