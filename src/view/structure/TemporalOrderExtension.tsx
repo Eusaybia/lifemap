@@ -8,6 +8,9 @@ import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap
 import { motion, AnimatePresence } from "framer-motion";
 import { forceCollide } from "d3-force-3d";
 import type { Edge as ReactFlowEdge, Node as ReactFlowNode } from "reactflow";
+import { IndexeddbPersistence } from "y-indexeddb";
+import * as Y from "yjs";
+import { TiptapTransformer } from "@hocuspocus/transformer";
 import { offWhite } from "../Theme";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { scanNodeForTags } from "../components/Aura";
@@ -94,7 +97,7 @@ declare module '@tiptap/core' {
   }
 }
 
-type TemporalOrderLens = 'identity' | 'centuryView' | 'yearlyView' | 'globeView' | 'map2DView' | 'auraView' | 'graph2D' | 'flowGraph';
+type TemporalOrderLens = 'identity' | 'centuryView' | 'yearlyView' | 'globalYearlyView' | 'globeView' | 'map2DView' | 'auraView' | 'graph2D' | 'flowGraph';
 type TemporalOrderCenturySpecificity = 'date' | 'month' | 'year' | 'someday';
 
 const TEMPORAL_ORDER_CENTURY_SPECIFICITY_ORDER: TemporalOrderCenturySpecificity[] = [
@@ -239,6 +242,177 @@ const extractEarliestTemporalMetadataFromNode = (
  */
 const extractEarliestDateFromNode = (node: ProseMirrorNode): Date | null => {
   return extractEarliestTemporalMetadataFromNode(node).date;
+};
+
+const isRenderableTemporalOrderTimelineNode = (node: ProseMirrorNode): boolean => {
+  if (node.type.name === 'temporalSpace') {
+    return true;
+  }
+
+  if (node.type.name === 'trends') {
+    let hasNestedTemporalSpace = false;
+    node.descendants((descendant) => {
+      if (descendant.type.name === 'temporalSpace') {
+        hasNestedTemporalSpace = true;
+        return false;
+      }
+      return true;
+    });
+    return !hasNestedTemporalSpace;
+  }
+
+  return false;
+};
+
+const hasMeaningfulTemporalOrderNodeContent = (node: ProseMirrorNode): { hasMap: boolean; hasMeaningfulContent: boolean } => {
+  let hasMap = false;
+  let hasMeaningfulContent = false;
+
+  node.descendants((descendant) => {
+    if (descendant.type.name === 'mapboxMap') {
+      hasMap = true;
+    }
+    if (descendant.isText && descendant.text?.trim()) {
+      hasMeaningfulContent = true;
+    }
+    if (descendant.type.name !== 'paragraph' && descendant.type.name !== 'hardBreak') {
+      hasMeaningfulContent = true;
+    }
+    return true;
+  });
+
+  return { hasMap, hasMeaningfulContent };
+};
+
+const buildTemporalOrderEventSourcesFromNode = (
+  rootNode: ProseMirrorNode,
+  keyPrefix = ''
+): TemporalOrderEventSource[] => {
+  const sources: TemporalOrderEventSource[] = [];
+  const usedNodeIds = new Set<string>();
+  let index = 0;
+
+  rootNode.descendants((candidateNode, pos) => {
+    if (!isRenderableTemporalOrderTimelineNode(candidateNode)) {
+      return true;
+    }
+
+    const { hasMap, hasMeaningfulContent } = hasMeaningfulTemporalOrderNodeContent(candidateNode);
+    if (!hasMeaningfulContent) {
+      return true;
+    }
+
+    const nodeQuantaId = (candidateNode.attrs as any)?.quantaId;
+    const keyBase =
+      typeof nodeQuantaId === 'string' && nodeQuantaId.trim()
+        ? nodeQuantaId
+        : `${candidateNode.type.name}-${pos}-${index}`;
+    const key = keyPrefix ? `${keyPrefix}:${keyBase}` : keyBase;
+    const label = truncateTemporalOrderLabel(
+      candidateNode.textContent?.replace(/\s+/g, ' ').trim() || candidateNode.type.name || 'Event'
+    );
+    const nodeId = buildTemporalOrderNodeId(label, index, usedNodeIds);
+    const { date, specificity } = extractEarliestTemporalMetadataFromNode(candidateNode);
+    const aura = deriveTemporalOrderNodeAura(candidateNode);
+    const content = candidateNode.toJSON() as JSONContent;
+    const locations = extractTemporalOrderLocationsFromJSONContent(content);
+
+    sources.push({
+      key,
+      nodeId,
+      label,
+      content,
+      hasMap,
+      date: date && !Number.isNaN(date.getTime()) ? new Date(date.getTime()) : null,
+      dateMs: date ? date.getTime() : null,
+      year: date?.getUTCFullYear() ?? date?.getFullYear() ?? null,
+      slotKey: date ? `${date.getUTCFullYear()}-${date.getUTCMonth()}` : null,
+      specificity,
+      aura,
+      locations,
+    });
+
+    index += 1;
+    return true;
+  });
+
+  return sources;
+};
+
+const normalizeTemporalOrderContentToDoc = (content: JSONContent): JSONContent => {
+  if (content?.type === 'doc') {
+    return content;
+  }
+
+  return {
+    type: 'doc',
+    content: [content ?? { type: 'paragraph' }],
+  };
+};
+
+const fetchTemporalOrderContentFromIndexedDB = async (
+  roomName: string,
+  timeoutMs = 2000
+): Promise<JSONContent | null> => {
+  return new Promise((resolve) => {
+    const yDoc = new Y.Doc();
+    const persistence = new IndexeddbPersistence(roomName, yDoc);
+    let settled = false;
+
+    const finish = (value: JSONContent | null) => {
+      if (settled) return;
+      settled = true;
+      persistence.destroy();
+      resolve(value);
+    };
+
+    persistence.on('synced', () => {
+      try {
+        const content = TiptapTransformer.fromYdoc(yDoc, 'default') as JSONContent;
+        finish(content ?? null);
+      } catch {
+        finish(null);
+      }
+    });
+
+    window.setTimeout(() => {
+      finish(null);
+    }, timeoutMs);
+  });
+};
+
+const listTemporalOrderUserRoomNames = async (userId: string): Promise<string[]> => {
+  if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') {
+    return [];
+  }
+
+  const databases = await indexedDB.databases();
+  const prefix = `${userId}/`;
+
+  return databases
+    .map((database) => database.name)
+    .filter((name): name is string => {
+      if (typeof name !== 'string' || !name.trim()) {
+        return false;
+      }
+
+      if (name.startsWith(prefix) && name.length > prefix.length) {
+        return true;
+      }
+
+      return userId === '000000' && !name.includes('/');
+    })
+    .sort((left, right) => left.localeCompare(right));
+};
+
+const readTemporalOrderUserIdFromLocation = (): string => {
+  if (typeof window === 'undefined') {
+    return '000000';
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get('userId')?.trim();
+  return userId || '000000';
 };
 
 // ============================================================================
@@ -1710,7 +1884,11 @@ interface TemporalOrderEventSource {
   label: string;
   content: JSONContent;
   hasMap: boolean;
+  date: Date | null;
   dateMs: number | null;
+  year: number | null;
+  slotKey: string | null;
+  specificity: TemporalOrderCenturySpecificity | null;
   aura: AuraSpec | null;
   locations: TemporalOrderEventLocation[];
 }
@@ -2679,6 +2857,240 @@ const TemporalOrderYearRail: React.FC<{
   );
 };
 
+const TemporalOrderGlobalYearlyCards: React.FC<{
+  eventSources: TemporalOrderEventSource[];
+  yearIncrements: TemporalOrderYearIncrement[];
+  yearlyViewRange: { startMs: number; endMs: number } | null;
+  minimumHeightPx: number;
+}> = ({ eventSources, yearIncrements, yearlyViewRange, minimumHeightPx }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const cardElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const layoutFrameRef = useRef<number | null>(null);
+  const [layoutRevision, setLayoutRevision] = useState(0);
+  const [contentMinHeight, setContentMinHeight] = useState(minimumHeightPx);
+
+  const visibleSources = useMemo(() => {
+    return eventSources.filter((source) => {
+      if (!source.date) return false;
+      if (!yearlyViewRange) return true;
+      const dateMs = source.date.getTime();
+      return dateMs >= yearlyViewRange.startMs && dateMs <= yearlyViewRange.endMs;
+    });
+  }, [eventSources, yearlyViewRange]);
+
+  const scheduleLayout = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (layoutFrameRef.current !== null) return;
+
+    layoutFrameRef.current = window.requestAnimationFrame(() => {
+      layoutFrameRef.current = null;
+      setLayoutRevision((previous) => previous + 1);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && layoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(layoutFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const observer = new ResizeObserver(() => {
+      scheduleLayout();
+    });
+
+    observer.observe(host);
+
+    visibleSources.forEach((source) => {
+      const element = cardElementsRef.current[source.key];
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [scheduleLayout, visibleSources]);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const cardElements = visibleSources
+      .map((source) => ({ source, element: cardElementsRef.current[source.key] }))
+      .filter((entry): entry is { source: TemporalOrderEventSource; element: HTMLDivElement } => entry.element instanceof HTMLDivElement);
+
+    if (!cardElements.length) {
+      setContentMinHeight(minimumHeightPx);
+      return;
+    }
+
+    const yearTopLookup = new Map(yearIncrements.map((increment) => [increment.year, increment.topPx]));
+    const horizonEndYear = yearIncrements[yearIncrements.length - 1]?.year ?? new Date().getFullYear();
+    const nowMs = Date.now();
+    const timelineWidth = Math.max(host.clientWidth - 96, CENTURY_VIEW_MIN_EVENT_WIDTH_PX);
+    const maxColumnsByWidth = Math.max(
+      1,
+      Math.min(
+        cardElements.length,
+        Math.floor(
+          (timelineWidth + CENTURY_VIEW_COLUMN_GAP_PX) /
+            (CENTURY_VIEW_MIN_EVENT_WIDTH_PX + CENTURY_VIEW_COLUMN_GAP_PX)
+        )
+      )
+    );
+    const minimumScheduledColumnCount = cardElements.some((entry) => entry.source.specificity === 'someday')
+      ? Math.min(maxColumnsByWidth, TEMPORAL_ORDER_CENTURY_PANE_COUNT)
+      : 1;
+    const computeCardWidth = (columnCount: number) =>
+      Math.max(
+        Math.min(
+          Math.floor(
+            (timelineWidth - (columnCount - 1) * CENTURY_VIEW_COLUMN_GAP_PX) /
+              Math.max(columnCount, 1)
+          ),
+          CENTURY_VIEW_MAX_EVENT_WIDTH_PX
+        ),
+        CENTURY_VIEW_MIN_EVENT_WIDTH_PX
+      );
+
+    const applyWidths = (cardWidth: number) => {
+      cardElements.forEach(({ element }) => {
+        element.style.display = '';
+        element.style.width = `${cardWidth}px`;
+        element.style.maxWidth = `${CENTURY_VIEW_MAX_EVENT_WIDTH_PX}px`;
+      });
+    };
+
+    const buildMeasuredPlacements = () =>
+      cardElements.map(({ source, element }, index) => {
+        const targetAnchorPx = getCenturyViewDateOffsetPx(
+          source.date as Date,
+          yearTopLookup,
+          yearTopLookup.get(source.year ?? NaN) ?? CENTURY_VIEW_VERTICAL_PADDING_PX
+        );
+        const childHeight = element.getBoundingClientRect().height;
+        const scale = getCenturyViewFutureEventScale(
+          source.date as Date,
+          nowMs,
+          horizonEndYear
+        );
+        const bandBottomPx = yearTopLookup.get(source.year ?? NaN) ?? targetAnchorPx;
+        const bandTopPx =
+          yearTopLookup.get((source.year ?? NaN) + 1) ??
+          Math.max(CENTURY_VIEW_VERTICAL_PADDING_PX, bandBottomPx - 96);
+
+        return {
+          index,
+          childHeight,
+          scale,
+          targetAnchorPx,
+          yearKey: source.year !== null ? String(source.year) : null,
+          slotKey: source.slotKey,
+          specificity: source.specificity ?? 'date',
+          bandTopPx,
+          bandBottomPx,
+        };
+      });
+
+    let columnCount = clampNumber(
+      Math.min(maxColumnsByWidth, Math.max(1, cardElements.length > 1 ? 2 : 1)),
+      minimumScheduledColumnCount,
+      maxColumnsByWidth
+    );
+    let cardWidth = computeCardWidth(columnCount);
+    let placements = [] as ReturnType<typeof buildMeasuredPlacements>;
+
+    for (let iteration = 0; iteration < maxColumnsByWidth; iteration += 1) {
+      applyWidths(cardWidth);
+      placements = buildMeasuredPlacements();
+
+      const requiredColumnCount = resolveTemporalOrderCenturyViewColumnCount(placements, timelineWidth);
+      if (requiredColumnCount <= columnCount || columnCount >= maxColumnsByWidth) {
+        break;
+      }
+
+      columnCount = Math.min(requiredColumnCount, maxColumnsByWidth);
+      cardWidth = computeCardWidth(columnCount);
+    }
+
+    cardWidth = computeCardWidth(columnCount);
+    applyWidths(cardWidth);
+    placements = buildMeasuredPlacements();
+
+    const {
+      placements: resolvedPlacements,
+      contentBottom,
+    } = buildTemporalOrderCenturyViewPlacements(
+      placements,
+      columnCount,
+      cardWidth,
+      timelineWidth
+    );
+
+    resolvedPlacements.forEach((placement) => {
+      const element = cardElements[placement.index]?.element;
+      if (!element) return;
+
+      element.style.position = 'absolute';
+      element.style.marginTop = '0px';
+      element.style.top = `${placement.topPx}px`;
+      element.style.left = `${placement.leftPx}px`;
+      element.style.transformOrigin = 'bottom left';
+      element.style.transform = placement.scale < 0.999 ? `scale(${placement.scale})` : '';
+    });
+
+    setContentMinHeight(
+      Math.max(
+        contentBottom + CENTURY_VIEW_VERTICAL_PADDING_PX,
+        minimumHeightPx
+      )
+    );
+  }, [layoutRevision, minimumHeightPx, visibleSources, yearIncrements]);
+
+  if (!visibleSources.length) {
+    return (
+      <div
+        ref={hostRef}
+        className="temporal-order-global-yearly-host"
+        style={{ position: 'relative', minHeight: minimumHeightPx }}
+      />
+    );
+  }
+
+  return (
+    <div
+      ref={hostRef}
+      className="temporal-order-global-yearly-host"
+      style={{ position: 'relative', minHeight: contentMinHeight }}
+    >
+      {visibleSources.map((source) => (
+        <div
+          key={source.key}
+          ref={(element) => {
+            cardElementsRef.current[source.key] = element;
+          }}
+          data-temporal-order-global-card="true"
+        >
+          <TemporalEventCardRenderer
+            data={{
+              nodeId: source.nodeId,
+              label: truncateTemporalOrderLabel(source.label, 54),
+              content: source.content,
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   children,
   isCollapsed,
@@ -2704,7 +3116,8 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
   const [timelineHoverIndicator, setTimelineHoverIndicator] = useState<TemporalOrderHoverIndicatorState | null>(null);
   const isIdentityLens = lens === 'identity';
   const isCenturyViewLens = lens === 'centuryView';
-  const isYearlyViewLens = lens === 'yearlyView';
+  const isGlobalYearlyViewLens = lens === 'globalYearlyView';
+  const isYearlyViewLens = lens === 'yearlyView' || isGlobalYearlyViewLens;
   const isYearIncrementLens = isCenturyViewLens || isYearlyViewLens;
   const isLinearLens = isIdentityLens || isYearIncrementLens;
   const isGlobeLens = lens === 'globeView';
@@ -3099,6 +3512,7 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
     if (
       target.closest('[data-temporal-space="true"]') ||
       target.closest('[data-temporal-space-node-view="true"]') ||
+      target.closest('[data-temporal-order-global-card="true"]') ||
       target.closest('[data-temporal-order-node-view="true"] [contenteditable="true"]') ||
       target.closest('.node-overlay-grip') ||
       target.closest('[data-century-cloud="true"]') ||
@@ -3400,7 +3814,16 @@ const TemporalOrderContent: React.FC<TemporalOrderContentProps> = ({
               ref={contentHostRef}
               className={`temporal-order-content-host ${isLinearLens ? 'is-linear' : 'is-graph-source'}${isYearIncrementLens ? ' is-year-increments' : ''}`}
             >
-              {children}
+              {isGlobalYearlyViewLens ? (
+                <TemporalOrderGlobalYearlyCards
+                  eventSources={eventSources}
+                  yearIncrements={yearIncrements}
+                  yearlyViewRange={yearlyViewRange}
+                  minimumHeightPx={centuryViewMinHeight + centuryTopInset}
+                />
+              ) : (
+                children
+              )}
             </div>
 
             <AnimatePresence>
@@ -3659,7 +4082,7 @@ export const TemporalOrderExtension = TipTapNode.create({
             state.doc.descendants((node, pos) => {
               if (node.type.name !== 'temporalOrder') return;
               const isYearIncrementLens =
-                node.attrs.lens === 'centuryView' || node.attrs.lens === 'yearlyView';
+                node.attrs.lens === 'centuryView' || node.attrs.lens === 'yearlyView' || node.attrs.lens === 'globalYearlyView';
 
               node.forEach((child, offset) => {
                 const childPos = pos + 1 + offset;
@@ -3722,7 +4145,8 @@ export const TemporalOrderExtension = TipTapNode.create({
           lensAttr === 'flowGraph' ||
           lensAttr === 'identity' ||
           lensAttr === 'centuryView' ||
-          lensAttr === 'yearlyView'
+          lensAttr === 'yearlyView' ||
+          lensAttr === 'globalYearlyView'
         ) {
           return lensAttr;
         }
@@ -3731,92 +4155,62 @@ export const TemporalOrderExtension = TipTapNode.create({
         }
         return 'identity';
       })();
-      const eventSources = useMemo<TemporalOrderEventSource[]>(() => {
-        const sources: TemporalOrderEventSource[] = [];
-        const usedNodeIds = new Set<string>();
-        let index = 0;
+      const localEventSources = useMemo<TemporalOrderEventSource[]>(
+        () => buildTemporalOrderEventSourcesFromNode(props.node),
+        [props.node]
+      );
+      const [globalEventSources, setGlobalEventSources] = useState<TemporalOrderEventSource[]>([]);
 
-        const isRenderableTimelineNode = (node: ProseMirrorNode): boolean => {
-          // TemporalSpace cards are the primary units rendered in TemporalOrder.
-          if (node.type.name === 'temporalSpace') {
-            return true;
+      useEffect(() => {
+        if (lens !== 'globalYearlyView') {
+          setGlobalEventSources([]);
+          return;
+        }
+
+        let cancelled = false;
+
+        const loadGlobalEventSources = async () => {
+          const userId = readTemporalOrderUserIdFromLocation();
+          const roomNames = await listTemporalOrderUserRoomNames(userId);
+          const loadedSources: TemporalOrderEventSource[] = [];
+
+          for (const roomName of roomNames) {
+            const content = await fetchTemporalOrderContentFromIndexedDB(roomName);
+            if (!content) {
+              continue;
+            }
+
+            try {
+              const normalizedContent = normalizeTemporalOrderContentToDoc(content);
+              const documentNode = props.editor.schema.nodeFromJSON(normalizedContent);
+              loadedSources.push(...buildTemporalOrderEventSourcesFromNode(documentNode, roomName));
+            } catch {
+              continue;
+            }
           }
 
-          // Trends can also live inside TemporalOrder, but when it wraps temporalSpace
-          // children we render those children as graph nodes instead of the wrapper.
-          if (node.type.name === 'trends') {
-            let hasNestedTemporalSpace = false;
-            node.descendants((descendant) => {
-              if (descendant.type.name === 'temporalSpace') {
-                hasNestedTemporalSpace = true;
-                return false;
-              }
-              return true;
-            });
-            return !hasNestedTemporalSpace;
-          }
+          loadedSources.sort((left, right) => {
+            if (left.dateMs !== null && right.dateMs !== null) {
+              return right.dateMs - left.dateMs;
+            }
+            if (left.dateMs !== null) return -1;
+            if (right.dateMs !== null) return 1;
+            return left.label.localeCompare(right.label);
+          });
 
-          return false;
+          if (!cancelled) {
+            setGlobalEventSources(loadedSources);
+          }
         };
 
-        props.node.descendants((candidateNode, pos) => {
-          if (!isRenderableTimelineNode(candidateNode)) {
-            return true;
-          }
+        loadGlobalEventSources();
 
-          const nodeQuantaId = (candidateNode.attrs as any)?.quantaId;
-          const key =
-            typeof nodeQuantaId === 'string' && nodeQuantaId.trim()
-              ? nodeQuantaId
-              : `${candidateNode.type.name}-${pos}-${index}`;
+        return () => {
+          cancelled = true;
+        };
+      }, [lens, props.editor.schema]);
 
-          const label =
-            truncateTemporalOrderLabel(
-              candidateNode.textContent?.replace(/\s+/g, ' ').trim() || candidateNode.type.name || 'Event'
-            );
-          const nodeId = buildTemporalOrderNodeId(label, index, usedNodeIds);
-          const date = extractEarliestDateFromNode(candidateNode);
-          const aura = deriveTemporalOrderNodeAura(candidateNode);
-          const content = candidateNode.toJSON() as JSONContent;
-          const locations = extractTemporalOrderLocationsFromJSONContent(content);
-
-          let hasMap = false;
-          let hasMeaningfulContent = false;
-          candidateNode.descendants((descendant) => {
-            if (descendant.type.name === 'mapboxMap') {
-              hasMap = true;
-            }
-            if (descendant.isText && descendant.text?.trim()) {
-              hasMeaningfulContent = true;
-            }
-            if (descendant.type.name !== 'paragraph' && descendant.type.name !== 'hardBreak') {
-              hasMeaningfulContent = true;
-            }
-            return true;
-          });
-
-          // Skip empty wrappers so they do not render as empty graph nodes.
-          if (!hasMeaningfulContent) {
-            return true;
-          }
-
-          sources.push({
-            key,
-            nodeId,
-            label,
-            content,
-            hasMap,
-            dateMs: date ? date.getTime() : null,
-            aura,
-            locations,
-          });
-
-          index += 1;
-          return true;
-        });
-
-        return sources;
-      }, [props.node]);
+      const eventSources = lens === 'globalYearlyView' ? globalEventSources : localEventSources;
       const auraGraphData = useMemo(
         () => buildTemporalOrderAuraGraphData(eventSources),
         [eventSources]
@@ -3834,6 +4228,16 @@ export const TemporalOrderExtension = TipTapNode.create({
         [eventSources]
       );
       const timelineLayout = useMemo<TemporalOrderTimelineLayoutItem[]>(() => {
+        if (lens === 'globalYearlyView') {
+          return eventSources.map((source) => ({
+            key: source.key,
+            year: source.year,
+            date: source.date,
+            slotKey: source.slotKey,
+            specificity: source.specificity,
+          }));
+        }
+
         const items: TemporalOrderTimelineLayoutItem[] = [];
 
         props.node.forEach((child, offset) => {
@@ -3858,13 +4262,14 @@ export const TemporalOrderExtension = TipTapNode.create({
         });
 
         return items;
-      }, [props.node]);
+      }, [eventSources, lens, props.node]);
       const yearIncrements = useMemo(() => {
         const currentYear = new Date().getFullYear();
+        const isCompactYearLens = lens === 'yearlyView' || lens === 'globalYearlyView';
         return buildTemporalOrderYearIncrements(
           currentYear,
-          lens === 'yearlyView' ? currentYear + 1 : 2100,
-          lens === 'yearlyView'
+          isCompactYearLens ? currentYear + 1 : 2100,
+          isCompactYearLens
             ? {
                 minimumHeightPx: 1040,
               }

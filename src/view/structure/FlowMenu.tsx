@@ -1398,7 +1398,7 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     const isCollapsed = !!selectedNode?.attrs?.collapsed
     const lensAttr = selectedNode?.attrs?.lens
     const selectedLens =
-      lensAttr === 'globeView' || lensAttr === 'map2DView' || lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView' || lensAttr === 'yearlyView'
+      lensAttr === 'globeView' || lensAttr === 'map2DView' || lensAttr === 'auraView' || lensAttr === 'graph2D' || lensAttr === 'flowGraph' || lensAttr === 'identity' || lensAttr === 'centuryView' || lensAttr === 'yearlyView' || lensAttr === 'globalYearlyView'
         ? lensAttr
         : selectedNode?.attrs?.timeMode === 'nonLinear'
           ? 'graph2D'
@@ -1437,6 +1437,16 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
                 }}>
                     <motion.div>
                         Yearly View
+                    </motion.div>
+                </Option>
+                <Option value={"globalYearlyView"} onClick={() => {
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderCollapsed({ collapsed: false })
+                    // @ts-ignore - command is added by TemporalOrderExtension
+                    props.editor.commands.setTemporalOrderLens({ lens: "globalYearlyView" })
+                }}>
+                    <motion.div>
+                        Global Yearly View
                     </motion.div>
                 </Option>
                 <Option value={"globeView"} onClick={() => {
