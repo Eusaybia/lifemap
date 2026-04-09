@@ -95,6 +95,7 @@ import {
   parseInternalClipboardNodes,
   readInternalClipboardPayload,
   writeInternalClipboardSelection,
+  writeInlineLocationClipboardSelection,
 } from '../clipboard/InternalClipboard'
 
 // Template quanta ID - this is the editable template in the Daily carousel
@@ -1133,12 +1134,19 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
             return false
           }
 
-          const handled = writeInternalClipboardSelection({
-            clipboardData: event.clipboardData,
-            selection: view.state.selection,
-            schema: view.state.schema,
-            document,
-          })
+          const handled =
+            writeInternalClipboardSelection({
+              clipboardData: event.clipboardData,
+              selection: view.state.selection,
+              schema: view.state.schema,
+              document,
+            }) ||
+            writeInlineLocationClipboardSelection({
+              clipboardData: event.clipboardData,
+              domSelection: document.getSelection(),
+              schema: view.state.schema,
+              document,
+            })
 
           if (!handled) {
             return false

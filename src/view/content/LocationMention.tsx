@@ -551,6 +551,11 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
       <span
         ref={tagRef}
         className={`location-mention ${selected ? 'selected' : ''}`}
+        data-location-id={attrs.id || undefined}
+        data-location-label={label || undefined}
+        data-location-name={attrs['data-name'] || undefined}
+        data-location-country={attrs['data-country'] || undefined}
+        data-location-coords={coordsStr || undefined}
         onClick={handleClick}
         style={{ cursor: 'pointer' }}
       >
