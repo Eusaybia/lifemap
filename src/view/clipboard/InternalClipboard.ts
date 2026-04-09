@@ -48,9 +48,55 @@ const buildInternalClipboardPayload = (selection: PMSelection): InternalClipboar
 const normalizeClipboardText = (value: string | null | undefined): string =>
   value?.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim() ?? ''
 
-const getSelectedSingleLocationElement = (
+const selectionContainsElement = (
+  domSelection: Selection,
+  element: HTMLElement
+): boolean => {
+  if (typeof domSelection.containsNode === 'function') {
+    try {
+      if (domSelection.containsNode(element, true)) {
+        return true
+      }
+    } catch {
+      // Fall through to range-based checks.
+    }
+  }
+
+  for (let index = 0; index < domSelection.rangeCount; index += 1) {
+    const range = domSelection.getRangeAt(index)
+
+    try {
+      if (typeof range.intersectsNode === 'function' && range.intersectsNode(element)) {
+        return true
+      }
+    } catch {
+      // Fall through to manual range comparison.
+    }
+
+    const elementRange = element.ownerDocument.createRange()
+    elementRange.selectNodeContents(element)
+    const rangeClass = element.ownerDocument.defaultView?.Range
+    if (!rangeClass) {
+      continue
+    }
+
+    const startsBeforeElementEnds =
+      range.compareBoundaryPoints(rangeClass.START_TO_END, elementRange) < 0
+    const endsAfterElementStarts =
+      range.compareBoundaryPoints(rangeClass.END_TO_START, elementRange) > 0
+
+    if (startsBeforeElementEnds && endsAfterElementStarts) {
+      return true
+    }
+  }
+
+  return false
+}
+
+const getSelectedSingleInlineElement = (
   domSelection: Selection | null | undefined,
-  document: Document
+  document: Document,
+  selector: string
 ): HTMLElement | null => {
   if (!domSelection || domSelection.isCollapsed) {
     return null
@@ -61,20 +107,69 @@ const getSelectedSingleLocationElement = (
     return null
   }
 
-  const selectedLocationElements = Array.from(
-    document.querySelectorAll<HTMLElement>('.location-mention[data-location-id]')
-  ).filter((element) => domSelection.containsNode(element, true))
+  const selectedInlineElements = Array.from(
+    document.querySelectorAll<HTMLElement>(selector)
+  ).filter((element) => selectionContainsElement(domSelection, element))
 
-  if (selectedLocationElements.length !== 1) {
+  if (selectedInlineElements.length !== 1) {
     return null
   }
 
-  const [locationElement] = selectedLocationElements
-  if (normalizeClipboardText(locationElement.textContent) !== selectedText) {
+  const [inlineElement] = selectedInlineElements
+  if (normalizeClipboardText(inlineElement.textContent) !== selectedText) {
     return null
   }
 
-  return locationElement
+  return inlineElement
+}
+
+const getSelectedSingleLocationElement = (
+  domSelection: Selection | null | undefined,
+  document: Document
+): HTMLElement | null => getSelectedSingleInlineElement(
+  domSelection,
+  document,
+  '.location-mention[data-location-id]'
+)
+
+const getSelectedSinglePersonElement = (
+  domSelection: Selection | null | undefined,
+  document: Document
+): HTMLElement | null => getSelectedSingleInlineElement(
+  domSelection,
+  document,
+  '.person-mention[data-person-id]'
+)
+
+const writeInlineAtomClipboardSelection = ({
+  clipboardData,
+  node,
+  label,
+  schema,
+  document,
+}: {
+  clipboardData:
+    | Pick<DataTransfer, 'clearData' | 'setData'>
+    | null
+    | undefined
+  node: ProseMirrorNode | null
+  label: string | null
+  schema: Schema
+  document: Document
+}): boolean => {
+  if (!clipboardData || !node) {
+    return false
+  }
+
+  const serializer = DOMSerializer.fromSchema(schema)
+  const container = document.createElement('div')
+  container.appendChild(serializer.serializeFragment(Fragment.from(node), { document }))
+
+  clipboardData.clearData()
+  clipboardData.setData('text/html', container.innerHTML)
+  clipboardData.setData('text/plain', label || '')
+
+  return true
 }
 
 export const readInternalClipboardPayload = (
@@ -155,15 +250,58 @@ export const writeInlineLocationClipboardSelection = ({
     'data-coords': selectedLocationElement.dataset.locationCoords || null,
   })
 
-  const serializer = DOMSerializer.fromSchema(schema)
-  const container = document.createElement('div')
-  container.appendChild(serializer.serializeFragment(Fragment.from(locationNode), { document }))
+  return writeInlineAtomClipboardSelection({
+    clipboardData,
+    node: locationNode,
+    label,
+    schema,
+    document,
+  })
+}
 
-  clipboardData.clearData()
-  clipboardData.setData('text/html', container.innerHTML)
-  clipboardData.setData('text/plain', label || '')
+export const writeInlinePersonClipboardSelection = ({
+  clipboardData,
+  domSelection,
+  schema,
+  document,
+}: {
+  clipboardData:
+    | Pick<DataTransfer, 'clearData' | 'setData'>
+    | null
+    | undefined
+  domSelection: Selection | null | undefined
+  schema: Schema
+  document: Document
+}): boolean => {
+  if (!clipboardData) {
+    return false
+  }
 
-  return true
+  const selectedPersonElement = getSelectedSinglePersonElement(domSelection, document)
+  const personType = schema.nodes.person
+
+  if (!selectedPersonElement || !personType) {
+    return false
+  }
+
+  const label =
+    selectedPersonElement.dataset.personLabel ||
+    normalizeClipboardText(selectedPersonElement.textContent) ||
+    null
+
+  const personNode = personType.create({
+    id: selectedPersonElement.dataset.personId || null,
+    label,
+    'data-name': selectedPersonElement.dataset.personName || label,
+  })
+
+  return writeInlineAtomClipboardSelection({
+    clipboardData,
+    node: personNode,
+    label,
+    schema,
+    document,
+  })
 }
 
 export const writeInternalClipboardSelection = ({

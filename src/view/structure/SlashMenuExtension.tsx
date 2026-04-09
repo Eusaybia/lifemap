@@ -513,6 +513,20 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'mention-person',
+      title: 'Mention: Person',
+      description: 'Insert a % person mention (Jane Doe)',
+      emoji: '👤',
+      keywords: ['mention', 'person', 'people', 'contact', '%'],
+      action: (editor) => {
+        insertFirstAvailableInlineNode(editor, ['person'], {
+          id: 'person:jane-doe',
+          label: '👤 Jane Doe',
+          'data-name': 'Jane Doe',
+        })
+      },
+    },
+    {
       id: 'mention-hashtag',
       title: 'Mention: Hashtag',
       description: 'Insert a # hashtag mention (important)',

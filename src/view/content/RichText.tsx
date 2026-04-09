@@ -35,6 +35,7 @@ import { TemporalFieldExtension, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
+import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { AuraMention, AuraNode } from './AuraMention'
@@ -96,6 +97,7 @@ import {
   readInternalClipboardPayload,
   writeInternalClipboardSelection,
   writeInlineLocationClipboardSelection,
+  writeInlinePersonClipboardSelection,
 } from '../clipboard/InternalClipboard'
 
 // Template quanta ID - this is the editable template in the Daily carousel
@@ -961,6 +963,9 @@ export const customExtensions: Extensions = [
   // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
   LocationMention,
+  // People mentions - triggered by % for person insertion (Jane Doe, Alex Chen, etc.)
+  PersonNode,
+  PeopleMention,
   // Hashtag mentions - triggered by # for tagging content
   HashtagNode,
   HashtagMention,
@@ -1142,6 +1147,12 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
               document,
             }) ||
             writeInlineLocationClipboardSelection({
+              clipboardData: event.clipboardData,
+              domSelection: document.getSelection(),
+              schema: view.state.schema,
+              document,
+            }) ||
+            writeInlinePersonClipboardSelection({
               clipboardData: event.clipboardData,
               domSelection: document.getSelection(),
               schema: view.state.schema,

@@ -1097,7 +1097,8 @@
 // ============================================================================
 
 // Location dropdown list container
-.location-items {
+.location-items,
+.people-items {
   background: #fff;
   border-radius: 0.5rem;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0px 10px 20px rgba(0, 0, 0, 0.1);
@@ -1110,7 +1111,8 @@
 }
 
 // Individual location item in dropdown
-.location-item {
+.location-item,
+.people-item {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 0.4rem;
@@ -1133,23 +1135,27 @@
     border-color: #0369a1;
   }
 
-  .location-emoji {
+  .location-emoji,
+  .people-emoji {
     font-size: 1.2rem;
     flex-shrink: 0;
   }
 
-  .location-content {
+  .location-content,
+  .people-content {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
   }
 
-  .location-name {
+  .location-name,
+  .people-name {
     font-weight: 600;
     color: #1e293b;
   }
 
-  .location-country {
+  .location-country,
+  .people-meta {
     font-size: 0.75rem;
     color: #64748b;
   }
@@ -1157,7 +1163,8 @@
 
 // Inline location mention styling (in editor)
 // Matches timepoint-mention design for visual consistency
-.location-mention {
+.location-mention,
+.person-mention {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
