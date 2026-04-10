@@ -128,7 +128,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const [draftIframeHeight, setDraftIframeHeight] = useState<number | null>(null);
   const addressInputRef = useRef<HTMLInputElement | null>(null);
   const [browserState, setBrowserState] = useState<BrowserSurfaceState>(() => ({
-    url: resolvedUrl,
+    url: "",
     title: "",
     loading: false,
     canGoBack: false,
@@ -137,6 +137,16 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
     errorDescription: null,
     failedUrl: null,
   }));
+  const browserStateRef = useRef<BrowserSurfaceState>({
+    url: "",
+    title: "",
+    loading: false,
+    canGoBack: false,
+    canGoForward: false,
+    errorCode: null,
+    errorDescription: null,
+    failedUrl: null,
+  });
   const [isUserVisibleLoading, setIsUserVisibleLoading] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -172,11 +182,6 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   const isDesktopSurfaceEnabled = Boolean(desktopApi?.isElectron && hasRequiredSurfaceApi);
   const [surfaceLifecycleState, setSurfaceLifecycleState] = useState<"idle" | "ready" | "failed">("idle");
   const [isInsideGraphNode, setIsInsideGraphNode] = useState(false);
-  const [surfaceId, setSurfaceId] = useState(() => {
-    const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
-    if (existingQuantaId) return `browser-window:${existingQuantaId}`;
-    return `browser-window:tmp-${Math.random().toString(36).slice(2, 10)}`;
-  });
 
   const runSurfaceRequest = useCallback(
     async <T extends KairosSurfaceRequestResult | KairosSurfaceStateResult>(
@@ -220,11 +225,20 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   }, [browserState.errorDescription]);
 
   useEffect(() => {
-    setBrowserState((current) => ({
-      ...current,
-      url: resolvedUrl,
-    }));
-  }, [resolvedUrl]);
+    browserStateRef.current = browserState;
+  }, [browserState]);
+
+  useEffect(() => {
+    if (isDesktopSurfaceEnabled) return;
+    setBrowserState((current) => {
+      const nextState = {
+        ...current,
+        url: resolvedUrl,
+      };
+      browserStateRef.current = nextState;
+      return nextState;
+    });
+  }, [isDesktopSurfaceEnabled, resolvedUrl]);
 
   const persistSurfaceUrlAttribute = useCallback(
     (nextUrl: string | null | undefined) => {
@@ -259,6 +273,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const applySurfaceState = useCallback(
     (nextState: BrowserSurfaceState) => {
+      browserStateRef.current = nextState;
       setBrowserState(nextState);
       reconcileSurfaceUrlAttribute(nextState.url);
       if (!nextState.loading) {
@@ -266,6 +281,18 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
         setIsUserVisibleLoading(false);
       } else if (pendingSurfaceNavigationRef.current || reloadRequestedRef.current) {
         setIsUserVisibleLoading(true);
+      }
+    },
+    [reconcileSurfaceUrlAttribute],
+  );
+
+  const mergeSurfaceEventState = useCallback(
+    (event: BrowserSurfaceEventState) => {
+      const nextState = mergeBrowserSurfaceState(browserStateRef.current, event);
+      browserStateRef.current = nextState;
+      setBrowserState(nextState);
+      if (event.type !== "loadError") {
+        reconcileSurfaceUrlAttribute(nextState.url);
       }
     },
     [reconcileSurfaceUrlAttribute],
@@ -291,7 +318,10 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
   );
   const resolvedQuantaId = String(props.node.attrs.quantaId || "browser-window");
   const explicitPartitionKey = String(props.node.attrs.sessionPartition || "").trim();
+  const stableSurfaceKey = explicitPartitionKey || String(props.node.attrs.quantaId || "").trim();
+  const surfaceId = stableSurfaceKey ? `browser-window:${stableSurfaceKey}` : null;
   const normalizedPartition = `browser-${(explicitPartitionKey || resolvedQuantaId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  const targetDesktopUrl = resolvedUrl || DEFAULT_BROWSER_HOME;
 
   // Sync iframe height with React Flow node height if we are inside one
   useEffect(() => {
@@ -330,14 +360,6 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       sessionPartition: generateBrowserSessionPartitionId(),
     });
   }, [explicitPartitionKey, props]);
-
-  useEffect(() => {
-    const existingQuantaId = String(props.node.attrs.quantaId || "").trim();
-    if (!existingQuantaId) return;
-    const canonical = `browser-window:${existingQuantaId}`;
-    if (surfaceId === canonical) return;
-    setSurfaceId(canonical);
-  }, [props.node.attrs.quantaId, surfaceId]);
 
   useEffect(() => {
     lastSentBoundsKeyRef.current = null;
@@ -403,6 +425,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const syncDesktopSurfaceBounds = useCallback(async (force: boolean = false) => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (!surfaceId) return;
     if (surfaceLifecycleState !== "ready") return;
     if (syncInFlightRef.current) return;
 
@@ -433,14 +456,18 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       setSurfaceLifecycleState("idle");
       return;
     }
+    if (!surfaceId) {
+      setSurfaceLifecycleState("idle");
+      return;
+    }
     let isDisposed = false;
+    let waitFrameId: number | null = null;
 
     const createSurface = async () => {
-      const bounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
+      const initialBounds = computeBounds() ?? { x: 0, y: 0, width: 0, height: 0 };
       const result = await runSurfaceRequest(() => desktopApi.surface.create({
         surfaceId,
-        url: resolvedUrl || DEFAULT_BROWSER_HOME,
-        bounds,
+        bounds: initialBounds,
         partition: normalizedPartition,
       }));
       if (isDisposed) return;
@@ -448,51 +475,93 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
         setSurfaceLifecycleState("failed");
         return;
       }
-      setSurfaceLifecycleState("ready");
-      if (!isDisposed) {
-        await syncDesktopSurfaceBounds(true);
+
+      const settledBounds = await new Promise<typeof initialBounds>((resolve) => {
+        const startedAt = Date.now();
+        const resolveBounds = (bounds: typeof initialBounds) => {
+          if (waitFrameId !== null) {
+            window.cancelAnimationFrame(waitFrameId);
+            waitFrameId = null;
+          }
+          resolve(bounds);
+        };
+        const tick = () => {
+          const nextBounds = computeBounds() ?? initialBounds;
+          if (nextBounds.width > 1 && nextBounds.height > 1) {
+            resolveBounds(nextBounds);
+            return;
+          }
+          if (Date.now() - startedAt >= 500) {
+            resolveBounds(nextBounds);
+            return;
+          }
+          waitFrameId = window.requestAnimationFrame(tick);
+        };
+        tick();
+      });
+      if (isDisposed) return;
+
+      const boundedArea = settledBounds.width > 1 && settledBounds.height > 1;
+      const nextBounds = boundedArea ? settledBounds : { ...settledBounds, width: 0, height: 0 };
+      const updateResult = await runSurfaceRequest(() => desktopApi.surface.updateBounds({
+        surfaceId,
+        bounds: nextBounds,
+      }));
+      if (isDisposed) return;
+      if (updateResult) {
+        lastSentBoundsKeyRef.current = `${nextBounds.x}:${nextBounds.y}:${nextBounds.width}:${nextBounds.height}`;
       }
+      setSurfaceLifecycleState("ready");
     };
 
     void createSurface();
 
     return () => {
       isDisposed = true;
+      if (waitFrameId !== null) {
+        window.cancelAnimationFrame(waitFrameId);
+      }
       setSurfaceLifecycleState("idle");
       void runSurfaceRequest(() => desktopApi.surface.destroy({ surfaceId }));
     };
-  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, normalizedPartition, runSurfaceRequest, surfaceId, syncDesktopSurfaceBounds]);
+  }, [computeBounds, desktopApi, isDesktopSurfaceEnabled, normalizedPartition, runSurfaceRequest, surfaceId]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (!surfaceId) return;
     if (surfaceLifecycleState !== "ready") return;
-    if (!resolvedUrl) return;
-    const currentSurfaceUrl = String(browserState.url || "").trim();
-    if (currentSurfaceUrl && currentSurfaceUrl === resolvedUrl) {
+    if (!targetDesktopUrl) return;
+    const currentSurfaceUrl = String(browserStateRef.current.url || "").trim();
+    if (currentSurfaceUrl && currentSurfaceUrl === targetDesktopUrl) {
       pendingSurfaceNavigationRef.current = null;
-      if (!browserState.loading) {
+      if (!browserStateRef.current.loading) {
         reloadRequestedRef.current = false;
         setIsUserVisibleLoading(false);
       }
       return;
     }
     pendingSurfaceNavigationRef.current = {
-      targetUrl: resolvedUrl,
+      targetUrl: targetDesktopUrl,
       sourceUrl: currentSurfaceUrl || null,
     };
     reloadRequestedRef.current = false;
     setIsUserVisibleLoading(true);
-    setBrowserState((current) => ({
-      ...current,
-      errorCode: null,
-      errorDescription: null,
-      failedUrl: null,
-    }));
-    void runSurfaceRequest(() => desktopApi.surface.navigate({ surfaceId, url: resolvedUrl }));
-  }, [desktopApi, isDesktopSurfaceEnabled, resolvedUrl, runSurfaceRequest, surfaceId, surfaceLifecycleState]);
+    setBrowserState((current) => {
+      const nextState = {
+        ...current,
+        errorCode: null,
+        errorDescription: null,
+        failedUrl: null,
+      };
+      browserStateRef.current = nextState;
+      return nextState;
+    });
+    void runSurfaceRequest(() => desktopApi.surface.navigate({ surfaceId, url: targetDesktopUrl }));
+  }, [desktopApi, isDesktopSurfaceEnabled, runSurfaceRequest, surfaceId, surfaceLifecycleState, targetDesktopUrl]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !desktopApi) return;
+    if (!surfaceId) return;
     if (surfaceLifecycleState !== "ready") return;
 
     let isCancelled = false;
@@ -524,24 +593,19 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
           setIsUserVisibleLoading(true);
         }
       }
-      setBrowserState((current) => {
-        const nextState = mergeBrowserSurfaceState(current, event);
-        if (event.type !== "loadError") {
-          reconcileSurfaceUrlAttribute(nextState.url);
-        }
-        return nextState;
-      });
+      mergeSurfaceEventState(event);
     });
 
     return () => {
       isCancelled = true;
       unsubscribe?.();
     };
-  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, reconcileSurfaceUrlAttribute, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
+  }, [applySurfaceState, desktopApi, hasSurfaceStateApi, isDesktopSurfaceEnabled, mergeSurfaceEventState, runSurfaceRequest, surfaceApi, surfaceId, surfaceLifecycleState]);
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled || !hasSurfaceStateApi) return;
     if (!desktopApi || !surfaceApi) return;
+    if (!surfaceId) return;
     if (surfaceLifecycleState !== "ready") return;
 
     let isDisposed = false;
@@ -565,6 +629,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   useEffect(() => {
     if (!isDesktopSurfaceEnabled) return;
+    if (!surfaceId) return;
     let rafId: number | null = null;
     const scheduleSync = () => {
       if (rafId !== null) return;
@@ -594,7 +659,7 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
       window.removeEventListener("resize", scheduleSync);
       window.removeEventListener("scroll", scheduleSync, true);
     };
-  }, [isDesktopSurfaceEnabled, syncDesktopSurfaceBounds]);
+  }, [isDesktopSurfaceEnabled, surfaceId, syncDesktopSurfaceBounds]);
 
   const commitInputValue = () => {
     if (inputValue === rawUrl) return;
@@ -619,12 +684,16 @@ const BrowserWindowNodeView: React.FC<NodeViewProps> = (props) => {
 
   const handleReload = () => {
     if (isDesktopSurfaceEnabled) {
-      setBrowserState((current) => ({
-        ...current,
-        errorCode: null,
-        errorDescription: null,
-        failedUrl: null,
-      }));
+      setBrowserState((current) => {
+        const nextState = {
+          ...current,
+          errorCode: null,
+          errorDescription: null,
+          failedUrl: null,
+        };
+        browserStateRef.current = nextState;
+        return nextState;
+      });
       if (isUserVisibleLoading && hasSurfaceStopApi) {
         pendingSurfaceNavigationRef.current = null;
         reloadRequestedRef.current = false;
