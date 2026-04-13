@@ -306,8 +306,9 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const focusedEndByConnection = useRef<Record<string, 'head' | 'tail'>>({})
   const pendingRaf = useRef<number | null>(null)
   const hoverHideTimeoutRef = useRef<number | null>(null)
-  const isConnectionMode = editorMode === 'mental-connection' || editorMode === 'physical-connection'
-  const isMentalConnectionMode = editorMode === 'mental-connection'
+  const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association'
+  const isTemporalOrderMode = editorMode === 'temporal-order'
+  const isAssociationMode = editorMode === 'association'
 
   // Load connections on mount
   useEffect(() => {
@@ -783,7 +784,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         }}
       >
         {connectionPaths.map((conn) => {
-          const etherealFrame = isMentalConnectionMode
+          const etherealFrame = isTemporalOrderMode
             ? getEtherealFrame(
                 conn.id,
                 conn.x1,
@@ -893,16 +894,18 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
-                <polygon
-                  points={conn.arrowPoints}
-                  fill="#262626"
-                  stroke="#262626"
-                  strokeWidth={1}
-                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
-                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
-                  onClick={(event) => handleConnectionClick(conn, event)}
-                />
+                {!isAssociationMode && (
+                  <polygon
+                    points={conn.arrowPoints}
+                    fill="#262626"
+                    stroke="#262626"
+                    strokeWidth={1}
+                    style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                    onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                    onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
+                    onClick={(event) => handleConnectionClick(conn, event)}
+                  />
+                )}
               </>
             )}
           </g>

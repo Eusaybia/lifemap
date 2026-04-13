@@ -31,14 +31,15 @@ declare module '@tiptap/core' {
 }
 
 // Define the structure of the attributes
-export type EditorMode = 'editing' | 'mental-connection' | 'physical-connection';
+export type EditorMode = 'editing' | 'temporal-order' | 'physical-order' | 'association';
 
 export interface DocumentAttributes {
   selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode' | 'dev-mode';
   selectedEventLens: "wedding" | "birthday" | "corporate";
   irrelevantEventNodesDisplayLens: 'dim' | 'hide' | 'show';
   unimportantNodesDisplayLens: 'dim' | 'hide' | 'show';
-  // Editor mode: editing for text, mental connection for ethereal arrows, physical connection for black arrows
+  // Editor mode: editing for text, temporal order for ethereal arrows,
+  // physical order for solid arrows, association for non-directional lines.
   editorMode: EditorMode;
   // Focus mode: Array of quantaIds that have the "☀️ focus" tag
   // When non-empty, all nodes NOT in this array get dimmed (Aura component handles this)
@@ -59,8 +60,11 @@ export const defaultDocumentAttributes: DocumentAttributes = {
 const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
 
 const normalizeEditorMode = (editorMode: unknown): EditorMode => {
-  if (editorMode === 'physical-connection') return 'physical-connection';
-  if (editorMode === 'mental-connection' || editorMode === 'connection') return 'mental-connection';
+  if (editorMode === 'physical-order' || editorMode === 'physical-connection') return 'physical-order';
+  if (editorMode === 'association') return 'association';
+  if (editorMode === 'temporal-order' || editorMode === 'mental-connection' || editorMode === 'connection') {
+    return 'temporal-order';
+  }
   return 'editing';
 };
 

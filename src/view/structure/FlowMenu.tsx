@@ -1081,7 +1081,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                 }
             `}</style>
             <motion.div style={documentMenuStyle} className="document-flow-menu">
-                {/* Editor Mode Toggle - Editing vs Mental/Physical Connection mode */}
+                {/* Editor Mode Toggle - Editing vs connection modes */}
                 <FlowSwitch value={editorMode} isLens>
                 <Option 
                     value="editing" 
@@ -1095,25 +1095,36 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                     </motion.div>
                 </Option>
                 <Option 
-                    value="mental-connection" 
+                    value="temporal-order" 
                     onClick={() => {
-                        console.log('[DocumentFlowMenu] Switching to Mental Connection mode');
-                        editor.commands.setDocumentAttribute({ editorMode: 'mental-connection' });
+                        console.log('[DocumentFlowMenu] Switching to Temporal Order mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'temporal-order' });
                     }}
                 >
                     <motion.div>
-                        <span>🔗 Mental Connection</span>
+                        <span>🔗 Temporal Order</span>
                     </motion.div>
                 </Option>
                 <Option 
-                    value="physical-connection" 
+                    value="physical-order" 
                     onClick={() => {
-                        console.log('[DocumentFlowMenu] Switching to Physical Connection mode');
-                        editor.commands.setDocumentAttribute({ editorMode: 'physical-connection' });
+                        console.log('[DocumentFlowMenu] Switching to Physical Order mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'physical-order' });
                     }}
                 >
                     <motion.div>
-                        <span>🏛️ Physical Connection</span>
+                        <span>🏛️ Physical Order</span>
+                    </motion.div>
+                </Option>
+                <Option 
+                    value="association" 
+                    onClick={() => {
+                        console.log('[DocumentFlowMenu] Switching to Association mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'association' });
+                    }}
+                >
+                    <motion.div>
+                        <span>〰️ Association</span>
                     </motion.div>
                 </Option>
             </FlowSwitch>

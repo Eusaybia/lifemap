@@ -1,3 +1,5 @@
+const path = require('path')
+
 module.exports = {
   env: {
     PUBLIC_URL: ''
@@ -12,5 +14,15 @@ module.exports = {
   },
   compiler: {
     // removeConsole: { exclude: ['error'] },
+  },
+  webpack: (config) => {
+    config.resolve = config.resolve || {}
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@huggingface/transformers$': path.resolve(__dirname, 'node_modules/@huggingface/transformers/dist/transformers.web.js'),
+      'onnxruntime-node$': false,
+      'sharp$': false,
+    }
+    return config
   },
 }
