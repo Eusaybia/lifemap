@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { scanNodeForTags } from './Aura'
+import { IMPORTANT_GLOW, calculateGlowStyles, scanNodeForTags } from './Aura'
 import { fetchHashtags } from '../content/HashtagMention'
 
 type FakeNode = {
@@ -33,6 +33,12 @@ describe('fetchHashtags', () => {
 
     expect(matches.some((tag) => tag.id === 'tag:private' && tag.label === 'private')).toBe(true)
   })
+
+  test('includes the predefined active tag in hashtag suggestions', () => {
+    const matches = fetchHashtags('act')
+
+    expect(matches.some((tag) => tag.id === 'tag:active' && tag.label === 'active')).toBe(true)
+  })
 })
 
 describe('scanNodeForTags', () => {
@@ -50,5 +56,23 @@ describe('scanNodeForTags', () => {
     const tags = scanNodeForTags(node as any)
 
     expect(tags.hasPrivateTag).toBe(true)
+  })
+
+  test('treats the active hashtag as an important-style parent glow trigger', () => {
+    const node = createNode('doc', {}, [
+      createNode('paragraph', {}, [
+        createNode('hashtag', {
+          id: 'tag:active',
+          label: '#active',
+          'data-tag': 'active',
+        }),
+      ]),
+    ])
+
+    const tags = scanNodeForTags(node as any)
+    const glowStyles = calculateGlowStyles(tags)
+
+    expect(tags.hasImportantTag).toBe(true)
+    expect(glowStyles).toContain(IMPORTANT_GLOW)
   })
 })

@@ -38,6 +38,7 @@ export const NO_GLOW = ``
 // Tag detection patterns
 const COMPLETE_TAG = "✅ complete"
 const IMPORTANT_TAG = "⭐️ important"
+const ACTIVE_TAG = "active"
 const VERY_IMPORTANT_TAG = "🌟 very important"
 const UNIMPORTANT_TAG = "🌫️ unimportant"
 const NOT_A_PRIORITY_TAG = "not-a-priority"
@@ -109,7 +110,14 @@ export const scanNodeForTags = (node: ProseMirrorNode | { attrs: Record<string, 
         hasVeryImportantTag = true
       }
       // Check for important tag (only if not already very important)
-      else if (label?.includes(IMPORTANT_TAG) || dataTag === 'important') {
+      else if (
+        label?.includes(IMPORTANT_TAG) ||
+        dataTag === 'important' ||
+        dataTag === ACTIVE_TAG ||
+        id === 'tag:active' ||
+        label?.toLowerCase() === ACTIVE_TAG ||
+        label?.toLowerCase() === `#${ACTIVE_TAG}`
+      ) {
         hasImportantTag = true
       }
       // Check for unimportant tag (triggers darkening overlay)

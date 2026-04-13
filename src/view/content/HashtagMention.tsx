@@ -87,6 +87,7 @@ export const POPULAR_HASHTAGS: Hashtag[] = [
   // Productivity
   { id: 'tag:todo', label: 'todo', color: '#ef4444' },
   { id: 'tag:done', label: 'done', color: '#10b981' },
+  { id: 'tag:active', label: 'active', color: '#3b82f6' },
   { id: 'tag:inprogress', label: 'inprogress', color: '#f59e0b' },
   { id: 'tag:blocked', label: 'blocked', color: '#ef4444' },
   { id: 'tag:review', label: 'review', color: '#8b5cf6' },
@@ -338,7 +339,15 @@ export const HashtagNode = Node.create({
     const dataTag = (node.attrs['data-tag'] as string) || ''
     const id = (node.attrs.id as string) || ''
     let extraClass = ''
-    if (label.includes('⭐️ important') || label === 'important' || dataTag === 'important') {
+    if (
+      label.includes('⭐️ important') ||
+      label === 'important' ||
+      dataTag === 'important' ||
+      dataTag === 'active' ||
+      id === 'tag:active' ||
+      label === 'active' ||
+      label === '#active'
+    ) {
       extraClass = ' glow'
     } else if (label.includes('✅ complete') || label === 'complete' || dataTag === 'complete') {
       extraClass = ' green-glow'
