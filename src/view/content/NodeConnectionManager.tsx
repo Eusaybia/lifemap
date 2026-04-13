@@ -320,6 +320,30 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         console.log('[NodeConnectionManager] Deselected source')
         return
       }
+
+      const existingConnection = connections.find((conn) => (
+        conn.sourceId === pendingSource.id &&
+        conn.sourceType === pendingSource.type &&
+        conn.targetId === elementId &&
+        conn.targetType === elementType
+      ))
+
+      if (existingConnection) {
+        const updatedConnections = connections.filter((conn) => conn.id !== existingConnection.id)
+        delete focusedEndByConnection.current[existingConnection.id]
+        setConnections(updatedConnections)
+        saveConnections(updatedConnections)
+
+        const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
+        if (sourceElement) {
+          sourceElement.style.outline = ''
+          sourceElement.style.outlineOffset = ''
+        }
+
+        setPendingSource(null)
+        console.log('[NodeConnectionManager] Removed connection:', existingConnection)
+        return
+      }
       
       const newConnection: NodeConnection = {
         id: generateConnectionId(),
