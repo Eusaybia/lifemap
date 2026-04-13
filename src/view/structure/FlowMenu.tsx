@@ -1105,28 +1105,6 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                         <span>🔗 Temporal Order</span>
                     </motion.div>
                 </Option>
-                <Option 
-                    value="physical-order" 
-                    onClick={() => {
-                        console.log('[DocumentFlowMenu] Switching to Physical Order mode');
-                        editor.commands.setDocumentAttribute({ editorMode: 'physical-order' });
-                    }}
-                >
-                    <motion.div>
-                        <span>🏛️ Physical Order</span>
-                    </motion.div>
-                </Option>
-                <Option 
-                    value="association" 
-                    onClick={() => {
-                        console.log('[DocumentFlowMenu] Switching to Association mode');
-                        editor.commands.setDocumentAttribute({ editorMode: 'association' });
-                    }}
-                >
-                    <motion.div>
-                        <span>〰️ Association</span>
-                    </motion.div>
-                </Option>
             </FlowSwitch>
             <ActionSwitch 
                 editor={editor} 

@@ -60,8 +60,8 @@ export const defaultDocumentAttributes: DocumentAttributes = {
 const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
 
 const normalizeEditorMode = (editorMode: unknown): EditorMode => {
-  if (editorMode === 'physical-order' || editorMode === 'physical-connection') return 'physical-order';
-  if (editorMode === 'association') return 'association';
+  if (editorMode === 'physical-order' || editorMode === 'physical-connection') return 'temporal-order';
+  if (editorMode === 'association') return 'temporal-order';
   if (editorMode === 'temporal-order' || editorMode === 'mental-connection' || editorMode === 'connection') {
     return 'temporal-order';
   }

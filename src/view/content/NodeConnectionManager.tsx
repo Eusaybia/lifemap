@@ -181,19 +181,11 @@ type ConnectionPath = {
 }
 
 const PATH_CURVE_OFFSET = 50
-const ETHEREAL_ARROW_STROKE = 'rgba(255, 242, 202, 0.8)'
-const ETHEREAL_ARROW_FILAMENT = 'rgba(255, 251, 232, 0.58)'
-const ETHEREAL_ARROW_HEAD_FILL = 'rgba(255, 236, 180, 0.88)'
-const ETHEREAL_ARROW_GLOW = 'rgba(255, 224, 130, 0.3)'
-const ETHEREAL_ARROW_GLOW_STRONG = 'rgba(255, 231, 156, 0.56)'
-
-const hashConnectionKey = (value: string) => {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
-  }
-  return hash
-}
+const ETHEREAL_ARROW_STROKE = 'rgba(17, 17, 17, 0.96)'
+const ETHEREAL_ARROW_FILAMENT = 'rgba(17, 17, 17, 0.72)'
+const ETHEREAL_ARROW_HEAD_FILL = 'rgba(17, 17, 17, 0.98)'
+const ETHEREAL_ARROW_GLOW = 'rgba(0, 0, 0, 0.16)'
+const ETHEREAL_ARROW_GLOW_STRONG = 'rgba(0, 0, 0, 0.28)'
 
 const buildQuadraticPath = (
   x1: number,
@@ -231,60 +223,6 @@ const buildArrowPolygonPoints = (
   `${x - arrowSize * Math.cos(angle + Math.PI / 6)},${y - arrowSize * Math.sin(angle + Math.PI / 6)}`
 )
 
-const getConnectionMotionSeed = (connectionId: string) => {
-  const seed = hashConnectionKey(connectionId)
-  return {
-    horizontalSwing: 7 + (seed % 7),
-    verticalSwing: 5 + ((seed >> 3) % 7),
-    tipSwing: 1.8 + ((seed >> 6) % 5) * 0.45,
-    swaySpeed: 0.00055 + (seed % 5) * 0.00006,
-    flutterSpeed: 0.00115 + ((seed >> 5) % 5) * 0.00008,
-    phase: (seed % 360) * (Math.PI / 180),
-    crossPhase: ((seed >> 7) % 360) * (Math.PI / 180),
-  }
-}
-
-const getEtherealFrame = (
-  connectionId: string,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  midX: number,
-  midY: number,
-  timeMs: number,
-) => {
-  const motion = getConnectionMotionSeed(connectionId)
-  const sway = Math.sin(timeMs * motion.swaySpeed + motion.phase)
-  const crossSway = Math.sin(timeMs * motion.flutterSpeed + motion.crossPhase)
-  const shimmer = Math.cos(timeMs * (motion.swaySpeed * 0.72) + motion.phase * 0.6)
-
-  const dynamicMidX = midX + sway * motion.horizontalSwing * 0.9 + crossSway * motion.horizontalSwing * 0.28
-  const dynamicMidY = midY + crossSway * motion.verticalSwing * 0.82 + shimmer * motion.verticalSwing * 0.24
-  const dynamicX2 = x2 + sway * motion.tipSwing * 0.52 + crossSway * 0.42
-  const dynamicY2 = y2 + crossSway * motion.verticalSwing * 0.22 + shimmer * 0.36
-
-  const highlightMidX = dynamicMidX + shimmer * 1.15 + crossSway * 0.55
-  const highlightMidY = dynamicMidY - sway * 0.9 + shimmer * 0.32
-  const highlightX2 = dynamicX2 + shimmer * 0.36
-  const highlightY2 = dynamicY2 - sway * 0.22
-
-  const angle = Math.atan2(dynamicY2 - dynamicMidY, dynamicX2 - dynamicMidX)
-  const arrowPoints = buildArrowPolygonPoints(dynamicX2, dynamicY2, angle, 12.4)
-
-  return {
-    mainPath: buildQuadraticPath(x1, y1, dynamicMidX, dynamicMidY, dynamicX2, dynamicY2),
-    filamentPath: buildQuadraticPath(x1, y1, highlightMidX, highlightMidY, highlightX2, highlightY2),
-    arrowPoints,
-    glowOpacity: 0.12 + ((sway + 1) / 2) * 0.08 + ((crossSway + 1) / 2) * 0.03,
-    outerOpacity: 0.2 + ((crossSway + 1) / 2) * 0.16,
-    coreOpacity: 0.42 + ((shimmer + 1) / 2) * 0.24,
-    filamentOpacity: 0.2 + ((sway + 1) / 2) * 0.15,
-    arrowOpacity: 0.45 + ((shimmer + 1) / 2) * 0.18,
-    glowWidth: 8.9 + ((crossSway + 1) / 2) * 1.9,
-  }
-}
-
 /**
  * NodeConnectionManager
  * 
@@ -301,7 +239,6 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const [pendingSource, setPendingSource] = useState<{ id: string, type: ConnectableType } | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
   const [connectionPaths, setConnectionPaths] = useState<ConnectionPath[]>([])
-  const [etherealTime, setEtherealTime] = useState(() => (typeof performance !== 'undefined' ? performance.now() : Date.now()))
   const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null)
   const focusedEndByConnection = useRef<Record<string, 'head' | 'tail'>>({})
   const pendingRaf = useRef<number | null>(null)
@@ -556,21 +493,6 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     }
   }, [containerRef, requestConnectionUpdate])
 
-  useEffect(() => {
-    if (connectionPaths.length === 0) return
-
-    let rafId = 0
-    const tick = (time: number) => {
-      setEtherealTime(time)
-      rafId = window.requestAnimationFrame(tick)
-    }
-
-    rafId = window.requestAnimationFrame(tick)
-    return () => {
-      window.cancelAnimationFrame(rafId)
-    }
-  }, [connectionPaths.length])
-
   const handleConnectionClick = useCallback((conn: ConnectionPath, event: React.MouseEvent<SVGElement>) => {
     const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
     const targetElement = getConnectableElement(conn.targetId, conn.targetType)
@@ -664,32 +586,6 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
   return (
     <>
-      {/* Overlay indicator when in connection mode */}
-      {isConnectionMode && (
-        <div style={{
-          position: 'fixed',
-          top: 50,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'linear-gradient(180deg, rgba(255, 250, 234, 0.9), rgba(250, 237, 198, 0.78))',
-          color: '#8c7440',
-          padding: '8px 16px',
-          borderRadius: 999,
-          fontSize: 14,
-          fontWeight: 500,
-          zIndex: 10002,
-          border: '1px solid rgba(255, 255, 255, 0.72)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: `0 0 18px ${ETHEREAL_ARROW_GLOW}, 0 8px 24px rgba(140, 116, 64, 0.14)`
-        }}>
-          {pendingSource 
-            ? `Click another element to connect (or click same to deselect)` 
-            : `Click an element to start a connection`
-          }
-        </div>
-      )}
-
       {/* Cursor-following arrow indicator when in connection mode */}
       {isConnectionMode && (
         <div
@@ -715,8 +611,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           >
             <path 
               d="M5 12h14M13 5l6 7-6 7" 
-              stroke={pendingSource ? ETHEREAL_ARROW_STROKE : 'rgba(247, 239, 214, 0.8)'} 
-              strokeWidth="2.35" 
+              stroke={pendingSource ? ETHEREAL_ARROW_STROKE : 'rgba(17, 17, 17, 0.82)'} 
+              strokeWidth="3.6" 
               strokeLinecap="round" 
               strokeLinejoin="round"
               fill="none"
@@ -728,7 +624,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           </svg>
           <div style={{
             fontSize: 10,
-            color: pendingSource ? '#9b8450' : '#a29575',
+            color: pendingSource ? '#111111' : '#3f3f46',
             fontWeight: 600,
             marginTop: 2,
             whiteSpace: 'nowrap',
@@ -784,84 +680,33 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         }}
       >
         {connectionPaths.map((conn) => {
-          const etherealFrame = isTemporalOrderMode
-            ? getEtherealFrame(
-                conn.id,
-                conn.x1,
-                conn.y1,
-                conn.x2,
-                conn.y2,
-                conn.midX,
-                conn.midY,
-                etherealTime
-              )
-            : null
-
           return (
           <g key={conn.id}>
-            {etherealFrame ? (
+            {isTemporalOrderMode ? (
               <>
                 <path
-                  d={etherealFrame.mainPath}
-                  stroke={ETHEREAL_ARROW_GLOW}
-                  strokeWidth={etherealFrame.glowWidth}
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{
-                    pointerEvents: 'none',
-                    filter: `blur(1.4px) drop-shadow(0 0 10px ${ETHEREAL_ARROW_GLOW_STRONG})`,
-                    opacity: etherealFrame.glowOpacity,
-                  }}
-                />
-                <path
-                  d={etherealFrame.mainPath}
+                  d={conn.d}
                   stroke={ETHEREAL_ARROW_STROKE}
-                  strokeWidth={3.25}
+                  strokeWidth={4.75}
                   strokeLinecap="round"
                   fill="none"
                   style={{
                     pointerEvents: 'none',
-                    filter: `blur(0.45px) drop-shadow(0 0 7px ${ETHEREAL_ARROW_GLOW_STRONG})`,
-                    opacity: etherealFrame.outerOpacity,
-                  }}
-                />
-                <path
-                  d={etherealFrame.mainPath}
-                  stroke={ETHEREAL_ARROW_STROKE}
-                  strokeWidth={1.35}
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{
-                    pointerEvents: 'none',
-                    filter: `drop-shadow(0 0 6px ${ETHEREAL_ARROW_GLOW_STRONG})`,
-                    opacity: etherealFrame.coreOpacity,
-                  }}
-                />
-                <path
-                  d={etherealFrame.filamentPath}
-                  stroke={ETHEREAL_ARROW_FILAMENT}
-                  strokeWidth={0.7}
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{
-                    pointerEvents: 'none',
-                    filter: `drop-shadow(0 0 2px rgba(255, 255, 255, 0.18))`,
-                    opacity: etherealFrame.filamentOpacity,
+                    opacity: 0.96,
                   }}
                 />
                 <polygon
-                  points={etherealFrame.arrowPoints}
+                  points={conn.arrowPoints}
                   fill={ETHEREAL_ARROW_HEAD_FILL}
                   stroke={ETHEREAL_ARROW_HEAD_FILL}
-                  strokeWidth={1.55}
+                  strokeWidth={2.2}
                   style={{
                     pointerEvents: 'none',
-                    filter: `drop-shadow(0 0 7px ${ETHEREAL_ARROW_GLOW_STRONG})`,
-                    opacity: etherealFrame.arrowOpacity,
+                    opacity: 0.98,
                   }}
                 />
                 <path
-                  d={etherealFrame.mainPath}
+                  d={conn.d}
                   stroke="rgba(0, 0, 0, 0.001)"
                   strokeWidth={16}
                   strokeLinecap="round"
@@ -872,7 +717,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
                 <polygon
-                  points={etherealFrame.arrowPoints}
+                  points={conn.arrowPoints}
                   fill="rgba(0, 0, 0, 0.001)"
                   stroke="rgba(0, 0, 0, 0.001)"
                   strokeWidth={8}
