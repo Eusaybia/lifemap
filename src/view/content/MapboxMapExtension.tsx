@@ -58,7 +58,7 @@ interface TemporalLocationCandidate {
 
 interface TemporalSpaceContext {
   insideTemporalSpace: boolean
-  containerType: 'temporalSpace' | 'group' | null
+  containerType: 'temporalSpace' | 'group' | 'document' | null
   locations: TemporalLocationCandidate[]
 }
 
@@ -247,7 +247,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         return null
       }
       let contextNode: any | null = null
-      let containerType: 'temporalSpace' | 'group' | null = null
+      let containerType: 'temporalSpace' | 'group' | 'document' | null = null
 
       for (let depth = $pos.depth; depth >= 0; depth -= 1) {
         const ancestor = $pos.node(depth)
@@ -259,7 +259,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       }
 
       if (!contextNode) {
-        return emptyContext
+        contextNode = doc
+        containerType = 'document'
       }
 
       const locations: TemporalLocationCandidate[] = []
