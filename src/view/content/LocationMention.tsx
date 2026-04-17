@@ -23,6 +23,7 @@ const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: stri
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
 const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+const generateShortId = () => Math.random().toString(36).substring(2, 8)
 
 const configureMapboxWorker = () => {
   const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
@@ -220,7 +221,7 @@ LocationList.displayName = 'LocationList'
 // ============================================================================
 
 
-const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) => {
+const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: NodeViewProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -229,6 +230,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
   const attrs = node.attrs as {
     id: string
     label: string
+    locationId: string | null
     'data-name': string
     'data-country': string
     'data-coords': string | null
@@ -237,6 +239,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
   const label = attrs.label
   const name = attrs['data-name'] || label
   const coordsStr = attrs['data-coords']
+  const locationConnectionId = attrs.locationId
   
   // Parse coordinates
   let coords: [number, number] | null = null
@@ -289,6 +292,12 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
     // Fallback if onload doesn't fire
     setTimeout(() => setCssLoaded(true), 500)
   }, [])
+
+  useEffect(() => {
+    if (!locationConnectionId) {
+      updateAttributes({ locationId: generateShortId() })
+    }
+  }, [locationConnectionId, updateAttributes])
 
   // Initialize map when expanded - use requestAnimationFrame to wait for DOM
   useEffect(() => {
@@ -519,6 +528,18 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
     setIsExpanded(false)
   }
 
+  const handleGripMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const pos = getPos()
+      if (typeof pos !== 'number') return
+      editor.chain().focus().setNodeSelection(pos).run()
+    } catch {
+      // Ignore stale positions when the node is being removed.
+    }
+  }, [editor, getPos])
+
   // Close popover when clicking outside
   useEffect(() => {
     if (!isExpanded) return
@@ -552,6 +573,7 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
         ref={tagRef}
         className={`location-mention ${selected ? 'selected' : ''}`}
         data-location-id={attrs.id || undefined}
+        data-location-connection-id={locationConnectionId || undefined}
         data-location-label={label || undefined}
         data-location-name={attrs['data-name'] || undefined}
         data-location-country={attrs['data-country'] || undefined}
@@ -559,6 +581,17 @@ const LocationNodeView = ({ node, selected, updateAttributes }: NodeViewProps) =
         onClick={handleClick}
         style={{ cursor: 'pointer' }}
       >
+        <span
+          className="location-grip"
+          contentEditable={false}
+          data-drag-handle
+          onMouseDown={handleGripMouseDown}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          title="Drag to move"
+        />
         {label}
       </span>
       <AnimatePresence>
@@ -658,6 +691,18 @@ export const LocationNode = Node.create({
     return {
       id: { default: null },
       label: { default: null },
+      locationId: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-location-connection-id'),
+        renderHTML: attributes => {
+          if (!attributes.locationId) {
+            return {}
+          }
+          return {
+            'data-location-connection-id': attributes.locationId,
+          }
+        },
+      },
       'data-name': { default: null },
       'data-country': { default: null },
       'data-coords': { default: null }, // JSON stringified [lng, lat]
@@ -675,6 +720,7 @@ export const LocationNode = Node.create({
         class: 'location-mention',
         'data-type': 'location',
         'data-id': node.attrs.id,
+        'data-location-connection-id': node.attrs.locationId,
       }),
       node.attrs.label || '',
     ]
@@ -714,7 +760,10 @@ export const LocationMention = Extension.create<LocationOptions>({
             .insertContent([
               {
                 type: 'location',
-                attrs: props,
+                attrs: {
+                  ...props,
+                  locationId: generateShortId(),
+                },
               },
               { type: 'text', text: ' ' },
             ])

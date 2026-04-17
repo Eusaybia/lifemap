@@ -33,13 +33,17 @@ import { DocumentAttributes, EditorMode, normalizeDocumentAttributes } from '../
 //    - Inline motivation mention with text and connection grip
 //    - Identified by: .motivations-mention[data-motivation-id="<uuid>"]
 //
+// 7. LOCATION MENTION (LocationMention.tsx)
+//    - Inline location mention with map popover and connection grip
+//    - Identified by: .location-mention[data-location-connection-id="<uuid>"]
+//
 // Connections are stored in localStorage and persist across sessions.
 // Clicking on arrows navigates between connected elements (head/tail toggle).
 // ============================================================================
 
 // Connection between two connectable elements
-// 'todo', 'question', and 'motivation' types are for inline mention nodes with connection grips
-type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question' | 'motivation'
+// 'todo', 'question', 'motivation', and 'location' types are for inline mention nodes with connection grips
+type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question' | 'motivation' | 'location'
 
 interface NodeConnection {
   id: string
@@ -51,6 +55,7 @@ interface NodeConnection {
 
 // Local storage key for persisting connections
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
+const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
 
 // Helper to generate a short unique ID for connections
@@ -77,6 +82,7 @@ const loadConnections = (): NodeConnection[] => {
 const saveConnections = (connections: NodeConnection[]) => {
   if (typeof window === 'undefined') return
   localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connections))
+  window.dispatchEvent(new CustomEvent(CONNECTIONS_UPDATED_EVENT, { detail: connections }))
 }
 
 // Helper to find a connectable element and determine its type
@@ -100,6 +106,13 @@ const findConnectableElement = (target: HTMLElement): { element: HTMLElement, id
   if (motivationMention) {
     const id = motivationMention.getAttribute('data-motivation-id')
     if (id) return { element: motivationMention, id, type: 'motivation' }
+  }
+
+  // Check for LocationMention (inline location mention with connections)
+  const locationMention = target.closest('.location-mention[data-location-connection-id]') as HTMLElement
+  if (locationMention) {
+    const id = locationMention.getAttribute('data-location-connection-id')
+    if (id) return { element: locationMention, id, type: 'location' }
   }
   
   const spanGroup = target.closest('.span-group') as HTMLElement
@@ -131,6 +144,8 @@ const getConnectableElement = (id: string, type: ConnectableType): HTMLElement |
     return document.querySelector(`[data-question-id="${id}"]`) as HTMLElement
   } else if (type === 'motivation') {
     return document.querySelector(`[data-motivation-id="${id}"]`) as HTMLElement
+  } else if (type === 'location') {
+    return document.querySelector(`[data-location-connection-id="${id}"]`) as HTMLElement
   } else if (type === 'span') {
     return document.querySelector(`[data-span-group-id="${id}"]`) as HTMLElement
   } else if (type === 'block') {
@@ -186,7 +201,6 @@ const ETHEREAL_ARROW_FILAMENT = 'rgba(17, 17, 17, 0.72)'
 const ETHEREAL_ARROW_HEAD_FILL = 'rgba(17, 17, 17, 0.98)'
 const ETHEREAL_ARROW_GLOW = 'rgba(0, 0, 0, 0.16)'
 const ETHEREAL_ARROW_GLOW_STRONG = 'rgba(0, 0, 0, 0.28)'
-
 const buildQuadraticPath = (
   x1: number,
   y1: number,

@@ -27,6 +27,12 @@ const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERS
 const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
 const MAPBOX_STATIC_DEFAULT_STYLE = DEFAULT_MAP_STYLE
 const ENABLE_INTERACTIVE_MAP = true
+const ENABLE_MAP_SEARCH_OVERLAY = false
+const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
+const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
+const TEMPORAL_ROUTE_SOURCE_ID = 'temporal-location-routes'
+const TEMPORAL_ROUTE_CASING_LAYER_ID = 'temporal-location-route-casing'
+const TEMPORAL_ROUTE_LAYER_ID = 'temporal-location-route-line'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 
 const configureMapboxWorker = () => {
@@ -43,6 +49,7 @@ const resolveMapboxStyle = (requestedStyle?: string): string => {
 interface LocationNodeAttrs {
   id?: string
   label?: string
+  locationId?: string
   'data-name'?: string
   'data-country'?: string
   'data-coords'?: string | [number, number] | null
@@ -50,10 +57,37 @@ interface LocationNodeAttrs {
 
 interface TemporalLocationCandidate {
   id?: string
+  connectionId?: string
   name: string
   label: string
   country?: string
   coords: [number, number] | null
+}
+
+interface ResolvedTemporalLocation extends TemporalLocationCandidate {
+  coords: [number, number]
+}
+
+interface NodeConnectionRecord {
+  sourceId?: string
+  targetId?: string
+  sourceType?: string
+  targetType?: string
+}
+
+interface TemporalRouteFeature {
+  type: 'Feature'
+  properties: {
+    routeIndex: number
+    durationSeconds: number
+    durationLabel: string
+    durationEmoji: string
+    midpoint: [number, number]
+  }
+  geometry: {
+    type: 'LineString'
+    coordinates: [number, number][]
+  }
 }
 
 interface TemporalSpaceContext {
@@ -120,6 +154,10 @@ const distanceKm = (a: AnchorPoint, b: AnchorPoint): number => {
   return 2 * earthRadiusKm * Math.asin(Math.sqrt(h))
 }
 
+const distanceBetweenCoords = (a: [number, number], b: [number, number]): number => {
+  return distanceKm({ lng: a[0], lat: a[1] }, { lng: b[0], lat: b[1] })
+}
+
 const computeAnchorSpanKm = (anchors: AnchorPoint[]): number => {
   if (anchors.length < 2) return 0
   let maxDistance = 0
@@ -130,6 +168,56 @@ const computeAnchorSpanKm = (anchors: AnchorPoint[]): number => {
     }
   }
   return maxDistance
+}
+
+const formatRouteDurationLabel = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds <= 0) return '0 minutes'
+
+  const roundedMinutes = Math.max(1, Math.round(seconds / 60))
+  if (roundedMinutes < 60) {
+    return `${roundedMinutes} minute${roundedMinutes === 1 ? '' : 's'}`
+  }
+
+  const hours = roundedMinutes / 60
+  if (Number.isInteger(hours)) {
+    return `${hours} hour${hours === 1 ? '' : 's'}`
+  }
+
+  const roundedHours = Math.round(hours * 10) / 10
+  return `${roundedHours} hours`
+}
+
+const computeLineMidpoint = (coordinates: [number, number][]): [number, number] | null => {
+  if (coordinates.length === 0) return null
+  if (coordinates.length === 1) return coordinates[0]
+
+  const segments = coordinates.slice(1).map((coordinate, index) => ({
+    start: coordinates[index],
+    end: coordinate,
+    distance: distanceBetweenCoords(coordinates[index], coordinate),
+  }))
+  const totalDistance = segments.reduce((sum, segment) => sum + segment.distance, 0)
+
+  if (!Number.isFinite(totalDistance) || totalDistance <= 0) {
+    return coordinates[Math.floor(coordinates.length / 2)] || coordinates[0]
+  }
+
+  const midpointDistance = totalDistance / 2
+  let traversed = 0
+
+  for (const segment of segments) {
+    if (traversed + segment.distance >= midpointDistance) {
+      const remainder = midpointDistance - traversed
+      const ratio = segment.distance <= 0 ? 0 : remainder / segment.distance
+      return [
+        segment.start[0] + (segment.end[0] - segment.start[0]) * ratio,
+        segment.start[1] + (segment.end[1] - segment.start[1]) * ratio,
+      ]
+    }
+    traversed += segment.distance
+  }
+
+  return coordinates[coordinates.length - 1]
 }
 
 const resolveFallbackCoords = (query: string): [number, number] | null => {
@@ -150,12 +238,110 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
   return null
 }
 
+const loadLocationConnections = (): NodeConnectionRecord[] => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = localStorage.getItem(CONNECTIONS_STORAGE_KEY)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    return parsed.filter((connection): connection is NodeConnectionRecord => {
+      if (!connection || typeof connection !== 'object') return false
+      const record = connection as NodeConnectionRecord
+      return (
+        record.sourceType === 'location' &&
+        record.targetType === 'location' &&
+        typeof record.sourceId === 'string' &&
+        !!record.sourceId &&
+        typeof record.targetId === 'string' &&
+        !!record.targetId
+      )
+    })
+  } catch {
+    return []
+  }
+}
+
+const buildConnectedLocationRoutes = (
+  locations: ResolvedTemporalLocation[],
+  connections: NodeConnectionRecord[],
+): [number, number][][] => {
+  if (locations.length < 2 || connections.length === 0) return []
+
+  const locationsByConnectionId = new Map<string, ResolvedTemporalLocation>()
+  locations.forEach((location) => {
+    if (location.connectionId) {
+      locationsByConnectionId.set(location.connectionId, location)
+    }
+  })
+
+  if (locationsByConnectionId.size < 2) return []
+
+  const adjacency = new Map<string, Set<string>>()
+  connections.forEach((connection) => {
+    const sourceId = connection.sourceId
+    const targetId = connection.targetId
+    if (!sourceId || !targetId) return
+    if (!locationsByConnectionId.has(sourceId) || !locationsByConnectionId.has(targetId)) return
+
+    if (!adjacency.has(sourceId)) adjacency.set(sourceId, new Set())
+    if (!adjacency.has(targetId)) adjacency.set(targetId, new Set())
+    adjacency.get(sourceId)?.add(targetId)
+    adjacency.get(targetId)?.add(sourceId)
+  })
+
+  const visited = new Set<string>()
+  const routes: [number, number][][] = []
+
+  locations.forEach((location) => {
+    const connectionId = location.connectionId
+    if (!connectionId || visited.has(connectionId) || !adjacency.has(connectionId)) return
+
+    const component = new Set<string>()
+    const queue = [connectionId]
+    visited.add(connectionId)
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) continue
+      component.add(current)
+
+      adjacency.get(current)?.forEach((neighbor) => {
+        if (visited.has(neighbor)) return
+        visited.add(neighbor)
+        queue.push(neighbor)
+      })
+    }
+
+    if (component.size < 2) return
+
+    const orderedRoute = locations
+      .filter((candidate) => candidate.connectionId && component.has(candidate.connectionId))
+      .map((candidate) => candidate.coords)
+      .filter((coords, index, list) => {
+        if (index === 0) return true
+        const previous = list[index - 1]
+        return previous[0] !== coords[0] || previous[1] !== coords[1]
+      })
+
+    if (orderedRoute.length >= 2) {
+      routes.push(orderedRoute)
+    }
+  })
+
+  return routes
+}
+
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes } = props
   const mapSurface = useRef<HTMLDivElement>(null)
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+  const routeDurationMarkersRef = useRef<mapboxgl.Marker[]>([])
   const autoFitSignatureRef = useRef('')
   const geocodeCacheRef = useRef(new Map<string, [number, number] | null>())
   const temporalContextSignatureRef = useRef('')
@@ -168,6 +354,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [isInsideTemporalSpace, setIsInsideTemporalSpace] = useState(false)
   const [temporalLocationCandidates, setTemporalLocationCandidates] = useState<TemporalLocationCandidate[]>([])
   const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
+  const [resolvedTemporalLocations, setResolvedTemporalLocations] = useState<ResolvedTemporalLocation[]>([])
+  const [locationConnections, setLocationConnections] = useState<NodeConnectionRecord[]>([])
+  const [temporalRouteFeatures, setTemporalRouteFeatures] = useState<TemporalRouteFeature[]>([])
   const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
 
   const attrs = useMemo<MapboxMapAttrs>(() => sanitizeMapboxMapAttrs(node.attrs), [node.attrs])
@@ -189,6 +378,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return dedupeMarkers([...markers])
   }, [isInsideTemporalSpace, temporalSpaceMarkers, markers])
   const hasTemporalPins = temporalSpaceMarkers.length > 0
+  const temporalRoutePaths = useMemo(
+    () => buildConnectedLocationRoutes(resolvedTemporalLocations, locationConnections),
+    [resolvedTemporalLocations, locationConnections],
+  )
   const staticMapImageUrl = useMemo(
     () => buildStaticMapUrl(style, activeMarkers, center, zoom, mapViewportSize, MAPBOX_STATIC_DEFAULT_STYLE),
     [style, activeMarkers, center, zoom, mapViewportSize],
@@ -274,6 +467,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         const label = locationAttrs.label?.replace(/^📍\s*/, '') || name
         locations.push({
           id: locationAttrs.id,
+          connectionId: locationAttrs.locationId,
           name,
           label,
           country: locationAttrs['data-country'] || undefined,
@@ -389,6 +583,21 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     }
   }, [])
 
+  useEffect(() => {
+    const syncConnections = () => {
+      setLocationConnections(loadLocationConnections())
+    }
+
+    syncConnections()
+    window.addEventListener(CONNECTIONS_UPDATED_EVENT, syncConnections)
+    window.addEventListener('storage', syncConnections)
+
+    return () => {
+      window.removeEventListener(CONNECTIONS_UPDATED_EVENT, syncConnections)
+      window.removeEventListener('storage', syncConnections)
+    }
+  }, [])
+
   // Helper function to add a marker to the map
   const addMarkerToMap = useCallback((markerData: MapMarker) => {
     if (!map.current) return null
@@ -456,10 +665,12 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     const resolveTemporalMarkers = async () => {
       if (!isInsideTemporalSpace || temporalLocationCandidates.length === 0) {
         setTemporalSpaceMarkers([])
+        setResolvedTemporalLocations([])
         return
       }
 
       const resolvedMarkers: MapMarker[] = []
+      const resolvedLocations: ResolvedTemporalLocation[] = []
       for (const candidate of temporalLocationCandidates) {
         let coords = candidate.coords
         if (!coords) {
@@ -467,6 +678,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         }
         if (!coords) continue
 
+        resolvedLocations.push({
+          ...candidate,
+          coords,
+        })
         resolvedMarkers.push({
           lng: coords[0],
           lat: coords[1],
@@ -475,6 +690,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       }
 
       if (!cancelled) {
+        setResolvedTemporalLocations(resolvedLocations)
         const dedupedMarkers = dedupeMarkers(resolvedMarkers)
         setTemporalSpaceMarkers(dedupedMarkers)
       }
@@ -486,6 +702,91 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       cancelled = true
     }
   }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, anchorPoints])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const resolveTemporalRoutes = async () => {
+      if (!MAPBOX_ACCESS_TOKEN || temporalRoutePaths.length === 0) {
+        setTemporalRouteFeatures([])
+        return
+      }
+
+      const routeFeatures = await Promise.all(
+        temporalRoutePaths.map(async (routePath, routeIndex) => {
+          if (routePath.length < 2) return null
+
+          const coordinatePath = routePath.slice(0, 25)
+          const coordinatesParam = coordinatePath
+            .map(([lng, lat]) => `${lng},${lat}`)
+            .join(';')
+
+          try {
+            const response = await fetch(
+              `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesParam}?access_token=${MAPBOX_ACCESS_TOKEN}&geometries=geojson&overview=full&steps=false&alternatives=false`,
+            )
+            if (!response.ok) {
+              return null
+            }
+
+            const data = await response.json()
+            const geometry = data?.routes?.[0]?.geometry
+            const durationSeconds = Number(data?.routes?.[0]?.duration)
+            if (
+              geometry?.type !== 'LineString' ||
+              !Array.isArray(geometry.coordinates) ||
+              geometry.coordinates.length < 2
+            ) {
+              return null
+            }
+
+            const routeCoordinates = geometry.coordinates
+              .map((coordinate: unknown) => {
+                if (!Array.isArray(coordinate) || coordinate.length < 2) return null
+                const lng = Number(coordinate[0])
+                const lat = Number(coordinate[1])
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
+                return [lng, lat] as [number, number]
+              })
+              .filter((coordinate: [number, number] | null): coordinate is [number, number] => !!coordinate)
+
+            const midpoint = computeLineMidpoint(routeCoordinates)
+            if (routeCoordinates.length < 2 || !midpoint) {
+              return null
+            }
+
+            return {
+              type: 'Feature' as const,
+              properties: {
+                routeIndex,
+                durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : 0,
+                durationLabel: formatRouteDurationLabel(durationSeconds),
+                durationEmoji: '⏳',
+                midpoint,
+              },
+              geometry: {
+                type: 'LineString' as const,
+                coordinates: routeCoordinates,
+              },
+            }
+          } catch (error) {
+            console.error('[MapboxMap] Failed to fetch route directions:', error)
+            return null
+          }
+        }),
+      )
+
+      if (!cancelled) {
+        setTemporalRouteFeatures(routeFeatures.filter((feature): feature is TemporalRouteFeature => !!feature))
+      }
+    }
+
+    resolveTemporalRoutes()
+
+    return () => {
+      cancelled = true
+    }
+  }, [temporalRoutePaths])
 
   // Initialize map
   useEffect(() => {
@@ -697,6 +998,132 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     }
   }, [activeMarkers, hasTemporalPins, mapLoaded, addMarkerToMap])
 
+  useEffect(() => {
+    if (!map.current) return
+
+    const removeRouteLayers = () => {
+      if (!map.current) return
+
+      if (map.current.getLayer(TEMPORAL_ROUTE_LAYER_ID)) {
+        map.current.removeLayer(TEMPORAL_ROUTE_LAYER_ID)
+      }
+      if (map.current.getLayer(TEMPORAL_ROUTE_CASING_LAYER_ID)) {
+        map.current.removeLayer(TEMPORAL_ROUTE_CASING_LAYER_ID)
+      }
+      if (map.current.getSource(TEMPORAL_ROUTE_SOURCE_ID)) {
+        map.current.removeSource(TEMPORAL_ROUTE_SOURCE_ID)
+      }
+    }
+
+    const syncRouteDurationMarkers = () => {
+      routeDurationMarkersRef.current.forEach((marker) => marker.remove())
+      routeDurationMarkersRef.current = []
+
+      if (!map.current || temporalRouteFeatures.length === 0) {
+        return
+      }
+
+      temporalRouteFeatures.forEach((feature) => {
+        const markerElement = document.createElement('span')
+        markerElement.className = 'duration-badge'
+        markerElement.style.pointerEvents = 'none'
+        markerElement.style.whiteSpace = 'nowrap'
+        markerElement.style.opacity = '0.92'
+        markerElement.style.backdropFilter = 'blur(10px)'
+        markerElement.style.boxShadow = '0 8px 20px -12px rgba(0, 0, 0, 0.35)'
+
+        const emoji = document.createElement('span')
+        emoji.className = 'duration-badge-emoji'
+        emoji.textContent = feature.properties.durationEmoji
+
+        const label = document.createElement('span')
+        label.className = 'duration-badge-label'
+        label.textContent = feature.properties.durationLabel
+
+        markerElement.appendChild(emoji)
+        markerElement.appendChild(label)
+
+        const durationMarker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: 'center',
+        })
+          .setLngLat(feature.properties.midpoint)
+          .addTo(map.current!)
+
+        routeDurationMarkersRef.current.push(durationMarker)
+      })
+    }
+
+    const syncRoutes = () => {
+      if (!map.current) return
+
+      if (temporalRouteFeatures.length === 0) {
+        removeRouteLayers()
+        syncRouteDurationMarkers()
+        return
+      }
+
+      const routeCollection = {
+        type: 'FeatureCollection' as const,
+        features: temporalRouteFeatures,
+      }
+
+      const existingSource = map.current.getSource(TEMPORAL_ROUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
+      if (existingSource) {
+        existingSource.setData(routeCollection)
+      } else {
+        map.current.addSource(TEMPORAL_ROUTE_SOURCE_ID, {
+          type: 'geojson',
+          data: routeCollection,
+        })
+
+        map.current.addLayer({
+          id: TEMPORAL_ROUTE_CASING_LAYER_ID,
+          type: 'line',
+          source: TEMPORAL_ROUTE_SOURCE_ID,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': 'rgba(17, 24, 39, 0.25)',
+            'line-width': 8,
+          },
+        })
+
+        map.current.addLayer({
+          id: TEMPORAL_ROUTE_LAYER_ID,
+          type: 'line',
+          source: TEMPORAL_ROUTE_SOURCE_ID,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#2563eb',
+            'line-width': 4.5,
+          },
+        })
+      }
+
+      syncRouteDurationMarkers()
+    }
+
+    if (map.current.loaded()) {
+      syncRoutes()
+    } else {
+      map.current.once('load', syncRoutes)
+    }
+
+    return () => {
+      routeDurationMarkersRef.current.forEach((marker) => marker.remove())
+      routeDurationMarkersRef.current = []
+      if (temporalRouteFeatures.length === 0) {
+        removeRouteLayers()
+      }
+    }
+  }, [mapLoaded, temporalRouteFeatures])
+
   // Search for locations using Mapbox Geocoding API
   const searchLocation = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -815,141 +1242,143 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           {/* ARCHITECTURE: Keep the search UI as a floating overlay so the
               map remains the primary surface and the controls are always
               within reach (top-right) without adding layout height. */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              zIndex: 5,
-              width: 240,
-              maxWidth: 'calc(100% - 24px)',
-              backgroundColor: '#ffffff',
-              borderRadius: 8,
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 8px 20px -12px rgba(0, 0, 0, 0.35)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: '8px 10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#6b7280"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search for a location to pin..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => searchResults.length > 0 && setShowResults(true)}
-                  onBlur={() => setTimeout(() => setShowResults(false), 200)}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 12,
-                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-                    color: '#374151',
-                    backgroundColor: 'transparent',
-                  }}
-                />
-                {isSearching && (
-                  <div
+          {ENABLE_MAP_SEARCH_OVERLAY && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 5,
+                width: 240,
+                maxWidth: 'calc(100% - 24px)',
+                backgroundColor: '#ffffff',
+                borderRadius: 8,
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 8px 20px -12px rgba(0, 0, 0, 0.35)',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{ padding: '8px 10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#6b7280"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search for a location to pin..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchResults.length > 0 && setShowResults(true)}
+                    onBlur={() => setTimeout(() => setShowResults(false), 200)}
                     style={{
-                      width: 14,
-                      height: 14,
-                      border: '2px solid #e5e7eb',
-                      borderTopColor: '#6366f1',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 12,
+                      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                      color: '#374151',
+                      backgroundColor: 'transparent',
                     }}
                   />
-                )}
-              </div>
-            </div>
-
-            {/* Search Results Dropdown */}
-            {showResults && searchResults.length > 0 && (
-              <div
-                style={{
-                  borderTop: '1px solid #e5e7eb',
-                  maxHeight: 240,
-                  overflowY: 'auto',
-                }}
-              >
-                {searchResults.map((result, index) => (
-                  <div
-                    key={result.id || index}
-                    onClick={() => handleSelectLocation(result)}
-                    style={{
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      borderBottom: index < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
-                      transition: 'background-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f9fafb')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
+                  {isSearching && (
                     <div
                       style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
+                        width: 14,
+                        height: 14,
+                        border: '2px solid #e5e7eb',
+                        borderTopColor: '#6366f1',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
                       }}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Search Results Dropdown */}
+              {showResults && searchResults.length > 0 && (
+                <div
+                  style={{
+                    borderTop: '1px solid #e5e7eb',
+                    maxHeight: 240,
+                    overflowY: 'auto',
+                  }}
+                >
+                  {searchResults.map((result, index) => (
+                    <div
+                      key={result.id || index}
+                      onClick={() => handleSelectLocation(result)}
+                      style={{
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        borderBottom: index < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
+                        transition: 'background-color 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f9fafb')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#9ca3af"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{ marginTop: 2, flexShrink: 0 }}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 10,
+                        }}
                       >
-                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: '#374151',
-                            fontFamily: "'Inter', sans-serif",
-                          }}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#9ca3af"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ marginTop: 2, flexShrink: 0 }}
                         >
-                          {result.text}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: '#9ca3af',
-                            fontFamily: "'Inter', sans-serif",
-                            marginTop: 2,
-                          }}
-                        >
-                          {result.place_name}
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <div>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: '#374151',
+                              fontFamily: "'Inter', sans-serif",
+                            }}
+                          >
+                            {result.text}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: '#9ca3af',
+                              fontFamily: "'Inter', sans-serif",
+                              marginTop: 2,
+                            }}
+                          >
+                            {result.place_name}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div
             ref={mapContainer}
