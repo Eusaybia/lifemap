@@ -19,6 +19,8 @@ interface FlowSwitchProps {
     disableAutoScroll?: boolean
     /** When true, scrolling to an option will automatically trigger its onClick */
     scrollToSelect?: boolean
+    /** When true, scrollToSelect fires as soon as an option enters the active band */
+    instantScrollToSelect?: boolean
     /** Optional diagnostics tag for debug logging */
     diagnosticsTag?: string
     /** Enable verbose diagnostics for scroll/selection behavior */
@@ -50,6 +52,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
     const lastValueRef = React.useRef<FlowSwitchValue | undefined>(props.value);
     const pendingScrollSelectIndexRef = React.useRef<number | null>(null);
     const skipNextAutoScrollRef = React.useRef(false);
+    const lastScrollSelectedValueRef = React.useRef<string | null>(null);
 
     const logDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
         if (!props.diagnosticsEnabled) return
@@ -106,7 +109,24 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                     scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
                 })
                 
-                if (props.scrollToSelect && isUserScrolling) {
+                if (props.scrollToSelect && props.instantScrollToSelect && isUserScrolling && !isProgrammaticScroll.current) {
+                    const optionValue = String(child.props.value ?? "")
+                    if (lastScrollSelectedValueRef.current !== optionValue) {
+                        lastScrollSelectedValueRef.current = optionValue
+                        pendingScrollSelectIndexRef.current = null
+                        skipNextAutoScrollRef.current = true
+                        logDiagnostics('scrollToSelect:instantCommit', {
+                            index,
+                            optionValue: child?.props?.value,
+                        })
+                        child.props.onClick?.()
+                    } else {
+                        logDiagnostics('scrollToSelect:alreadyCommitted', {
+                            index,
+                            optionValue: child?.props?.value,
+                        })
+                    }
+                } else if (props.scrollToSelect && isUserScrolling) {
                     pendingScrollSelectIndexRef.current = index
                     logDiagnostics('scrollToSelect:pending', {
                         index,
@@ -250,9 +270,12 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
 
     return (
         <motion.div className="flow-menu"
-            key={props.disableAutoScroll ? "flow-switch-stable" : String(props.value)}
+            key={props.disableAutoScroll || props.instantScrollToSelect ? "flow-switch-stable" : String(props.value)}
             ref={setRefs}
             onScroll={handleScroll}
+            onWheel={(event) => {
+                event.stopPropagation()
+            }}
             data-testid={props.testId}
             data-flow-switch={props.testId || 'flow-switch'}
             data-flow-switch-value={resolvedValue !== undefined ? String(resolvedValue) : String(props.value)}
@@ -273,6 +296,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                 color: props.isLens ? "#333333": "#222222",
                 padding: "5px 10px 5px 10px",
                 overflow: "scroll",
+                overscrollBehavior: "contain",
                 boxShadow: "0px 0.6021873017743928px 3.010936508871964px -0.9166666666666666px rgba(0, 0, 0, 0.14), 0px 2.288533303243457px 11.442666516217285px -1.8333333333333333px rgba(0, 0, 0, 0.13178), 0px 10px 50px -2.75px rgba(0, 0, 0, 0.1125)",
                 backgroundColor: props.isLens ? "rgba(217, 217, 217, 0.22)" : "rgba(250, 250, 250, 0.95)",
                 backdropFilter: props.isLens ? `blur(3px)` : ``,
