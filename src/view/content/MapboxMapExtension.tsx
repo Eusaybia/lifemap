@@ -21,6 +21,11 @@ import {
   MAPBOX_ACCESS_TOKEN,
   type MapViewportSize,
 } from './MapboxMapShared'
+import {
+  buildTemporalArrowPolygonPoints,
+  getTemporalArrowFutureOpacity,
+  TemporalArrowVisual,
+} from './TemporalArrowVisual'
 
 const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
@@ -30,9 +35,6 @@ const ENABLE_INTERACTIVE_MAP = true
 const ENABLE_MAP_SEARCH_OVERLAY = false
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
-const TEMPORAL_ROUTE_SOURCE_ID = 'temporal-location-routes'
-const TEMPORAL_ROUTE_CASING_LAYER_ID = 'temporal-location-route-casing'
-const TEMPORAL_ROUTE_LAYER_ID = 'temporal-location-route-line'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 
 const configureMapboxWorker = () => {
@@ -73,12 +75,21 @@ interface NodeConnectionRecord {
   targetId?: string
   sourceType?: string
   targetType?: string
+  connectionKind?: 'temporal-order' | 'association' | 'manual'
+}
+
+interface TemporalRoutePath {
+  coordinates: [number, number][]
+  futureIndex: number
 }
 
 interface TemporalRouteFeature {
   type: 'Feature'
   properties: {
     routeIndex: number
+    temporalFutureIndex: number
+    temporalFutureTotal: number
+    strokeOpacity: number
     durationSeconds: number
     durationLabel: string
     durationEmoji: string
@@ -88,6 +99,14 @@ interface TemporalRouteFeature {
     type: 'LineString'
     coordinates: [number, number][]
   }
+}
+
+interface TemporalRouteOverlayPath {
+  id: string
+  d: string
+  arrowPoints: string
+  futureIndex: number
+  futureTotal: number
 }
 
 interface TemporalSpaceContext {
@@ -268,7 +287,7 @@ const loadLocationConnections = (): NodeConnectionRecord[] => {
 const buildConnectedLocationRoutes = (
   locations: ResolvedTemporalLocation[],
   connections: NodeConnectionRecord[],
-): [number, number][][] => {
+): TemporalRoutePath[] => {
   if (locations.length < 2 || connections.length === 0) return []
 
   const locationsByConnectionId = new Map<string, ResolvedTemporalLocation>()
@@ -280,59 +299,29 @@ const buildConnectedLocationRoutes = (
 
   if (locationsByConnectionId.size < 2) return []
 
-  const adjacency = new Map<string, Set<string>>()
+  const routePaths: TemporalRoutePath[] = []
   connections.forEach((connection) => {
     const sourceId = connection.sourceId
     const targetId = connection.targetId
     if (!sourceId || !targetId) return
+    if (connection.connectionKind && connection.connectionKind !== 'temporal-order') return
     if (!locationsByConnectionId.has(sourceId) || !locationsByConnectionId.has(targetId)) return
 
-    if (!adjacency.has(sourceId)) adjacency.set(sourceId, new Set())
-    if (!adjacency.has(targetId)) adjacency.set(targetId, new Set())
-    adjacency.get(sourceId)?.add(targetId)
-    adjacency.get(targetId)?.add(sourceId)
+    const sourceLocation = locationsByConnectionId.get(sourceId)
+    const targetLocation = locationsByConnectionId.get(targetId)
+    if (!sourceLocation || !targetLocation) return
+    if (
+      sourceLocation.coords[0] === targetLocation.coords[0] &&
+      sourceLocation.coords[1] === targetLocation.coords[1]
+    ) return
+
+    routePaths.push({
+      coordinates: [sourceLocation.coords, targetLocation.coords],
+      futureIndex: routePaths.length,
+    })
   })
 
-  const visited = new Set<string>()
-  const routes: [number, number][][] = []
-
-  locations.forEach((location) => {
-    const connectionId = location.connectionId
-    if (!connectionId || visited.has(connectionId) || !adjacency.has(connectionId)) return
-
-    const component = new Set<string>()
-    const queue = [connectionId]
-    visited.add(connectionId)
-
-    while (queue.length > 0) {
-      const current = queue.shift()
-      if (!current) continue
-      component.add(current)
-
-      adjacency.get(current)?.forEach((neighbor) => {
-        if (visited.has(neighbor)) return
-        visited.add(neighbor)
-        queue.push(neighbor)
-      })
-    }
-
-    if (component.size < 2) return
-
-    const orderedRoute = locations
-      .filter((candidate) => candidate.connectionId && component.has(candidate.connectionId))
-      .map((candidate) => candidate.coords)
-      .filter((coords, index, list) => {
-        if (index === 0) return true
-        const previous = list[index - 1]
-        return previous[0] !== coords[0] || previous[1] !== coords[1]
-      })
-
-    if (orderedRoute.length >= 2) {
-      routes.push(orderedRoute)
-    }
-  })
-
-  return routes
+  return routePaths
 }
 
 const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
@@ -357,6 +346,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [resolvedTemporalLocations, setResolvedTemporalLocations] = useState<ResolvedTemporalLocation[]>([])
   const [locationConnections, setLocationConnections] = useState<NodeConnectionRecord[]>([])
   const [temporalRouteFeatures, setTemporalRouteFeatures] = useState<TemporalRouteFeature[]>([])
+  const [temporalRouteOverlayPaths, setTemporalRouteOverlayPaths] = useState<TemporalRouteOverlayPath[]>([])
   const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
 
   const attrs = useMemo<MapboxMapAttrs>(() => sanitizeMapboxMapAttrs(node.attrs), [node.attrs])
@@ -714,9 +704,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
       const routeFeatures = await Promise.all(
         temporalRoutePaths.map(async (routePath, routeIndex) => {
-          if (routePath.length < 2) return null
+          if (routePath.coordinates.length < 2) return null
 
-          const coordinatePath = routePath.slice(0, 25)
+          const coordinatePath = routePath.coordinates.slice(0, 25)
           const coordinatesParam = coordinatePath
             .map(([lng, lat]) => `${lng},${lat}`)
             .join(';')
@@ -759,6 +749,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               type: 'Feature' as const,
               properties: {
                 routeIndex,
+                temporalFutureIndex: routePath.futureIndex,
+                temporalFutureTotal: temporalRoutePaths.length,
+                strokeOpacity: getTemporalArrowFutureOpacity(routePath.futureIndex, temporalRoutePaths.length),
                 durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : 0,
                 durationLabel: formatRouteDurationLabel(durationSeconds),
                 durationEmoji: '⏳',
@@ -1001,20 +994,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   useEffect(() => {
     if (!map.current) return
 
-    const removeRouteLayers = () => {
-      if (!map.current) return
-
-      if (map.current.getLayer(TEMPORAL_ROUTE_LAYER_ID)) {
-        map.current.removeLayer(TEMPORAL_ROUTE_LAYER_ID)
-      }
-      if (map.current.getLayer(TEMPORAL_ROUTE_CASING_LAYER_ID)) {
-        map.current.removeLayer(TEMPORAL_ROUTE_CASING_LAYER_ID)
-      }
-      if (map.current.getSource(TEMPORAL_ROUTE_SOURCE_ID)) {
-        map.current.removeSource(TEMPORAL_ROUTE_SOURCE_ID)
-      }
-    }
-
     const syncRouteDurationMarkers = () => {
       routeDurationMarkersRef.current.forEach((marker) => marker.remove())
       routeDurationMarkersRef.current = []
@@ -1026,11 +1005,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       temporalRouteFeatures.forEach((feature) => {
         const markerElement = document.createElement('span')
         markerElement.className = 'duration-badge'
+        markerElement.setAttribute('data-type', 'duration-badge')
         markerElement.style.pointerEvents = 'none'
-        markerElement.style.whiteSpace = 'nowrap'
-        markerElement.style.opacity = '0.92'
-        markerElement.style.backdropFilter = 'blur(10px)'
-        markerElement.style.boxShadow = '0 8px 20px -12px rgba(0, 0, 0, 0.35)'
 
         const emoji = document.createElement('span')
         emoji.className = 'duration-badge-emoji'
@@ -1050,6 +1026,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           .setLngLat(feature.properties.midpoint)
           .addTo(map.current!)
 
+        durationMarker.getElement().style.zIndex = '5'
+
         routeDurationMarkersRef.current.push(durationMarker)
       })
     }
@@ -1058,52 +1036,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       if (!map.current) return
 
       if (temporalRouteFeatures.length === 0) {
-        removeRouteLayers()
         syncRouteDurationMarkers()
         return
-      }
-
-      const routeCollection = {
-        type: 'FeatureCollection' as const,
-        features: temporalRouteFeatures,
-      }
-
-      const existingSource = map.current.getSource(TEMPORAL_ROUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
-      if (existingSource) {
-        existingSource.setData(routeCollection)
-      } else {
-        map.current.addSource(TEMPORAL_ROUTE_SOURCE_ID, {
-          type: 'geojson',
-          data: routeCollection,
-        })
-
-        map.current.addLayer({
-          id: TEMPORAL_ROUTE_CASING_LAYER_ID,
-          type: 'line',
-          source: TEMPORAL_ROUTE_SOURCE_ID,
-          layout: {
-            'line-cap': 'round',
-            'line-join': 'round',
-          },
-          paint: {
-            'line-color': 'rgba(17, 24, 39, 0.25)',
-            'line-width': 8,
-          },
-        })
-
-        map.current.addLayer({
-          id: TEMPORAL_ROUTE_LAYER_ID,
-          type: 'line',
-          source: TEMPORAL_ROUTE_SOURCE_ID,
-          layout: {
-            'line-cap': 'round',
-            'line-join': 'round',
-          },
-          paint: {
-            'line-color': '#2563eb',
-            'line-width': 4.5,
-          },
-        })
       }
 
       syncRouteDurationMarkers()
@@ -1118,9 +1052,59 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return () => {
       routeDurationMarkersRef.current.forEach((marker) => marker.remove())
       routeDurationMarkersRef.current = []
-      if (temporalRouteFeatures.length === 0) {
-        removeRouteLayers()
+    }
+  }, [mapLoaded, temporalRouteFeatures])
+
+  useEffect(() => {
+    if (!map.current || !mapSurface.current) {
+      setTemporalRouteOverlayPaths([])
+      return
+    }
+
+    const syncRouteOverlayPaths = () => {
+      const mapInstance = map.current
+      if (!mapInstance || !mapSurface.current || temporalRouteFeatures.length === 0) {
+        setTemporalRouteOverlayPaths([])
+        return
       }
+
+      const nextPaths = temporalRouteFeatures
+        .map((feature): TemporalRouteOverlayPath | null => {
+          const points = feature.geometry.coordinates
+            .map((coordinate) => mapInstance.project(coordinate))
+            .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+
+          if (points.length < 2) return null
+
+          const d = points
+            .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+            .join(' ')
+          const endPoint = points[points.length - 1]
+          const previousPoint = points[points.length - 2]
+          const angle = Math.atan2(endPoint.y - previousPoint.y, endPoint.x - previousPoint.x)
+
+          return {
+            id: `route-overlay-${feature.properties.routeIndex}`,
+            d,
+            arrowPoints: buildTemporalArrowPolygonPoints(endPoint.x, endPoint.y, angle),
+            futureIndex: feature.properties.temporalFutureIndex,
+            futureTotal: feature.properties.temporalFutureTotal,
+          }
+        })
+        .filter((path): path is TemporalRouteOverlayPath => !!path)
+
+      setTemporalRouteOverlayPaths(nextPaths)
+    }
+
+    syncRouteOverlayPaths()
+    map.current.on('move', syncRouteOverlayPaths)
+    map.current.on('zoom', syncRouteOverlayPaths)
+    map.current.on('resize', syncRouteOverlayPaths)
+
+    return () => {
+      map.current?.off('move', syncRouteOverlayPaths)
+      map.current?.off('zoom', syncRouteOverlayPaths)
+      map.current?.off('resize', syncRouteOverlayPaths)
     }
   }, [mapLoaded, temporalRouteFeatures])
 
@@ -1202,7 +1186,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   }
 
   return (
-    <NodeViewWrapper style={{ margin: '16px 0' }}>
+    <NodeViewWrapper data-mapbox-map="" style={{ margin: '16px 0' }}>
         <div
           style={{
             borderRadius: 8,
@@ -1390,6 +1374,32 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               opacity: isInteractiveMapReady ? 1 : 0,
             }}
           />
+
+          {temporalRouteOverlayPaths.length > 0 && (
+            <svg
+              data-temporal-map-route-overlay="true"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 3,
+                overflow: 'visible',
+              }}
+            >
+              {temporalRouteOverlayPaths.map((routePath) => (
+                <g key={routePath.id}>
+                  <TemporalArrowVisual
+                    d={routePath.d}
+                    arrowPoints={routePath.arrowPoints}
+                    futureIndex={routePath.futureIndex}
+                    futureTotal={routePath.futureTotal}
+                  />
+                </g>
+              ))}
+            </svg>
+          )}
 
           {/* Keep a visible center pin in the map viewport so the selected
               location is clearly shown on-map. */}

@@ -2,6 +2,13 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { DocumentAttributes, EditorMode, normalizeDocumentAttributes } from '../structure/DocumentAttributesExtension'
+import {
+  buildTemporalArrowPolygonPoints,
+  TEMPORAL_ARROW_GLOW,
+  TEMPORAL_ARROW_GLOW_STRONG,
+  TEMPORAL_ARROW_STROKE,
+  TemporalArrowVisual,
+} from './TemporalArrowVisual'
 
 // ============================================================================
 // NODE CONNECTION MANAGER
@@ -237,14 +244,11 @@ type ConnectionPath = {
   sourceType: ConnectableType
   targetType: ConnectableType
   connectionKind?: 'temporal-order' | 'association' | 'manual'
+  temporalFutureIndex?: number
+  temporalFutureTotal?: number
 }
 
 const PATH_CURVE_OFFSET = 50
-const ETHEREAL_ARROW_STROKE = 'rgba(17, 17, 17, 0.96)'
-const ETHEREAL_ARROW_FILAMENT = 'rgba(17, 17, 17, 0.72)'
-const ETHEREAL_ARROW_HEAD_FILL = 'rgba(17, 17, 17, 0.98)'
-const ETHEREAL_ARROW_GLOW = 'rgba(0, 0, 0, 0.16)'
-const ETHEREAL_ARROW_GLOW_STRONG = 'rgba(0, 0, 0, 0.28)'
 const buildQuadraticPath = (
   x1: number,
   y1: number,
@@ -269,17 +273,6 @@ const getQuadraticPoint = (
     y: invT * invT * y1 + 2 * invT * t * midY + t * t * y2,
   }
 }
-
-const buildArrowPolygonPoints = (
-  x: number,
-  y: number,
-  angle: number,
-  arrowSize: number,
-) => (
-  `${x},${y} ` +
-  `${x - arrowSize * Math.cos(angle - Math.PI / 6)},${y - arrowSize * Math.sin(angle - Math.PI / 6)} ` +
-  `${x - arrowSize * Math.cos(angle + Math.PI / 6)},${y - arrowSize * Math.sin(angle + Math.PI / 6)}`
-)
 
 const getConnectionSide = (): 'left' | 'right' => 'right'
 
@@ -542,6 +535,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
   const computeConnectionPaths = useCallback((connectionsToRender: NodeConnection[] = connections): ConnectionPath[] => {
     const side = getConnectionSide()
+    const temporalFutureTotal = connectionsToRender.filter((conn) => conn.connectionKind === 'temporal-order').length
+    let temporalFutureIndex = 0
     
     return connectionsToRender.map((conn) => {
       const sourceElement = getConnectionEndpointElement(conn, 'source')
@@ -579,7 +574,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       
       const angle = Math.atan2(y2 - midY, x2 - midX)
       const arrowSize = 12.4
-      const arrowPoints = buildArrowPolygonPoints(x2, y2, angle, arrowSize)
+      const arrowPoints = buildTemporalArrowPolygonPoints(x2, y2, angle, arrowSize)
+      const currentTemporalFutureIndex = isTemporalOrderConnection ? temporalFutureIndex++ : 0
       
       return {
         id: conn.id,
@@ -596,6 +592,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         sourceType: conn.sourceType,
         targetType: conn.targetType,
         connectionKind: conn.connectionKind,
+        temporalFutureIndex: currentTemporalFutureIndex,
+        temporalFutureTotal,
       }
     }).filter(Boolean) as ConnectionPath[]
   }, [connections, getAnchorPoint])
@@ -775,13 +773,13 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           >
             <path 
               d="M5 12h14M13 5l6 7-6 7" 
-              stroke={pendingSource ? ETHEREAL_ARROW_STROKE : 'rgba(17, 17, 17, 0.82)'} 
+              stroke={pendingSource ? TEMPORAL_ARROW_STROKE : 'rgba(17, 17, 17, 0.82)'} 
               strokeWidth="3.6" 
               strokeLinecap="round" 
               strokeLinejoin="round"
               fill="none"
               style={{
-                filter: `drop-shadow(0 0 8px ${pendingSource ? ETHEREAL_ARROW_GLOW_STRONG : ETHEREAL_ARROW_GLOW})`,
+                filter: `drop-shadow(0 0 8px ${pendingSource ? TEMPORAL_ARROW_GLOW_STRONG : TEMPORAL_ARROW_GLOW})`,
                 opacity: pendingSource ? 1 : 0.82,
               }}
             />
@@ -792,7 +790,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
             fontWeight: 600,
             marginTop: 2,
             whiteSpace: 'nowrap',
-            textShadow: `0 0 10px ${ETHEREAL_ARROW_GLOW}`,
+            textShadow: `0 0 10px ${TEMPORAL_ARROW_GLOW}`,
           }}>
             {pendingSource ? 'to target' : 'select source'}
           </div>
@@ -850,50 +848,16 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           return (
           <g key={conn.id}>
             {usesTemporalOrderStyle ? (
-              <>
-                <path
-                  d={conn.d}
-                  stroke={ETHEREAL_ARROW_STROKE}
-                  strokeWidth={4.75}
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{
-                    pointerEvents: 'none',
-                    opacity: 0.96,
-                  }}
-                />
-                <polygon
-                  points={conn.arrowPoints}
-                  fill={ETHEREAL_ARROW_HEAD_FILL}
-                  stroke={ETHEREAL_ARROW_HEAD_FILL}
-                  strokeWidth={2.2}
-                  style={{
-                    pointerEvents: 'none',
-                    opacity: 0.98,
-                  }}
-                />
-                <path
-                  d={conn.d}
-                  stroke="rgba(0, 0, 0, 0.001)"
-                  strokeWidth={16}
-                  strokeLinecap="round"
-                  fill="none"
-                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
-                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
-                  onClick={(event) => handleConnectionClick(conn, event)}
-                />
-                <polygon
-                  points={conn.arrowPoints}
-                  fill="rgba(0, 0, 0, 0.001)"
-                  stroke="rgba(0, 0, 0, 0.001)"
-                  strokeWidth={8}
-                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                  onMouseEnter={() => showConnectionDeleteButton(conn.id)}
-                  onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
-                  onClick={(event) => handleConnectionClick(conn, event)}
-                />
-              </>
+              <TemporalArrowVisual
+                d={conn.d}
+                arrowPoints={conn.arrowPoints}
+                futureIndex={conn.temporalFutureIndex}
+                futureTotal={conn.temporalFutureTotal}
+                includeHitTarget
+                onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
+                onClick={(event) => handleConnectionClick(conn, event)}
+              />
             ) : (
               <>
                 <path
