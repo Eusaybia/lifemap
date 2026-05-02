@@ -10,6 +10,7 @@ import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import mapboxgl from 'mapbox-gl'
+import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 
 // Unique plugin key to avoid conflicts with other extensions
 const LocationPluginKey = new PluginKey('location-suggestion')
@@ -295,7 +296,9 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
 
   useEffect(() => {
     if (!locationConnectionId) {
-      updateAttributes({ locationId: generateShortId() })
+      return deferNodeViewAttributeUpdate(() => {
+        updateAttributes({ locationId: generateShortId() })
+      })
     }
   }, [locationConnectionId, updateAttributes])
 

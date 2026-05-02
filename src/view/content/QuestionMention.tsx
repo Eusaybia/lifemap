@@ -26,6 +26,7 @@ import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
@@ -66,7 +67,9 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
 
   useEffect(() => {
     if (!questionId) {
-      updateAttributes({ questionId: generateShortId() })
+      return deferNodeViewAttributeUpdate(() => {
+        updateAttributes({ questionId: generateShortId() })
+      })
     }
   }, [questionId, updateAttributes])
 

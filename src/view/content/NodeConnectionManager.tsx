@@ -51,6 +51,9 @@ interface NodeConnection {
   targetId: string
   sourceType: ConnectableType
   targetType: ConnectableType
+  connectionKind?: 'temporal-order' | 'association' | 'manual'
+  createdBy?: string
+  cue?: string
 }
 
 // Local storage key for persisting connections
@@ -72,6 +75,7 @@ const loadConnections = (): NodeConnection[] => {
       ...conn,
       sourceType: conn.sourceType || 'span',
       targetType: conn.targetType || 'span',
+      connectionKind: conn.connectionKind || 'manual',
     }))
   } catch {
     return []
@@ -193,6 +197,7 @@ type ConnectionPath = {
   targetId: string
   sourceType: ConnectableType
   targetType: ConnectableType
+  connectionKind?: 'temporal-order' | 'association' | 'manual'
 }
 
 const PATH_CURVE_OFFSET = 50
@@ -237,6 +242,21 @@ const buildArrowPolygonPoints = (
   `${x - arrowSize * Math.cos(angle + Math.PI / 6)},${y - arrowSize * Math.sin(angle + Math.PI / 6)}`
 )
 
+const getConnectionSide = (): 'left' | 'right' => 'right'
+
+const getLocationGripAnchorPoint = (elem: HTMLElement) => {
+  const grip = elem.querySelector('.location-grip') as HTMLElement | null
+  if (!grip) return null
+
+  const rect = grip.getBoundingClientRect()
+  if (rect.width <= 0 && rect.height <= 0) return null
+
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  }
+}
+
 /**
  * NodeConnectionManager
  * 
@@ -264,6 +284,28 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   // Load connections on mount
   useEffect(() => {
     setConnections(loadConnections())
+  }, [])
+
+  useEffect(() => {
+    const handleConnectionsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<NodeConnection[]>
+      if (Array.isArray(customEvent.detail)) {
+        setConnections(customEvent.detail.map((conn) => ({
+          ...conn,
+          sourceType: conn.sourceType || 'span',
+          targetType: conn.targetType || 'span',
+          connectionKind: conn.connectionKind || 'manual',
+        })))
+        return
+      }
+
+      setConnections(loadConnections())
+    }
+
+    window.addEventListener(CONNECTIONS_UPDATED_EVENT, handleConnectionsUpdated)
+    return () => {
+      window.removeEventListener(CONNECTIONS_UPDATED_EVENT, handleConnectionsUpdated)
+    }
   }, [])
 
   useEffect(() => {
@@ -364,7 +406,12 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         sourceId: pendingSource.id,
         targetId: elementId,
         sourceType: pendingSource.type,
-        targetType: elementType
+        targetType: elementType,
+        connectionKind: editorMode === 'temporal-order'
+          ? 'temporal-order'
+          : editorMode === 'association'
+            ? 'association'
+            : 'manual',
       }
       
       const updatedConnections = [...connections, newConnection]
@@ -381,7 +428,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       
       setPendingSource(null)
     }
-  }, [connections, isConnectionMode, pendingSource])
+  }, [connections, editorMode, isConnectionMode, pendingSource])
 
   // Add/remove click listener based on mode
   useEffect(() => {
@@ -419,7 +466,12 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     }
   }, [isConnectionMode])
 
-  const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right') => {
+  const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right', connectionKind?: NodeConnection['connectionKind']) => {
+    if (connectionKind === 'temporal-order') {
+      const gripAnchor = getLocationGripAnchorPoint(elem)
+      if (gripAnchor) return gripAnchor
+    }
+
     const mapContainer = elem.querySelector('.mapboxgl-map')
     const marker = elem.querySelector('.mapboxgl-marker')
     
@@ -439,7 +491,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   }, [])
 
   const computeConnectionPaths = useCallback((): ConnectionPath[] => {
-    const side: 'left' | 'right' = 'right'
+    const side = getConnectionSide()
     
     return connections.map((conn) => {
       const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
@@ -453,15 +505,27 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         return null
       }
       
-      const sourcePoint = getAnchorPoint(sourceElement, side)
-      const targetPoint = getAnchorPoint(targetElement, side)
-      
-      const x1 = sourcePoint.x + (side === 'left' ? 3 : -3)
+      const sourcePoint = getAnchorPoint(sourceElement, side, conn.connectionKind)
+      const targetPoint = getAnchorPoint(targetElement, side, conn.connectionKind)
+      const isTemporalOrderConnection = conn.connectionKind === 'temporal-order'
+
+      const x1 = isTemporalOrderConnection
+        ? sourcePoint.x
+        : sourcePoint.x + (side === 'left' ? 3 : -3)
       const y1 = sourcePoint.y
-      const x2 = targetPoint.x + (side === 'left' ? -3 : 3)
+      const x2 = isTemporalOrderConnection
+        ? targetPoint.x
+        : targetPoint.x + (side === 'left' ? -3 : 3)
       const y2 = targetPoint.y
-      const midX = (x1 + x2) / 2 + (side === 'left' ? -PATH_CURVE_OFFSET : PATH_CURVE_OFFSET)
-      const midY = (y1 + y2) / 2
+      const horizontalDistance = Math.abs(x2 - x1)
+      const temporalCurveLift = Math.min(34, Math.max(18, horizontalDistance * 0.28))
+      const temporalRightBias = Math.min(32, Math.max(14, horizontalDistance * 0.18))
+      const midX = isTemporalOrderConnection
+        ? (x1 + x2) / 2 + temporalRightBias
+        : (x1 + x2) / 2 + (side === 'left' ? -PATH_CURVE_OFFSET : PATH_CURVE_OFFSET)
+      const midY = isTemporalOrderConnection
+        ? Math.min(y1, y2) - temporalCurveLift
+        : (y1 + y2) / 2
       
       const angle = Math.atan2(y2 - midY, x2 - midX)
       const arrowSize = 12.4
@@ -480,7 +544,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         sourceId: conn.sourceId,
         targetId: conn.targetId,
         sourceType: conn.sourceType,
-        targetType: conn.targetType
+        targetType: conn.targetType,
+        connectionKind: conn.connectionKind,
       }
     }).filter(Boolean) as ConnectionPath[]
   }, [connections, getAnchorPoint])
@@ -718,9 +783,12 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         }}
       >
         {connectionPaths.map((conn) => {
+          const usesTemporalOrderStyle = isTemporalOrderMode || conn.connectionKind === 'temporal-order'
+          const usesAssociationStyle = isAssociationMode || conn.connectionKind === 'association'
+
           return (
           <g key={conn.id}>
-            {isTemporalOrderMode ? (
+            {usesTemporalOrderStyle ? (
               <>
                 <path
                   d={conn.d}
@@ -777,7 +845,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
                   onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
                   onClick={(event) => handleConnectionClick(conn, event)}
                 />
-                {!isAssociationMode && (
+                {!usesAssociationStyle && (
                   <polygon
                     points={conn.arrowPoints}
                     fill="#262626"

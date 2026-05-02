@@ -5,6 +5,7 @@ import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { Editor } from '@tiptap/core'
@@ -43,7 +44,9 @@ const MotivationsNodeView: React.FC<MotivationsNodeViewProps> = ({
 
   useEffect(() => {
     if (!motivationId) {
-      updateAttributes({ motivationId: generateShortId() })
+      return deferNodeViewAttributeUpdate(() => {
+        updateAttributes({ motivationId: generateShortId() })
+      })
     }
   }, [motivationId, updateAttributes])
 

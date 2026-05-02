@@ -50,6 +50,7 @@ import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
 import { InputRule } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
@@ -101,7 +102,9 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
   // Ensure every todo has an ID so it can participate in connections
   useEffect(() => {
     if (!todoId) {
-      updateAttributes({ todoId: generateShortId() })
+      return deferNodeViewAttributeUpdate(() => {
+        updateAttributes({ todoId: generateShortId() })
+      })
     }
   }, [todoId, updateAttributes])
 

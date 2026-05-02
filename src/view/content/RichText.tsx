@@ -35,7 +35,7 @@ import { TemporalFieldExtension, TimePointNode } from './TimePointMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
-import { TypingLocationScanExtension } from './TypingLocationScanExtension'
+import { TemporalRelationAutotaggingExtension } from './TemporalRelationAutotaggingExtension'
 import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
@@ -964,7 +964,7 @@ export const customExtensions: Extensions = [
   // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
   LocationMention,
-  TypingLocationScanExtension,
+  TemporalRelationAutotaggingExtension,
   // People mentions - triggered by % for person insertion (Jane Doe, Alex Chen, etc.)
   PersonNode,
   PeopleMention,
