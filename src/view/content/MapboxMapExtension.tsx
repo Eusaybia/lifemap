@@ -7,9 +7,11 @@ import mapboxgl from 'mapbox-gl'
 
 import {
   DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_LENS,
   DEFAULT_MAP_STYLE,
   DEFAULT_MAP_ZOOM,
   MapboxMapAttrs,
+  MapboxMapLens,
   MapMarker,
   needsMapboxMapAttrRepair,
   sanitizeMapboxMapAttrs,
@@ -26,6 +28,7 @@ import {
   getTemporalArrowFutureOpacity,
   TemporalArrowVisual,
 } from './TemporalArrowVisual'
+import DragGrip from '../components/DragGrip'
 
 const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
@@ -36,6 +39,22 @@ const ENABLE_MAP_SEARCH_OVERLAY = false
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+const MAPBOX_GLOBE_FOG = {
+  color: 'rgb(228, 236, 255)',
+  'high-color': 'rgb(120, 158, 255)',
+  'space-color': 'rgb(8, 14, 28)',
+  'horizon-blend': 0.28,
+  'star-intensity': 0.08,
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    mapboxMap: {
+      insertMapboxMap: (options?: { center?: [number, number]; zoom?: number }) => ReturnType
+      setMapboxMapLens: (options: { lens: MapboxMapLens }) => ReturnType
+    }
+  }
+}
 
 const configureMapboxWorker = () => {
   const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
@@ -46,6 +65,19 @@ const configureMapboxWorker = () => {
 
 const resolveMapboxStyle = (requestedStyle?: string): string => {
   return requestedStyle?.trim() || MAPBOX_STATIC_DEFAULT_STYLE
+}
+
+const applyMapLens = (mapInstance: mapboxgl.Map, lens: MapboxMapLens) => {
+  try {
+    mapInstance.setProjection((lens === 'globeView' ? 'globe' : 'mercator') as Parameters<mapboxgl.Map['setProjection']>[0])
+    if (lens === 'globeView') {
+      mapInstance.setFog(MAPBOX_GLOBE_FOG)
+    } else {
+      ;(mapInstance as mapboxgl.Map & { setFog: (fog: unknown) => void }).setFog(null)
+    }
+  } catch (error) {
+    console.warn('[MapboxMap] Unable to apply map lens:', error)
+  }
 }
 
 interface LocationNodeAttrs {
@@ -107,6 +139,11 @@ interface TemporalRouteOverlayPath {
   arrowPoints: string
   futureIndex: number
   futureTotal: number
+}
+
+interface RouteOverlayPoint {
+  x: number
+  y: number
 }
 
 interface TemporalSpaceContext {
@@ -421,13 +458,28 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [mapViewportSize, setMapViewportSize] = useState<MapViewportSize>({ width: 1280, height: 280 })
 
   const attrs = useMemo<MapboxMapAttrs>(() => sanitizeMapboxMapAttrs(node.attrs), [node.attrs])
-  const { center, zoom, markers, style } = attrs
 
   useEffect(() => {
     if (!needsMapboxMapAttrRepair(node.attrs)) return
 
     updateAttributes(attrs)
   }, [attrs, node.attrs, updateAttributes])
+
+  const { center, zoom, markers, style, lens } = attrs
+
+  const handleMapGripMouseDown = useCallback(() => {
+    const pos = props.getPos()
+    if (typeof pos !== 'number') return
+
+    const { selection } = props.editor.state
+    const isSelected = selection.$from.pos === pos
+    if (isSelected) {
+      props.editor.commands.blur()
+      return
+    }
+
+    props.editor.commands.setNodeSelection(pos)
+  }, [props])
 
   const activeMarkers = useMemo(() => {
     // Inside a temporalSpace card, treat location tags as the source of truth.
@@ -929,17 +981,20 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       })
 
       if (mapInstance.loaded()) {
+        applyMapLens(mapInstance, lens)
         setMapLoaded(true)
         setIsInteractiveMapReady(true)
         forceMapboxLayout(mapContainer.current)
         resizeMapSafely(mapInstance)
       } else {
+        const loadedMapInstance = mapInstance
         mapInstance.on('load', () => {
           if (!mapContainer.current) return
+          applyMapLens(loadedMapInstance, lens)
           setMapLoaded(true)
           setIsInteractiveMapReady(true)
           forceMapboxLayout(mapContainer.current)
-          resizeMapSafely(mapInstance)
+          resizeMapSafely(loadedMapInstance)
         })
       }
 
@@ -983,6 +1038,26 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       setIsInteractiveMapReady(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (!map.current) return
+
+    const applyLens = () => {
+      if (!map.current) return
+      applyMapLens(map.current, lens)
+      resizeMapSafely(map.current)
+    }
+
+    if (map.current.loaded()) {
+      applyLens()
+    } else {
+      map.current.once('load', applyLens)
+    }
+
+    return () => {
+      map.current?.off('load', applyLens)
+    }
+  }, [lens])
 
   // Keep map dimensions in sync with container changes.
   useEffect(() => {
@@ -1172,7 +1247,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
                   })
                   .filter((point): point is { x: number; y: number } => !!point)
               : []
-          let points = routeCoordinates
+          let points: RouteOverlayPoint[] = routeCoordinates
             .map((coordinate) => mapInstance.project(coordinate))
             .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
 
@@ -1392,6 +1467,35 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             height: 280,
           }}
         >
+          <div
+            data-drag-handle
+            contentEditable={false}
+            aria-label="Map lens menu"
+            onMouseDown={handleMapGripMouseDown}
+            className="node-overlay-grip-handle"
+            style={{
+              position: 'absolute',
+              top: 4,
+              right: 0,
+              zIndex: 10,
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              touchAction: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <DragGrip
+              position="inline"
+              dotColor="#999"
+              hoverBackground="rgba(0, 0, 0, 0.08)"
+              title="Toggle menu"
+            />
+          </div>
+
           {staticMapImageUrl && !isInteractiveMapReady && (
             <img
               aria-hidden="true"
@@ -1654,6 +1758,9 @@ export const MapboxMapExtension = Node.create({
       style: {
         default: DEFAULT_MAP_STYLE,
       },
+      lens: {
+        default: DEFAULT_MAP_LENS,
+      },
     }
   },
 
@@ -1682,6 +1789,20 @@ export const MapboxMapExtension = Node.create({
             type: this.name,
             attrs: options || {},
           })
+        },
+      setMapboxMapLens:
+        (options: { lens: MapboxMapLens }) =>
+        ({ state, dispatch }) => {
+          const { selection } = state
+          const pos = selection.$from.pos
+          const node = state.doc.nodeAt(pos)
+
+          if (!node || node.type.name !== this.name || !dispatch) {
+            return false
+          }
+
+          dispatch(state.tr.setNodeAttribute(pos, 'lens', options.lens))
+          return true
         },
     }
   },

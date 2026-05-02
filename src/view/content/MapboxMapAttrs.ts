@@ -4,16 +4,20 @@ export interface MapMarker {
   label?: string
 }
 
+export type MapboxMapLens = 'map2DView' | 'globeView'
+
 export interface MapboxMapAttrs {
   center: [number, number]
   zoom: number
   markers: MapMarker[]
   style: string
+  lens: MapboxMapLens
 }
 
 export const DEFAULT_MAP_CENTER: [number, number] = [-74.5, 40]
 export const DEFAULT_MAP_ZOOM = 9
 export const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/streets-v12'
+export const DEFAULT_MAP_LENS: MapboxMapLens = 'map2DView'
 
 const parseFiniteNumber = (value: unknown): number | null => {
   if (typeof value === 'number') {
@@ -115,12 +119,14 @@ export const sanitizeMapboxMapAttrs = (value: unknown): MapboxMapAttrs => {
   const zoom = parseFiniteNumber(attrs.zoom) ?? DEFAULT_MAP_ZOOM
   const markers = Array.isArray(attrs.markers) ? attrs.markers.map(sanitizeMarker).filter((marker): marker is MapMarker => !!marker) : []
   const style = typeof attrs.style === 'string' && attrs.style.trim() ? attrs.style.trim() : DEFAULT_MAP_STYLE
+  const lens = attrs.lens === 'globeView' || attrs.lens === 'map2DView' ? attrs.lens : DEFAULT_MAP_LENS
 
   return {
     center,
     zoom,
     markers,
     style,
+    lens,
   }
 }
 
@@ -140,6 +146,10 @@ export const needsMapboxMapAttrRepair = (value: unknown): boolean => {
   }
 
   if (typeof attrs.style !== 'string' || attrs.style.trim() !== attrs.style || !attrs.style.trim()) {
+    return true
+  }
+
+  if (attrs.lens !== 'globeView' && attrs.lens !== 'map2DView') {
     return true
   }
 

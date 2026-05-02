@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 
 import {
   DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_LENS,
   DEFAULT_MAP_STYLE,
   DEFAULT_MAP_ZOOM,
   needsMapboxMapAttrRepair,
@@ -24,6 +25,7 @@ test('sanitizeMapboxMapAttrs coerces pasted string values into valid map attrs',
     zoom: 12.5,
     markers: [{ lng: -0.1276, lat: 51.5072, label: 'London' }],
     style: 'mapbox://styles/mapbox/light-v11',
+    lens: DEFAULT_MAP_LENS,
   })
 })
 
@@ -40,6 +42,7 @@ test('sanitizeMapboxMapAttrs falls back when pasted attrs are unusable', () => {
     zoom: DEFAULT_MAP_ZOOM,
     markers: [],
     style: DEFAULT_MAP_STYLE,
+    lens: DEFAULT_MAP_LENS,
   })
 })
 
@@ -59,6 +62,7 @@ test('needsMapboxMapAttrRepair detects non-canonical pasted map attrs', () => {
       zoom: 12,
       markers: [{ lng: 151.2093, lat: -33.8688, label: 'Sydney' }],
       style: 'mapbox://styles/mapbox/streets-v12',
+      lens: DEFAULT_MAP_LENS,
     }),
   ).toBe(false)
 })

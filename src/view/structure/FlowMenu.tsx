@@ -1327,6 +1327,38 @@ const TemporalSpaceLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+const MapboxMapLoupe = React.memo((props: { editor: Editor }) => {
+    const selectedNode = getLoupeNode(props.editor, "mapboxMap")
+    const lens = selectedNode?.attrs?.lens === "globeView" ? "globeView" : "map2DView"
+
+    return (
+        <div
+            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
+            <FlowSwitch value={lens} isLens scrollToSelect>
+                <Option value={"map2DView"} onClick={() => {
+                    // @ts-ignore - command is added by MapboxMapExtension
+                    props.editor.commands.setMapboxMapLens({ lens: "map2DView" })
+                }}>
+                    <motion.div>
+                        2D Map
+                    </motion.div>
+                </Option>
+                <Option value={"globeView"} onClick={() => {
+                    // @ts-ignore - command is added by MapboxMapExtension
+                    props.editor.commands.setMapboxMapLens({ lens: "globeView" })
+                }}>
+                    <motion.div>
+                        Globe
+                    </motion.div>
+                </Option>
+            </FlowSwitch>
+            <Tag>
+                Map
+            </Tag>
+        </div>
+    )
+})
+
 const getNearestAncestorNode = (editor: Editor, typeName: string) => {
     const { selection } = editor.state
 
@@ -2330,6 +2362,7 @@ export const FlowMenu = (props: { editor: Editor }) => {
                         'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
                         'group': <GroupLoupe editor={props.editor} />,
                         'canvas3D': <Canvas3DLoupe editor={props.editor} />,
+                        'mapboxMap': <MapboxMapLoupe editor={props.editor} />,
                         'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                         'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
                         'trends': <TemporalOrderLoupe editor={props.editor} />,
