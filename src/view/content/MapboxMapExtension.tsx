@@ -239,6 +239,71 @@ const computeLineMidpoint = (coordinates: [number, number][]): [number, number] 
   return coordinates[coordinates.length - 1]
 }
 
+const buildFallbackTemporalRouteFeature = (
+  routePath: TemporalRoutePath,
+  routeIndex: number,
+  routeTotal: number,
+): TemporalRouteFeature | null => {
+  if (routePath.coordinates.length < 2) return null
+
+  const midpoint = computeLineMidpoint(routePath.coordinates)
+  if (!midpoint) return null
+
+  return {
+    type: 'Feature',
+    properties: {
+      routeIndex,
+      temporalFutureIndex: routePath.futureIndex,
+      temporalFutureTotal: routeTotal,
+      strokeOpacity: getTemporalArrowFutureOpacity(routePath.futureIndex, routeTotal),
+      durationSeconds: 0,
+      durationLabel: '',
+      durationEmoji: '',
+      midpoint,
+    },
+    geometry: {
+      type: 'LineString',
+      coordinates: routePath.coordinates,
+    },
+  }
+}
+
+const resizeMapSafely = (mapInstance: mapboxgl.Map | null | undefined) => {
+  if (!mapInstance) return
+  try {
+    mapInstance.resize()
+  } catch (error) {
+    console.warn('[MapboxMap] Ignoring stale resize after map container changed:', error)
+  }
+}
+
+const projectRouteCoordinatesIntoWorldViewport = (
+  coordinates: [number, number][],
+  width: number,
+  height: number,
+) => (
+  coordinates.map(([lng, lat]) => ({
+    x: ((lng + 180) / 360) * width,
+    y: ((90 - lat) / 180) * height,
+  }))
+)
+
+const pointsAreInReasonableViewportRange = (
+  points: Array<{ x: number; y: number }>,
+  width: number,
+  height: number,
+) => (
+  points.length >= 2 &&
+  points.every((point) => (
+    Number.isFinite(point.x) &&
+    Number.isFinite(point.y) &&
+    point.x > -width &&
+    point.x < width * 2 &&
+    point.y > -height &&
+    point.y < height * 2
+  ))
+)
+
 const resolveFallbackCoords = (query: string): [number, number] | null => {
   const normalized = query.toLowerCase()
   const fallbackRules: Array<{ pattern: RegExp; coords: [number, number] }> = [
@@ -246,6 +311,12 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
     { pattern: /(mount\s+)?everest|base\s*camp\s*trek/i, coords: [86.8578, 27.9881] },
     // Annapurna Base Camp / Circuit region (Gandaki, Nepal)
     { pattern: /annapurna(\s+circuit)?/i, coords: [83.8781, 28.5307] },
+    { pattern: /\bbankstown\b/i, coords: [151.0333, -33.917] },
+    { pattern: /sydney\s+airport|kingsford\s+smith/i, coords: [151.1772, -33.9399] },
+    { pattern: /hongqiao/i, coords: [121.3278, 31.1979] },
+    { pattern: /family\s+home.*shanghai|shanghai.*family\s+home/i, coords: [121.4737, 31.2304] },
+    { pattern: /\bshanghai\b/i, coords: [121.4737, 31.2304] },
+    { pattern: /\bsydney\b/i, coords: [151.2093, -33.8688] },
   ]
 
   for (const rule of fallbackRules) {
@@ -489,6 +560,12 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       return geocodeCacheRef.current.get(cacheKey) || null
     }
 
+    const fallbackCoords = resolveFallbackCoords(query)
+    if (fallbackCoords) {
+      geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+      return fallbackCoords
+    }
+
     try {
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
@@ -511,12 +588,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           : Math.min(8000, Math.max(1500, anchorSpanKm * 1.5 + 500))
 
         if (nearestAnchorDistance > maxAllowedDistanceKm) {
-          const fallbackCoords = resolveFallbackCoords(query)
-          if (fallbackCoords) {
-            geocodeCacheRef.current.set(cacheKey, fallbackCoords)
-            return fallbackCoords
-          }
-
           geocodeCacheRef.current.set(cacheKey, null)
           return null
         }
@@ -525,12 +596,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       geocodeCacheRef.current.set(cacheKey, coords)
       return coords
     } catch (error) {
-      const fallbackCoords = resolveFallbackCoords(query)
-      if (fallbackCoords) {
-        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
-        return fallbackCoords
-      }
-
       console.error('[MapboxMap] Temporal location geocoding error:', error)
       geocodeCacheRef.current.set(cacheKey, null)
       return null
@@ -705,6 +770,11 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       const routeFeatures = await Promise.all(
         temporalRoutePaths.map(async (routePath, routeIndex) => {
           if (routePath.coordinates.length < 2) return null
+          const fallbackFeature = buildFallbackTemporalRouteFeature(
+            routePath,
+            routeIndex,
+            temporalRoutePaths.length,
+          )
 
           const coordinatePath = routePath.coordinates.slice(0, 25)
           const coordinatesParam = coordinatePath
@@ -716,7 +786,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinatesParam}?access_token=${MAPBOX_ACCESS_TOKEN}&geometries=geojson&overview=full&steps=false&alternatives=false`,
             )
             if (!response.ok) {
-              return null
+              return fallbackFeature
             }
 
             const data = await response.json()
@@ -727,7 +797,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
               !Array.isArray(geometry.coordinates) ||
               geometry.coordinates.length < 2
             ) {
-              return null
+              return fallbackFeature
             }
 
             const routeCoordinates = geometry.coordinates
@@ -742,7 +812,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
             const midpoint = computeLineMidpoint(routeCoordinates)
             if (routeCoordinates.length < 2 || !midpoint) {
-              return null
+              return fallbackFeature
             }
 
             return {
@@ -764,7 +834,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             }
           } catch (error) {
             console.error('[MapboxMap] Failed to fetch route directions:', error)
-            return null
+            return fallbackFeature
           }
         }),
       )
@@ -862,24 +932,24 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         setMapLoaded(true)
         setIsInteractiveMapReady(true)
         forceMapboxLayout(mapContainer.current)
-        mapInstance.resize()
+        resizeMapSafely(mapInstance)
       } else {
         mapInstance.on('load', () => {
           if (!mapContainer.current) return
           setMapLoaded(true)
           setIsInteractiveMapReady(true)
           forceMapboxLayout(mapContainer.current)
-          mapInstance?.resize()
+          resizeMapSafely(mapInstance)
         })
       }
 
       frameId = requestAnimationFrame(() => {
         forceMapboxLayout(mapContainer.current)
-        mapInstance?.resize()
+        resizeMapSafely(mapInstance)
       })
       timeoutId = window.setTimeout(() => {
         forceMapboxLayout(mapContainer.current)
-        mapInstance?.resize()
+        resizeMapSafely(mapInstance)
       }, 120)
 
       mapInstance.on('moveend', () => {
@@ -920,7 +990,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     const resizeMap = () => {
       forceMapboxLayout(mapContainer.current)
-      map.current?.resize()
+      resizeMapSafely(map.current)
     }
     const observer = new ResizeObserver(resizeMap)
     observer.observe(mapContainer.current)
@@ -1070,9 +1140,64 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
       const nextPaths = temporalRouteFeatures
         .map((feature): TemporalRouteOverlayPath | null => {
-          const points = feature.geometry.coordinates
+          const fallbackRoutePath = temporalRoutePaths[feature.properties.routeIndex]
+          const routeCoordinates = feature.geometry.coordinates.length >= 2
+            ? feature.geometry.coordinates
+            : fallbackRoutePath?.coordinates || []
+          const surfaceWidth = mapSurface.current?.clientWidth || 0
+          const surfaceHeight = mapSurface.current?.clientHeight || 0
+          const surfaceRect = mapSurface.current?.getBoundingClientRect()
+          const sourceCoordinate = fallbackRoutePath?.coordinates[0] || routeCoordinates[0]
+          const targetCoordinate =
+            fallbackRoutePath?.coordinates[fallbackRoutePath.coordinates.length - 1] ||
+            routeCoordinates[routeCoordinates.length - 1]
+          const markerPoints =
+            sourceCoordinate && targetCoordinate && surfaceRect
+              ? [sourceCoordinate, targetCoordinate]
+                  .map((coordinate) => {
+                    const matchingMarker = markersRef.current.find((marker) => {
+                      const markerLngLat = marker.getLngLat()
+                      return (
+                        Math.abs(markerLngLat.lng - coordinate[0]) < 0.0001 &&
+                        Math.abs(markerLngLat.lat - coordinate[1]) < 0.0001
+                      )
+                    })
+
+                    if (!matchingMarker) return null
+                    const markerRect = matchingMarker.getElement().getBoundingClientRect()
+                    return {
+                      x: markerRect.left + markerRect.width / 2 - surfaceRect.left,
+                      y: markerRect.top + markerRect.height / 2 - surfaceRect.top,
+                    }
+                  })
+                  .filter((point): point is { x: number; y: number } => !!point)
+              : []
+          let points = routeCoordinates
             .map((coordinate) => mapInstance.project(coordinate))
             .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+
+          if (markerPoints.length >= 2) {
+            points = markerPoints
+          }
+
+          if (points.length < 2 && fallbackRoutePath?.coordinates.length >= 2) {
+            const fallbackPoints = fallbackRoutePath.coordinates
+              .map((coordinate) => mapInstance.project(coordinate))
+              .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+
+            if (fallbackPoints.length >= 2) {
+              points.splice(0, points.length, ...fallbackPoints)
+            }
+          }
+
+          if (
+            surfaceWidth > 0 &&
+            surfaceHeight > 0 &&
+            routeCoordinates.length >= 2 &&
+            !pointsAreInReasonableViewportRange(points, surfaceWidth, surfaceHeight)
+          ) {
+            points = projectRouteCoordinatesIntoWorldViewport(routeCoordinates, surfaceWidth, surfaceHeight)
+          }
 
           if (points.length < 2) return null
 
@@ -1106,7 +1231,68 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       map.current?.off('zoom', syncRouteOverlayPaths)
       map.current?.off('resize', syncRouteOverlayPaths)
     }
-  }, [mapLoaded, temporalRouteFeatures])
+  }, [mapLoaded, temporalRouteFeatures, temporalRoutePaths])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const debugPayload = {
+      containerType: isInsideTemporalSpace ? 'temporal-space-or-group' : 'document-or-manual',
+      locationCandidates: temporalLocationCandidates.map((candidate) => ({
+        id: candidate.id,
+        connectionId: candidate.connectionId,
+        label: candidate.label,
+        name: candidate.name,
+        coords: candidate.coords,
+      })),
+      resolvedLocations: resolvedTemporalLocations.map((location) => ({
+        connectionId: location.connectionId,
+        label: location.label,
+        name: location.name,
+        coords: location.coords,
+      })),
+      locationConnections: locationConnections.map((connection) => ({
+        sourceId: connection.sourceId,
+        targetId: connection.targetId,
+        sourceType: connection.sourceType,
+        targetType: connection.targetType,
+        connectionKind: connection.connectionKind,
+      })),
+      temporalRoutePaths: temporalRoutePaths.map((routePath) => ({
+        futureIndex: routePath.futureIndex,
+        coordinates: routePath.coordinates,
+      })),
+      temporalRouteFeatures: temporalRouteFeatures.map((feature) => ({
+        routeIndex: feature.properties.routeIndex,
+        temporalFutureIndex: feature.properties.temporalFutureIndex,
+        temporalFutureTotal: feature.properties.temporalFutureTotal,
+        durationLabel: feature.properties.durationLabel,
+        coordinateCount: feature.geometry.coordinates.length,
+      })),
+      temporalRouteOverlayPaths: temporalRouteOverlayPaths.map((routePath) => ({
+        id: routePath.id,
+        futureIndex: routePath.futureIndex,
+        futureTotal: routePath.futureTotal,
+      })),
+    }
+
+    ;(window as Window & { __LIFEMAP_LAST_MAP_CONNECTION_DEBUG__?: typeof debugPayload })
+      .__LIFEMAP_LAST_MAP_CONNECTION_DEBUG__ = debugPayload
+
+    if (window.location.pathname === '/atlas') {
+      console.groupCollapsed('[MapboxMap] Atlas temporal connection debug')
+      console.log(debugPayload)
+      console.groupEnd()
+    }
+  }, [
+    isInsideTemporalSpace,
+    locationConnections,
+    resolvedTemporalLocations,
+    temporalLocationCandidates,
+    temporalRouteFeatures,
+    temporalRouteOverlayPaths,
+    temporalRoutePaths,
+  ])
 
   // Search for locations using Mapbox Geocoding API
   const searchLocation = useCallback(async (query: string) => {

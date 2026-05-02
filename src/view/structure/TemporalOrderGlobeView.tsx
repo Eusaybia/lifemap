@@ -11,6 +11,12 @@ import {
   MAPBOX_ACCESS_TOKEN,
   type MapViewportSize,
 } from '../content/MapboxMapShared'
+import {
+  buildTemporalArrowPolygonPoints,
+  TEMPORAL_ARROW_STROKE,
+  getTemporalArrowFutureOpacity,
+  TemporalArrowVisual,
+} from '../content/TemporalArrowVisual'
 
 declare global {
   interface Window {
@@ -41,6 +47,26 @@ interface TemporalOrderGlobeMarker {
   eventLabels: string[]
 }
 
+interface TemporalOrderResolvedMapLocation {
+  id: string
+  lng: number
+  lat: number
+  name: string
+  label: string
+  eventLabel: string
+  eventNodeId: string
+}
+
+interface TemporalOrderMapRouteOverlayPath {
+  id: string
+  d: string
+  arrowPoints: string
+  futureIndex: number
+  futureTotal: number
+  sourceLabel: string
+  targetLabel: string
+}
+
 type MapboxGlobal = {
   Map: new (options: Record<string, unknown>) => any
   Popup: new (options?: Record<string, unknown>) => any
@@ -63,6 +89,8 @@ const MAPBOX_2D_STYLE = DEFAULT_MAP_STYLE
 const MARKER_SOURCE_ID = 'temporal-order-globe-markers'
 const MARKER_LAYER_ID = 'temporal-order-globe-marker'
 const MARKER_LABEL_LAYER_ID = 'temporal-order-globe-marker-label'
+const ROUTE_SOURCE_ID = 'temporal-order-map-routes'
+const ROUTE_LAYER_ID = 'temporal-order-map-route-line'
 type TemporalOrderMapMode = 'globe' | 'map2D'
 const MAPBOX_GLOBE_FOG = {
   color: 'rgb(228, 236, 255)',
@@ -220,6 +248,10 @@ const resolveFallbackCoords = (query: string): [number, number] | null => {
   const fallbackRules: Array<{ pattern: RegExp; coords: [number, number] }> = [
     { pattern: /(mount\s+)?everest|base\s*camp\s*trek/i, coords: [86.8578, 27.9881] },
     { pattern: /annapurna/i, coords: [83.8203, 28.5961] },
+    { pattern: /\bbankstown\b/i, coords: [151.0333, -33.917] },
+    { pattern: /sydney\s+airport|kingsford\s+smith/i, coords: [151.1772, -33.9399] },
+    { pattern: /hongqiao/i, coords: [121.3278, 31.1979] },
+    { pattern: /family\s+home.*shanghai|shanghai.*family\s+home/i, coords: [121.4737, 31.2304] },
     { pattern: /\bsydney\b/i, coords: [151.2093, -33.8688] },
     { pattern: /\bshanghai\b/i, coords: [121.4737, 31.2304] },
     { pattern: /(san\s*francisco|\bsf\b)/i, coords: [-122.4194, 37.7749] },
@@ -282,6 +314,52 @@ const buildMarkerFeatureCollection = (markers: TemporalOrderGlobeMarker[]) => ({
     },
   })),
 })
+
+const compactRouteLocations = (
+  locations: TemporalOrderResolvedMapLocation[],
+): TemporalOrderResolvedMapLocation[] => {
+  return locations.reduce<TemporalOrderResolvedMapLocation[]>((output, location) => {
+    const previous = output[output.length - 1]
+    if (
+      previous &&
+      previous.lng.toFixed(5) === location.lng.toFixed(5) &&
+      previous.lat.toFixed(5) === location.lat.toFixed(5)
+    ) {
+      return output
+    }
+
+    output.push(location)
+    return output
+  }, [])
+}
+
+const buildRouteFeatureCollection = (locations: TemporalOrderResolvedMapLocation[]) => {
+  const routeStops = compactRouteLocations(locations)
+
+  return {
+    type: 'FeatureCollection' as const,
+    features: routeStops.slice(0, -1).map((location, index) => {
+      const target = routeStops[index + 1]
+
+      return {
+        type: 'Feature' as const,
+        properties: {
+          routeIndex: index,
+          opacity: getTemporalArrowFutureOpacity(index, Math.max(1, routeStops.length - 1)),
+          sourceLabel: location.label,
+          targetLabel: target.label,
+        },
+        geometry: {
+          type: 'LineString' as const,
+          coordinates: [
+            [location.lng, location.lat],
+            [target.lng, target.lat],
+          ],
+        },
+      }
+    }),
+  }
+}
 
 const summarizeLabels = (labels: string[]): string => {
   if (labels.length <= 2) return labels.join(' • ')
@@ -389,6 +467,24 @@ const TemporalOrderGeoMapView: React.FC<{
     [locations],
   )
 
+  const inferredMapConnections = useMemo(
+    () => normalizedLocations.slice(0, -1).map((location, index) => ({
+      source: {
+        id: location.id,
+        label: location.label,
+        name: location.name,
+        eventNodeId: location.eventNodeId,
+      },
+      target: {
+        id: normalizedLocations[index + 1].id,
+        label: normalizedLocations[index + 1].label,
+        name: normalizedLocations[index + 1].name,
+        eventNodeId: normalizedLocations[index + 1].eventNodeId,
+      },
+    })),
+    [normalizedLocations],
+  )
+
   const resolveLocationCoords = useCallback(
     async (location: TemporalOrderGlobeLocation): Promise<[number, number] | null> => {
       if (location.coords) {
@@ -406,6 +502,11 @@ const TemporalOrderGeoMapView: React.FC<{
       }
 
       const fallbackCoords = resolveFallbackCoords(query)
+      if (fallbackCoords) {
+        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+        return fallbackCoords
+      }
+
       if (!MAPBOX_ACCESS_TOKEN) {
         geocodeCacheRef.current.set(cacheKey, fallbackCoords)
         return fallbackCoords
@@ -705,6 +806,8 @@ const TemporalOrderImportedMapView: React.FC<{
   const autoFitSignatureRef = useRef('')
   const geocodeCacheRef = useRef<Map<string, [number, number] | null>>(new Map())
   const [markers, setMarkers] = useState<MapMarker[]>([])
+  const [routeLocations, setRouteLocations] = useState<TemporalOrderResolvedMapLocation[]>([])
+  const [routeOverlayPaths, setRouteOverlayPaths] = useState<TemporalOrderMapRouteOverlayPath[]>([])
   const [isResolving, setIsResolving] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -720,6 +823,24 @@ const TemporalOrderImportedMapView: React.FC<{
   const normalizedLocations = useMemo(
     () => locations.filter((location) => location.name || location.label),
     [locations],
+  )
+
+  const importedMapConnections = useMemo(
+    () => normalizedLocations.slice(0, -1).map((location, index) => ({
+      source: {
+        id: location.id,
+        label: location.label,
+        name: location.name,
+        eventNodeId: location.eventNodeId,
+      },
+      target: {
+        id: normalizedLocations[index + 1].id,
+        label: normalizedLocations[index + 1].label,
+        name: normalizedLocations[index + 1].name,
+        eventNodeId: normalizedLocations[index + 1].eventNodeId,
+      },
+    })),
+    [normalizedLocations],
   )
 
   const resolveLocationCoords = useCallback(
@@ -739,6 +860,11 @@ const TemporalOrderImportedMapView: React.FC<{
       }
 
       const fallbackCoords = resolveFallbackCoords(query)
+      if (fallbackCoords) {
+        geocodeCacheRef.current.set(cacheKey, fallbackCoords)
+        return fallbackCoords
+      }
+
       if (!MAPBOX_ACCESS_TOKEN) {
         geocodeCacheRef.current.set(cacheKey, fallbackCoords)
         return fallbackCoords
@@ -803,6 +929,7 @@ const TemporalOrderImportedMapView: React.FC<{
 
     if (!normalizedLocations.length) {
       setMarkers([])
+      setRouteLocations([])
       setIsResolving(false)
       setLoadError(null)
       return
@@ -816,16 +943,31 @@ const TemporalOrderImportedMapView: React.FC<{
         const coords = await resolveLocationCoords(location)
         if (!coords) return null
         return {
-          lng: coords[0],
-          lat: coords[1],
-          label: location.label || location.name,
-        } satisfies MapMarker
+          marker: {
+            lng: coords[0],
+            lat: coords[1],
+            label: location.label || location.name,
+          } satisfies MapMarker,
+          routeLocation: {
+            id: location.id,
+            lng: coords[0],
+            lat: coords[1],
+            name: location.name,
+            label: location.label || location.name,
+            eventLabel: location.eventLabel,
+            eventNodeId: location.eventNodeId,
+          } satisfies TemporalOrderResolvedMapLocation,
+        }
       }),
     )
-      .then((resolvedMarkers) => {
+      .then((resolvedItems) => {
         if (cancelled) return
 
-        const validMarkers = resolvedMarkers.filter(Boolean) as MapMarker[]
+        const validItems = resolvedItems.filter(Boolean) as Array<{
+          marker: MapMarker
+          routeLocation: TemporalOrderResolvedMapLocation
+        }>
+        const validMarkers = validItems.map((item) => item.marker)
         const dedupedMarkers = validMarkers.filter((marker, index, input) => (
           input.findIndex((candidate) => (
             candidate.lng.toFixed(6) === marker.lng.toFixed(6) &&
@@ -834,12 +976,14 @@ const TemporalOrderImportedMapView: React.FC<{
         ))
 
         setMarkers(dedupedMarkers)
+        setRouteLocations(validItems.map((item) => item.routeLocation))
         setIsResolving(false)
       })
       .catch((error) => {
         console.error('[TemporalOrder2DMapView] Failed to resolve locations:', error)
         if (cancelled) return
         setMarkers([])
+        setRouteLocations([])
         setIsResolving(false)
         setLoadError('Unable to resolve event locations for the map.')
       })
@@ -854,8 +998,49 @@ const TemporalOrderImportedMapView: React.FC<{
     [mapStyle, markers, mapViewportSize],
   )
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.pathname !== '/atlas') return
+
+    const atlasMapDebugPayload = {
+      mode,
+      inputLocations: locations.map((location) => ({
+        id: location.id,
+        name: location.name,
+        label: location.label,
+        country: location.country,
+        coords: location.coords,
+        eventLabel: location.eventLabel,
+        eventNodeId: location.eventNodeId,
+      })),
+      normalizedLocations: normalizedLocations.map((location) => ({
+        id: location.id,
+        name: location.name,
+        label: location.label,
+        country: location.country,
+        coords: location.coords,
+        eventLabel: location.eventLabel,
+        eventNodeId: location.eventNodeId,
+      })),
+      inferredMapConnections: importedMapConnections,
+      resolvedMarkers: markers,
+      routeLocations,
+    }
+
+    ;(window as Window & { __LIFEMAP_LAST_TEMPORAL_ORDER_MAP_DEBUG__?: typeof atlasMapDebugPayload })
+      .__LIFEMAP_LAST_TEMPORAL_ORDER_MAP_DEBUG__ = atlasMapDebugPayload
+
+    console.log('[TemporalOrderGlobeView] Atlas map debug', atlasMapDebugPayload)
+  }, [importedMapConnections, locations, markers, mode, normalizedLocations, routeLocations])
+
   const addMarkerToMap = useCallback((markerData: MapMarker) => {
     if (!mapRef.current) return null
+
+    const applyMarkerDataset = (element: HTMLElement) => {
+      element.dataset.temporalOrderGlobeMarker = 'true'
+      element.dataset.temporalOrderLocationLabel = markerData.label || ''
+      element.dataset.temporalOrderLocationLng = String(markerData.lng)
+      element.dataset.temporalOrderLocationLat = String(markerData.lat)
+    }
 
     const marker = isGlobeMode
       ? new mapboxgl.Marker({
@@ -863,6 +1048,7 @@ const TemporalOrderImportedMapView: React.FC<{
             const element = document.createElement('div')
             element.className = 'temporal-order-globe-marker'
             element.setAttribute('aria-hidden', 'true')
+            applyMarkerDataset(element)
             return element
           })(),
           anchor: 'center',
@@ -876,8 +1062,47 @@ const TemporalOrderImportedMapView: React.FC<{
           .setLngLat([markerData.lng, markerData.lat])
           .addTo(mapRef.current)
 
+    applyMarkerDataset(marker.getElement())
     return marker
   }, [isGlobeMode])
+
+  const syncRouteLayer = useCallback(() => {
+    const mapInstance = mapRef.current
+    if (!mapInstance || !mapInstance.isStyleLoaded()) return
+
+    const routeCollection = buildRouteFeatureCollection(routeLocations)
+    const existingSource = mapInstance.getSource(ROUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined
+
+    if (existingSource) {
+      existingSource.setData(routeCollection)
+    } else {
+      mapInstance.addSource(ROUTE_SOURCE_ID, {
+        type: 'geojson',
+        data: routeCollection,
+      })
+    }
+
+    if (!mapInstance.getLayer(ROUTE_LAYER_ID)) {
+      const beforeLayer = mapInstance.getLayer(MARKER_LAYER_ID) ? MARKER_LAYER_ID : undefined
+      mapInstance.addLayer(
+        {
+          id: ROUTE_LAYER_ID,
+          type: 'line',
+          source: ROUTE_SOURCE_ID,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': TEMPORAL_ARROW_STROKE,
+            'line-width': 4.75,
+            'line-opacity': ['coalesce', ['get', 'opacity'], 0.86],
+          },
+        },
+        beforeLayer,
+      )
+    }
+  }, [routeLocations])
 
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return
@@ -1077,6 +1302,97 @@ const TemporalOrderImportedMapView: React.FC<{
     }
   }, [addMarkerToMap, isGlobeMode, mapLoaded, markers])
 
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    const syncRoutes = () => {
+      syncRouteLayer()
+    }
+
+    if (mapRef.current.loaded()) {
+      syncRoutes()
+    } else {
+      mapRef.current.once('load', syncRoutes)
+    }
+
+    mapRef.current.on('style.load', syncRoutes)
+
+    return () => {
+      mapRef.current?.off('style.load', syncRoutes)
+    }
+  }, [mapLoaded, routeLocations, syncRouteLayer])
+
+  useEffect(() => {
+    if (!mapRef.current || !mapSurfaceRef.current) {
+      setRouteOverlayPaths([])
+      return
+    }
+
+    const syncRouteOverlayPaths = () => {
+      const mapInstance = mapRef.current
+      if (!mapInstance || !mapSurfaceRef.current) {
+        setRouteOverlayPaths([])
+        return
+      }
+
+      const routeStops = compactRouteLocations(routeLocations)
+      if (routeStops.length < 2) {
+        setRouteOverlayPaths([])
+        return
+      }
+
+      const nextPaths = routeStops
+        .slice(0, -1)
+        .map((location, index): TemporalOrderMapRouteOverlayPath | null => {
+          const target = routeStops[index + 1]
+          const startPoint = mapInstance.project([location.lng, location.lat])
+          const endPoint = mapInstance.project([target.lng, target.lat])
+
+          if (
+            !Number.isFinite(startPoint.x) ||
+            !Number.isFinite(startPoint.y) ||
+            !Number.isFinite(endPoint.x) ||
+            !Number.isFinite(endPoint.y)
+          ) {
+            return null
+          }
+
+          const controlY = Math.min(startPoint.y, endPoint.y) - Math.max(34, Math.abs(endPoint.x - startPoint.x) * 0.12)
+          const controlX = startPoint.x + (endPoint.x - startPoint.x) * 0.55
+          const d = `M ${startPoint.x} ${startPoint.y} Q ${controlX} ${controlY} ${endPoint.x} ${endPoint.y}`
+          const tangentAngle = Math.atan2(endPoint.y - controlY, endPoint.x - controlX)
+
+          return {
+            id: `temporal-order-map-route-overlay-${location.id}-${target.id}-${index}`,
+            d,
+            arrowPoints: buildTemporalArrowPolygonPoints(endPoint.x, endPoint.y, tangentAngle),
+            futureIndex: index,
+            futureTotal: Math.max(1, routeStops.length - 1),
+            sourceLabel: location.label,
+            targetLabel: target.label,
+          }
+        })
+        .filter((path): path is TemporalOrderMapRouteOverlayPath => !!path)
+
+      setRouteOverlayPaths(nextPaths)
+    }
+
+    syncRouteOverlayPaths()
+    mapRef.current.on('move', syncRouteOverlayPaths)
+    mapRef.current.on('zoom', syncRouteOverlayPaths)
+    mapRef.current.on('resize', syncRouteOverlayPaths)
+    mapRef.current.on('rotate', syncRouteOverlayPaths)
+    mapRef.current.on('pitch', syncRouteOverlayPaths)
+
+    return () => {
+      mapRef.current?.off('move', syncRouteOverlayPaths)
+      mapRef.current?.off('zoom', syncRouteOverlayPaths)
+      mapRef.current?.off('resize', syncRouteOverlayPaths)
+      mapRef.current?.off('rotate', syncRouteOverlayPaths)
+      mapRef.current?.off('pitch', syncRouteOverlayPaths)
+    }
+  }, [mapLoaded, routeLocations])
+
   const statusMessage = useMemo(() => {
     if (loadError) return loadError
     if (isResolving) return 'Resolving event locations...'
@@ -1117,6 +1433,36 @@ const TemporalOrderImportedMapView: React.FC<{
           />
         )}
         <div ref={mapContainerRef} className="temporal-order-globe-canvas-host" />
+        {routeOverlayPaths.length > 0 && (
+          <svg
+            data-temporal-order-map-route-overlay="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 3,
+              overflow: 'visible',
+            }}
+          >
+            {routeOverlayPaths.map((routePath) => (
+              <g
+                key={routePath.id}
+                data-temporal-order-map-route="true"
+                data-temporal-order-route-source={routePath.sourceLabel}
+                data-temporal-order-route-target={routePath.targetLabel}
+              >
+                <TemporalArrowVisual
+                  d={routePath.d}
+                  arrowPoints={routePath.arrowPoints}
+                  futureIndex={routePath.futureIndex}
+                  futureTotal={routePath.futureTotal}
+                />
+              </g>
+            ))}
+          </svg>
+        )}
       </div>
       {statusMessage && (
         <div className="temporal-order-globe-canvas-error">{statusMessage}</div>

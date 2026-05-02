@@ -4390,6 +4390,51 @@ export const TemporalOrderExtension = TipTapNode.create({
         () => buildTemporalOrderQuantaFlowGraphData(eventSources),
         [eventSources]
       );
+      useEffect(() => {
+        if (typeof window === 'undefined' || window.location.pathname !== '/atlas') return;
+
+        const atlasMapDebugPayload = {
+          lens,
+          eventSources: eventSources.map((source) => ({
+            key: source.key,
+            nodeId: source.nodeId,
+            label: source.label,
+            locationCount: source.locations.length,
+            locations: source.locations.map((location) => ({
+              name: location.name,
+              label: location.label,
+              country: location.country,
+              coords: location.coords,
+            })),
+          })),
+          globeLocations: globeLocations.map((location) => ({
+            id: location.id,
+            name: location.name,
+            label: location.label,
+            country: location.country,
+            coords: location.coords,
+            eventLabel: location.eventLabel,
+            eventNodeId: location.eventNodeId,
+          })),
+          inferredMapConnections: globeLocations.slice(0, -1).map((location, index) => ({
+            source: {
+              id: location.id,
+              label: location.label,
+              eventNodeId: location.eventNodeId,
+            },
+            target: {
+              id: globeLocations[index + 1].id,
+              label: globeLocations[index + 1].label,
+              eventNodeId: globeLocations[index + 1].eventNodeId,
+            },
+          })),
+        };
+
+        ;(window as Window & { __LIFEMAP_LAST_TEMPORAL_ORDER_SOURCE_DEBUG__?: typeof atlasMapDebugPayload })
+          .__LIFEMAP_LAST_TEMPORAL_ORDER_SOURCE_DEBUG__ = atlasMapDebugPayload;
+
+        console.log('[TemporalOrder] Atlas map source debug', atlasMapDebugPayload);
+      }, [eventSources, globeLocations, lens]);
       const timelineLayout = useMemo<TemporalOrderTimelineLayoutItem[]>(() => {
         if (lens === 'globalYearlyView') {
           return eventSources.map((source) => ({
