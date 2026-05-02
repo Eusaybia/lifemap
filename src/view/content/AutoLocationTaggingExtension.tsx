@@ -1,8 +1,25 @@
 import { Extension } from '@tiptap/core'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { debounce } from 'lodash'
 
 export const AutoLocationTaggingPluginKey = new PluginKey('autoLocationTagging')
+
+const ANALYZE_DEBOUNCE_MS = 250
+export const FROM_AUTO_LOCATION_TAGGING_META = 'fromAutoLocationTagging'
+
+type DetectedLocation = {
+  text: string
+  confidence?: number
+}
+
+const slugifyLocationId = (value: string): string => {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{Letter}\p{Number}-]/gu, '')
+    .slice(0, 80) || 'unknown'
+}
 
 export const AutoLocationTaggingExtension = Extension.create({
   name: 'autoLocationTagging',
@@ -12,7 +29,41 @@ export const AutoLocationTaggingExtension = Extension.create({
     let isAnalyzing = false
     let viewRef: any = null
 
-    const ANALYZE_DEBOUNCE_MS = 5000
+    const fetchLlmLocations = async (text: string): Promise<string[]> => {
+      const response = await fetch('/api/analyze-locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+
+      if (!response.ok) return []
+
+      const data = await response.json()
+      const locations: DetectedLocation[] = Array.isArray(data?.locations)
+        ? data.locations
+        : []
+
+      return locations
+        .filter((location) => (
+          typeof location?.text === 'string' &&
+          location.text.trim().length > 1 &&
+          (typeof location.confidence !== 'number' || location.confidence >= 0.55)
+        ))
+        .map((location) => location.text.trim())
+    }
+
+    const mergeLocationTexts = (...locationGroups: string[][]): string[] => {
+      const locationsByKey = new Map<string, string>()
+
+      locationGroups.flat().forEach((location) => {
+        const normalized = location.replace(/^📍\s*/, '').replace(/\s+/g, ' ').trim()
+        if (normalized.length < 2) return
+
+        locationsByKey.set(normalized.toLocaleLowerCase(), normalized)
+      })
+
+      return Array.from(locationsByKey.values()).sort((a, b) => b.length - a.length)
+    }
 
     const applyLocationTags = (locations: string[]) => {
       if (!viewRef) return
@@ -79,9 +130,8 @@ export const AutoLocationTaggingExtension = Extension.create({
       let tr = state.tr
       let applied = 0
       for (const r of sortedDesc) {
-        // Double-check there is no location node intersecting this exact range
         let intersects = false
-        state.doc.nodesBetween(r.from, r.to, (n: any) => {
+        tr.doc.nodesBetween(r.from, r.to, (n: any) => {
           if (n.type && n.type.name === 'location') {
             intersects = true
             return false
@@ -90,13 +140,21 @@ export const AutoLocationTaggingExtension = Extension.create({
         })
         if (intersects) continue
 
-        const node = locationType.create({ id: r.label, label: r.label })
+        const node = locationType.create({
+          id: `loc:auto-${slugifyLocationId(r.label)}`,
+          label: `📍 ${r.label}`,
+          'data-name': r.label,
+          'data-country': null,
+          'data-coords': null,
+        })
         tr = tr.replaceWith(r.from, r.to, node)
+        tr = tr.setSelection(TextSelection.near(tr.doc.resolve(r.from + 1)))
         applied++
       }
 
       if (applied > 0) {
-        tr.setMeta('fromAutoTagging', true)
+        tr.setMeta(FROM_AUTO_LOCATION_TAGGING_META, true)
+        tr.setMeta('fromTypingLocationScan', true)
         viewRef.dispatch(tr)
       }
     }
@@ -106,18 +164,8 @@ export const AutoLocationTaggingExtension = Extension.create({
       if (isAnalyzing) return
       isAnalyzing = true
       try {
-        const response = await fetch('/api/analyze-locations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
-        })
-        if (!response.ok) {
-          console.error('Failed to analyze locations')
-          return
-        }
-        const data = await response.json()
-        const locations: string[] = Array.isArray(data.locations) ? data.locations : []
-        applyLocationTags(locations)
+        const llmLocations = await fetchLlmLocations(text)
+        applyLocationTags(mergeLocationTexts(llmLocations))
       } catch (err) {
         console.error('Auto location tagging error:', err)
       } finally {
@@ -143,7 +191,7 @@ export const AutoLocationTaggingExtension = Extension.create({
           apply(tr: any, oldState: any) {
             const previousText: string = (oldState as unknown as string) || ''
 
-            if (tr.getMeta('fromAutoTagging')) {
+            if (tr.getMeta(FROM_AUTO_LOCATION_TAGGING_META)) {
               return previousText
             }
 
@@ -160,7 +208,7 @@ export const AutoLocationTaggingExtension = Extension.create({
               newText = tr.doc.textContent
             }
 
-            if (newText !== previousText && newText.trim().length > 10) {
+            if (tr.docChanged && newText !== previousText && newText !== lastAnalyzedText && newText.trim().length > 1) {
               lastAnalyzedText = newText
               analyzeAndTag(newText)
             }
@@ -171,4 +219,4 @@ export const AutoLocationTaggingExtension = Extension.create({
       })
     ]
   }
-}) 
+})
