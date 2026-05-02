@@ -54,6 +54,8 @@ interface NodeConnection {
   connectionKind?: 'temporal-order' | 'association' | 'manual'
   createdBy?: string
   cue?: string
+  sourceLabel?: string
+  targetLabel?: string
 }
 
 // Local storage key for persisting connections
@@ -158,6 +160,43 @@ const getConnectableElement = (id: string, type: ConnectableType): HTMLElement |
     return document.querySelector(`[data-quanta-id="${id}"]`) as HTMLElement
   }
 }
+
+const getLocationElementByLabel = (label?: string): HTMLElement | null => {
+  if (!label) return null
+
+  return Array.from(document.querySelectorAll('.location-mention[data-location-name]'))
+    .find((element) => element.getAttribute('data-location-name') === label) as HTMLElement | undefined ?? null
+}
+
+const getConnectionEndpointElement = (
+  conn: NodeConnection,
+  endpoint: 'source' | 'target',
+): HTMLElement | null => {
+  const id = endpoint === 'source' ? conn.sourceId : conn.targetId
+  const type = endpoint === 'source' ? conn.sourceType : conn.targetType
+  const label = endpoint === 'source' ? conn.sourceLabel : conn.targetLabel
+  const element = getConnectableElement(id, type)
+  if (element) return element
+
+  if (type === 'location') {
+    return getLocationElementByLabel(label)
+  }
+
+  return null
+}
+
+const getConnectionsSignature = (connections: NodeConnection[]) => (
+  JSON.stringify(connections.map((conn) => ({
+    id: conn.id,
+    sourceId: conn.sourceId,
+    targetId: conn.targetId,
+    sourceType: conn.sourceType,
+    targetType: conn.targetType,
+    connectionKind: conn.connectionKind,
+    sourceLabel: conn.sourceLabel,
+    targetLabel: conn.targetLabel,
+  })))
+)
 
 // Helper function to check if an element is in the viewport
 const isElementInViewport = (el: HTMLElement): boolean => {
@@ -277,29 +316,40 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const focusedEndByConnection = useRef<Record<string, 'head' | 'tail'>>({})
   const pendingRaf = useRef<number | null>(null)
   const hoverHideTimeoutRef = useRef<number | null>(null)
+  const connectionsSignatureRef = useRef('')
   const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association'
   const isTemporalOrderMode = editorMode === 'temporal-order'
   const isAssociationMode = editorMode === 'association'
 
   // Load connections on mount
   useEffect(() => {
-    setConnections(loadConnections())
+    const storedConnections = loadConnections()
+    connectionsSignatureRef.current = getConnectionsSignature(storedConnections)
+    setConnections(storedConnections)
   }, [])
+
+  useEffect(() => {
+    connectionsSignatureRef.current = getConnectionsSignature(connections)
+  }, [connections])
 
   useEffect(() => {
     const handleConnectionsUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<NodeConnection[]>
       if (Array.isArray(customEvent.detail)) {
-        setConnections(customEvent.detail.map((conn) => ({
+        const nextConnections = customEvent.detail.map((conn) => ({
           ...conn,
           sourceType: conn.sourceType || 'span',
           targetType: conn.targetType || 'span',
           connectionKind: conn.connectionKind || 'manual',
-        })))
+        }))
+        connectionsSignatureRef.current = getConnectionsSignature(nextConnections)
+        setConnections(nextConnections)
         return
       }
 
-      setConnections(loadConnections())
+      const storedConnections = loadConnections()
+      connectionsSignatureRef.current = getConnectionsSignature(storedConnections)
+      setConnections(storedConnections)
     }
 
     window.addEventListener(CONNECTIONS_UPDATED_EVENT, handleConnectionsUpdated)
@@ -490,12 +540,12 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     }
   }, [])
 
-  const computeConnectionPaths = useCallback((): ConnectionPath[] => {
+  const computeConnectionPaths = useCallback((connectionsToRender: NodeConnection[] = connections): ConnectionPath[] => {
     const side = getConnectionSide()
     
-    return connections.map((conn) => {
-      const sourceElement = getConnectableElement(conn.sourceId, conn.sourceType)
-      const targetElement = getConnectableElement(conn.targetId, conn.targetType)
+    return connectionsToRender.map((conn) => {
+      const sourceElement = getConnectionEndpointElement(conn, 'source')
+      const targetElement = getConnectionEndpointElement(conn, 'target')
       
       if (!sourceElement || !targetElement) {
         return null
@@ -557,7 +607,18 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     // to avoid per-arrow animation loops and DOM churn that can cause flicker.
     pendingRaf.current = window.requestAnimationFrame(() => {
       pendingRaf.current = null
-      setConnectionPaths(computeConnectionPaths())
+      const storedConnections = loadConnections()
+      const storedSignature = getConnectionsSignature(storedConnections)
+      const connectionsToRender = storedSignature === connectionsSignatureRef.current
+        ? connections
+        : storedConnections
+
+      if (storedSignature !== connectionsSignatureRef.current) {
+        connectionsSignatureRef.current = storedSignature
+        setConnections(storedConnections)
+      }
+
+      setConnectionPaths(computeConnectionPaths(connectionsToRender))
     })
   }, [computeConnectionPaths])
 

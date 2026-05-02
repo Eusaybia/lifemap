@@ -8,8 +8,6 @@ const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const SCAN_DEBOUNCE_MS = 1400
 const MIN_ANALYSIS_CHARS = 8
 const MIN_RELATION_CONFIDENCE = 0.55
-const TEMPORAL_RELATION_CUE_REGEX =
-  /\b(?:to|from|then|after|before|next|later|arrive|arrival|depart|departure|fly|flight|drive|train|airport|station|return)\b|(?:->|→)/i
 
 type TemporalRelationEndpoint = {
   text: string
@@ -40,6 +38,13 @@ type LinearizedTextBlock = {
   text: string
   indexToPos: number[]
   segments: TextSegment[]
+}
+
+type AnalysisTextRange = {
+  text: string
+  startIndex: number
+  endIndex: number
+  level: 'sentence' | 'paragraph'
 }
 
 type LocationAttrs = {
@@ -78,6 +83,8 @@ type NodeConnectionRecord = {
   connectionKind?: 'temporal-order' | 'association' | 'manual'
   createdBy?: string
   cue?: string
+  sourceLabel?: string
+  targetLabel?: string
 }
 
 const generateShortId = () => Math.random().toString(36).substring(2, 10)
@@ -98,8 +105,82 @@ const slugifyLocationId = (value: string): string => (
 )
 
 export const looksLikeTemporalRelationText = (text: string): boolean => {
-  return text.trim().length >= MIN_ANALYSIS_CHARS && TEMPORAL_RELATION_CUE_REGEX.test(text)
+  return text.trim().length >= MIN_ANALYSIS_CHARS
 }
+
+export const buildTemporalAnalysisRanges = (text: string): AnalysisTextRange[] => {
+  const ranges: AnalysisTextRange[] = []
+  const sentenceRegex = /[^.!?\n]+(?:[.!?]+|$)/g
+  let match: RegExpExecArray | null
+
+  while ((match = sentenceRegex.exec(text)) !== null) {
+    const rawSentence = match[0]
+    const leadingWhitespaceLength = rawSentence.length - rawSentence.trimStart().length
+    const trailingWhitespaceLength = rawSentence.length - rawSentence.trimEnd().length
+    const startIndex = match.index + leadingWhitespaceLength
+    const endIndex = match.index + rawSentence.length - trailingWhitespaceLength
+    const sentenceText = text.slice(startIndex, endIndex)
+
+    if (looksLikeTemporalRelationText(sentenceText)) {
+      ranges.push({
+        text: sentenceText,
+        startIndex,
+        endIndex,
+        level: 'sentence',
+      })
+    }
+  }
+
+  const paragraphStartIndex = text.length - text.trimStart().length
+  const paragraphEndIndex = text.trimEnd().length
+  const paragraphText = text.slice(paragraphStartIndex, paragraphEndIndex)
+  if (looksLikeTemporalRelationText(paragraphText)) {
+    const hasMatchingSentenceRange = ranges.some((range) => (
+      range.startIndex === paragraphStartIndex &&
+      range.endIndex === paragraphEndIndex
+    ))
+
+    if (!hasMatchingSentenceRange || ranges.length !== 1) {
+      ranges.push({
+        text: paragraphText,
+        startIndex: paragraphStartIndex,
+        endIndex: paragraphEndIndex,
+        level: 'paragraph',
+      })
+    }
+  }
+
+  return ranges
+}
+
+const offsetRelationsToParagraph = (
+  relations: TemporalLocationRelation[],
+  range: AnalysisTextRange,
+): TemporalLocationRelation[] => (
+  relations.map((relation) => ({
+    ...relation,
+    source: {
+      ...relation.source,
+      start: relation.source.start + range.startIndex,
+      end: relation.source.end + range.startIndex,
+    },
+    target: {
+      ...relation.target,
+      start: relation.target.start + range.startIndex,
+      end: relation.target.end + range.startIndex,
+    },
+  }))
+)
+
+const relationKey = (relation: TemporalLocationRelation): string => (
+  [
+    relation.source.start,
+    relation.source.end,
+    relation.target.start,
+    relation.target.end,
+    relation.relationType,
+  ].join(':')
+)
 
 const appendSegment = (
   linearized: LinearizedTextBlock,
@@ -339,6 +420,8 @@ const appendTemporalConnections = (
     sourceId: string
     targetId: string
     cue?: string
+    sourceLabel?: string
+    targetLabel?: string
   }>,
 ) => {
   if (typeof window === 'undefined' || relations.length === 0) return
@@ -367,6 +450,8 @@ const appendTemporalConnections = (
       connectionKind: 'temporal-order',
       createdBy: 'temporalRelationAutotagging',
       cue: relation.cue,
+      sourceLabel: relation.sourceLabel,
+      targetLabel: relation.targetLabel,
     })
   })
 
@@ -385,7 +470,13 @@ const applyTemporalRelationTags = (
 
   const operationsByRange = new Map<string, LocationOperation>()
   const operationsByKey = new Map<string, LocationOperation>()
-  const resolvedRelations: Array<{ sourceId: string; targetId: string; cue?: string }> = []
+  const resolvedRelations: Array<{
+    sourceId: string
+    targetId: string
+    cue?: string
+    sourceLabel?: string
+    targetLabel?: string
+  }> = []
 
   relations
     .filter((relation) => relation.relationType === 'temporal-order' && relation.confidence >= MIN_RELATION_CONFIDENCE)
@@ -406,6 +497,8 @@ const applyTemporalRelationTags = (
         sourceId: source.connectionId,
         targetId: target.connectionId,
         cue: relation.cue,
+        sourceLabel: normalizeLocationName(relation.source.text),
+        targetLabel: normalizeLocationName(relation.target.text),
       })
     })
 
@@ -460,31 +553,57 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
       const linearized = linearizeTextBlockWithLocations(state.doc, blockRange.start, blockRange.end)
       if (!looksLikeTemporalRelationText(linearized.text)) return
 
-      const textSignature = linearized.text.trim()
+      const analysisRanges = buildTemporalAnalysisRanges(linearized.text)
+      if (!analysisRanges.length) return
+
+      const textSignature = analysisRanges
+        .map((range) => `${range.level}:${range.startIndex}:${range.endIndex}:${range.text}`)
+        .join('\n')
       if (textSignature === lastAnalyzedText) return
       lastAnalyzedText = textSignature
 
       const scanRequestId = latestScanRequestId + 1
       latestScanRequestId = scanRequestId
 
-      void fetch('/api/analyze-temporal-relations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: linearized.text }),
-      })
-        .then(async (response) => {
-          if (!response.ok) return { relations: [] }
-          return response.json()
-        })
-        .then((data) => {
+      void Promise.all(
+        analysisRanges.map((range) => (
+          fetch('/api/analyze-temporal-relations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: range.text }),
+          })
+            .then(async (response) => {
+              if (!response.ok) return []
+              const data = await response.json()
+              const relations: TemporalLocationRelation[] = Array.isArray(data?.relations)
+                ? data.relations
+                : []
+
+              return offsetRelationsToParagraph(relations, range)
+            })
+        )),
+      )
+        .then((relationGroups) => {
           if (scanRequestId !== latestScanRequestId) return
 
-          const relations: TemporalLocationRelation[] = Array.isArray(data?.relations)
-            ? data.relations
-            : []
+          const relationsByKey = new Map<string, TemporalLocationRelation>()
+          relationGroups.flat().forEach((relation) => {
+            relationsByKey.set(relationKey(relation), relation)
+          })
+
+          const relations = Array.from(relationsByKey.values())
           if (!relations.length) return
 
-          applyTemporalRelationTags(view, linearized, relations)
+          const currentBlockRange = getContainingTextBlockRange(view.state.doc, currentPos)
+          if (!currentBlockRange) return
+
+          const currentLinearized = linearizeTextBlockWithLocations(
+            view.state.doc,
+            currentBlockRange.start,
+            currentBlockRange.end,
+          )
+
+          applyTemporalRelationTags(view, currentLinearized, relations)
         })
         .catch((error) => {
           console.error('[TemporalRelationAutotaggingExtension] Temporal relation analysis failed:', error)

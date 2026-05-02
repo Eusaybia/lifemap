@@ -5,6 +5,7 @@ import { detectLocationsWithTransformers } from './TransformersLocationClient'
 import { mergeLocationEntities } from './TransformersLocationSpans'
 
 const TypingLocationScanPluginKey = new PluginKey('typingLocationScan')
+const FROM_TYPING_LOCATION_SCAN_META = 'fromTypingLocationScan'
 
 const SCAN_DEBOUNCE_MS = 250
 const MATCH_LOOKBACK_CHARS = 12
@@ -41,7 +42,8 @@ const linearizeTextBlock = (doc: any, blockStart: number, blockEnd: number): Lin
 }
 
 const getContainingTextBlockRange = (doc: any, pos: number) => {
-  const safePos = Math.max(0, Math.min(pos, doc.content.size))
+  const clampedPos = Math.max(0, Math.min(pos, doc.content.size))
+  const safePos = clampedPos === doc.content.size && clampedPos > 0 ? clampedPos - 1 : clampedPos
   const $pos = doc.resolve(safePos)
 
   for (let depth = $pos.depth; depth >= 0; depth -= 1) {
@@ -116,6 +118,23 @@ export const TypingLocationScanExtension = Extension.create({
     let pendingRange: PendingRange | null = null
     let debounceHandle: ReturnType<typeof setTimeout> | null = null
     let latestScanRequestId = 0
+    let viewRef: any = null
+
+    const queueScanRange = (view: any, from: number, to: number) => {
+      const safeFrom = Math.max(0, Math.min(from, to))
+      const safeTo = Math.max(safeFrom, to)
+
+      if (!pendingRange) {
+        pendingRange = { from: safeFrom, to: safeTo }
+      } else {
+        pendingRange = {
+          from: Math.min(pendingRange.from, safeFrom),
+          to: Math.max(pendingRange.to, safeTo),
+        }
+      }
+
+      scheduleScan(view)
+    }
 
     const scheduleScan = (view: any) => {
       if (debounceHandle) {
@@ -186,6 +205,7 @@ export const TypingLocationScanExtension = Extension.create({
               })
 
             if (changed) {
+              tr.setMeta(FROM_TYPING_LOCATION_SCAN_META, true)
               view.dispatch(tr)
             }
           })
@@ -198,28 +218,37 @@ export const TypingLocationScanExtension = Extension.create({
     return [
       new Plugin({
         key: TypingLocationScanPluginKey,
+        state: {
+          init() {
+            return null
+          },
+          apply(transaction, value, _oldState, newState) {
+            if (
+              transaction.docChanged &&
+              viewRef &&
+              !transaction.getMeta(FROM_TYPING_LOCATION_SCAN_META)
+            ) {
+              const to = newState.selection.to
+              queueScanRange(viewRef, Math.max(0, to - 160), to)
+            }
+
+            return value
+          },
+        },
         props: {
           handleTextInput(view, from, to, text) {
             if (!text) return false
 
             const insertedTo = from + text.length
-
-            if (!pendingRange) {
-              pendingRange = { from, to: insertedTo }
-            } else {
-              pendingRange = {
-                from: Math.min(pendingRange.from, from),
-                to: Math.max(pendingRange.to, insertedTo),
-              }
-            }
-
-            scheduleScan(view)
+            queueScanRange(view, from, insertedTo)
             return false
           },
         },
-        view() {
+        view(editorView) {
+          viewRef = editorView
           return {
             destroy() {
+              viewRef = null
               if (debounceHandle) {
                 clearTimeout(debounceHandle)
                 debounceHandle = null

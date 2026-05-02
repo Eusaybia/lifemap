@@ -31,9 +31,12 @@ Use Cypress against a dedicated harness page for:
 
 This should be the default browser-level pattern for complex editor features.
 
+For Kairos-hosted editor routes, use the Cypress project in `../kairos/tests` instead of Playwright or ad hoc browser automation. Run focused one-shot specs through `yarn test:cypress --spec <path>`. For headed visual inspection, use `yarn test:cypress:headed --config specPattern=<path>` so the Cypress app stays open.
+
 Guidelines:
 - Prefer a minimal dedicated page under `app/` that isolates the feature under test
 - Reuse the real command/helper path wherever possible
+- For non-LLM detector behavior, use deterministic browser hooks like `window.__LIFEMAP_MOCK_LOCATION_DETECTOR__` so tests assert editor integration and tagging timing without depending on model download/runtime variance
 - Use real fixtures for files, not synthetic placeholders, when the file type matters
 - Delay/stub network responses so transient UI states are observable
 - Assert on stable selectors or explicit UI states instead of layout details
