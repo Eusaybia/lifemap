@@ -2,6 +2,7 @@ export interface MapMarker {
   lng: number
   lat: number
   label?: string
+  tagLabels?: string[]
 }
 
 export type MapboxMapLens = 'map2DView' | 'globeView'
@@ -77,11 +78,15 @@ const sanitizeMarker = (value: unknown): MapMarker | null => {
   }
 
   const label = typeof marker.label === 'string' && marker.label.trim() ? marker.label : undefined
+  const tagLabels = Array.isArray(marker.tagLabels)
+    ? marker.tagLabels.filter((label): label is string => typeof label === 'string' && !!label.trim())
+    : undefined
 
   return {
     lng,
     lat,
     label,
+    tagLabels,
   }
 }
 
@@ -108,7 +113,10 @@ const isValidMarkerArray = (value: unknown): value is MapMarker[] => {
         typeof (marker as MapMarker).lat === 'number' &&
         Number.isFinite((marker as MapMarker).lat) &&
         (typeof (marker as MapMarker).label === 'undefined' ||
-          typeof (marker as MapMarker).label === 'string'),
+          typeof (marker as MapMarker).label === 'string') &&
+        (typeof (marker as MapMarker).tagLabels === 'undefined' ||
+          (Array.isArray((marker as MapMarker).tagLabels) &&
+            (marker as MapMarker).tagLabels!.every((label) => typeof label === 'string'))),
     )
   )
 }

@@ -15,7 +15,7 @@ test('sanitizeMapboxMapAttrs coerces pasted string values into valid map attrs',
       center: ['151.2093', '-33.8688'],
       zoom: '12.5',
       markers: [
-        { lng: '-0.1276', lat: '51.5072', label: 'London' },
+        { lng: '-0.1276', lat: '51.5072', label: 'London', tagLabels: ['📍 London'] },
         { lng: 'bad', lat: 12, label: 'Broken marker' },
       ],
       style: '  mapbox://styles/mapbox/light-v11  ',
@@ -23,7 +23,7 @@ test('sanitizeMapboxMapAttrs coerces pasted string values into valid map attrs',
   ).toEqual({
     center: [151.2093, -33.8688],
     zoom: 12.5,
-    markers: [{ lng: -0.1276, lat: 51.5072, label: 'London' }],
+    markers: [{ lng: -0.1276, lat: 51.5072, label: 'London', tagLabels: ['📍 London'] }],
     style: 'mapbox://styles/mapbox/light-v11',
     lens: DEFAULT_MAP_LENS,
   })

@@ -24,6 +24,10 @@ import {
   type MapViewportSize,
 } from './MapboxMapShared'
 import {
+  collectTemporalLocationCandidatesFromNode,
+  type TemporalLocationCandidate,
+} from './MapboxMapLocationCandidates'
+import {
   buildTemporalArrowPolygonPoints,
   getTemporalArrowFutureOpacity,
   TemporalArrowVisual,
@@ -78,24 +82,6 @@ const applyMapLens = (mapInstance: mapboxgl.Map, lens: MapboxMapLens) => {
   } catch (error) {
     console.warn('[MapboxMap] Unable to apply map lens:', error)
   }
-}
-
-interface LocationNodeAttrs {
-  id?: string
-  label?: string
-  locationId?: string
-  'data-name'?: string
-  'data-country'?: string
-  'data-coords'?: string | [number, number] | null
-}
-
-interface TemporalLocationCandidate {
-  id?: string
-  connectionId?: string
-  name: string
-  label: string
-  country?: string
-  coords: [number, number] | null
 }
 
 interface ResolvedTemporalLocation extends TemporalLocationCandidate {
@@ -157,42 +143,67 @@ interface AnchorPoint {
   lat: number
 }
 
-const parseCoords = (rawCoords: unknown): [number, number] | null => {
-  if (Array.isArray(rawCoords) && rawCoords.length === 2) {
-    const lng = Number(rawCoords[0])
-    const lat = Number(rawCoords[1])
-    if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat]
-    return null
-  }
-
-  if (typeof rawCoords !== 'string' || !rawCoords.trim()) return null
-
-  try {
-    const parsed = JSON.parse(rawCoords)
-    if (Array.isArray(parsed) && parsed.length === 2) {
-      const lng = Number(parsed[0])
-      const lat = Number(parsed[1])
-      if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat]
-    }
-  } catch (error) {
-    return null
-  }
-
-  return null
-}
-
 const dedupeMarkers = (inputMarkers: MapMarker[]): MapMarker[] => {
-  const seen = new Set<string>()
   const deduped: MapMarker[] = []
+  const markerByKey = new Map<string, MapMarker>()
 
   inputMarkers.forEach((marker) => {
     const key = `${marker.lng.toFixed(6)},${marker.lat.toFixed(6)}`
-    if (seen.has(key)) return
-    seen.add(key)
-    deduped.push(marker)
+    const existingMarker = markerByKey.get(key)
+    if (!existingMarker) {
+      const nextMarker = {
+        ...marker,
+        tagLabels: marker.tagLabels ? Array.from(new Set(marker.tagLabels)) : undefined,
+      }
+      markerByKey.set(key, nextMarker)
+      deduped.push(nextMarker)
+      return
+    }
+
+    const mergedLabels = [
+      ...(existingMarker.tagLabels || (existingMarker.label ? [existingMarker.label] : [])),
+      ...(marker.tagLabels || (marker.label ? [marker.label] : [])),
+    ].filter((label): label is string => !!label)
+    existingMarker.tagLabels = Array.from(new Set(mergedLabels))
+    existingMarker.label = existingMarker.label || marker.label
   })
 
   return deduped
+}
+
+const normalizeLocationTagLabel = (label?: string): string => {
+  const trimmedLabel = label?.trim()
+  if (!trimmedLabel) return '📍 Location'
+  return trimmedLabel.includes('📍') ? trimmedLabel : `📍 ${trimmedLabel}`
+}
+
+const buildLocationTagElement = (label?: string): HTMLSpanElement => {
+  const tagElement = document.createElement('span')
+  tagElement.className = 'location-mention'
+  tagElement.setAttribute('data-map-location-popup-tag', 'true')
+
+  const gripElement = document.createElement('span')
+  gripElement.className = 'location-grip'
+  gripElement.setAttribute('aria-hidden', 'true')
+  tagElement.appendChild(gripElement)
+
+  tagElement.appendChild(document.createTextNode(normalizeLocationTagLabel(label)))
+  return tagElement
+}
+
+const buildLocationMarkerPopupContent = (markerData: MapMarker): HTMLDivElement => {
+  const container = document.createElement('div')
+  container.setAttribute('data-map-location-popup', 'true')
+  container.style.display = 'grid'
+  container.style.gap = '6px'
+  container.style.justifyItems = 'start'
+
+  const labels = markerData.tagLabels?.length ? markerData.tagLabels : [markerData.label]
+  labels.forEach((label) => {
+    container.appendChild(buildLocationTagElement(label))
+  })
+
+  return container
 }
 
 const toRad = (value: number): number => value * (Math.PI / 180)
@@ -449,6 +460,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [isInteractiveMapReady, setIsInteractiveMapReady] = useState(false)
   const [isInsideTemporalSpace, setIsInsideTemporalSpace] = useState(false)
+  const [temporalContainerType, setTemporalContainerType] = useState<TemporalSpaceContext['containerType']>(null)
   const [temporalLocationCandidates, setTemporalLocationCandidates] = useState<TemporalLocationCandidate[]>([])
   const [temporalSpaceMarkers, setTemporalSpaceMarkers] = useState<MapMarker[]>([])
   const [resolvedTemporalLocations, setResolvedTemporalLocations] = useState<ResolvedTemporalLocation[]>([])
@@ -569,24 +581,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         containerType = 'document'
       }
 
-      const locations: TemporalLocationCandidate[] = []
-      contextNode.descendants((childNode: any) => {
-        if (childNode.type.name !== 'location') return
-
-        const locationAttrs = (childNode.attrs || {}) as LocationNodeAttrs
-        const name = locationAttrs['data-name'] || locationAttrs.label || ''
-        if (!name) return
-
-        const label = locationAttrs.label?.replace(/^📍\s*/, '') || name
-        locations.push({
-          id: locationAttrs.id,
-          connectionId: locationAttrs.locationId,
-          name,
-          label,
-          country: locationAttrs['data-country'] || undefined,
-          coords: parseCoords(locationAttrs['data-coords']),
-        })
-      })
+      const locations = collectTemporalLocationCandidatesFromNode(contextNode)
 
       return {
         insideTemporalSpace: true,
@@ -714,7 +709,19 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       scale: 1.1,
     })
       .setLngLat([markerData.lng, markerData.lat])
+      .setPopup(
+        new mapboxgl.Popup({
+          className: 'location-tag-map-popup',
+          closeButton: false,
+          closeOnClick: true,
+          offset: 18,
+        }).setDOMContent(buildLocationMarkerPopupContent(markerData)),
+      )
       .addTo(map.current)
+
+    const markerElement = marker.getElement()
+    markerElement.dataset.mapLocationMarker = 'true'
+    markerElement.dataset.mapLocationLabel = markerData.label || ''
 
     return marker
   }, [])
@@ -738,6 +745,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       temporalContextSignatureRef.current = nextSignature
 
       setIsInsideTemporalSpace(temporalContext.insideTemporalSpace)
+      setTemporalContainerType(temporalContext.containerType)
       setTemporalLocationCandidates(temporalContext.locations)
       return true
     }
@@ -781,7 +789,8 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       for (const candidate of temporalLocationCandidates) {
         let coords = candidate.coords
         if (!coords) {
-          coords = await geocodeLocationCandidate(candidate, anchorPoints)
+          const geocodingAnchors = temporalContainerType === 'document' ? [] : anchorPoints
+          coords = await geocodeLocationCandidate(candidate, geocodingAnchors)
         }
         if (!coords) continue
 
@@ -793,6 +802,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           lng: coords[0],
           lat: coords[1],
           label: candidate.label || candidate.name,
+          tagLabels: [candidate.label || candidate.name],
         })
       }
 
@@ -808,7 +818,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     return () => {
       cancelled = true
     }
-  }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, anchorPoints])
+  }, [isInsideTemporalSpace, temporalLocationCandidates, geocodeLocationCandidate, anchorPoints, temporalContainerType])
 
   useEffect(() => {
     let cancelled = false
@@ -1312,7 +1322,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     if (typeof window === 'undefined') return
 
     const debugPayload = {
-      containerType: isInsideTemporalSpace ? 'temporal-space-or-group' : 'document-or-manual',
+      containerType: temporalContainerType || (isInsideTemporalSpace ? 'temporal-space-or-group' : 'document-or-manual'),
       locationCandidates: temporalLocationCandidates.map((candidate) => ({
         id: candidate.id,
         connectionId: candidate.connectionId,
@@ -1361,6 +1371,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     }
   }, [
     isInsideTemporalSpace,
+    temporalContainerType,
     locationConnections,
     resolvedTemporalLocations,
     temporalLocationCandidates,

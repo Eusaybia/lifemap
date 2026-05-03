@@ -361,55 +361,43 @@ const buildRouteFeatureCollection = (locations: TemporalOrderResolvedMapLocation
   }
 }
 
-const summarizeLabels = (labels: string[]): string => {
-  if (labels.length <= 2) return labels.join(' • ')
-  return `${labels[0]} + ${labels.length - 1} more`
+const normalizeLocationTagLabel = (label?: string): string => {
+  const trimmedLabel = label?.trim()
+  if (!trimmedLabel) return '📍 Location'
+  return trimmedLabel.includes('📍') ? trimmedLabel : `📍 ${trimmedLabel}`
+}
+
+const buildLocationTagElement = (label?: string): HTMLSpanElement => {
+  const tagElement = document.createElement('span')
+  tagElement.className = 'location-mention'
+  tagElement.setAttribute('data-map-location-popup-tag', 'true')
+
+  const gripElement = document.createElement('span')
+  gripElement.className = 'location-grip'
+  gripElement.setAttribute('aria-hidden', 'true')
+  tagElement.appendChild(gripElement)
+
+  tagElement.appendChild(document.createTextNode(normalizeLocationTagLabel(label)))
+  return tagElement
+}
+
+const buildLocationTagPopupContent = (labels: Array<string | undefined>): HTMLDivElement => {
+  const container = document.createElement('div')
+  container.setAttribute('data-map-location-popup', 'true')
+  container.style.display = 'grid'
+  container.style.gap = '6px'
+  container.style.justifyItems = 'start'
+
+  const normalizedLabels = Array.from(new Set(labels.filter((label): label is string => !!label?.trim())))
+  ;(normalizedLabels.length ? normalizedLabels : ['📍 Location']).forEach((label) => {
+    container.appendChild(buildLocationTagElement(label))
+  })
+
+  return container
 }
 
 const buildPopupContent = (marker: TemporalOrderGlobeMarker): HTMLDivElement => {
-  const container = document.createElement('div')
-  container.style.display = 'grid'
-  container.style.gap = '8px'
-  container.style.minWidth = '180px'
-  container.style.maxWidth = '260px'
-  container.style.fontFamily = 'Inter, system-ui, sans-serif'
-
-  const title = document.createElement('div')
-  title.style.fontSize = '13px'
-  title.style.fontWeight = '700'
-  title.style.color = '#0f172a'
-  title.textContent = summarizeLabels(marker.locationLabels)
-  container.appendChild(title)
-
-  const subtitle = document.createElement('div')
-  subtitle.style.fontSize = '11px'
-  subtitle.style.color = '#475569'
-  subtitle.textContent = `${marker.eventLabels.length} temporal event${marker.eventLabels.length === 1 ? '' : 's'}`
-  container.appendChild(subtitle)
-
-  const eventList = document.createElement('div')
-  eventList.style.display = 'grid'
-  eventList.style.gap = '4px'
-
-  marker.eventLabels.slice(0, 5).forEach((label) => {
-    const item = document.createElement('div')
-    item.style.fontSize = '12px'
-    item.style.lineHeight = '1.35'
-    item.style.color = '#1e293b'
-    item.textContent = label
-    eventList.appendChild(item)
-  })
-
-  if (marker.eventLabels.length > 5) {
-    const overflow = document.createElement('div')
-    overflow.style.fontSize = '11px'
-    overflow.style.color = '#64748b'
-    overflow.textContent = `+${marker.eventLabels.length - 5} more`
-    eventList.appendChild(overflow)
-  }
-
-  container.appendChild(eventList)
-  return container
+  return buildLocationTagPopupContent(marker.locationLabels)
 }
 
 const focusMapOnMarkers = (
@@ -713,6 +701,7 @@ const TemporalOrderGeoMapView: React.FC<{
 
         popupRef.current?.remove()
         popupRef.current = new mapboxgl.Popup({
+          className: 'location-tag-map-popup',
           closeButton: false,
           closeOnClick: true,
           offset: 14,
@@ -947,6 +936,7 @@ const TemporalOrderImportedMapView: React.FC<{
             lng: coords[0],
             lat: coords[1],
             label: location.label || location.name,
+            tagLabels: [location.label || location.name],
           } satisfies MapMarker,
           routeLocation: {
             id: location.id,
@@ -1054,12 +1044,28 @@ const TemporalOrderImportedMapView: React.FC<{
           anchor: 'center',
         })
           .setLngLat([markerData.lng, markerData.lat])
+          .setPopup(
+            new mapboxgl.Popup({
+              className: 'location-tag-map-popup',
+              closeButton: false,
+              closeOnClick: true,
+              offset: 18,
+            }).setDOMContent(buildLocationTagPopupContent(markerData.tagLabels || [markerData.label])),
+          )
           .addTo(mapRef.current)
       : new mapboxgl.Marker({
           color: '#e11d48',
           scale: 1.1,
         })
           .setLngLat([markerData.lng, markerData.lat])
+          .setPopup(
+            new mapboxgl.Popup({
+              className: 'location-tag-map-popup',
+              closeButton: false,
+              closeOnClick: true,
+              offset: 18,
+            }).setDOMContent(buildLocationTagPopupContent(markerData.tagLabels || [markerData.label])),
+          )
           .addTo(mapRef.current)
 
     applyMarkerDataset(marker.getElement())
