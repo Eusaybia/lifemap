@@ -479,7 +479,8 @@ export const GroupExtension = TipTapNode.create({
   inline: false,
   selectable: true,
   draggable: true,
-  atom: true,
+  atom: false,
+  isolating: true,
   onUpdate() {
     // If there is a selection inside the node, don't update the node
     // Updating the node will cause the selection to disappear
