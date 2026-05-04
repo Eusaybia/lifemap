@@ -2718,6 +2718,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       // console.debug(editor.schema)
     }
 
+    const urlParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
+    const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true' || urlParams?.get('iosEmbed') === 'true';
+
     return (
       <div
         key={props.quanta?.id}
@@ -2727,10 +2730,12 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         {/* DocumentFlowMenu removed from here - Assuming it's rendered in a parent layout component */}
         {/* <DocumentFlowMenu editor={editor as Editor} /> */}
         <div style={{ width: '100%'}}>
-          <div key={`bubbleMenu${props.quanta?.id}`}>
-            {/* This menu floats above selected text or nodes */}
-            <FlowMenu editor={editor as Editor} />
-          </div>
+          {!hideFlowMenu ? (
+            <div key={`bubbleMenu${props.quanta?.id}`}>
+              {/* This menu floats above selected text or nodes */}
+              <FlowMenu editor={editor as Editor} />
+            </div>
+          ) : null}
           <div>
             <EditorContent editor={editor as Editor} />
           </div>
