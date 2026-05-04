@@ -99,9 +99,9 @@ export const POPULAR_HASHTAGS: Hashtag[] = [
   // Categories
   { id: 'tag:work', label: 'work', color: '#3b82f6' },
   { id: 'tag:personal', label: 'personal', color: '#ec4899' },
-  { id: 'tag:health', label: 'health', color: '#10b981' },
+  { id: 'tag:health', label: 'health', color: '#8b5e3c' },
   { id: 'tag:finance', label: 'finance', color: '#f59e0b' },
-  { id: 'tag:learning', label: 'learning', color: '#8b5cf6' },
+  { id: 'tag:learning', label: 'learning', color: '#10b981' },
   { id: 'tag:project', label: 'project', color: '#06b6d4' },
   { id: 'tag:meeting', label: 'meeting', color: '#3b82f6' },
   { id: 'tag:idea', label: 'idea', color: '#f97316' },
@@ -110,6 +110,19 @@ export const POPULAR_HASHTAGS: Hashtag[] = [
   { id: 'tag:research', label: 'research', color: '#06b6d4' },
   { id: 'tag:bug', label: 'bug', color: '#ef4444' },
   { id: 'tag:feature', label: 'feature', color: '#10b981' },
+
+  // Google Calendar event color labels
+  { id: 'tag:peacock', label: 'peacock', color: '#a4bdfc' },
+  { id: 'tag:sage', label: 'sage', color: '#7ae7bf' },
+  { id: 'tag:grape', label: 'grape', color: '#dbadff' },
+  { id: 'tag:flamingo', label: 'flamingo', color: '#ff887c' },
+  { id: 'tag:banana', label: 'banana', color: '#fbd75b' },
+  { id: 'tag:tangerine', label: 'tangerine', color: '#ffb878' },
+  { id: 'tag:lavender', label: 'lavender', color: '#46d6db' },
+  { id: 'tag:graphite', label: 'graphite', color: '#e1e1e1' },
+  { id: 'tag:blueberry', label: 'blueberry', color: '#5484ed' },
+  { id: 'tag:basil', label: 'basil', color: '#51b749' },
+  { id: 'tag:tomato', label: 'tomato', color: '#dc2127' },
 ]
 
 // ============================================================================
