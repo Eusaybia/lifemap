@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   buildTemporalAnalysisRanges,
+  findSurroundingLocationSegment,
   linearizeTextBlockWithLocations,
   looksLikeTemporalRelationText,
   normalizeLocationName,
@@ -87,5 +88,49 @@ describe('TemporalRelationAutotaggingExtension helpers', () => {
     })
     expect(linearized.indexToPos[0]).toBe(1)
     expect(linearized.indexToPos[10]).toBe(11)
+  })
+
+  test('resolves connector words to surrounding location tags', () => {
+    const doc = {
+      nodesBetween(_from: number, _to: number, visitor: (node: any, pos: number) => boolean | void) {
+        visitor({
+          isText: false,
+          nodeSize: 1,
+          type: { name: 'location' },
+          attrs: {
+            label: '📍 Shanghai',
+            'data-name': 'Shanghai',
+            locationId: 'loc-shanghai',
+          },
+        }, 1)
+        visitor({ isText: true, text: '. Then to ' }, 2)
+        visitor({
+          isText: false,
+          nodeSize: 1,
+          type: { name: 'location' },
+          attrs: {
+            label: '📍 Paris',
+            'data-name': 'Paris',
+            locationId: 'loc-paris',
+          },
+        }, 12)
+      },
+    }
+
+    const linearized = linearizeTextBlockWithLocations(doc, 0, 100)
+    const thenEndpoint = {
+      text: 'Then',
+      start: linearized.text.indexOf('Then'),
+      end: linearized.text.indexOf('Then') + 'Then'.length,
+    }
+
+    expect(findSurroundingLocationSegment(thenEndpoint, linearized.segments, 'before')).toMatchObject({
+      text: 'Shanghai',
+      locationConnectionId: 'loc-shanghai',
+    })
+    expect(findSurroundingLocationSegment(thenEndpoint, linearized.segments, 'after')).toMatchObject({
+      text: 'Paris',
+      locationConnectionId: 'loc-paris',
+    })
   })
 })

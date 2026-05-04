@@ -4,12 +4,19 @@ import { debounce } from 'lodash'
 
 export const AutoLocationTaggingPluginKey = new PluginKey('autoLocationTagging')
 
-const ANALYZE_DEBOUNCE_MS = 250
+const ANALYZE_DEBOUNCE_MS = 5000
 export const FROM_AUTO_LOCATION_TAGGING_META = 'fromAutoLocationTagging'
 
 type DetectedLocation = {
   text: string
   confidence?: number
+}
+
+type SentenceAnalysisTarget = {
+  text: string
+  from: number
+  to: number
+  indexToPos: number[]
 }
 
 const slugifyLocationId = (value: string): string => {
@@ -19,6 +26,91 @@ const slugifyLocationId = (value: string): string => {
     .replace(/\s+/g, '-')
     .replace(/[^\p{Letter}\p{Number}-]/gu, '')
     .slice(0, 80) || 'unknown'
+}
+
+const getContainingTextBlockRange = (doc: any, pos: number) => {
+  const clampedPos = Math.max(0, Math.min(pos, doc.content.size))
+  const safePos = clampedPos === doc.content.size && clampedPos > 0 ? clampedPos - 1 : clampedPos
+  const $pos = doc.resolve(safePos)
+
+  for (let depth = $pos.depth; depth >= 0; depth -= 1) {
+    const node = $pos.node(depth)
+    if (!node.isTextblock) continue
+
+    return {
+      start: $pos.start(depth),
+      end: $pos.end(depth),
+    }
+  }
+
+  return null
+}
+
+const linearizeTextRange = (doc: any, from: number, to: number) => {
+  const textParts: string[] = []
+  const indexToPos: number[] = []
+
+  doc.nodesBetween(from, to, (node: any, pos: number) => {
+    if (!node.isText) return true
+
+    const value = node.text || ''
+    for (let index = 0; index < value.length; index += 1) {
+      indexToPos.push(pos + index)
+    }
+    textParts.push(value)
+    return false
+  })
+
+  return {
+    text: textParts.join(''),
+    indexToPos,
+  }
+}
+
+const getSentenceAnalysisTarget = (doc: any, selectionTo: number): SentenceAnalysisTarget | null => {
+  const pos = selectionTo
+  const blockRange = getContainingTextBlockRange(doc, pos)
+  if (!blockRange) return null
+
+  const { text, indexToPos } = linearizeTextRange(doc, blockRange.start, blockRange.end)
+  if (!text.trim()) return null
+
+  const cursorIndex = indexToPos.findIndex((textPos) => textPos >= pos)
+  const endBiasedCursorIndex = cursorIndex === -1 ? text.length : cursorIndex
+  const anchorIndex = Math.max(0, endBiasedCursorIndex - 1)
+  const separatorRegex = /[.!?\n]/
+
+  let sentenceStartIndex = 0
+  for (let index = anchorIndex - 1; index >= 0; index -= 1) {
+    if (separatorRegex.test(text[index])) {
+      sentenceStartIndex = index + 1
+      break
+    }
+  }
+
+  let sentenceEndIndex = text.length
+  for (let index = anchorIndex; index < text.length; index += 1) {
+    if (separatorRegex.test(text[index])) {
+      sentenceEndIndex = index + 1
+      break
+    }
+  }
+
+  while (sentenceStartIndex < sentenceEndIndex && /\s/.test(text[sentenceStartIndex])) {
+    sentenceStartIndex += 1
+  }
+  while (sentenceEndIndex > sentenceStartIndex && /\s/.test(text[sentenceEndIndex - 1])) {
+    sentenceEndIndex -= 1
+  }
+
+  if (sentenceEndIndex <= sentenceStartIndex) return null
+
+  return {
+    text: text.slice(sentenceStartIndex, sentenceEndIndex),
+    from: indexToPos[sentenceStartIndex],
+    to: indexToPos[sentenceEndIndex - 1] + 1,
+    indexToPos: indexToPos.slice(sentenceStartIndex, sentenceEndIndex),
+  }
 }
 
 export const AutoLocationTaggingExtension = Extension.create({
@@ -65,7 +157,7 @@ export const AutoLocationTaggingExtension = Extension.create({
       return Array.from(locationsByKey.values()).sort((a, b) => b.length - a.length)
     }
 
-    const applyLocationTags = (locations: string[]) => {
+    const applyLocationTags = (locations: string[], target: SentenceAnalysisTarget) => {
       if (!viewRef) return
       const { state } = viewRef
       const locationType = state.schema.nodes['location']
@@ -75,36 +167,29 @@ export const AutoLocationTaggingExtension = Extension.create({
 
       const addRangesForString = (searchString: string) => {
         if (!searchString || typeof searchString !== 'string') return
-        state.doc.descendants((node: any, pos: number) => {
-          if (node.type && node.type.name === 'location') {
-            return false
-          }
-          if (!node.isText) return true
-          const text: string = node.text || ''
-          let startIndex = 0
-          while (startIndex <= text.length) {
-            const foundIndex = text.indexOf(searchString, startIndex)
-            if (foundIndex === -1) break
-            const from = pos + foundIndex
-            const to = from + searchString.length
+        let startIndex = 0
+        while (startIndex <= target.text.length) {
+          const foundIndex = target.text.indexOf(searchString, startIndex)
+          if (foundIndex === -1) break
 
-            let intersectsLocationNode = false
-            state.doc.nodesBetween(from, to, (n: any) => {
-              if (n.type && n.type.name === 'location') {
-                intersectsLocationNode = true
-                return false
-              }
-              return true
-            })
+          const from = target.indexToPos[foundIndex]
+          const to = target.indexToPos[foundIndex + searchString.length - 1] + 1
 
-            if (!intersectsLocationNode) {
-              ranges.push({ from, to, label: searchString })
+          let intersectsLocationNode = false
+          state.doc.nodesBetween(from, to, (node: any) => {
+            if (node.type && node.type.name === 'location') {
+              intersectsLocationNode = true
+              return false
             }
+            return true
+          })
 
-            startIndex = foundIndex + searchString.length
+          if (!intersectsLocationNode) {
+            ranges.push({ from, to, label: searchString })
           }
-          return true
-        })
+
+          startIndex = foundIndex + searchString.length
+        }
       }
 
       locations.forEach(addRangesForString)
@@ -128,6 +213,7 @@ export const AutoLocationTaggingExtension = Extension.create({
       const sortedDesc = nonOverlapping.sort((a, b) => b.from - a.from)
 
       let tr = state.tr
+      const selectionBeforeTagging = state.selection
       let applied = 0
       for (const r of sortedDesc) {
         let intersects = false
@@ -148,24 +234,31 @@ export const AutoLocationTaggingExtension = Extension.create({
           'data-coords': null,
         })
         tr = tr.replaceWith(r.from, r.to, node)
-        tr = tr.setSelection(TextSelection.near(tr.doc.resolve(r.from + 1)))
         applied++
       }
 
       if (applied > 0) {
+        const mappedSelectionFrom = tr.mapping.map(selectionBeforeTagging.from, 1)
+        const mappedSelectionTo = tr.mapping.map(selectionBeforeTagging.to, 1)
+        tr = tr.setSelection(
+          TextSelection.between(
+            tr.doc.resolve(Math.min(mappedSelectionFrom, tr.doc.content.size)),
+            tr.doc.resolve(Math.min(mappedSelectionTo, tr.doc.content.size)),
+          ),
+        )
         tr.setMeta(FROM_AUTO_LOCATION_TAGGING_META, true)
         tr.setMeta('fromTypingLocationScan', true)
         viewRef.dispatch(tr)
       }
     }
 
-    const analyzeAndTag = debounce(async (text: string) => {
+    const analyzeAndTag = debounce(async (target: SentenceAnalysisTarget) => {
       if (!viewRef) return
       if (isAnalyzing) return
       isAnalyzing = true
       try {
-        const llmLocations = await fetchLlmLocations(text)
-        applyLocationTags(mergeLocationTexts(llmLocations))
+        const llmLocations = await fetchLlmLocations(target.text)
+        applyLocationTags(mergeLocationTexts(llmLocations), target)
       } catch (err) {
         console.error('Auto location tagging error:', err)
       } finally {
@@ -195,25 +288,28 @@ export const AutoLocationTaggingExtension = Extension.create({
               return previousText
             }
 
-            let newText = ''
+            let fullText = ''
             tr.doc.descendants((node: any) => {
               if (node.isText) {
-                newText += node.text
+                fullText += node.text
               } else if (node.type && node.type.name === 'location' && node.attrs.label) {
-                newText += node.attrs.label
+                fullText += node.attrs.label
               }
               return true
             })
-            if (!newText) {
-              newText = tr.doc.textContent
+            if (!fullText) {
+              fullText = tr.doc.textContent
             }
 
-            if (tr.docChanged && newText !== previousText && newText !== lastAnalyzedText && newText.trim().length > 1) {
-              lastAnalyzedText = newText
-              analyzeAndTag(newText)
+            const target = getSentenceAnalysisTarget(tr.doc, tr.selection.to)
+            const targetSignature = target ? `${target.from}:${target.to}:${target.text}` : ''
+
+            if (tr.docChanged && fullText !== previousText && target && targetSignature !== lastAnalyzedText && target.text.trim().length > 1) {
+              lastAnalyzedText = targetSignature
+              analyzeAndTag(target)
             }
 
-            return newText
+            return fullText
           }
         }
       })

@@ -8,6 +8,16 @@ const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const SCAN_DEBOUNCE_MS = 1400
 const MIN_ANALYSIS_CHARS = 8
 const MIN_RELATION_CONFIDENCE = 0.55
+const TEMPORAL_CONNECTOR_ENDPOINTS = new Set([
+  'then',
+  'next',
+  'afterward',
+  'afterwards',
+  'after',
+  'before',
+  'later',
+  'subsequently',
+])
 
 type TemporalRelationEndpoint = {
   text: string
@@ -72,6 +82,7 @@ type LocationOperation =
 type EndpointResolution = {
   connectionId: string
   operation?: LocationOperation
+  label?: string
 }
 
 type NodeConnectionRecord = {
@@ -325,6 +336,48 @@ const findSegmentForEndpoint = (
   return segments.find((segment) => endpoint.start >= segment.startIndex && endpoint.end <= segment.endIndex)
 }
 
+const isTemporalConnectorEndpoint = (value: string): boolean => (
+  TEMPORAL_CONNECTOR_ENDPOINTS.has(normalizeLocationName(value).toLocaleLowerCase())
+)
+
+export const findSurroundingLocationSegment = (
+  endpoint: TemporalRelationEndpoint,
+  segments: TextSegment[],
+  direction: 'before' | 'after',
+) => {
+  const locationSegments = segments.filter((segment) => segment.isLocationNode)
+
+  if (direction === 'before') {
+    return locationSegments
+      .filter((segment) => segment.endIndex <= endpoint.start)
+      .sort((a, b) => b.endIndex - a.endIndex)[0] || null
+  }
+
+  return locationSegments
+    .filter((segment) => segment.startIndex >= endpoint.end)
+    .sort((a, b) => a.startIndex - b.startIndex)[0] || null
+}
+
+const resolveExistingLocationSegment = (segment: TextSegment): EndpointResolution => {
+  const existingConnectionId = segment.locationConnectionId || generateShortId()
+  const operation = segment.locationConnectionId
+    ? undefined
+    : {
+        kind: 'updateLocationNode' as const,
+        from: segment.from,
+        attrs: {
+          ...(segment.attrs || {}),
+          locationId: existingConnectionId,
+        },
+      }
+
+  return {
+    connectionId: existingConnectionId,
+    operation,
+    label: normalizeLocationName(segment.text),
+  }
+}
+
 const createLocationAttrs = (name: string, connectionId: string): LocationAttrs => ({
   id: `loc:ai-${slugifyLocationId(name)}-${connectionId}`,
   label: `📍 ${normalizeLocationName(name)}`,
@@ -338,7 +391,18 @@ const resolveEndpoint = (
   endpoint: TemporalRelationEndpoint,
   linearized: LinearizedTextBlock,
   operationByRange: Map<string, LocationOperation>,
+  role: 'source' | 'target',
 ): EndpointResolution | null => {
+  if (isTemporalConnectorEndpoint(endpoint.text)) {
+    const surroundingLocation = findSurroundingLocationSegment(
+      endpoint,
+      linearized.segments,
+      role === 'source' ? 'before' : 'after',
+    )
+
+    return surroundingLocation ? resolveExistingLocationSegment(surroundingLocation) : null
+  }
+
   const normalizedEndpoint =
     normalizeEndpointRange(endpoint, linearized.text) ||
     findFallbackEndpointRange(endpoint, linearized.text)
@@ -350,22 +414,7 @@ const resolveEndpoint = (
 
   const segment = findSegmentForEndpoint(normalizedEndpoint, linearized.segments)
   if (segment?.isLocationNode) {
-    const existingConnectionId = segment.locationConnectionId || generateShortId()
-    const operation = segment.locationConnectionId
-      ? undefined
-      : {
-          kind: 'updateLocationNode' as const,
-          from: segment.from,
-          attrs: {
-            ...(segment.attrs || {}),
-            locationId: existingConnectionId,
-          },
-        }
-
-    return {
-      connectionId: existingConnectionId,
-      operation,
-    }
+    return resolveExistingLocationSegment(segment)
   }
 
   const docFrom = linearized.indexToPos[normalizedEndpoint.start]
@@ -394,6 +443,7 @@ const resolveEndpoint = (
   return {
     connectionId,
     operation,
+    label: name,
   }
 }
 
@@ -481,8 +531,8 @@ const applyTemporalRelationTags = (
   relations
     .filter((relation) => relation.relationType === 'temporal-order' && relation.confidence >= MIN_RELATION_CONFIDENCE)
     .forEach((relation) => {
-      const source = resolveEndpoint(relation.source, linearized, operationsByRange)
-      const target = resolveEndpoint(relation.target, linearized, operationsByRange)
+      const source = resolveEndpoint(relation.source, linearized, operationsByRange, 'source')
+      const target = resolveEndpoint(relation.target, linearized, operationsByRange, 'target')
       if (!source || !target || source.connectionId === target.connectionId) return
 
       ;[source.operation, target.operation].forEach((operation) => {
@@ -497,8 +547,8 @@ const applyTemporalRelationTags = (
         sourceId: source.connectionId,
         targetId: target.connectionId,
         cue: relation.cue,
-        sourceLabel: normalizeLocationName(relation.source.text),
-        targetLabel: normalizeLocationName(relation.target.text),
+        sourceLabel: source.label || normalizeLocationName(relation.source.text),
+        targetLabel: target.label || normalizeLocationName(relation.target.text),
       })
     })
 
