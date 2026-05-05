@@ -19,6 +19,8 @@ type SentenceAnalysisTarget = {
   indexToPos: number[]
 }
 
+const SENTENCE_SEPARATOR_REGEX = /[.!?\n]/
+
 const slugifyLocationId = (value: string): string => {
   return value
     .trim()
@@ -26,24 +28,6 @@ const slugifyLocationId = (value: string): string => {
     .replace(/\s+/g, '-')
     .replace(/[^\p{Letter}\p{Number}-]/gu, '')
     .slice(0, 80) || 'unknown'
-}
-
-const getContainingTextBlockRange = (doc: any, pos: number) => {
-  const clampedPos = Math.max(0, Math.min(pos, doc.content.size))
-  const safePos = clampedPos === doc.content.size && clampedPos > 0 ? clampedPos - 1 : clampedPos
-  const $pos = doc.resolve(safePos)
-
-  for (let depth = $pos.depth; depth >= 0; depth -= 1) {
-    const node = $pos.node(depth)
-    if (!node.isTextblock) continue
-
-    return {
-      start: $pos.start(depth),
-      end: $pos.end(depth),
-    }
-  }
-
-  return null
 }
 
 const linearizeTextRange = (doc: any, from: number, to: number) => {
@@ -67,50 +51,64 @@ const linearizeTextRange = (doc: any, from: number, to: number) => {
   }
 }
 
-const getSentenceAnalysisTarget = (doc: any, selectionTo: number): SentenceAnalysisTarget | null => {
-  const pos = selectionTo
-  const blockRange = getContainingTextBlockRange(doc, pos)
-  if (!blockRange) return null
-
-  const { text, indexToPos } = linearizeTextRange(doc, blockRange.start, blockRange.end)
-  if (!text.trim()) return null
-
-  const cursorIndex = indexToPos.findIndex((textPos) => textPos >= pos)
-  const endBiasedCursorIndex = cursorIndex === -1 ? text.length : cursorIndex
-  const anchorIndex = Math.max(0, endBiasedCursorIndex - 1)
-  const separatorRegex = /[.!?\n]/
-
+const splitTextRangeIntoSentenceTargets = (
+  text: string,
+  indexToPos: number[],
+): SentenceAnalysisTarget[] => {
+  const targets: SentenceAnalysisTarget[] = []
   let sentenceStartIndex = 0
-  for (let index = anchorIndex - 1; index >= 0; index -= 1) {
-    if (separatorRegex.test(text[index])) {
+
+  const pushTarget = (rawEndIndex: number) => {
+    let startIndex = sentenceStartIndex
+    let endIndex = rawEndIndex
+
+    while (startIndex < endIndex && /\s/.test(text[startIndex])) {
+      startIndex += 1
+    }
+    while (endIndex > startIndex && /\s/.test(text[endIndex - 1])) {
+      endIndex -= 1
+    }
+
+    if (endIndex > startIndex) {
+      targets.push({
+        text: text.slice(startIndex, endIndex),
+        from: indexToPos[startIndex],
+        to: indexToPos[endIndex - 1] + 1,
+        indexToPos: indexToPos.slice(startIndex, endIndex),
+      })
+    }
+  }
+
+  for (let index = 0; index < text.length; index += 1) {
+    if (SENTENCE_SEPARATOR_REGEX.test(text[index])) {
+      pushTarget(index + 1)
       sentenceStartIndex = index + 1
-      break
     }
   }
 
-  let sentenceEndIndex = text.length
-  for (let index = anchorIndex; index < text.length; index += 1) {
-    if (separatorRegex.test(text[index])) {
-      sentenceEndIndex = index + 1
-      break
+  pushTarget(text.length)
+
+  return targets
+}
+
+const getDocumentAnalysisTargets = (doc: any): SentenceAnalysisTarget[] => {
+  const targets: SentenceAnalysisTarget[] = []
+
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isTextblock) return true
+
+    const from = pos + 1
+    const to = pos + node.nodeSize - 1
+    const { text, indexToPos } = linearizeTextRange(doc, from, to)
+
+    if (text.trim()) {
+      targets.push(...splitTextRangeIntoSentenceTargets(text, indexToPos))
     }
-  }
 
-  while (sentenceStartIndex < sentenceEndIndex && /\s/.test(text[sentenceStartIndex])) {
-    sentenceStartIndex += 1
-  }
-  while (sentenceEndIndex > sentenceStartIndex && /\s/.test(text[sentenceEndIndex - 1])) {
-    sentenceEndIndex -= 1
-  }
+    return false
+  })
 
-  if (sentenceEndIndex <= sentenceStartIndex) return null
-
-  return {
-    text: text.slice(sentenceStartIndex, sentenceEndIndex),
-    from: indexToPos[sentenceStartIndex],
-    to: indexToPos[sentenceEndIndex - 1] + 1,
-    indexToPos: indexToPos.slice(sentenceStartIndex, sentenceEndIndex),
-  }
+  return targets
 }
 
 export const AutoLocationTaggingExtension = Extension.create({
@@ -155,6 +153,17 @@ export const AutoLocationTaggingExtension = Extension.create({
       })
 
       return Array.from(locationsByKey.values()).sort((a, b) => b.length - a.length)
+    }
+
+    const findLatestMatchingTarget = (target: SentenceAnalysisTarget): SentenceAnalysisTarget | null => {
+      if (!viewRef) return null
+
+      const normalizedTargetText = target.text.replace(/\s+/g, ' ').trim()
+      const latestTargets = getDocumentAnalysisTargets(viewRef.state.doc)
+
+      return latestTargets.find((latestTarget) => (
+        latestTarget.text.replace(/\s+/g, ' ').trim() === normalizedTargetText
+      )) || null
     }
 
     const applyLocationTags = (locations: string[], target: SentenceAnalysisTarget) => {
@@ -262,21 +271,18 @@ export const AutoLocationTaggingExtension = Extension.create({
       }
     }
 
-    const analyzeAndTag = debounce(async (target: SentenceAnalysisTarget) => {
+    const analyzeAndTag = debounce(async (targets: SentenceAnalysisTarget[]) => {
       if (!viewRef) return
       if (isAnalyzing) return
       isAnalyzing = true
       try {
-        const llmLocations = await fetchLlmLocations(target.text)
-        const latestState = viewRef?.state
-        const latestTarget = latestState
-          ? getSentenceAnalysisTarget(latestState.doc, latestState.selection.to)
-          : null
-        if (!latestTarget || latestTarget.text.trim() !== target.text.trim()) {
-          return
-        }
+        for (const target of targets) {
+          const latestTarget = findLatestMatchingTarget(target)
+          if (!latestTarget) continue
 
-        applyLocationTags(mergeLocationTexts(llmLocations), latestTarget)
+          const llmLocations = await fetchLlmLocations(latestTarget.text)
+          applyLocationTags(mergeLocationTexts(llmLocations), latestTarget)
+        }
       } catch (err) {
         console.error('Auto location tagging error:', err)
       } finally {
@@ -319,12 +325,14 @@ export const AutoLocationTaggingExtension = Extension.create({
               fullText = tr.doc.textContent
             }
 
-            const target = getSentenceAnalysisTarget(tr.doc, tr.selection.to)
-            const targetSignature = target ? `${target.from}:${target.to}:${target.text}` : ''
+            const targets = getDocumentAnalysisTargets(tr.doc).filter((target) => target.text.trim().length > 1)
+            const targetSignature = targets
+              .map((target) => `${target.from}:${target.to}:${target.text}`)
+              .join('|')
 
-            if (tr.docChanged && fullText !== previousText && target && targetSignature !== lastAnalyzedText && target.text.trim().length > 1) {
+            if (tr.docChanged && fullText !== previousText && targets.length > 0 && targetSignature !== lastAnalyzedText) {
               lastAnalyzedText = targetSignature
-              analyzeAndTag(target)
+              analyzeAndTag(targets)
             }
 
             return fullText
