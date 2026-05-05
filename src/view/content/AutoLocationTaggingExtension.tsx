@@ -174,6 +174,16 @@ export const AutoLocationTaggingExtension = Extension.create({
 
           const from = target.indexToPos[foundIndex]
           const to = target.indexToPos[foundIndex + searchString.length - 1] + 1
+          if (
+            !Number.isFinite(from) ||
+            !Number.isFinite(to) ||
+            from < 0 ||
+            to > state.doc.content.size ||
+            from >= to
+          ) {
+            startIndex = foundIndex + searchString.length
+            continue
+          }
 
           let intersectsLocationNode = false
           state.doc.nodesBetween(from, to, (node: any) => {
@@ -258,7 +268,15 @@ export const AutoLocationTaggingExtension = Extension.create({
       isAnalyzing = true
       try {
         const llmLocations = await fetchLlmLocations(target.text)
-        applyLocationTags(mergeLocationTexts(llmLocations), target)
+        const latestState = viewRef?.state
+        const latestTarget = latestState
+          ? getSentenceAnalysisTarget(latestState.doc, latestState.selection.to)
+          : null
+        if (!latestTarget || latestTarget.text.trim() !== target.text.trim()) {
+          return
+        }
+
+        applyLocationTags(mergeLocationTexts(llmLocations), latestTarget)
       } catch (err) {
         console.error('Auto location tagging error:', err)
       } finally {
