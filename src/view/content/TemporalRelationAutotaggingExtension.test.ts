@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from 'vitest'
 import {
   buildTemporalAnalysisRanges,
   findSurroundingLocationSegment,
+  isLikelyTemporalLocationEndpoint,
   linearizeTextBlockWithLocations,
   looksLikeTemporalRelationText,
   normalizeLocationName,
@@ -58,6 +59,26 @@ describe('TemporalRelationAutotaggingExtension helpers', () => {
   test('normalizes rendered location labels back to plain location names', () => {
     expect(normalizeLocationName('📍 Shanghai Hongqiao')).toBe('Shanghai Hongqiao')
     expect(normalizeLocationName('  Sydney   Airport  ')).toBe('Sydney Airport')
+  })
+
+  test('rejects dates, times, and generic travel words as location endpoints', () => {
+    expect(isLikelyTemporalLocationEndpoint('05am Monday 1 June 2026')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('20am Sunday 21 June 2026')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('00am Monday June 2026')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('June')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('Monday June')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('back')).toBe(false)
+    expect(isLikelyTemporalLocationEndpoint('CZ326 China Southern Airlines')).toBe(false)
+  })
+
+  test('keeps real station, airport, and CJK place names as location endpoints', () => {
+    expect(isLikelyTemporalLocationEndpoint('Bankstown')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('Revesby')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('Sydney Airport')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('Guangzhou Baiyun Airport')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('Bankstown station')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('上海虹桥机场')).toBe(true)
+    expect(isLikelyTemporalLocationEndpoint('康乐城')).toBe(true)
   })
 
   test('linearizes a text block at paragraph level while preserving existing location nodes', () => {

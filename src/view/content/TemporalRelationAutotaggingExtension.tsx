@@ -19,10 +19,23 @@ const TEMPORAL_CONNECTOR_ENDPOINTS = new Set([
   'later',
   'subsequently',
 ])
+const NON_LOCATION_ENDPOINTS = new Set([
+  'back',
+  'return',
+  'returns',
+  'flight',
+  'flights',
+  'layover',
+])
+const WEEKDAY_PATTERN = '(?:mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)'
+const MONTH_PATTERN = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)'
+const TIME_PATTERN = '\\d{1,2}(?::|\\.)?\\d{0,2}\\s*(?:am|pm)'
+const LOCATION_HINT_PATTERN = /\b(?:airport|station|terminal|city|town|home|hotel|park|port|harbour|harbor|street|road|avenue|plaza|square|temple|museum|castle|campus|hospital|center|centre)\b/i
 
 declare global {
   interface Window {
     __LIFEMAP_ANALYSIS_API_BASE_URL__?: string
+    __LIFEMAP_SUPPRESS_TEMPORAL_AUTOTAGGING_UNTIL_INPUT__?: boolean
   }
 }
 
@@ -153,6 +166,44 @@ export const normalizeLocationName = (value: string): string => (
     .replace(/\s+/g, ' ')
     .trim()
 )
+
+export const isLikelyTemporalLocationEndpoint = (value: string): boolean => {
+  const normalized = normalizeLocationName(value)
+  if (!normalized) return false
+
+  const lower = normalized.toLocaleLowerCase()
+  if (NON_LOCATION_ENDPOINTS.has(lower)) return false
+
+  const hasLatinLetters = /\p{Script=Latin}/u.test(normalized)
+  const hasCjkCharacters = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(normalized)
+  const hasLocationHint = LOCATION_HINT_PATTERN.test(normalized) || hasCjkCharacters
+  const hasMonth = new RegExp(`\\b${MONTH_PATTERN}\\b`, 'i').test(normalized)
+  const hasWeekday = new RegExp(`\\b${WEEKDAY_PATTERN}\\b`, 'i').test(normalized)
+  const hasYear = /\b20\d{2}\b/.test(normalized)
+  const hasTime = new RegExp(`\\b${TIME_PATTERN}\\b`, 'i').test(normalized)
+
+  if (!hasLocationHint && (hasTime || hasYear || hasMonth || hasWeekday)) {
+    return false
+  }
+
+  if (/^\d+(?:st|nd|rd|th)?$/i.test(normalized)) return false
+  if (!hasLocationHint && /^[\d\s:.,/-]+(?:am|pm)?$/i.test(normalized)) return false
+  if (!hasLocationHint && /\b[A-Z]{2}\d{2,4}\b/.test(normalized)) return false
+  if (!hasLocationHint && /\bairlines?\b/i.test(normalized)) return false
+
+  if (hasLatinLetters) {
+    const meaningfulTokens = lower
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean)
+      .filter((token) => !new RegExp(`^${WEEKDAY_PATTERN}$`, 'i').test(token))
+      .filter((token) => !new RegExp(`^${MONTH_PATTERN}$`, 'i').test(token))
+      .filter((token) => !/^\d{1,4}(?:st|nd|rd|th)?$/.test(token))
+      .filter((token) => !/^(?:am|pm)$/.test(token))
+    if (meaningfulTokens.length === 0) return false
+  }
+
+  return true
+}
 
 const slugifyLocationId = (value: string): string => (
   normalizeLocationName(value)
@@ -458,6 +509,7 @@ const resolveEndpoint = (
 
   const name = normalizeLocationName(normalizedEndpoint.text)
   if (name.length < 2) return null
+  if (!isLikelyTemporalLocationEndpoint(name)) return null
 
   const segment = findSegmentForEndpoint(normalizedEndpoint, linearized.segments)
   if (segment?.isLocationNode) {
@@ -643,6 +695,10 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
     let viewRef: any = null
 
     const runScan = (view: any, currentPos: number) => {
+      if (typeof window !== 'undefined' && window.__LIFEMAP_SUPPRESS_TEMPORAL_AUTOTAGGING_UNTIL_INPUT__) {
+        return
+      }
+
       const { state } = view
       const blockRange = getContainingTextBlockRange(state.doc, currentPos)
       if (!blockRange) return
@@ -764,6 +820,10 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
         props: {
           handleTextInput(view, from, _to, text) {
             if (!text) return false
+
+            if (typeof window !== 'undefined') {
+              window.__LIFEMAP_SUPPRESS_TEMPORAL_AUTOTAGGING_UNTIL_INPUT__ = false
+            }
 
             pendingPos = from + text.length
             scheduleScan(view)
