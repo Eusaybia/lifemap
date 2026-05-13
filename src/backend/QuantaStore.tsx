@@ -11,6 +11,7 @@ type QuantaStoreContextType = {
   quantaId: QuantaId,
   quanta: QuantaType,
   provider: TiptapCollabProvider | null
+  isLocalFirst?: boolean
   requestVersionPreviewFromCloud: (version: Content) => void
 }
 
@@ -19,6 +20,7 @@ const dummyQuantaStoreContext = {
   quantaId: '',
   quanta: new QuantaClass(),
   provider: null,
+  isLocalFirst: false,
   requestVersionPreviewFromCloud: (version: Content) => {}
 }
 
@@ -154,6 +156,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
     quantaId: props.quantaId,
     quanta, 
     provider, 
+    isLocalFirst: false,
     requestVersionPreviewFromCloud
   }
 

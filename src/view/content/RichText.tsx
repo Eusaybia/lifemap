@@ -1057,18 +1057,35 @@ export const agents: Extensions = [
   // AI agents temporarily disabled.
 ]
 
+const localFirstExcludedExtensionNames = new Set([
+  'autoLocationTagging',
+  'temporalRelationAutotagging',
+])
+
+const editorCustomExtensions = (isLocalFirst?: boolean): Extensions => {
+  if (!isLocalFirst) return customExtensions
+
+  return customExtensions.filter((extension) => {
+    const name = typeof extension === 'object' && extension !== null && 'name' in extension
+      ? (extension as { name?: string }).name
+      : undefined
+
+    return !name || !localFirstExcludedExtensionNames.has(name)
+  })
+}
+
 // This TransclusionEditor merely needs to display a copy of the node being synced in the main editor
 // Therefore it needs no syncing capabilities.
 // If editing is enabled on the transcluded node, then edits should be propagated back to the main editor for syncing
 export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
-  const { quanta, provider } = React.useContext(QuantaStoreContext)
+  const { quanta, provider, isLocalFirst } = React.useContext(QuantaStoreContext)
 
   const informationType = isQuanta ? "yDoc" : typeof information === "string" ? "string" : typeof information === "object" ? "object" : "invalid"
 
   let generatedOfficialExtensions = officialExtensions(quanta.id)
 
   const editor = useEditor({
-    extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
+    extensions: [...generatedOfficialExtensions, ...editorCustomExtensions(isLocalFirst), ...agents],
     editable: false,
     immediatelyRender: false,
     editorProps: {
@@ -1086,7 +1103,7 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 }
 
 export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?: boolean) => {
-  const { quanta, provider } = React.useContext(QuantaStoreContext)
+  const { quanta, provider, isLocalFirst } = React.useContext(QuantaStoreContext)
   const [contentError, setContentError] = React.useState<Error | null>(null)
   const [currentFocusLens, setCurrentFocusLens] = React.useState<DocumentAttributes['selectedFocusLens']>(defaultDocumentAttributes.selectedFocusLens);
 
@@ -1101,15 +1118,17 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         field: 'default',
       })
     )
-    generatedOfficialExtensions.push(
-      Snapshot.configure({
-        // Snapshot provider can initialize after mount; keep extension mounted consistently.
-        provider: provider as any,
-        onUpdate: () => {
-          // Snapshot storage is read directly from editor.storage.snapshot by menus.
-        },
-      })
-    )
+    if (!isLocalFirst) {
+      generatedOfficialExtensions.push(
+        Snapshot.configure({
+          // Snapshot provider can initialize after mount; keep extension mounted consistently.
+          provider: provider as any,
+          onUpdate: () => {
+            // Snapshot storage is read directly from editor.storage.snapshot by menus.
+          },
+        })
+      )
+    }
   } 
 
   // Create memoized throttled backup function (3 minutes = 180000ms)
@@ -1129,7 +1148,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [...generatedOfficialExtensions, ...customExtensions, ...agents],
+    extensions: [...generatedOfficialExtensions, ...editorCustomExtensions(isLocalFirst), ...agents],
     editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
     autofocus: true, // Auto-focus the editor on load
