@@ -795,7 +795,8 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
             if (
               transaction.docChanged &&
               viewRef &&
-              !transaction.getMeta('fromTemporalRelationAutotagging')
+              !transaction.getMeta('fromTemporalRelationAutotagging') &&
+              !transaction.getMeta('fromTemporalEntityAutotagging')
             ) {
               pendingPos = newState.selection.to
               scheduleScan(viewRef)
@@ -806,7 +807,8 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
         },
         appendTransaction(transactions, _oldState, newState) {
           const changedByAutotagging = transactions.some((transaction) => (
-            transaction.getMeta('fromTemporalRelationAutotagging')
+            transaction.getMeta('fromTemporalRelationAutotagging') ||
+            transaction.getMeta('fromTemporalEntityAutotagging')
           ))
           if (changedByAutotagging) return null
 

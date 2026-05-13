@@ -36,6 +36,7 @@ import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { AutoLocationTaggingExtension } from './AutoLocationTaggingExtension'
+import { TemporalEntityAutotaggingExtension } from './TemporalEntityAutotaggingExtension'
 import { TemporalRelationAutotaggingExtension } from './TemporalRelationAutotaggingExtension'
 import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
@@ -966,6 +967,7 @@ export const customExtensions: Extensions = [
   LocationNode,
   LocationMention,
   AutoLocationTaggingExtension,
+  TemporalEntityAutotaggingExtension,
   TemporalRelationAutotaggingExtension,
   // People mentions - triggered by % for person insertion (Jane Doe, Alex Chen, etc.)
   PersonNode,
