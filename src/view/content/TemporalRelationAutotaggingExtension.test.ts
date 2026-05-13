@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import {
   buildTemporalAnalysisRanges,
@@ -6,6 +6,7 @@ import {
   linearizeTextBlockWithLocations,
   looksLikeTemporalRelationText,
   normalizeLocationName,
+  resolveTemporalRelationAnalysisUrl,
 } from './TemporalRelationAutotaggingExtension'
 
 describe('TemporalRelationAutotaggingExtension helpers', () => {
@@ -132,5 +133,19 @@ describe('TemporalRelationAutotaggingExtension helpers', () => {
       text: 'Paris',
       locationConnectionId: 'loc-paris',
     })
+  })
+
+  test('resolves an absolute analysis API base URL for offline embeds', () => {
+    vi.stubGlobal('window', {
+      __LIFEMAP_ANALYSIS_API_BASE_URL__: 'http://192.168.1.24:5001',
+      location: {
+        protocol: 'file:',
+        search: '',
+      },
+    })
+
+    expect(resolveTemporalRelationAnalysisUrl()).toBe('http://192.168.1.24:5001/api/analyze-temporal-relations')
+
+    vi.unstubAllGlobals()
   })
 })

@@ -1059,7 +1059,6 @@ export const agents: Extensions = [
 
 const localFirstExcludedExtensionNames = new Set([
   'autoLocationTagging',
-  'temporalRelationAutotagging',
 ])
 
 const editorCustomExtensions = (isLocalFirst?: boolean): Extensions => {
@@ -2738,7 +2737,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     }
 
     const urlParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
-    const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true' || urlParams?.get('iosEmbed') === 'true';
+    const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true';
 
     return (
       <div

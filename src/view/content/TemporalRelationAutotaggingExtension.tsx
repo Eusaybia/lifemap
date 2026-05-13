@@ -5,6 +5,7 @@ export const TemporalRelationAutotaggingPluginKey = new PluginKey('temporalRelat
 
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
+const TEMPORAL_RELATION_ANALYSIS_PATH = '/api/analyze-temporal-relations'
 const SCAN_DEBOUNCE_MS = 1400
 const MIN_ANALYSIS_CHARS = 8
 const MIN_RELATION_CONFIDENCE = 0.55
@@ -18,6 +19,52 @@ const TEMPORAL_CONNECTOR_ENDPOINTS = new Set([
   'later',
   'subsequently',
 ])
+
+declare global {
+  interface Window {
+    __LIFEMAP_ANALYSIS_API_BASE_URL__?: string
+  }
+}
+
+const configuredAnalysisApiBaseUrl = () => {
+  if (typeof window === 'undefined') return ''
+
+  const fromWindow = window.__LIFEMAP_ANALYSIS_API_BASE_URL__
+  if (typeof fromWindow === 'string' && fromWindow.trim()) {
+    return fromWindow.trim()
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  return (
+    params.get('analysisApiBaseUrl') ||
+    params.get('kairosAnalysisApiBaseUrl') ||
+    ''
+  ).trim()
+}
+
+export const resolveTemporalRelationAnalysisUrl = () => {
+  if (typeof window === 'undefined') return TEMPORAL_RELATION_ANALYSIS_PATH
+
+  const configuredBaseUrl = configuredAnalysisApiBaseUrl()
+  if (configuredBaseUrl) {
+    try {
+      const configuredUrl = new URL(configuredBaseUrl)
+      if (configuredUrl.pathname.endsWith(TEMPORAL_RELATION_ANALYSIS_PATH)) {
+        return configuredUrl.toString()
+      }
+
+      return new URL(TEMPORAL_RELATION_ANALYSIS_PATH, configuredUrl).toString()
+    } catch (error) {
+      console.warn('[TemporalRelationAutotaggingExtension] Ignoring invalid analysisApiBaseUrl:', configuredBaseUrl, error)
+    }
+  }
+
+  if (window.location.protocol === 'file:') {
+    return null
+  }
+
+  return TEMPORAL_RELATION_ANALYSIS_PATH
+}
 
 type TemporalRelationEndpoint = {
   text: string
@@ -614,10 +661,14 @@ export const TemporalRelationAutotaggingExtension = Extension.create({
 
       const scanRequestId = latestScanRequestId + 1
       latestScanRequestId = scanRequestId
+      const analysisUrl = resolveTemporalRelationAnalysisUrl()
+      if (!analysisUrl) {
+        return
+      }
 
       void Promise.all(
         analysisRanges.map((range) => (
-          fetch('/api/analyze-temporal-relations', {
+          fetch(analysisUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: range.text }),

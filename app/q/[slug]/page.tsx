@@ -19,6 +19,7 @@ export default function Page({ params }: { params: { slug: string } }) {
     const searchParams = useSearchParams();
     const isGraphMode = searchParams.get('mode') === 'graph';
     const isCompactMode = searchParams.get('mode') === 'minimal' || searchParams.get('mode') === 'compact';
+    const hideDocumentFlowMenu = searchParams.get('hideDocumentFlowMenu') === 'true' || searchParams.get('iosEmbed') === 'true';
     // Adjustable padding via query param: ?padding=0 or ?padding=10
     const customPadding = searchParams.get('padding');
     const padding = customPadding !== null ? parseInt(customPadding, 10) : (isCompactMode ? 4 : 20);
@@ -63,7 +64,7 @@ export default function Page({ params }: { params: { slug: string } }) {
     const mainContent = (
         <>
             {/* Hide DocumentFlowMenu in graph mode and compact mode */}
-            {!isGraphMode && !isCompactMode && (
+            {!isGraphMode && !isCompactMode && !hideDocumentFlowMenu && (
                 <motion.div style={{display: "grid", placeItems: "center", paddingTop: 15, paddingBottom: 4}}>
                     {editor && 'commands' in editor && <DocumentFlowMenu editor={editor} />}
                 </motion.div>
