@@ -3,7 +3,7 @@
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
-import { ReactRenderer } from '@tiptap/react'
+import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
@@ -39,6 +39,13 @@ interface TimePointListProps extends SuggestionProps {
 type TimePointListRef = {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean
 }
+
+const timepointClassName = (isCurrentFocus: boolean, isSelected = false) => [
+  'location-mention',
+  'timepoint-mention',
+  isCurrentFocus ? 'timepoint-mention--current-focus' : '',
+  isSelected ? 'selected' : '',
+].filter(Boolean).join(' ')
 
 // ============================================================================
 // Date Helpers
@@ -1785,6 +1792,52 @@ TimePointList.displayName = 'TimePointList'
 // TimePoint Node (for rendering inserted timepoints)
 // ============================================================================
 
+const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
+  const isCurrentFocus = node.attrs.id === CURRENT_FOCUS_ID
+  const aura = readTimepointAuraFromAttrs(node.attrs as Record<string, unknown>)
+  const auraDataAttributes = aura ? toAuraDataAttributes(aura) : {}
+
+  const handleGripMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const pos = getPos()
+      if (typeof pos !== 'number') return
+      editor.chain().focus().setNodeSelection(pos).run()
+    } catch {
+      // Ignore stale positions when the node is being removed.
+    }
+  }
+
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
+      <span
+        className={timepointClassName(isCurrentFocus, selected)}
+        data-type="timepoint"
+        data-id={node.attrs.id || undefined}
+        data-date={node.attrs['data-date'] || undefined}
+        data-formatted={node.attrs['data-formatted'] || undefined}
+        data-relative-label={node.attrs['data-relative-label'] || undefined}
+        data-timepoint-kind={isCurrentFocus ? 'current-focus' : undefined}
+        {...auraDataAttributes}
+      >
+        <span
+          className="location-grip"
+          contentEditable={false}
+          data-drag-handle
+          onMouseDown={handleGripMouseDown}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          title="Drag to move"
+        />
+        {node.attrs.label || ''}
+      </span>
+    </NodeViewWrapper>
+  )
+}
+
 export const TimePointNode = Node.create({
   name: 'timepoint',
   group: 'inline',
@@ -1816,16 +1869,19 @@ export const TimePointNode = Node.create({
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        class: isCurrentFocus
-          ? 'timepoint-mention timepoint-mention--current-focus'
-          : 'timepoint-mention',
+        class: timepointClassName(isCurrentFocus),
         'data-type': 'timepoint',
         'data-id': node.attrs.id,
         ...auraDataAttributes,
         ...(isCurrentFocus ? { 'data-timepoint-kind': 'current-focus' } : {}),
       }),
+      ['span', { class: 'location-grip', contenteditable: 'false', 'data-drag-handle': '' }],
       node.attrs.label || '',
     ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(TimePointNodeView)
   },
 })
 
