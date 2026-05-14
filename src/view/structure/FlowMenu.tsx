@@ -1414,6 +1414,17 @@ const resolveFlowMenuNodeType = (
     return getSelectedNodeType(editor)
 }
 
+const getFlowMenuEditorFormatting = (editor: Editor) => {
+    const font = editor.getAttributes('textStyle').fontFamily;
+    const fontSize = editor.getAttributes('textStyle').fontSize
+    const justification = editor.isActive('paragraph')
+        ? editor.getAttributes('paragraph').textAlign
+        : editor.getAttributes('heading').textAlign
+        || 'left';
+
+    return { font, fontSize, justification }
+}
+
 const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
     const selectedNode = getNearestAncestorNode(props.editor, 'temporalOrder') ?? getSelectedNode(props.editor)
     const isCollapsed = !!selectedNode?.attrs?.collapsed
@@ -2198,6 +2209,212 @@ const ExternalPortalLoupe = React.memo((props: { editor: Editor }) => {
     )
 })
 
+const FlowMenuContent = React.memo((props: {
+    editor: Editor
+    currentNodeType: string
+    selectedAction?: string
+}) => {
+    const { font, fontSize, justification } = getFlowMenuEditorFormatting(props.editor)
+    const selectedAction = props.selectedAction ?? "Insert 2 columns"
+
+    return (
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: 'max-content',
+                minWidth: 'max-content',
+                flexShrink: 0,
+            }}
+        >
+            {
+                {
+                    'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
+                    'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
+                    'group': <GroupLoupe editor={props.editor} />,
+                    'canvas3D': <Canvas3DLoupe editor={props.editor} />,
+                    'mapboxMap': <MapboxMapLoupe editor={props.editor} />,
+                    'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
+                    'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
+                    'trends': <TemporalOrderLoupe editor={props.editor} />,
+                    'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
+                    'glowNetwork': <ForceGraph3DLoupe editor={props.editor} />,
+                    'scrollview': <></>,
+                    'portal': <PortalLoupe editor={props.editor} />,
+                    'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
+                    'weekly': <WeeklyLoupe editor={props.editor} />,
+                    'math': <MathLoupe editor={props.editor} />,
+                    'pomodoro': <PomodoroLoupe editor={props.editor} />,
+                    'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
+                }[props.currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />
+            }
+            <ActionSwitch
+                editor={props.editor}
+                selectedAction={selectedAction}
+                nodeType={props.currentNodeType}
+            />
+        </div>
+    )
+})
+
+FlowMenuContent.displayName = 'FlowMenuContent'
+
+export const AtlasKeyboardAccessoryFlowMenu = (props: { editor: Editor }) => {
+    const elementRef = React.useRef<HTMLDivElement>(null)
+    const [currentNodeType, setCurrentNodeType] = React.useState<string>(() =>
+        resolveFlowMenuNodeType(props.editor, null)
+    )
+    const [isEditorActive, setIsEditorActive] = React.useState<boolean>(() => {
+        try {
+            return props.editor.isFocused || props.editor.view.hasFocus()
+        } catch {
+            return props.editor.isFocused
+        }
+    })
+    const [keyboardBottomInset, setKeyboardBottomInset] = React.useState(0)
+    const [keyboardBottomOffset, setKeyboardBottomOffset] = React.useState(10)
+    const [forcedKeyboardBottomOffset, setForcedKeyboardBottomOffset] = React.useState<number | null>(null)
+    const [isKeyboardVisible, setIsKeyboardVisible] = React.useState(false)
+    const [nativeKeyboardInset, setNativeKeyboardInset] = React.useState(0)
+
+    React.useEffect(() => {
+        const syncNodeType = () => {
+            setCurrentNodeType(resolveFlowMenuNodeType(props.editor, null))
+        }
+
+        props.editor.on('selectionUpdate', syncNodeType)
+        props.editor.on('transaction', syncNodeType)
+        syncNodeType()
+
+        return () => {
+            props.editor.off('selectionUpdate', syncNodeType)
+            props.editor.off('transaction', syncNodeType)
+        }
+    }, [props.editor])
+
+    React.useEffect(() => {
+        const markFocused = () => setIsEditorActive(true)
+        const markBlurred = () => {
+            window.setTimeout(() => {
+                const activeElement = document.activeElement
+                if (activeElement && elementRef.current?.contains(activeElement)) {
+                    return
+                }
+                setIsEditorActive(false)
+            }, 120)
+        }
+
+        props.editor.on('focus', markFocused)
+        props.editor.on('blur', markBlurred)
+
+        return () => {
+            props.editor.off('focus', markFocused)
+            props.editor.off('blur', markBlurred)
+        }
+    }, [props.editor])
+
+    React.useEffect(() => {
+        const updateKeyboardInset = () => {
+            const visualViewport = window.visualViewport
+            const visualViewportInset = visualViewport
+                ? Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
+                : 0
+            const keyboardInset = Math.max(visualViewportInset, nativeKeyboardInset)
+            const nextIsKeyboardVisible = keyboardInset > 80
+            const visualViewportAlreadyResized = !!visualViewport && visualViewportInset > 80
+
+            setIsKeyboardVisible(nextIsKeyboardVisible)
+            setKeyboardBottomInset(keyboardInset)
+            setKeyboardBottomOffset(
+                forcedKeyboardBottomOffset ?? (visualViewportAlreadyResized ? 10 : Math.max(10, keyboardInset + 8))
+            )
+        }
+
+        updateKeyboardInset()
+        window.visualViewport?.addEventListener('resize', updateKeyboardInset)
+        window.visualViewport?.addEventListener('scroll', updateKeyboardInset)
+        window.addEventListener('resize', updateKeyboardInset)
+
+        return () => {
+            window.visualViewport?.removeEventListener('resize', updateKeyboardInset)
+            window.visualViewport?.removeEventListener('scroll', updateKeyboardInset)
+            window.removeEventListener('resize', updateKeyboardInset)
+        }
+    }, [forcedKeyboardBottomOffset, nativeKeyboardInset])
+
+    React.useEffect(() => {
+        const handleNativeKeyboardInset = (event: Event) => {
+            const detail = (event as CustomEvent<{ bottomInset?: number, bottomOffset?: number }>).detail
+            const bottomInset = typeof detail?.bottomInset === 'number' ? detail.bottomInset : 0
+            const bottomOffset = typeof detail?.bottomOffset === 'number' ? Math.max(0, detail.bottomOffset) : null
+            setNativeKeyboardInset(Math.max(0, bottomInset))
+            setForcedKeyboardBottomOffset(bottomOffset)
+        }
+
+        window.addEventListener('kairos-native-keyboard-inset', handleNativeKeyboardInset)
+
+        return () => {
+            window.removeEventListener('kairos-native-keyboard-inset', handleNativeKeyboardInset)
+        }
+    }, [])
+
+    React.useEffect(() => {
+        const padding = isKeyboardVisible ? `${keyboardBottomInset + 76}px` : '0px'
+        document.documentElement.style.setProperty('--kairos-ios-flow-menu-bottom-padding', padding)
+
+        return () => {
+            document.documentElement.style.removeProperty('--kairos-ios-flow-menu-bottom-padding')
+        }
+    }, [isKeyboardVisible, keyboardBottomInset])
+
+    if (!isKeyboardVisible) {
+        return null
+    }
+
+    return (
+        <motion.div
+            ref={elementRef}
+            className="atlas-keyboard-accessory-flow-menu"
+            data-atlas-keyboard-accessory-flow-menu="true"
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{
+                position: 'fixed',
+                left: 8,
+                right: 8,
+                bottom: keyboardBottomOffset,
+                zIndex: 10020,
+                boxSizing: 'border-box',
+                minHeight: 48,
+                maxHeight: 58,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 12px',
+                borderRadius: 26,
+                border: '1px solid rgba(220, 220, 220, 0.78)',
+                backgroundColor: 'rgba(255, 255, 255, 0.82)',
+                boxShadow: '0 12px 42px rgba(15, 23, 42, 0.18), 0 1px 2px rgba(15, 23, 42, 0.08)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                overflowX: 'auto',
+                overflowY: 'visible',
+                overscrollBehaviorX: 'contain',
+                WebkitOverflowScrolling: 'touch',
+                transform: 'translate3d(0, 0, 0)',
+            }}
+        >
+            <FlowMenuContent
+                editor={props.editor}
+                currentNodeType={currentNodeType}
+            />
+        </motion.div>
+    )
+}
+
 export const FlowMenu = (props: { editor: Editor }) => {
     const elementRef = React.useRef<HTMLDivElement>(null);
     const lastGripSelectionContextRef = React.useRef<GripSelectionContext | null>(null)
@@ -2311,13 +2528,6 @@ export const FlowMenu = (props: { editor: Editor }) => {
         }
     }, [selection])
 
-    const font = props.editor.getAttributes('textStyle').fontFamily;
-    const fontSize = props.editor.getAttributes('textStyle').fontSize
-    const justification = props.editor.isActive('paragraph')
-        ? props.editor.getAttributes('paragraph').textAlign
-        : props.editor.getAttributes('heading').textAlign
-        || 'left';
-
     return (
         <BubbleMenu
             editor={props.editor}
@@ -2355,33 +2565,10 @@ export const FlowMenu = (props: { editor: Editor }) => {
                 style={flowMenuStyle()}
                 className="flow-menu"
             >
-                {/* Loupe component first (leftmost) - contains Lens, Tag, and node-specific options */}
-                {
-                    {
-                        'text': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
-                        'paragraph': <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} />,
-                        'group': <GroupLoupe editor={props.editor} />,
-                        'canvas3D': <Canvas3DLoupe editor={props.editor} />,
-                        'mapboxMap': <MapboxMapLoupe editor={props.editor} />,
-                        'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
-                        'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
-                        'trends': <TemporalOrderLoupe editor={props.editor} />,
-                        'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
-                        'glowNetwork': <ForceGraph3DLoupe editor={props.editor} />,
-                        'scrollview': <></>,
-                        'portal': <PortalLoupe editor={props.editor} />,
-                        'externalPortal': <ExternalPortalLoupe editor={props.editor} />,
-                        'weekly': <WeeklyLoupe editor={props.editor} />,
-                        'math': <MathLoupe editor={props.editor} />,
-                        'pomodoro': <PomodoroLoupe editor={props.editor} />,
-                        'invalid': <>Uh oh, seems like the current node type is invalid, which means it's unsupported. Developer needs to support this node type.</>
-                    }[currentNodeType] ?? <RichTextLoupe editor={props.editor} font={font} fontSize={fontSize} justification={justification} /> // Default fallback
-                }
-                {/* ActionSwitch (Copy, timestamp) comes after the Loupe */}
-                <ActionSwitch 
-                    editor={props.editor} 
-                    selectedAction={selectedAction} 
-                    nodeType={currentNodeType}
+                <FlowMenuContent
+                    editor={props.editor}
+                    currentNodeType={currentNodeType}
+                    selectedAction={selectedAction}
                 />
             </motion.div>
         </BubbleMenu>

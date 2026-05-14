@@ -23,7 +23,7 @@ import { QuantaClass, QuantaType, TextSectionLens, RichTextT } from '../../core/
 import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
-import { DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
+import { AtlasKeyboardAccessoryFlowMenu, DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
@@ -2733,13 +2733,59 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   // TODO: Change this to proper responsiveness for each screen size
   const maxWidth = 1300
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !editor) return;
+
+    const handleNativeEditorCommand = (event: Event) => {
+      const detail = (event as CustomEvent<{ command?: string }>).detail;
+      const command = detail?.command;
+      const chain = (editor as Editor).chain().focus() as any;
+
+      if (command === 'bold') chain.toggleBold().run();
+      if (command === 'italic') chain.toggleItalic().run();
+      if (command === 'underline') chain.toggleUnderline().run();
+      if (command === 'strike') chain.toggleStrike().run();
+      if (command === 'code') chain.toggleCode().run();
+      if (command === 'paragraph') chain.setParagraph().run();
+      if (command === 'link') {
+        if ((editor as Editor).isActive('link')) {
+          chain.unsetLink().run();
+          return;
+        }
+
+        const href = window.prompt('URL');
+        if (href) {
+          chain.setLink({ href }).run();
+        }
+      }
+      if (command === 'math') {
+        chain.insertContent({
+          type: 'math',
+          attrs: {
+            lensDisplay: 'natural',
+            lensEvaluation: 'evaluate',
+            equationValue: '',
+          },
+        }).run();
+      }
+    };
+
+    window.addEventListener('kairos-native-editor-command', handleNativeEditorCommand);
+
+    return () => {
+      window.removeEventListener('kairos-native-editor-command', handleNativeEditorCommand);
+    };
+  }, [editor]);
+
   if (editor) {
     if (process.env.NODE_ENV === 'development') {
       // console.debug(editor.schema)
     }
 
     const urlParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
-    const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true';
+    const isIOSEmbed = urlParams?.get('iosEmbed') === 'true';
+    const useKeyboardAccessoryFlowMenu = urlParams?.get('flowMenuPlacement') === 'keyboardAccessory';
+    const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true' || useKeyboardAccessoryFlowMenu || isIOSEmbed;
 
     return (
       <div
@@ -2755,6 +2801,9 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
               {/* This menu floats above selected text or nodes */}
               <FlowMenu editor={editor as Editor} />
             </div>
+          ) : null}
+          {useKeyboardAccessoryFlowMenu ? (
+            <AtlasKeyboardAccessoryFlowMenu editor={editor as Editor} />
           ) : null}
           <div>
             <EditorContent editor={editor as Editor} />
