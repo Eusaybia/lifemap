@@ -58,7 +58,7 @@ interface NodeConnection {
   targetId: string
   sourceType: ConnectableType
   targetType: ConnectableType
-  connectionKind?: 'temporal-order' | 'association' | 'manual'
+  connectionKind?: 'temporal-order' | 'physical-order' | 'association' | 'manual'
   createdBy?: string
   cue?: string
   sourceLabel?: string
@@ -175,6 +175,16 @@ const getLocationElementByLabel = (label?: string): HTMLElement | null => {
     .find((element) => element.getAttribute('data-location-name') === label) as HTMLElement | undefined ?? null
 }
 
+const getLocationElementLabel = (element: HTMLElement): string | undefined => {
+  const explicitName = element.getAttribute('data-location-name')
+  if (explicitName?.trim()) return explicitName.trim()
+
+  const explicitLabel = element.getAttribute('data-location-label')
+  const rawLabel = explicitLabel || element.textContent || ''
+  const label = rawLabel.replace(/^📍\s*/, '').trim()
+  return label || undefined
+}
+
 const getConnectionEndpointElement = (
   conn: NodeConnection,
   endpoint: 'source' | 'target',
@@ -243,12 +253,16 @@ type ConnectionPath = {
   targetId: string
   sourceType: ConnectableType
   targetType: ConnectableType
-  connectionKind?: 'temporal-order' | 'association' | 'manual'
+  connectionKind?: 'temporal-order' | 'physical-order' | 'association' | 'manual'
   temporalFutureIndex?: number
   temporalFutureTotal?: number
 }
 
 const PATH_CURVE_OFFSET = 50
+const isTemporalOrderVisualConnection = (connectionKind?: NodeConnection['connectionKind']) => (
+  connectionKind === 'temporal-order' || connectionKind === 'physical-order'
+)
+
 const buildQuadraticPath = (
   x1: number,
   y1: number,
@@ -310,8 +324,9 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const pendingRaf = useRef<number | null>(null)
   const hoverHideTimeoutRef = useRef<number | null>(null)
   const connectionsSignatureRef = useRef('')
-  const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association'
-  const isTemporalOrderMode = editorMode === 'temporal-order'
+  const isLocationConnectionMode = editorMode === 'location-connection'
+  const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association' || isLocationConnectionMode
+  const isTemporalOrderMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || isLocationConnectionMode
   const isAssociationMode = editorMode === 'association'
 
   // Load connections on mount
@@ -400,6 +415,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     if (!elementInfo) return
     
     const { element, id: elementId, type: elementType } = elementInfo
+    if (isLocationConnectionMode && elementType !== 'location') return
     
     event.preventDefault()
     event.stopPropagation()
@@ -444,17 +460,24 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         return
       }
       
+      const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
+      const connectionKind: NodeConnection['connectionKind'] = editorMode === 'temporal-order'
+        ? 'temporal-order'
+        : editorMode === 'physical-order' || isLocationConnectionMode
+          ? 'physical-order'
+          : editorMode === 'association'
+            ? 'association'
+            : 'manual'
       const newConnection: NodeConnection = {
         id: generateConnectionId(),
         sourceId: pendingSource.id,
         targetId: elementId,
         sourceType: pendingSource.type,
         targetType: elementType,
-        connectionKind: editorMode === 'temporal-order'
-          ? 'temporal-order'
-          : editorMode === 'association'
-            ? 'association'
-            : 'manual',
+        connectionKind,
+        createdBy: isLocationConnectionMode ? 'manualLocationConnection' : undefined,
+        sourceLabel: pendingSource.type === 'location' && sourceElement ? getLocationElementLabel(sourceElement) : undefined,
+        targetLabel: elementType === 'location' ? getLocationElementLabel(element) : undefined,
       }
       
       const updatedConnections = [...connections, newConnection]
@@ -463,15 +486,20 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       
       console.log('[NodeConnectionManager] Created connection:', newConnection)
       
-      const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
       if (sourceElement) {
         sourceElement.style.outline = ''
         sourceElement.style.outlineOffset = ''
       }
       
-      setPendingSource(null)
+      if (isLocationConnectionMode) {
+        setPendingSource({ id: elementId, type: elementType })
+        element.style.outline = '2px solid #007AFF'
+        element.style.outlineOffset = '2px'
+      } else {
+        setPendingSource(null)
+      }
     }
-  }, [connections, editorMode, isConnectionMode, pendingSource])
+  }, [connections, editorMode, isConnectionMode, isLocationConnectionMode, pendingSource])
 
   // Add/remove click listener based on mode
   useEffect(() => {
@@ -510,7 +538,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   }, [isConnectionMode])
 
   const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right', connectionKind?: NodeConnection['connectionKind']) => {
-    if (connectionKind === 'temporal-order') {
+    if (isTemporalOrderVisualConnection(connectionKind)) {
       const gripAnchor = getLocationGripAnchorPoint(elem)
       if (gripAnchor) return gripAnchor
     }
@@ -535,7 +563,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
   const computeConnectionPaths = useCallback((connectionsToRender: NodeConnection[] = connections): ConnectionPath[] => {
     const side = getConnectionSide()
-    const temporalFutureTotal = connectionsToRender.filter((conn) => conn.connectionKind === 'temporal-order').length
+    const temporalFutureTotal = connectionsToRender.filter((conn) => isTemporalOrderVisualConnection(conn.connectionKind)).length
     let temporalFutureIndex = 0
     
     return connectionsToRender.map((conn) => {
@@ -552,7 +580,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       
       const sourcePoint = getAnchorPoint(sourceElement, side, conn.connectionKind)
       const targetPoint = getAnchorPoint(targetElement, side, conn.connectionKind)
-      const isTemporalOrderConnection = conn.connectionKind === 'temporal-order'
+      const isTemporalOrderConnection = isTemporalOrderVisualConnection(conn.connectionKind)
 
       const x1 = isTemporalOrderConnection
         ? sourcePoint.x
@@ -842,7 +870,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         }}
       >
         {connectionPaths.map((conn) => {
-          const usesTemporalOrderStyle = isTemporalOrderMode || conn.connectionKind === 'temporal-order'
+          const usesTemporalOrderStyle = isTemporalOrderMode || isTemporalOrderVisualConnection(conn.connectionKind)
           const usesAssociationStyle = isAssociationMode || conn.connectionKind === 'association'
 
           return (

@@ -12,6 +12,7 @@ import FormatAlignCentre from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRight from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustify from '@mui/icons-material/FormatAlignJustify';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
@@ -1105,6 +1106,17 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                         <span>🔗 Temporal Order</span>
                     </motion.div>
                 </Option>
+                <Option
+                    value="location-connection"
+                    onClick={() => {
+                        console.log('[DocumentFlowMenu] Switching to Location Connection mode');
+                        editor.commands.setDocumentAttribute({ editorMode: 'location-connection' });
+                    }}
+                >
+                    <motion.div>
+                        <span>📍→ Location Route</span>
+                    </motion.div>
+                </Option>
             </FlowSwitch>
             <ActionSwitch 
                 editor={editor} 
@@ -1730,6 +1742,8 @@ const MathLoupe = React.memo((props: { editor: Editor }) => {
 // Need to add additional state variables that currently have a placeholder using justification
 // Memoize RichTextLoupe
 const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
+    const documentAttributes = useDocumentAttributes()
+    const isLocationConnectionMode = documentAttributes.editorMode === 'location-connection'
     const [formatState, setFormatState] = React.useState(() => ({
         bold: props.editor.isActive('bold'),
         italic: props.editor.isActive('italic'),
@@ -1765,11 +1779,27 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
         }
     }, [props.editor])
 
+    const toggleLocationConnectionMode = React.useCallback(() => {
+        props.editor.commands.setDocumentAttribute({
+            editorMode: isLocationConnectionMode ? 'editing' : 'location-connection',
+        })
+    }, [isLocationConnectionMode, props.editor])
+
     return (
         <div
             style={{ display: "flex", gap: 5, height: "fit-content", overflowX: "scroll", alignItems: "center", overflow: "visible" }}>
             <Tag>
                 Rich Text
+            </Tag>
+            <Tag isLens>
+                <IconButton
+                    aria-label="Connect locations"
+                    title="Connect locations"
+                    size="sm"
+                    onClick={toggleLocationConnectionMode}
+                    variant={isLocationConnectionMode ? "solid" : "plain"}>
+                    <ArrowForwardIcon />
+                </IconButton>
             </Tag>
             <FlowSwitch value={props.font} isLens>
                 <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>

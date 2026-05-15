@@ -93,7 +93,7 @@ interface NodeConnectionRecord {
   targetId?: string
   sourceType?: string
   targetType?: string
-  connectionKind?: 'temporal-order' | 'association' | 'manual'
+  connectionKind?: 'temporal-order' | 'physical-order' | 'association' | 'manual'
 }
 
 interface TemporalRoutePath {
@@ -423,7 +423,11 @@ const buildConnectedLocationRoutes = (
     const sourceId = connection.sourceId
     const targetId = connection.targetId
     if (!sourceId || !targetId) return
-    if (connection.connectionKind && connection.connectionKind !== 'temporal-order') return
+    if (
+      connection.connectionKind &&
+      connection.connectionKind !== 'temporal-order' &&
+      connection.connectionKind !== 'physical-order'
+    ) return
     if (!locationsByConnectionId.has(sourceId) || !locationsByConnectionId.has(targetId)) return
 
     const sourceLocation = locationsByConnectionId.get(sourceId)

@@ -31,7 +31,7 @@ declare module '@tiptap/core' {
 }
 
 // Define the structure of the attributes
-export type EditorMode = 'editing' | 'temporal-order' | 'physical-order' | 'association';
+export type EditorMode = 'editing' | 'temporal-order' | 'physical-order' | 'association' | 'location-connection';
 
 export interface DocumentAttributes {
   selectedFocusLens: 'admin-editing' | 'call-mode' | 'learning-mode' | 'dev-mode';
@@ -60,8 +60,11 @@ export const defaultDocumentAttributes: DocumentAttributes = {
 const LOCAL_STORAGE_KEY = 'tiptapDocumentAttributes';
 
 const normalizeEditorMode = (editorMode: unknown): EditorMode => {
-  if (editorMode === 'physical-order' || editorMode === 'physical-connection') return 'temporal-order';
-  if (editorMode === 'association') return 'temporal-order';
+  if (editorMode === 'physical-order' || editorMode === 'physical-connection') return 'physical-order';
+  if (editorMode === 'association') return 'association';
+  if (editorMode === 'location-connection' || editorMode === 'location-route' || editorMode === 'locationRoute') {
+    return 'location-connection';
+  }
   if (editorMode === 'temporal-order' || editorMode === 'mental-connection' || editorMode === 'connection') {
     return 'temporal-order';
   }

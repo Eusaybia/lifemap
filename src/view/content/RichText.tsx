@@ -66,6 +66,7 @@ import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/L
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
+
 import { WeeklyExtension, WeeklyQuantaExtension, LunarScheduleExtension, SeasonalScheduleExtension } from '../structure/WeeklyExtension'
 import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
@@ -102,6 +103,71 @@ import {
   writeInlineLocationClipboardSelection,
   writeInlinePersonClipboardSelection,
 } from '../clipboard/InternalClipboard'
+
+const slugifyNativeLocationId = (value: string): string => {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{Letter}\p{Number}-]/gu, '')
+    .slice(0, 80) || 'unknown'
+}
+
+const getDomSelectionRange = (editor: Editor): { from: number; to: number } | null => {
+  if (typeof window === 'undefined') return null
+
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null
+  if (!selection.anchorNode || !selection.focusNode) return null
+  if (!editor.view.dom.contains(selection.anchorNode) || !editor.view.dom.contains(selection.focusNode)) return null
+
+  try {
+    const anchor = editor.view.posAtDOM(selection.anchorNode, selection.anchorOffset)
+    const head = editor.view.posAtDOM(selection.focusNode, selection.focusOffset)
+    return {
+      from: Math.min(anchor, head),
+      to: Math.max(anchor, head),
+    }
+  } catch {
+    return null
+  }
+}
+
+const applyLocationTagToSelection = (editor: Editor): boolean => {
+  const { state, view } = editor
+  const locationType = state.schema.nodes.location
+  if (!locationType) return false
+
+  const domSelectionRange = getDomSelectionRange(editor)
+  const from = domSelectionRange?.from ?? state.selection.from
+  const to = domSelectionRange?.to ?? state.selection.to
+  if (from >= to) return false
+
+  const locationText = state.doc.textBetween(from, to, ' ').replace(/\s+/g, ' ').trim()
+  if (!locationText) return false
+
+  let intersectsExistingLocation = false
+  state.doc.nodesBetween(from, to, (node: any) => {
+    if (node.type?.name === 'location') {
+      intersectsExistingLocation = true
+      return false
+    }
+    return true
+  })
+
+  if (intersectsExistingLocation) return false
+
+  const node = locationType.create({
+    id: `loc:auto-${slugifyNativeLocationId(locationText)}`,
+    label: `📍 ${locationText}`,
+    'data-name': locationText,
+    'data-country': null,
+    'data-coords': null,
+  })
+
+  view.dispatch(state.tr.replaceWith(from, to, node).scrollIntoView())
+  return true
+}
 
 // Template quanta ID - this is the editable template in the Daily carousel
 // When empty, it will be initialized from the hardcoded TEMPLATE_SCHEMA in DailyScheduleTemplate.ts
@@ -2747,6 +2813,18 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (command === 'strike') chain.toggleStrike().run();
       if (command === 'code') chain.toggleCode().run();
       if (command === 'paragraph') chain.setParagraph().run();
+      if (command === 'location') {
+        applyLocationTagToSelection(editor as Editor);
+        return;
+      }
+      if (command === 'locationConnection' || command === 'location-connection') {
+        const currentAttributes = ((editor as Editor).commands as any).getDocumentAttributes?.();
+        const currentMode = currentAttributes?.editorMode;
+        ((editor as Editor).commands as any).setDocumentAttribute?.({
+          editorMode: currentMode === 'location-connection' ? 'editing' : 'location-connection',
+        });
+        return;
+      }
       if (command === 'link') {
         if ((editor as Editor).isActive('link')) {
           chain.unsetLink().run();
