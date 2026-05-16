@@ -32,6 +32,7 @@ import { CalculationExtension } from './CalculationTipTapExtension'
 import { FadeIn } from './FadeInExtension'
 import { CustomMention } from './Mention'
 import { TemporalFieldExtension, TimePointNode } from './TimePointMention'
+import { VideoTimestampNode, formatVideoTimestampLabel, readVideoTimestampSeconds } from './VideoTimestampMention'
 import { PomodoroNode } from './PomodoroNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
@@ -1028,6 +1029,7 @@ export const customExtensions: Extensions = [
   // ),
   // TimePoint mentions - triggered by @ for date insertion (Today, Tomorrow, etc.)
   TimePointNode,
+  VideoTimestampNode,
   TemporalFieldExtension,
   // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
@@ -1427,6 +1429,11 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const [visualScale, setVisualScale] = React.useState(1)
   const visualScaleRef = React.useRef(1)
+  const urlParams = React.useMemo(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search)
+  }, [])
+  const isIOSEmbed = urlParams?.get('iosEmbed') === 'true'
 
   
 
@@ -1517,11 +1524,145 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   const richTextRootStyle: React.CSSProperties & {
     '--quanta-content-scale': string
     '--quanta-content-scale-inverse': string
+    '--kairos-ios-keyboard-bottom-padding'?: string
   } = {
     width: '100%',
     '--quanta-content-scale': `${contentScaleCompensation}`,
     '--quanta-content-scale-inverse': `${inverseContentScaleCompensation}`,
+    ...(isIOSEmbed ? { '--kairos-ios-keyboard-bottom-padding': '0px' } : {}),
   }
+
+  React.useEffect(() => {
+    if (!editor || !isIOSEmbed || typeof window === 'undefined') return
+
+    const nativeWindow = window as Window & { __KAIROS_NATIVE_KEYBOARD_INSET__?: number }
+    let nativeKeyboardInset = Math.max(0, Number(nativeWindow.__KAIROS_NATIVE_KEYBOARD_INSET__) || 0)
+    let effectiveKeyboardInset = nativeKeyboardInset
+    let visualViewportAlreadyResized = false
+    let rafId: number | null = null
+    let settleTimeoutId: number | null = null
+
+    const readVisualViewportInset = () => {
+      const visualViewport = window.visualViewport
+      if (!visualViewport) return 0
+      return Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop)
+    }
+
+    const scrollSelectionAboveKeyboard = () => {
+      if (effectiveKeyboardInset <= 80) return
+
+      editor.commands.scrollIntoView()
+
+      const editorElement = rootRef.current?.querySelector('.ProseMirror')
+      if (!(editorElement instanceof HTMLElement)) return
+
+      const selection = window.getSelection()
+      if (!selection?.rangeCount || !selection.focusNode || !editorElement.contains(selection.focusNode)) {
+        return
+      }
+
+      const rangeRect = selection.getRangeAt(0).getBoundingClientRect()
+      const focusElement = selection.focusNode instanceof Element
+        ? selection.focusNode
+        : selection.focusNode.parentElement
+      const fallbackRect = focusElement?.getBoundingClientRect()
+      const targetRect = rangeRect.height > 0 || rangeRect.width > 0 ? rangeRect : fallbackRect
+      if (!targetRect) return
+
+      const visualViewport = window.visualViewport
+      const viewportTop = visualViewport?.offsetTop ?? 0
+      const viewportBottom = visualViewportAlreadyResized && visualViewport
+        ? visualViewport.offsetTop + visualViewport.height
+        : window.innerHeight - effectiveKeyboardInset
+      const bottomGuard = 24
+      const topGuard = 16
+
+      if (targetRect.bottom > viewportBottom - bottomGuard) {
+        window.scrollBy({
+          top: targetRect.bottom - viewportBottom + bottomGuard,
+          behavior: 'smooth',
+        })
+      } else if (targetRect.top < viewportTop + topGuard) {
+        window.scrollBy({
+          top: targetRect.top - viewportTop - topGuard,
+          behavior: 'smooth',
+        })
+      }
+    }
+
+    const scheduleKeyboardAwareScroll = () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null
+        scrollSelectionAboveKeyboard()
+      })
+
+      if (settleTimeoutId !== null) {
+        window.clearTimeout(settleTimeoutId)
+      }
+
+      settleTimeoutId = window.setTimeout(() => {
+        settleTimeoutId = null
+        scrollSelectionAboveKeyboard()
+      }, 180)
+    }
+
+    const applyKeyboardInset = (nextNativeKeyboardInset = nativeKeyboardInset) => {
+      nativeKeyboardInset = Math.max(0, Number(nextNativeKeyboardInset) || 0)
+      const visualViewportInset = readVisualViewportInset()
+      effectiveKeyboardInset = Math.max(nativeKeyboardInset, visualViewportInset)
+      visualViewportAlreadyResized = visualViewportInset > 80
+
+      const padding = effectiveKeyboardInset > 80 ? `${effectiveKeyboardInset + 76}px` : '0px'
+      document.documentElement.style.setProperty('--kairos-ios-flow-menu-bottom-padding', padding)
+      document.documentElement.style.setProperty('--kairos-ios-keyboard-bottom-padding', padding)
+      rootRef.current?.style.setProperty('--kairos-ios-keyboard-bottom-padding', padding)
+
+      if (effectiveKeyboardInset > 80) {
+        scheduleKeyboardAwareScroll()
+      }
+    }
+
+    const handleNativeKeyboardInset = (event: Event) => {
+      const detail = (event as CustomEvent<{ bottomInset?: number }>).detail
+      applyKeyboardInset(typeof detail?.bottomInset === 'number' ? detail.bottomInset : 0)
+    }
+
+    const handleViewportChange = () => {
+      applyKeyboardInset(nativeKeyboardInset)
+    }
+
+    applyKeyboardInset(nativeKeyboardInset)
+    window.addEventListener('kairos-native-keyboard-inset', handleNativeKeyboardInset)
+    window.visualViewport?.addEventListener('resize', handleViewportChange)
+    window.visualViewport?.addEventListener('scroll', handleViewportChange)
+    window.addEventListener('resize', handleViewportChange)
+    editor.on('focus', scheduleKeyboardAwareScroll)
+    editor.on('selectionUpdate', scheduleKeyboardAwareScroll)
+    editor.on('update', scheduleKeyboardAwareScroll)
+
+    return () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      if (settleTimeoutId !== null) {
+        window.clearTimeout(settleTimeoutId)
+      }
+      window.removeEventListener('kairos-native-keyboard-inset', handleNativeKeyboardInset)
+      window.visualViewport?.removeEventListener('resize', handleViewportChange)
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange)
+      window.removeEventListener('resize', handleViewportChange)
+      editor.off('focus', scheduleKeyboardAwareScroll)
+      editor.off('selectionUpdate', scheduleKeyboardAwareScroll)
+      editor.off('update', scheduleKeyboardAwareScroll)
+      document.documentElement.style.removeProperty('--kairos-ios-flow-menu-bottom-padding')
+      document.documentElement.style.removeProperty('--kairos-ios-keyboard-bottom-padding')
+      rootRef.current?.style.removeProperty('--kairos-ios-keyboard-bottom-padding')
+    }
+  }, [editor, isIOSEmbed])
 
   const { quantaId: scopedQuantaId } = React.useContext(QuantaStoreContext)
   const resolvedQuantaId = resolveCurrentQuantaId(scopedQuantaId)
@@ -2803,7 +2944,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     if (typeof window === 'undefined' || !editor) return;
 
     const handleNativeEditorCommand = (event: Event) => {
-      const detail = (event as CustomEvent<{ command?: string }>).detail;
+      const detail = (event as CustomEvent<{ command?: string, seconds?: number | string, label?: string }>).detail;
       const command = detail?.command;
       const chain = (editor as Editor).chain().focus() as any;
 
@@ -2813,6 +2954,17 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       if (command === 'strike') chain.toggleStrike().run();
       if (command === 'code') chain.toggleCode().run();
       if (command === 'paragraph') chain.setParagraph().run();
+      if (command === 'videoTimestamp') {
+        const seconds = readVideoTimestampSeconds(detail?.seconds);
+        chain.insertContent({
+          type: 'videoTimestamp',
+          attrs: {
+            seconds,
+            label: detail?.label || formatVideoTimestampLabel(seconds),
+          },
+        }).run();
+        return;
+      }
       if (command === 'location') {
         applyLocationTagToSelection(editor as Editor);
         return;
@@ -2860,8 +3012,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       // console.debug(editor.schema)
     }
 
-    const urlParams = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search);
-    const isIOSEmbed = urlParams?.get('iosEmbed') === 'true';
     const useKeyboardAccessoryFlowMenu = urlParams?.get('flowMenuPlacement') === 'keyboardAccessory';
     const hideFlowMenu = urlParams?.get('hideFlowMenu') === 'true' || useKeyboardAccessoryFlowMenu || isIOSEmbed;
 

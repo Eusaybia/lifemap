@@ -1194,6 +1194,31 @@
   }
 }
 
+.video-timestamp-mention {
+  @extend %inline-badge-base;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  opacity: 1;
+  touch-action: manipulation;
+  user-select: none;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+.video-timestamp-icon {
+  font-size: 0.82rem;
+}
+
 .location-grip {
   display: inline-block;
   width: 8px;
