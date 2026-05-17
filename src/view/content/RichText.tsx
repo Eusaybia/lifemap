@@ -43,9 +43,11 @@ import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
 import { AuraMention, AuraNode } from './AuraMention'
+import { AuraHighlightMark, type AuraHighlightState, isAuraHighlightState } from './AuraHighlightMark'
 import { TodoMention, TodoMentionNode } from './TodoMention'
 import { ToNotDoMention, ToNotDoMentionNode } from './ToNotDoMention'
 import { QuestionMention, QuestionMentionNode } from './QuestionMention'
+import { CommentMention, CommentMentionNode, insertCommentMentionAtRange } from './CommentMention'
 import { MotivationsMention, MotivationsMentionNode } from './MotivationsMention'
 import { CustomLink } from './Link'
 import { KeyValuePairExtension } from '../structure/KeyValuePairTipTapExtensions'
@@ -85,7 +87,7 @@ import { SpanGroupMark } from './SpanGroupMark'
 import { NodeConnectionManager } from './NodeConnectionManager'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
 import { BulletList, ListItem, ListKeymap, OrderedList, TaskItem, TaskList } from '@tiptap/extension-list'
-import { Focus, Gapcursor, Placeholder } from '@tiptap/extensions'
+import { Focus, Gapcursor, Placeholder, UndoRedo } from '@tiptap/extensions'
 import { FocusModePlugin } from '../plugins/FocusModePlugin'
 import { DocumentAttributeExtension, DocumentAttributes, defaultDocumentAttributes } from '../structure/DocumentAttributesExtension'
 import { motion } from 'framer-motion'
@@ -168,6 +170,25 @@ const applyLocationTagToSelection = (editor: Editor): boolean => {
 
   view.dispatch(state.tr.replaceWith(from, to, node).scrollIntoView())
   return true
+}
+
+const applyCommentMentionToSelection = (editor: Editor): boolean => {
+  const domSelectionRange = getDomSelectionRange(editor)
+  return insertCommentMentionAtRange(editor, domSelectionRange ?? undefined)
+}
+
+const applyAuraHighlightToSelection = (editor: Editor, auraState: AuraHighlightState): boolean => {
+  if (!isAuraHighlightState(auraState)) return false
+
+  const domSelectionRange = getDomSelectionRange(editor)
+  if (domSelectionRange && domSelectionRange.from < domSelectionRange.to) {
+    editor.commands.setTextSelection(domSelectionRange)
+  }
+
+  const { from, to } = editor.state.selection
+  if (from >= to) return false
+
+  return editor.chain().focus().setAuraHighlight(auraState).run()
 }
 
 // Template quanta ID - this is the editable template in the Daily carousel
@@ -1046,6 +1067,8 @@ export const customExtensions: Extensions = [
   // Merit/Demerit mentions - triggered by * for pros/cons, advantages/disadvantages
   MeritDemeritNode,
   MeritDemeritMention,
+  // Aura highlighting mark - selected text clarity/confusion state
+  AuraHighlightMark,
   // Finesse mentions - triggered by ^ for energy levels
   AuraNode,
   AuraMention,
@@ -1061,6 +1084,9 @@ export const customExtensions: Extensions = [
   // Left icon toggles between boxed question mark and light bulb
   QuestionMentionNode,
   QuestionMention,
+  // Comment mentions - selected text becomes an inline, expandable comment chip
+  CommentMentionNode,
+  CommentMention,
   // Motivations mentions - triggered by !! for inline motivation items
   // Has editable text and connection grip (no checkbox)
   MotivationsMentionNode,
@@ -1153,6 +1179,10 @@ export const TransclusionEditor = (information: RichTextT, isQuanta: boolean, re
 
   let generatedOfficialExtensions = officialExtensions(quanta.id)
 
+  if (informationType !== "yDoc") {
+    generatedOfficialExtensions.push(UndoRedo)
+  }
+
   const editor = useEditor({
     extensions: [...generatedOfficialExtensions, ...editorCustomExtensions(isLocalFirst), ...agents],
     editable: false,
@@ -1198,6 +1228,8 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         })
       )
     }
+  } else {
+    generatedOfficialExtensions.push(UndoRedo)
   } 
 
   // Create memoized throttled backup function (3 minutes = 180000ms)
@@ -2814,6 +2846,18 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       const command = detail?.command;
       const chain = (editor as Editor).chain().focus() as any;
 
+      if (command === 'undo') {
+        if (typeof chain.undo === 'function') {
+          chain.undo().run();
+        }
+        return;
+      }
+      if (command === 'redo') {
+        if (typeof chain.redo === 'function') {
+          chain.redo().run();
+        }
+        return;
+      }
       if (command === 'bold') chain.toggleBold().run();
       if (command === 'italic') chain.toggleItalic().run();
       if (command === 'underline') chain.toggleUnderline().run();
@@ -2833,6 +2877,22 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       }
       if (command === 'location') {
         applyLocationTagToSelection(editor as Editor);
+        return;
+      }
+      if (command === 'comment') {
+        applyCommentMentionToSelection(editor as Editor);
+        return;
+      }
+      if (command === 'auraConfused' || command === 'aura-confused') {
+        applyAuraHighlightToSelection(editor as Editor, 'confused');
+        return;
+      }
+      if (command === 'auraSemiKnown' || command === 'aura-semi-known') {
+        applyAuraHighlightToSelection(editor as Editor, 'semi-known');
+        return;
+      }
+      if (command === 'auraClear' || command === 'aura-clear') {
+        applyAuraHighlightToSelection(editor as Editor, 'clear');
         return;
       }
       if (command === 'locationConnection' || command === 'location-connection') {

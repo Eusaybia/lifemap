@@ -24,6 +24,54 @@
     padding: 0.125em 0;
   }
 
+  .aura-highlight {
+    border-radius: 0.28em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    padding: 0.08em 0.12em;
+  }
+
+  .aura-highlight-confused {
+    color: #f8fafc;
+    background-color: rgba(17, 24, 39, 0.66);
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.22) 0 0.04em, transparent 0.08em),
+      radial-gradient(circle at 78% 34%, rgba(255, 255, 255, 0.16) 0 0.035em, transparent 0.075em),
+      radial-gradient(circle at 36% 74%, rgba(0, 0, 0, 0.24) 0 0.05em, transparent 0.09em),
+      repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0 0.025em, transparent 0.03em 0.18em);
+    background-size: 0.9em 0.9em, 1.15em 1.15em, 0.78em 0.78em, 0.55em 0.55em;
+    box-shadow:
+      0 0 0.42em rgba(17, 24, 39, 0.42),
+      inset 0 0 0.38em rgba(0, 0, 0, 0.26);
+    text-shadow: 0 0 0.18em rgba(255, 255, 255, 0.18);
+  }
+
+  .aura-highlight-semi-known {
+    color: #111827;
+    background-color: rgba(17, 24, 39, 0.20);
+    background-image:
+      radial-gradient(circle at 18% 28%, rgba(0, 0, 0, 0.18) 0 0.03em, transparent 0.07em),
+      radial-gradient(circle at 68% 62%, rgba(255, 255, 255, 0.28) 0 0.035em, transparent 0.075em),
+      repeating-radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.07) 0 0.02em, transparent 0.025em 0.16em);
+    background-size: 0.8em 0.8em, 0.95em 0.95em, 0.5em 0.5em;
+    box-shadow:
+      0 0 0.24em rgba(17, 24, 39, 0.12),
+      inset 0 0 0.28em rgba(255, 255, 255, 0.22);
+  }
+
+  .aura-highlight-clear {
+    color: #0f172a;
+    background:
+      linear-gradient(90deg, rgba(255, 250, 219, 0.46), rgba(255, 255, 255, 0.88), rgba(255, 244, 186, 0.50));
+    box-shadow:
+      0 0 0.42em rgba(255, 231, 120, 0.42),
+      0 0 1em rgba(255, 246, 196, 0.30),
+      inset 0 0 0.24em rgba(255, 255, 255, 0.72);
+    text-shadow:
+      0 0 0.28em rgba(255, 236, 148, 0.72),
+      0 0 0.78em rgba(255, 255, 255, 0.62);
+  }
+
   p {
     margin: 0px 0;
     line-height: 1.35;

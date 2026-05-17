@@ -987,6 +987,59 @@
 }
 
 // ============================================================================
+// Comment Mention Styles (selected-span inline comments)
+// ============================================================================
+
+.comment-mention {
+  -webkit-tap-highlight-color: transparent;
+  max-width: min(100%, 68ch);
+  overflow: hidden;
+}
+
+.comment-mention-shell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.comment-mention-icon {
+  width: 1em;
+  height: 1em;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: default;
+
+  &:hover {
+    border: 0;
+    background: transparent;
+  }
+}
+
+.comment-mention-input {
+  max-width: min(62ch, calc(100vw - 6rem));
+}
+
+.comment-mention-text {
+  display: inline-block;
+  min-width: 0;
+  max-width: min(62ch, calc(100vw - 6rem));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.comment-mention-collapsed .comment-mention-text {
+  max-width: min(42ch, calc(100vw - 7rem));
+}
+
+.comment-mention-expanded .comment-mention-text {
+  white-space: normal;
+}
+
+// ============================================================================
 // Motivations Mention Styles (!! motivation insertion)
 // ============================================================================
 
