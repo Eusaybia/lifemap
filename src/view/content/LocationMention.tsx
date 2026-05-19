@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import mapboxgl from 'mapbox-gl'
 import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
+import { shouldSuppressLocationTagMapPopup } from './MapboxMapShared'
 
 // Unique plugin key to avoid conflicts with other extensions
 const LocationPluginKey = new PluginKey('location-suggestion')
@@ -290,6 +291,8 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
   
   // Load Mapbox CSS BEFORE initializing map
   useEffect(() => {
+    if (shouldSuppressLocationTagMapPopup()) return
+
     const existingLink = document.querySelector<HTMLLinkElement>('link[data-mapbox-gl-css="true"]')
     if (existingLink) {
       setCssLoaded(true)
@@ -317,6 +320,7 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
 
   // Initialize map when expanded - use requestAnimationFrame to wait for DOM
   useEffect(() => {
+    if (shouldSuppressLocationTagMapPopup()) return
     if (!isExpanded || !cssLoaded || !MAPBOX_ACCESS_TOKEN) return
 
     let cancelled = false
@@ -525,6 +529,19 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    if (shouldSuppressLocationTagMapPopup()) {
+      try {
+        const pos = getPos()
+        if (typeof pos === 'number') {
+          editor.chain().focus().setNodeSelection(pos).run()
+        }
+      } catch {
+        // Ignore stale positions when the node is being removed.
+      }
+      setIsExpanded(false)
+      return
+    }
     
     // Calculate position before expanding
     if (tagRef.current && !isExpanded) {

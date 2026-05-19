@@ -9,6 +9,7 @@ import {
   ensureMapboxCssLoaded,
   forceMapboxLayout,
   MAPBOX_ACCESS_TOKEN,
+  shouldSuppressLocationTagMapPopup,
   type MapViewportSize,
 } from '../content/MapboxMapShared'
 import {
@@ -701,6 +702,12 @@ const TemporalOrderGeoMapView: React.FC<{
       })
 
       const handleMarkerClick = (event: { features?: Array<{ properties?: Record<string, unknown> }> }) => {
+        if (shouldSuppressLocationTagMapPopup()) {
+          popupRef.current?.remove()
+          popupRef.current = null
+          return
+        }
+
         const markerId = typeof event.features?.[0]?.properties?.markerId === 'string'
           ? event.features?.[0]?.properties?.markerId
           : null
@@ -1054,29 +1061,24 @@ const TemporalOrderImportedMapView: React.FC<{
           anchor: 'center',
         })
           .setLngLat([markerData.lng, markerData.lat])
-          .setPopup(
-            new mapboxgl.Popup({
-              className: 'location-tag-map-popup',
-              closeButton: false,
-              closeOnClick: true,
-              offset: 18,
-            }).setDOMContent(buildLocationTagPopupContent(markerData.tagLabels || [markerData.label])),
-          )
           .addTo(mapRef.current)
       : new mapboxgl.Marker({
           color: '#e11d48',
           scale: 1.1,
         })
           .setLngLat([markerData.lng, markerData.lat])
-          .setPopup(
-            new mapboxgl.Popup({
-              className: 'location-tag-map-popup',
-              closeButton: false,
-              closeOnClick: true,
-              offset: 18,
-            }).setDOMContent(buildLocationTagPopupContent(markerData.tagLabels || [markerData.label])),
-          )
           .addTo(mapRef.current)
+
+    if (!shouldSuppressLocationTagMapPopup()) {
+      marker.setPopup(
+        new mapboxgl.Popup({
+          className: 'location-tag-map-popup',
+          closeButton: false,
+          closeOnClick: true,
+          offset: 18,
+        }).setDOMContent(buildLocationTagPopupContent(markerData.tagLabels || [markerData.label])),
+      )
+    }
 
     applyMarkerDataset(marker.getElement())
     return marker

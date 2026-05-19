@@ -98,6 +98,26 @@ export const forceMapboxLayout = (container: HTMLDivElement | null) => {
   }
 }
 
+type NativeBridgeWindow = Window & {
+  webkit?: {
+    messageHandlers?: Record<string, unknown>
+  }
+}
+
+export const shouldSuppressLocationTagMapPopup = (): boolean => {
+  if (typeof window === 'undefined') return false
+
+  const nativeBridge = (window as NativeBridgeWindow).webkit?.messageHandlers
+  if (nativeBridge && Object.keys(nativeBridge).length > 0) {
+    return true
+  }
+
+  const hasTouchInput = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0
+  const coarsePointer = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches ?? false
+  const narrowViewport = window.matchMedia?.('(max-width: 768px)').matches ?? false
+  return hasTouchInput && (coarsePointer || narrowViewport)
+}
+
 export const buildStaticMapUrl = (
   requestedStyle: string | undefined,
   markers: MapMarker[],

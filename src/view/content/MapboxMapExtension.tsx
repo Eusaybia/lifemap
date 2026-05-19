@@ -21,6 +21,7 @@ import {
   ensureMapboxCssLoaded,
   forceMapboxLayout,
   MAPBOX_ACCESS_TOKEN,
+  shouldSuppressLocationTagMapPopup,
   type MapViewportSize,
 } from './MapboxMapShared'
 import {
@@ -712,7 +713,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
       scale: 1.1,
     })
       .setLngLat([markerData.lng, markerData.lat])
-      .setPopup(
+
+    if (!shouldSuppressLocationTagMapPopup()) {
+      marker.setPopup(
         new mapboxgl.Popup({
           className: 'location-tag-map-popup',
           closeButton: false,
@@ -720,6 +723,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           offset: 18,
         }).setDOMContent(buildLocationMarkerPopupContent(markerData)),
       )
+    }
+
+    marker
       .addTo(map.current)
 
     const markerElement = marker.getElement()
