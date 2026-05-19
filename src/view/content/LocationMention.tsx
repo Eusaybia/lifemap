@@ -26,6 +26,18 @@ const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
 
+const splitLocationPinLabel = (label?: string | null) => {
+  const trimmedLabel = (label || '').trim()
+  if (!trimmedLabel.startsWith('📍')) {
+    return { pin: '📍', text: trimmedLabel }
+  }
+
+  return {
+    pin: '📍',
+    text: trimmedLabel.replace(/^📍\s*/, ''),
+  }
+}
+
 const configureMapboxWorker = () => {
   const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
   if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
@@ -241,6 +253,7 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
   const name = attrs['data-name'] || label
   const coordsStr = attrs['data-coords']
   const locationConnectionId = attrs.locationId
+  const labelParts = splitLocationPinLabel(label)
   
   // Parse coordinates
   let coords: [number, number] | null = null
@@ -595,7 +608,10 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
           }}
           title="Drag to move"
         />
-        {label}
+        <span className="location-pin-anchor" aria-hidden="true">
+          {labelParts.pin}
+        </span>
+        {labelParts.text ? <span className="location-label-text">{labelParts.text}</span> : null}
       </span>
       <AnimatePresence>
         {isExpanded && (

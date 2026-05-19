@@ -7,6 +7,9 @@ import {
   TEMPORAL_ARROW_GLOW,
   TEMPORAL_ARROW_GLOW_STRONG,
   TEMPORAL_ARROW_STROKE,
+  LOCATION_CONNECTOR_GLOW,
+  LOCATION_CONNECTOR_STROKE,
+  LocationConnectorVisual,
   TemporalArrowVisual,
 } from './TemporalArrowVisual'
 
@@ -290,7 +293,32 @@ const getQuadraticPoint = (
 
 const getConnectionSide = (): 'left' | 'right' => 'right'
 
-const getLocationGripAnchorPoint = (elem: HTMLElement) => {
+const getLocationPinAnchorPoint = (elem: HTMLElement) => {
+  const pin = elem.querySelector('.location-pin-anchor') as HTMLElement | null
+  if (pin) {
+    const rect = pin.getBoundingClientRect()
+    if (rect.width > 0 || rect.height > 0) {
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.bottom - 1,
+      }
+    }
+  }
+
+  if (elem.classList.contains('location-mention')) {
+    const grip = elem.querySelector('.location-grip') as HTMLElement | null
+    const rect = elem.getBoundingClientRect()
+    const gripRect = grip?.getBoundingClientRect()
+    const pinWidth = Math.min(18, Math.max(12, rect.height * 0.72))
+    const gap = Number.parseFloat(window.getComputedStyle(elem).columnGap || '0') || 4
+    const pinLeft = gripRect ? gripRect.right + gap : rect.left + 6
+
+    return {
+      x: pinLeft + pinWidth / 2,
+      y: rect.top + rect.height * 0.68,
+    }
+  }
+
   const grip = elem.querySelector('.location-grip') as HTMLElement | null
   if (!grip) return null
 
@@ -328,6 +356,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association' || isLocationConnectionMode
   const isTemporalOrderMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || isLocationConnectionMode
   const isAssociationMode = editorMode === 'association'
+  const usesRouteConnectorCursor = editorMode === 'physical-order' || isLocationConnectionMode
 
   // Load connections on mount
   useEffect(() => {
@@ -539,8 +568,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
   const getAnchorPoint = useCallback((elem: HTMLElement, side: 'left' | 'right', connectionKind?: NodeConnection['connectionKind']) => {
     if (isTemporalOrderVisualConnection(connectionKind)) {
-      const gripAnchor = getLocationGripAnchorPoint(elem)
-      if (gripAnchor) return gripAnchor
+      const locationPinAnchor = getLocationPinAnchorPoint(elem)
+      if (locationPinAnchor) return locationPinAnchor
     }
 
     const mapContainer = elem.querySelector('.mapboxgl-map')
@@ -801,24 +830,24 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           >
             <path 
               d="M5 12h14M13 5l6 7-6 7" 
-              stroke={pendingSource ? TEMPORAL_ARROW_STROKE : 'rgba(17, 17, 17, 0.82)'} 
+              stroke={usesRouteConnectorCursor ? LOCATION_CONNECTOR_STROKE : pendingSource ? TEMPORAL_ARROW_STROKE : 'rgba(17, 17, 17, 0.82)'}
               strokeWidth="3.6" 
               strokeLinecap="round" 
               strokeLinejoin="round"
               fill="none"
               style={{
-                filter: `drop-shadow(0 0 8px ${pendingSource ? TEMPORAL_ARROW_GLOW_STRONG : TEMPORAL_ARROW_GLOW})`,
+                filter: `drop-shadow(0 0 8px ${usesRouteConnectorCursor ? LOCATION_CONNECTOR_GLOW : pendingSource ? TEMPORAL_ARROW_GLOW_STRONG : TEMPORAL_ARROW_GLOW})`,
                 opacity: pendingSource ? 1 : 0.82,
               }}
             />
           </svg>
           <div style={{
             fontSize: 10,
-            color: pendingSource ? '#111111' : '#3f3f46',
+            color: usesRouteConnectorCursor ? LOCATION_CONNECTOR_STROKE : pendingSource ? '#111111' : '#3f3f46',
             fontWeight: 600,
             marginTop: 2,
             whiteSpace: 'nowrap',
-            textShadow: `0 0 10px ${TEMPORAL_ARROW_GLOW}`,
+            textShadow: `0 0 10px ${usesRouteConnectorCursor ? LOCATION_CONNECTOR_GLOW : TEMPORAL_ARROW_GLOW}`,
           }}>
             {pendingSource ? 'to target' : 'select source'}
           </div>
@@ -871,11 +900,25 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       >
         {connectionPaths.map((conn) => {
           const usesTemporalOrderStyle = isTemporalOrderMode || isTemporalOrderVisualConnection(conn.connectionKind)
+          const usesLocationConnectorStyle =
+            conn.connectionKind === 'physical-order' ||
+            (conn.sourceType === 'location' && conn.targetType === 'location') ||
+            isLocationConnectionMode
           const usesAssociationStyle = isAssociationMode || conn.connectionKind === 'association'
 
           return (
           <g key={conn.id}>
-            {usesTemporalOrderStyle ? (
+            {usesLocationConnectorStyle ? (
+              <LocationConnectorVisual
+                d={conn.d}
+                start={{ x: conn.x1, y: conn.y1 }}
+                end={{ x: conn.x2, y: conn.y2 }}
+                includeHitTarget
+                onMouseEnter={() => showConnectionDeleteButton(conn.id)}
+                onMouseLeave={() => scheduleHideConnectionDeleteButton(conn.id)}
+                onClick={(event) => handleConnectionClick(conn, event)}
+              />
+            ) : usesTemporalOrderStyle ? (
               <TemporalArrowVisual
                 d={conn.d}
                 arrowPoints={conn.arrowPoints}

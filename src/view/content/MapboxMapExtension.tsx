@@ -28,9 +28,7 @@ import {
   type TemporalLocationCandidate,
 } from './MapboxMapLocationCandidates'
 import {
-  buildTemporalArrowPolygonPoints,
-  getTemporalArrowFutureOpacity,
-  TemporalArrowVisual,
+  LocationConnectorVisual,
 } from './TemporalArrowVisual'
 import DragGrip from '../components/DragGrip'
 
@@ -122,7 +120,8 @@ interface TemporalRouteFeature {
 interface TemporalRouteOverlayPath {
   id: string
   d: string
-  arrowPoints: string
+  startPoint: RouteOverlayPoint
+  endPoint: RouteOverlayPoint
   futureIndex: number
   futureTotal: number
 }
@@ -303,7 +302,7 @@ const buildFallbackTemporalRouteFeature = (
       routeIndex,
       temporalFutureIndex: routePath.futureIndex,
       temporalFutureTotal: routeTotal,
-      strokeOpacity: getTemporalArrowFutureOpacity(routePath.futureIndex, routeTotal),
+      strokeOpacity: 1,
       durationSeconds: 0,
       durationLabel: '',
       durationEmoji: '',
@@ -887,7 +886,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
                 routeIndex,
                 temporalFutureIndex: routePath.futureIndex,
                 temporalFutureTotal: temporalRoutePaths.length,
-                strokeOpacity: getTemporalArrowFutureOpacity(routePath.futureIndex, temporalRoutePaths.length),
+                strokeOpacity: 1,
                 durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : 0,
                 durationLabel: formatRouteDurationLabel(durationSeconds),
                 durationEmoji: '⏳',
@@ -1294,13 +1293,12 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
             .join(' ')
           const endPoint = points[points.length - 1]
-          const previousPoint = points[points.length - 2]
-          const angle = Math.atan2(endPoint.y - previousPoint.y, endPoint.x - previousPoint.x)
 
           return {
             id: `route-overlay-${feature.properties.routeIndex}`,
             d,
-            arrowPoints: buildTemporalArrowPolygonPoints(endPoint.x, endPoint.y, angle),
+            startPoint: points[0],
+            endPoint,
             futureIndex: feature.properties.temporalFutureIndex,
             futureTotal: feature.properties.temporalFutureTotal,
           }
@@ -1695,11 +1693,10 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
             >
               {temporalRouteOverlayPaths.map((routePath) => (
                 <g key={routePath.id}>
-                  <TemporalArrowVisual
+                  <LocationConnectorVisual
                     d={routePath.d}
-                    arrowPoints={routePath.arrowPoints}
-                    futureIndex={routePath.futureIndex}
-                    futureTotal={routePath.futureTotal}
+                    start={routePath.startPoint}
+                    end={routePath.endPoint}
                   />
                 </g>
               ))}

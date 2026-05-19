@@ -12,10 +12,10 @@ import {
   type MapViewportSize,
 } from '../content/MapboxMapShared'
 import {
-  buildTemporalArrowPolygonPoints,
-  TEMPORAL_ARROW_STROKE,
-  getTemporalArrowFutureOpacity,
-  TemporalArrowVisual,
+  LOCATION_CONNECTOR_END_OPACITY,
+  LOCATION_CONNECTOR_START_OPACITY,
+  LOCATION_CONNECTOR_STROKE,
+  LocationConnectorVisual,
 } from '../content/TemporalArrowVisual'
 
 declare global {
@@ -60,7 +60,8 @@ interface TemporalOrderResolvedMapLocation {
 interface TemporalOrderMapRouteOverlayPath {
   id: string
   d: string
-  arrowPoints: string
+  startPoint: { x: number; y: number }
+  endPoint: { x: number; y: number }
   futureIndex: number
   futureTotal: number
   sourceLabel: string
@@ -91,6 +92,15 @@ const MARKER_LAYER_ID = 'temporal-order-globe-marker'
 const MARKER_LABEL_LAYER_ID = 'temporal-order-globe-marker-label'
 const ROUTE_SOURCE_ID = 'temporal-order-map-routes'
 const ROUTE_LAYER_ID = 'temporal-order-map-route-line'
+const ROUTE_LINE_GRADIENT = [
+  'interpolate',
+  ['linear'],
+  ['line-progress'],
+  0,
+  `rgba(66, 133, 244, ${LOCATION_CONNECTOR_START_OPACITY})`,
+  1,
+  `rgba(66, 133, 244, ${LOCATION_CONNECTOR_END_OPACITY})`,
+]
 type TemporalOrderMapMode = 'globe' | 'map2D'
 const MAPBOX_GLOBE_FOG = {
   color: 'rgb(228, 236, 255)',
@@ -345,7 +355,7 @@ const buildRouteFeatureCollection = (locations: TemporalOrderResolvedMapLocation
         type: 'Feature' as const,
         properties: {
           routeIndex: index,
-          opacity: getTemporalArrowFutureOpacity(index, Math.max(1, routeStops.length - 1)),
+          opacity: 1,
           sourceLabel: location.label,
           targetLabel: target.label,
         },
@@ -1085,6 +1095,7 @@ const TemporalOrderImportedMapView: React.FC<{
       mapInstance.addSource(ROUTE_SOURCE_ID, {
         type: 'geojson',
         data: routeCollection,
+        lineMetrics: true,
       })
     }
 
@@ -1100,9 +1111,10 @@ const TemporalOrderImportedMapView: React.FC<{
             'line-join': 'round',
           },
           paint: {
-            'line-color': TEMPORAL_ARROW_STROKE,
-            'line-width': 4.75,
-            'line-opacity': ['coalesce', ['get', 'opacity'], 0.86],
+            'line-color': LOCATION_CONNECTOR_STROKE,
+            'line-gradient': ROUTE_LINE_GRADIENT,
+            'line-width': 6,
+            'line-opacity': ['coalesce', ['get', 'opacity'], 1],
           },
         },
         beforeLayer,
@@ -1366,12 +1378,12 @@ const TemporalOrderImportedMapView: React.FC<{
           const controlY = Math.min(startPoint.y, endPoint.y) - Math.max(34, Math.abs(endPoint.x - startPoint.x) * 0.12)
           const controlX = startPoint.x + (endPoint.x - startPoint.x) * 0.55
           const d = `M ${startPoint.x} ${startPoint.y} Q ${controlX} ${controlY} ${endPoint.x} ${endPoint.y}`
-          const tangentAngle = Math.atan2(endPoint.y - controlY, endPoint.x - controlX)
 
           return {
             id: `temporal-order-map-route-overlay-${location.id}-${target.id}-${index}`,
             d,
-            arrowPoints: buildTemporalArrowPolygonPoints(endPoint.x, endPoint.y, tangentAngle),
+            startPoint,
+            endPoint,
             futureIndex: index,
             futureTotal: Math.max(1, routeStops.length - 1),
             sourceLabel: location.label,
@@ -1459,11 +1471,10 @@ const TemporalOrderImportedMapView: React.FC<{
                 data-temporal-order-route-source={routePath.sourceLabel}
                 data-temporal-order-route-target={routePath.targetLabel}
               >
-                <TemporalArrowVisual
+                <LocationConnectorVisual
                   d={routePath.d}
-                  arrowPoints={routePath.arrowPoints}
-                  futureIndex={routePath.futureIndex}
-                  futureTotal={routePath.futureTotal}
+                  start={routePath.startPoint}
+                  end={routePath.endPoint}
                 />
               </g>
             ))}
