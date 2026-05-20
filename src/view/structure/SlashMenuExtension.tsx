@@ -363,6 +363,28 @@ const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
+      id: 'daily-schedule-new',
+      title: 'Daily Schedule [new]',
+      description: 'Insert the Natural Calendar daily schedule view',
+      emoji: '📅',
+      keywords: ['daily', 'schedule', 'new', 'natural', 'calendar', 'day'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertDailyScheduleNew()
+      },
+    },
+    {
+      id: 'day',
+      title: 'Day',
+      description: 'Insert a single-day calendar view',
+      emoji: '📅',
+      keywords: ['day', 'daily', 'schedule', 'planner', 'calendar'],
+      action: (editor) => {
+        // @ts-ignore
+        editor.commands.insertDay()
+      },
+    },
+    {
       id: 'weekly-schedule',
       title: 'Weekly Schedule',
       description: 'Insert a weekly schedule view',

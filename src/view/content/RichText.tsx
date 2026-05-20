@@ -69,6 +69,8 @@ import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/L
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
 import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
+import { DayExtension } from '../structure/DayExtension'
+import { DailyScheduleNewExtension } from '../structure/DailyScheduleNewExtension'
 
 import { WeeklyExtension, WeeklyQuantaExtension, LunarScheduleExtension, SeasonalScheduleExtension } from '../structure/WeeklyExtension'
 import { LunarMonthExtension } from '../structure/LunarMonthExtension'
@@ -1017,7 +1019,7 @@ export const officialExtensions = (quantaId: string) => {return [
   UniqueID.configure({
     // All block nodes that can participate in connections
     types: [
-      'paragraph', 'mention', 'group', 'scrollview', 'daily',
+      'paragraph', 'mention', 'group', 'scrollview', 'daily', 'day', 'dailyScheduleNew',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
       'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
@@ -1128,6 +1130,8 @@ export const customExtensions: Extensions = [
   DailyToday,
   DailyTomorrow,
   DailyExtension,
+  DayExtension,
+  DailyScheduleNewExtension,
   WeeklyExtension,
   WeeklyQuantaExtension,
   LunarScheduleExtension,

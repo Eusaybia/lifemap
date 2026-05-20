@@ -812,6 +812,34 @@ const ActionSwitch = React.memo((props: {
                 </motion.div>
             </Option>
             <Option
+                value={"Insert Daily Schedule [new]"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertDailyScheduleNew is added by the DailyScheduleNewExtension
+                    props.editor.commands.insertDailyScheduleNew()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📅 Insert Daily Schedule [new]
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
+                value={"Insert Day"}
+                onClick={() => {
+                    if (!props.editor) return;
+                    // @ts-ignore - insertDay is added by the DayExtension
+                    props.editor.commands.insertDay()
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📅 Insert Day
+                    </span>
+                </motion.div>
+            </Option>
+            <Option
                 value={"Insert Day Header"}
                 onClick={() => {
                     if (!props.editor) return;
