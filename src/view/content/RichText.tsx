@@ -24,6 +24,7 @@ import { GroupExtension } from '../structure/GroupTipTapExtension'
 import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
 import { AtlasKeyboardAccessoryFlowMenu, DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
+import { getSlashMenuItems } from '../structure/SlashMenuExtension'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
@@ -2860,6 +2861,12 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         if (typeof chain.redo === 'function') {
           chain.redo().run();
         }
+        return;
+      }
+      if (typeof command === 'string' && command.startsWith('slashMenu:')) {
+        const slashCommandId = command.slice('slashMenu:'.length);
+        const slashItem = getSlashMenuItems(editor as Editor).find((item) => item.id === slashCommandId);
+        slashItem?.action(editor as Editor);
         return;
       }
       if (command === 'bold') chain.toggleBold().run();
