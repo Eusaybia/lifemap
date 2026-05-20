@@ -213,7 +213,7 @@ export const getCanvas3DSlashMenuItems = (): Canvas3DSlashMenuItem[] => {
   ]
 }
 
-const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
+export const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
   return [
     // Structure
     {

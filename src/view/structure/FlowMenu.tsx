@@ -17,6 +17,7 @@ import { Tag } from "../content/Tag"
 import { black, blue, grey, highlightYellow, purple, red, offWhite, lightBlue, parchment, highlightGreen, teal, green } from "../Theme"
 import FormatColorFill from "@mui/icons-material/FormatColorFill"
 import { FlowSwitch, Option } from "./FlowSwitch"
+import { getSlashMenuItems } from "./SlashMenuExtension"
 import React, { CSSProperties, useCallback, useEffect, useState } from "react"
 import { MathLens } from "../../core/Model";
 import { copySelectedNodeToClipboard, getSelectedNode, getSelectedNodeType, logCurrentLens } from "../../utils/utils";
@@ -1772,6 +1773,8 @@ const MathLoupe = React.memo((props: { editor: Editor }) => {
 const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSize: string, justification: string }) => {
     const documentAttributes = useDocumentAttributes()
     const isLocationConnectionMode = documentAttributes.editorMode === 'location-connection'
+    const slashMenuItems = React.useMemo(() => getSlashMenuItems(props.editor), [props.editor])
+    const [selectedSlashCommandId, setSelectedSlashCommandId] = React.useState(() => slashMenuItems[0]?.id ?? '')
     const [formatState, setFormatState] = React.useState(() => ({
         bold: props.editor.isActive('bold'),
         italic: props.editor.isActive('italic'),
@@ -1782,6 +1785,12 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
         alignRight: props.editor.isActive({ textAlign: 'right' }),
         alignJustify: props.editor.isActive({ textAlign: 'justify' }),
     }))
+
+    React.useEffect(() => {
+        if (!slashMenuItems.some((item) => item.id === selectedSlashCommandId)) {
+            setSelectedSlashCommandId(slashMenuItems[0]?.id ?? '')
+        }
+    }, [selectedSlashCommandId, slashMenuItems])
 
     React.useEffect(() => {
         const syncFormattingState = () => {
@@ -1829,6 +1838,38 @@ const RichTextLoupe = React.memo((props: { editor: Editor, font: string, fontSiz
                     <ArrowForwardIcon />
                 </IconButton>
             </Tag>
+            <FlowSwitch
+                value={selectedSlashCommandId}
+                isLens
+                testId="keyboard-accessory-slash-commands"
+                disableAutoScroll
+            >
+                {slashMenuItems.map((item) => (
+                    <Option
+                        key={item.id}
+                        value={item.id}
+                        onClick={(event) => {
+                            event?.preventDefault()
+                            event?.stopPropagation()
+                            setSelectedSlashCommandId(item.id)
+                            item.action(props.editor)
+                        }}
+                    >
+                        <motion.div>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                fontFamily: 'Inter',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                <span aria-hidden="true">{item.emoji}</span>
+                                <span>{item.title}</span>
+                            </span>
+                        </motion.div>
+                    </Option>
+                ))}
+            </FlowSwitch>
             <FlowSwitch value={props.font} isLens>
                 <Option value={"EB Garamond"} onClick={() => props.editor!.chain().focus().setFontFamily('EB Garamond').run()}>
                     <motion.div>
