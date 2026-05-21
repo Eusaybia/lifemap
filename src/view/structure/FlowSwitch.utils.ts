@@ -5,6 +5,7 @@ export type FlowSwitchValue = string | number
 export type FlowSwitchOptionElement = React.ReactElement<{
     value?: FlowSwitchValue
     onClick?: (...args: any[]) => void
+    onScrollSelect?: (...args: any[]) => void
 }>
 
 export const getFlowSwitchOptionElements = (
@@ -27,3 +28,8 @@ export const resolveFlowSwitchValue = (
 
     return matchingOption?.props.value ?? options[0]?.props.value
 }
+
+export const getFlowSwitchScrollHandler = (
+    option: FlowSwitchOptionElement | null | undefined,
+): ((...args: any[]) => void) | undefined =>
+    option?.props.onScrollSelect ?? option?.props.onClick

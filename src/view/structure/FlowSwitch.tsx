@@ -2,7 +2,7 @@ import './styles.scss'
 import { motion } from "framer-motion"
 import React from "react"
 import { playUiSound } from '../../utils/utils';
-import { FlowSwitchValue, getFlowSwitchOptionElements, resolveFlowSwitchValue } from './FlowSwitch.utils';
+import { FlowSwitchValue, getFlowSwitchOptionElements, getFlowSwitchScrollHandler, resolveFlowSwitchValue } from './FlowSwitch.utils';
 
 interface OptionButtonProps {
     onClick: (event?: React.MouseEvent<HTMLDivElement>) => void;
@@ -17,7 +17,7 @@ interface FlowSwitchProps {
     isLens?: boolean
     testId?: string
     disableAutoScroll?: boolean
-    /** When true, scrolling to an option will automatically trigger its onClick */
+    /** When true, scrolling to an option will automatically trigger onScrollSelect, or onClick when no scroll-only handler is provided */
     scrollToSelect?: boolean
     /** When true, scrollToSelect fires as soon as an option enters the active band */
     instantScrollToSelect?: boolean
@@ -119,7 +119,7 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
                             index,
                             optionValue: child?.props?.value,
                         })
-                        child.props.onClick?.()
+                        getFlowSwitchScrollHandler(child)?.()
                     } else {
                         logDiagnostics('scrollToSelect:alreadyCommitted', {
                             index,
@@ -249,14 +249,16 @@ export const FlowSwitch = React.forwardRef<HTMLDivElement, FlowSwitchProps>((pro
             const pendingIndex = pendingScrollSelectIndexRef.current
             const pendingChild = pendingIndex !== null ? validChildren[pendingIndex] : null
 
-            if (props.scrollToSelect && pendingChild?.props?.onClick) {
+            const pendingScrollHandler = getFlowSwitchScrollHandler(pendingChild)
+
+            if (props.scrollToSelect && pendingScrollHandler) {
                 logDiagnostics('scrollToSelect:commit', {
                     index: pendingIndex,
-                    optionValue: pendingChild.props.value,
+                    optionValue: pendingChild?.props?.value,
                     scrollTop: flowSwitchContainerRef.current?.scrollTop ?? null,
                 })
                 skipNextAutoScrollRef.current = true
-                pendingChild.props.onClick()
+                pendingScrollHandler()
             }
 
             pendingScrollSelectIndexRef.current = null
@@ -334,6 +336,7 @@ export const OptionButton: React.FC<OptionButtonProps> = ({ onClick, onPointerDo
 export const Option = (props: {
     value: FlowSwitchValue,
     onClick?: (event?: React.MouseEvent<HTMLDivElement>) => void,
+    onScrollSelect?: () => void,
     onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void,
     children: React.ReactElement
 }) => {

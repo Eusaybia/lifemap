@@ -231,9 +231,11 @@ const ActionSwitch = React.memo((props: {
     const [versionHistoryDiagnosticsEnabled, setVersionHistoryDiagnosticsEnabled] = React.useState<boolean>(false)
     const [selectedVersionForPreview, setSelectedVersionForPreview] = React.useState<number | null>(null)
     const [isPreviewingVersionHistory, setIsPreviewingVersionHistory] = React.useState<boolean>(false)
+    const [versionHistoryResetKey, setVersionHistoryResetKey] = React.useState<number>(0)
     const selectedVersionForPreviewRef = React.useRef<number | null>(null)
     const isPreviewingVersionHistoryRef = React.useRef<boolean>(false)
     const previewRequestTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+    const liveVersionContentBeforePreviewRef = React.useRef<JSONContent | null>(null)
 
     const logVersionHistoryDiagnostics = React.useCallback((event: string, details?: Record<string, unknown>) => {
         if (!versionHistoryDiagnosticsEnabled) return
@@ -392,6 +394,7 @@ const ActionSwitch = React.memo((props: {
         setIsPreviewingVersionHistory(false)
         selectedVersionForPreviewRef.current = null
         isPreviewingVersionHistoryRef.current = false
+        liveVersionContentBeforePreviewRef.current = null
         if (previewRequestTimeoutRef.current) {
             clearTimeout(previewRequestTimeoutRef.current)
             previewRequestTimeoutRef.current = null
@@ -415,6 +418,13 @@ const ActionSwitch = React.memo((props: {
 
         const wasPreviewingVersionHistory = isPreviewingVersionHistory
         const previousSelectedVersion = selectedVersionForPreview
+
+        if (!isPreviewingVersionHistoryRef.current && liveVersionContentBeforePreviewRef.current == null) {
+            liveVersionContentBeforePreviewRef.current = props.editor.getJSON()
+            logVersionHistoryDiagnostics('requestSnapshotPreview:capturedLiveVersionContent', {
+                targetVersion,
+            })
+        }
 
         setSelectedVersionForPreview(targetVersion)
         setIsPreviewingVersionHistory(true)
@@ -449,6 +459,32 @@ const ActionSwitch = React.memo((props: {
         }, 120)
     }, [isPreviewingVersionHistory, logVersionHistoryDiagnostics, props.editor, selectedVersionForPreview, snapshotCurrentVersion, snapshotProvider, snapshotVersions])
 
+    const restoreCurrentLiveVersion = React.useCallback(() => {
+        if (previewRequestTimeoutRef.current) {
+            clearTimeout(previewRequestTimeoutRef.current)
+            previewRequestTimeoutRef.current = null
+        }
+
+        const liveContent = liveVersionContentBeforePreviewRef.current
+        if (liveContent) {
+            try {
+                props.editor.commands.setContent(liveContent)
+                logVersionHistoryDiagnostics('currentLiveVersion:restored')
+            } catch (error) {
+                console.warn('[FlowMenu] Failed to restore current live version', error)
+                setToastMessage('Could not restore live version')
+                logVersionHistoryDiagnostics('currentLiveVersion:restoreError', {
+                    error: String(error),
+                })
+            }
+        }
+
+        setSelectedVersionForPreview(null)
+        setIsPreviewingVersionHistory(false)
+        selectedVersionForPreviewRef.current = null
+        isPreviewingVersionHistoryRef.current = false
+    }, [logVersionHistoryDiagnostics, props.editor])
+
     React.useEffect(() => {
         if (!snapshotProvider) return
 
@@ -475,13 +511,49 @@ const ActionSwitch = React.memo((props: {
         }
     }, [logVersionHistoryDiagnostics, props.editor, snapshotProvider])
 
-    const applyVersionWithoutCreatingBackup = React.useCallback((targetVersion: number, labelForRevert: string) => {
-        logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:start', {
+    const resetVersionHistoryPreview = React.useCallback(() => {
+        if (previewRequestTimeoutRef.current) {
+            clearTimeout(previewRequestTimeoutRef.current)
+            previewRequestTimeoutRef.current = null
+        }
+        setIsPreviewingVersionHistory(false)
+        setSelectedVersionForPreview(null)
+        selectedVersionForPreviewRef.current = null
+        isPreviewingVersionHistoryRef.current = false
+        liveVersionContentBeforePreviewRef.current = null
+        setVersionHistoryResetKey((key) => key + 1)
+    }, [])
+
+    const refreshSnapshotVersionsAfterRevert = React.useCallback(() => {
+        syncSnapshotVersions()
+        window.setTimeout(syncSnapshotVersions, 500)
+        window.setTimeout(syncSnapshotVersions, 1500)
+    }, [syncSnapshotVersions])
+
+    const confirmVersionRevert = React.useCallback((targetVersion: number, labelForRevert: string) => {
+        logVersionHistoryDiagnostics('confirmVersionRevert:start', {
             targetVersion,
             labelForRevert,
             snapshotCurrentVersion,
             topVersion: snapshotVersions[0]?.version ?? null,
         })
+
+        const revertToVersion = (props.editor?.commands as any)?.revertToVersion
+        if (typeof revertToVersion === 'function') {
+            const didRevert = revertToVersion(
+                targetVersion,
+                `Revert to ${labelForRevert}`,
+                `Unsaved changes before revert to ${labelForRevert}`,
+            )
+            logVersionHistoryDiagnostics('confirmVersionRevert:editorCommandSent', {
+                targetVersion,
+                didRevert,
+            })
+            resetVersionHistoryPreview()
+            refreshSnapshotVersionsAfterRevert()
+            return didRevert !== false
+        }
+
         try {
             if (snapshotProvider && typeof snapshotProvider.sendStateless === 'function') {
                 snapshotProvider.sendStateless(JSON.stringify({
@@ -490,36 +562,35 @@ const ActionSwitch = React.memo((props: {
                     currentVersionName: false,
                     newVersionName: false,
                 }))
-                logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:providerStatelessSent', {
+                logVersionHistoryDiagnostics('confirmVersionRevert:providerStatelessSent', {
                     targetVersion,
                 })
-                setIsPreviewingVersionHistory(false)
-                setSelectedVersionForPreview(null)
-                selectedVersionForPreviewRef.current = null
-                isPreviewingVersionHistoryRef.current = false
-                return
+                resetVersionHistoryPreview()
+                refreshSnapshotVersionsAfterRevert()
+                return true
             }
         } catch (error) {
-            console.warn('[FlowMenu] Non-versioning revert failed, falling back to editor command', error)
-            logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:providerError', {
+            console.warn('[FlowMenu] Snapshot revert failed', error)
+            logVersionHistoryDiagnostics('confirmVersionRevert:providerError', {
                 targetVersion,
                 error: String(error),
             })
         }
 
-        props.editor.commands.revertToVersion(
-            targetVersion,
-            `Revert to ${labelForRevert}`,
-            `Unsaved changes before revert to ${labelForRevert}`,
-        )
-        logVersionHistoryDiagnostics('applyVersionWithoutCreatingBackup:editorCommandSent', {
-            targetVersion,
-        })
-        setIsPreviewingVersionHistory(false)
-        setSelectedVersionForPreview(null)
-        selectedVersionForPreviewRef.current = null
-        isPreviewingVersionHistoryRef.current = false
-    }, [logVersionHistoryDiagnostics, props.editor, snapshotCurrentVersion, snapshotProvider, snapshotVersions])
+        return false
+    }, [logVersionHistoryDiagnostics, props.editor, refreshSnapshotVersionsAfterRevert, resetVersionHistoryPreview, snapshotCurrentVersion, snapshotProvider, snapshotVersions])
+
+    const handleConfirmVersionRevert = React.useCallback((targetVersion: number, labelForRevert: string) => {
+        const liveVersion = snapshotVersions[0]?.version
+        if (typeof liveVersion === 'number' && targetVersion === liveVersion) {
+            requestSnapshotPreview(targetVersion)
+            setToastMessage('Already on latest version')
+            return
+        }
+
+        const didRevert = confirmVersionRevert(targetVersion, labelForRevert)
+        setToastMessage(didRevert ? 'Reverted' : 'Snapshot revert unavailable')
+    }, [confirmVersionRevert, requestSnapshotPreview, snapshotVersions])
 
     const handleRevertToSelectedVersion = React.useCallback(() => {
         if (selectedVersionForPreview == null) {
@@ -529,19 +600,18 @@ const ActionSwitch = React.memo((props: {
 
         const liveVersion = snapshotVersions[0]?.version
         if (!isPreviewingVersionHistory && typeof liveVersion === 'number' && selectedVersionForPreview === liveVersion) {
-            setToastMessage('Already on current live state')
+            setToastMessage('Already on latest version')
             return
         }
 
         const selectedEntry = snapshotVersions.find((version) => version.version === selectedVersionForPreview)
         const labelForRevert = selectedEntry?.name || `Version ${selectedVersionForPreview}`
-        applyVersionWithoutCreatingBackup(selectedVersionForPreview, labelForRevert)
-        setToastMessage(`Reverted to ${labelForRevert}`)
-    }, [applyVersionWithoutCreatingBackup, isPreviewingVersionHistory, selectedVersionForPreview, snapshotVersions])
+        handleConfirmVersionRevert(selectedVersionForPreview, labelForRevert)
+    }, [handleConfirmVersionRevert, selectedVersionForPreview, snapshotVersions])
 
     const selectedVersionHistoryValue = React.useMemo(() => {
         if (selectedVersionForPreview == null) {
-            return 'Current state (Live)'
+            return 'current-live-version'
         }
         return `version:${selectedVersionForPreview}`
     }, [selectedVersionForPreview])
@@ -578,13 +648,21 @@ const ActionSwitch = React.memo((props: {
                 <Option
                     key={version.version}
                     value={`version:${version.version}`}
-                    onClick={() => {
-                        logVersionHistoryDiagnostics('historyOption:onClick:preview', {
+                    onScrollSelect={() => {
+                        logVersionHistoryDiagnostics('historyOption:onScrollSelect:preview', {
                             targetVersion: version.version,
                             snapshotCurrentVersion,
                             topVersion: snapshotVersions[0]?.version ?? null,
                         })
                         requestSnapshotPreview(version.version)
+                    }}
+                    onClick={() => {
+                        logVersionHistoryDiagnostics('historyOption:onClick:revert', {
+                            targetVersion: version.version,
+                            snapshotCurrentVersion,
+                            topVersion: snapshotVersions[0]?.version ?? null,
+                        })
+                        handleConfirmVersionRevert(version.version, label)
                     }}
                 >
                     <motion.div>
@@ -979,7 +1057,8 @@ const ActionSwitch = React.memo((props: {
         {/* Shows both auto snapshots (⟳) and manual named snapshots (📌) */}
         {currentQuantaId && props.nodeType !== 'group' ? (
             <FlowSwitch
-                value={"Version History"}
+                key={`version-history-${versionHistoryResetKey}`}
+                value={selectedVersionHistoryValue}
                 isLens
                 scrollToSelect
                 disableAutoScroll
@@ -988,25 +1067,32 @@ const ActionSwitch = React.memo((props: {
             >
                 {[
                     <Option
-                        key="current-live-state"
-                        value={"Current state (Live)"}
-                        onClick={() => {
-                            logVersionHistoryDiagnostics('currentLive:onClick:ignored', {
-                                snapshotCurrentVersion,
-                                topVersion: snapshotVersions[0]?.version ?? null,
+                        key="current-live-version"
+                        value={"current-live-version"}
+                        onScrollSelect={() => {
+                            logVersionHistoryDiagnostics('currentLiveVersion:onScrollSelect', {
+                                selectedVersionForPreview,
                                 isPreviewingVersionHistory,
                             })
+                            restoreCurrentLiveVersion()
+                        }}
+                        onClick={() => {
+                            logVersionHistoryDiagnostics('currentLiveVersion:onClick', {
+                                selectedVersionForPreview,
+                                isPreviewingVersionHistory,
+                            })
+                            restoreCurrentLiveVersion()
                         }}
                     >
                         <motion.div>
-                            <span style={{ 
-                                fontFamily: 'Inter', 
+                            <span style={{
+                                fontFamily: 'Inter',
                                 fontSize: '13px',
                                 color: '#333',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                             }}>
-                                Current state (Live)
+                                Current live version
                             </span>
                         </motion.div>
                     </Option>,
