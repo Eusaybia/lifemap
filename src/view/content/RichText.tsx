@@ -13,7 +13,7 @@ import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
 import Collaboration, { isChangeOrigin } from '@tiptap/extension-collaboration'
-import Snapshot from '@tiptap-pro/extension-snapshot'
+import Snapshot, { watchPreviewContent } from '@tiptap-pro/extension-snapshot'
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details'
 import UniqueID from '@tiptap/extension-unique-id'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
@@ -25,6 +25,15 @@ import { MathExtension } from './MathTipTapExtension'
 import TextAlign from '@tiptap/extension-text-align'
 import { AtlasKeyboardAccessoryFlowMenu, DocumentFlowMenu, FlowMenu } from '../structure/FlowMenu'
 import { getSlashMenuItems } from '../structure/SlashMenuExtension'
+import {
+  CURRENT_LIVE_VERSION_OPTION_ID,
+  createSnapshotVersionHistoryOptions,
+  getSnapshotProviderFromEditor,
+  mergeSnapshotVersionEntries,
+  readSnapshotCurrentVersionFromEditor,
+  readSnapshotVersionsFromEditor,
+  readSnapshotVersionsFromProvider,
+} from '../structure/SnapshotVersionHistory'
 import { observer } from 'mobx-react-lite'
 import { QuantaStoreContext } from '../../backend/QuantaStore'
 import { FontSize } from './FontSizeTipTapExtension'
@@ -1222,10 +1231,11 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
         field: 'default',
       })
     )
-    if (!isLocalFirst) {
+    if (!isLocalFirst && provider) {
       generatedOfficialExtensions.push(
         Snapshot.configure({
-          // Snapshot provider can initialize after mount; keep extension mounted consistently.
+          // The editor is recreated when the provider arrives so Snapshot commands
+          // only mount once the cloud collaboration provider is real.
           provider: provider as any,
           onUpdate: () => {
             // Snapshot storage is read directly from editor.storage.snapshot by menus.
@@ -1421,7 +1431,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     },
     onTransaction: ({ editor, transaction }) => {
     },
-  })
+  }, [provider, isLocalFirst, quanta.id])
 
   React.useEffect(() => {
     if (!editor || informationType !== "yDoc" || !provider) return
@@ -1489,6 +1499,208 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
   }
 
   let editor = MainEditor(content, true, false)
+  const snapshotProvider = React.useMemo(() => getSnapshotProviderFromEditor(editor as Editor | null) as any, [editor])
+  const nativeVersionPreviewRef = React.useRef<number | null>(null)
+  const nativeVersionPreviewingRef = React.useRef(false)
+  const nativeLiveContentBeforePreviewRef = React.useRef<JSONContent | null>(null)
+  const nativeVersionPreviewRequestTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nativeVersionHistoryPostTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nativeVersionHistoryLastSignatureRef = React.useRef('')
+
+  const postNativeVersionHistoryState = React.useCallback(() => {
+    if (typeof window === 'undefined' || !editor) return
+
+    const versions = mergeSnapshotVersionEntries(
+      readSnapshotVersionsFromEditor(editor as Editor),
+      readSnapshotVersionsFromProvider(snapshotProvider),
+    )
+    const selectedId = nativeVersionPreviewRef.current == null
+      ? CURRENT_LIVE_VERSION_OPTION_ID
+      : `version:${nativeVersionPreviewRef.current}`
+    const payload = {
+      options: createSnapshotVersionHistoryOptions(versions),
+      selectedId,
+      isPreviewing: nativeVersionPreviewingRef.current,
+      snapshotAvailable: Boolean(snapshotProvider) && versions.length > 0,
+      currentVersion: readSnapshotCurrentVersionFromEditor(editor as Editor),
+      topVersion: versions[0]?.version ?? null,
+    }
+    const signature = JSON.stringify(payload)
+    if (signature === nativeVersionHistoryLastSignatureRef.current) return
+    nativeVersionHistoryLastSignatureRef.current = signature
+    ;(window as any).webkit?.messageHandlers?.kairosEditorVersionHistory?.postMessage(payload)
+  }, [editor, snapshotProvider])
+
+  const postNativeVersionHistoryStateSoon = React.useCallback(() => {
+    if (nativeVersionHistoryPostTimeoutRef.current) {
+      clearTimeout(nativeVersionHistoryPostTimeoutRef.current)
+    }
+    nativeVersionHistoryPostTimeoutRef.current = setTimeout(() => {
+      nativeVersionHistoryPostTimeoutRef.current = null
+      postNativeVersionHistoryState()
+    }, 80)
+  }, [postNativeVersionHistoryState])
+
+  const resetNativeVersionPreview = React.useCallback((restoreLiveContent: boolean) => {
+    if (nativeVersionPreviewRequestTimeoutRef.current) {
+      clearTimeout(nativeVersionPreviewRequestTimeoutRef.current)
+      nativeVersionPreviewRequestTimeoutRef.current = null
+    }
+
+    if (restoreLiveContent && nativeLiveContentBeforePreviewRef.current && editor) {
+      try {
+        ;(editor as Editor).commands.setContent(nativeLiveContentBeforePreviewRef.current)
+      } catch (error) {
+        console.warn('[RichText] Failed to restore native snapshot live preview', error)
+      }
+    }
+
+    nativeVersionPreviewRef.current = null
+    nativeVersionPreviewingRef.current = false
+    nativeLiveContentBeforePreviewRef.current = null
+    postNativeVersionHistoryStateSoon()
+  }, [editor, postNativeVersionHistoryStateSoon])
+
+  const requestNativeSnapshotPreview = React.useCallback((targetVersion: number) => {
+    if (!editor || !snapshotProvider || typeof snapshotProvider.sendStateless !== 'function') {
+      postNativeVersionHistoryStateSoon()
+      return
+    }
+
+    if (!nativeVersionPreviewingRef.current && nativeLiveContentBeforePreviewRef.current == null) {
+      nativeLiveContentBeforePreviewRef.current = (editor as Editor).getJSON()
+    }
+
+    nativeVersionPreviewRef.current = targetVersion
+    nativeVersionPreviewingRef.current = true
+    postNativeVersionHistoryStateSoon()
+
+    if (nativeVersionPreviewRequestTimeoutRef.current) {
+      clearTimeout(nativeVersionPreviewRequestTimeoutRef.current)
+    }
+    nativeVersionPreviewRequestTimeoutRef.current = setTimeout(() => {
+      nativeVersionPreviewRequestTimeoutRef.current = null
+      try {
+        snapshotProvider.sendStateless(JSON.stringify({
+          action: 'version.preview',
+          version: targetVersion,
+        }))
+      } catch (error) {
+        console.warn('[RichText] Native snapshot preview request failed', error)
+      }
+    }, 120)
+  }, [editor, postNativeVersionHistoryStateSoon, snapshotProvider])
+
+  const confirmNativeSnapshotRevert = React.useCallback((targetVersion: number) => {
+    if (!editor) return
+
+    const versions = mergeSnapshotVersionEntries(
+      readSnapshotVersionsFromEditor(editor as Editor),
+      readSnapshotVersionsFromProvider(snapshotProvider),
+    )
+    const liveVersion = versions[0]?.version
+    if (typeof liveVersion === 'number' && targetVersion === liveVersion) {
+      requestNativeSnapshotPreview(targetVersion)
+      return
+    }
+
+    const selectedEntry = versions.find(version => version.version === targetVersion)
+    const labelForRevert = selectedEntry?.name || `Version ${targetVersion}`
+    const revertToVersion = ((editor as Editor).commands as any)?.revertToVersion
+
+    if (typeof revertToVersion === 'function') {
+      revertToVersion(
+        targetVersion,
+        `Revert to ${labelForRevert}`,
+        `Unsaved changes before revert to ${labelForRevert}`,
+      )
+    } else if (snapshotProvider && typeof snapshotProvider.sendStateless === 'function') {
+      try {
+        snapshotProvider.sendStateless(JSON.stringify({
+          action: 'document.revert',
+          version: targetVersion,
+          currentVersionName: `Unsaved changes before revert to ${labelForRevert}`,
+          newVersionName: `Revert to ${labelForRevert}`,
+        }))
+      } catch (error) {
+        console.warn('[RichText] Native snapshot revert failed', error)
+      }
+    }
+
+    resetNativeVersionPreview(false)
+    window.setTimeout(postNativeVersionHistoryState, 500)
+    window.setTimeout(postNativeVersionHistoryState, 1500)
+  }, [editor, postNativeVersionHistoryState, requestNativeSnapshotPreview, resetNativeVersionPreview, snapshotProvider])
+
+  React.useEffect(() => {
+    return () => {
+      if (nativeVersionPreviewRequestTimeoutRef.current) {
+        clearTimeout(nativeVersionPreviewRequestTimeoutRef.current)
+      }
+      if (nativeVersionHistoryPostTimeoutRef.current) {
+        clearTimeout(nativeVersionHistoryPostTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    nativeVersionPreviewRef.current = null
+    nativeVersionPreviewingRef.current = false
+    nativeLiveContentBeforePreviewRef.current = null
+    nativeVersionHistoryLastSignatureRef.current = ''
+    postNativeVersionHistoryStateSoon()
+  }, [props.quanta?.id, postNativeVersionHistoryStateSoon])
+
+  React.useEffect(() => {
+    if (!snapshotProvider || !editor) return
+
+    const stopWatchingPreviewContent = watchPreviewContent(snapshotProvider as any, (previewContent: JSONContent) => {
+      if (!nativeVersionPreviewingRef.current) return
+      try {
+        ;(editor as Editor).commands.setContent(previewContent)
+        postNativeVersionHistoryStateSoon()
+      } catch (error) {
+        console.warn('[RichText] Failed to apply native snapshot preview content', error)
+      }
+    }, 'default')
+
+    return () => {
+      stopWatchingPreviewContent?.()
+    }
+  }, [editor, postNativeVersionHistoryStateSoon, snapshotProvider])
+
+  React.useEffect(() => {
+    if (!editor) return
+
+    postNativeVersionHistoryStateSoon()
+
+    const handleEditorStateChanged = () => postNativeVersionHistoryStateSoon()
+    ;(editor as Editor).on?.('transaction', handleEditorStateChanged)
+    ;(editor as Editor).on?.('selectionUpdate', handleEditorStateChanged)
+
+    const handleProviderChanged = () => postNativeVersionHistoryStateSoon()
+    snapshotProvider?.on?.('synced', handleProviderChanged)
+    snapshotProvider?.on?.('stateless', handleProviderChanged)
+    ;(snapshotProvider as any)?.watchVersions?.(handleProviderChanged)
+
+    let ticks = 0
+    const interval = window.setInterval(() => {
+      ticks += 1
+      postNativeVersionHistoryState()
+      if (ticks >= 12) {
+        window.clearInterval(interval)
+      }
+    }, 500)
+
+    return () => {
+      ;(editor as Editor).off?.('transaction', handleEditorStateChanged)
+      ;(editor as Editor).off?.('selectionUpdate', handleEditorStateChanged)
+      snapshotProvider?.off?.('synced', handleProviderChanged)
+      snapshotProvider?.off?.('stateless', handleProviderChanged)
+      ;(snapshotProvider as any)?.unwatchVersions?.(handleProviderChanged)
+      window.clearInterval(interval)
+    }
+  }, [editor, postNativeVersionHistoryState, postNativeVersionHistoryStateSoon, snapshotProvider])
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return
@@ -2863,6 +3075,28 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
         }
         return;
       }
+      if (typeof command === 'string' && command.startsWith('snapshotHistory:preview:')) {
+        const targetVersion = Number(command.slice('snapshotHistory:preview:'.length));
+        if (Number.isFinite(targetVersion)) {
+          requestNativeSnapshotPreview(targetVersion);
+        }
+        return;
+      }
+      if (typeof command === 'string' && command.startsWith('snapshotHistory:revert:')) {
+        const targetVersion = Number(command.slice('snapshotHistory:revert:'.length));
+        if (Number.isFinite(targetVersion)) {
+          confirmNativeSnapshotRevert(targetVersion);
+        }
+        return;
+      }
+      if (command === 'snapshotHistory:restoreLive') {
+        resetNativeVersionPreview(true);
+        return;
+      }
+      if (command === 'snapshotHistory:refresh') {
+        postNativeVersionHistoryStateSoon();
+        return;
+      }
       if (typeof command === 'string' && command.startsWith('slashMenu:')) {
         const slashCommandId = command.slice('slashMenu:'.length);
         const slashItem = getSlashMenuItems(editor as Editor).find((item) => item.id === slashCommandId);
@@ -2942,7 +3176,7 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
     return () => {
       window.removeEventListener('kairos-native-editor-command', handleNativeEditorCommand);
     };
-  }, [editor]);
+  }, [confirmNativeSnapshotRevert, editor, postNativeVersionHistoryStateSoon, requestNativeSnapshotPreview, resetNativeVersionPreview]);
 
   if (editor) {
     if (process.env.NODE_ENV === 'development') {

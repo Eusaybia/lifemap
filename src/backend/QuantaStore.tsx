@@ -58,6 +58,23 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // Sync the document locally (offline support)
   React.useEffect(() => {
     const persistence = new IndexeddbPersistence(roomName, quanta.information);
+
+    const markSynced = () => {
+      if (typeof window === 'undefined') return;
+      (window as any).__KAIROS_IOS_LOCAL_PERSISTENCE_SYNCED__ = {
+        ...((window as any).__KAIROS_IOS_LOCAL_PERSISTENCE_SYNCED__ || {}),
+        [roomName]: true,
+      };
+      window.dispatchEvent(new CustomEvent('kairos-ios-local-persistence-synced', {
+        detail: { roomName },
+      }));
+    };
+
+    if ('whenSynced' in persistence && persistence.whenSynced instanceof Promise) {
+      persistence.whenSynced.then(markSynced).catch(markSynced);
+    } else {
+      persistence.once('synced', markSynced);
+    }
     
     // Clean up persistence on unmount
     return () => {

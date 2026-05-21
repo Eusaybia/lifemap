@@ -28,6 +28,14 @@ import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
 import { watchPreviewContent } from "@tiptap-pro/extension-snapshot";
 import { promptAndUploadImage } from "../content/image-upload";
+import {
+    getSnapshotProviderFromEditor,
+    readSnapshotVersionsFromEditor,
+    readSnapshotCurrentVersionFromEditor,
+    readSnapshotVersionsFromProvider,
+    mergeSnapshotVersionEntries,
+    formatSnapshotVersionHistoryOptionLabel,
+} from "./SnapshotVersionHistory";
 
 export const flowMenuStyle = (allowScroll: boolean = true): React.CSSProperties => {
     return {
@@ -206,28 +214,12 @@ const ActionSwitch = React.memo((props: {
     }
     
     const [currentQuantaId, setCurrentQuantaId] = React.useState<string | null>(null);
-    const snapshotProvider = React.useMemo(() => {
-        if (!props.editor) return null
-        const extensions = ((props.editor as any)?.extensionManager?.extensions ?? []) as Array<{ name?: string; options?: { provider?: unknown } }>
-        const snapshotExtension = extensions.find((extension) => extension?.name === 'snapshot')
-        return (snapshotExtension?.options?.provider ?? null) as any
-    }, [props.editor])
+    const snapshotProvider = React.useMemo(() => getSnapshotProviderFromEditor(props.editor) as any, [props.editor])
     
     // Toast notification state
     const [toastMessage, setToastMessage] = React.useState<string | null>(null);
-    const [snapshotVersions, setSnapshotVersions] = React.useState<Array<{
-        version: number;
-        date: number;
-        name?: string;
-    }>>(() => ((((props.editor.storage as any)?.snapshot?.versions ?? []) as Array<{
-        version: number;
-        date: number;
-        name?: string;
-    }>).slice()).sort((a, b) => b.version - a.version))
-    const [snapshotCurrentVersion, setSnapshotCurrentVersion] = React.useState<number>(() => {
-        const value = (props.editor.storage as any)?.snapshot?.currentVersion
-        return typeof value === 'number' ? value : 0
-    })
+    const [snapshotVersions, setSnapshotVersions] = React.useState(() => readSnapshotVersionsFromEditor(props.editor))
+    const [snapshotCurrentVersion, setSnapshotCurrentVersion] = React.useState<number>(() => readSnapshotCurrentVersionFromEditor(props.editor))
     const [versionHistoryDiagnosticsEnabled, setVersionHistoryDiagnosticsEnabled] = React.useState<boolean>(false)
     const [selectedVersionForPreview, setSelectedVersionForPreview] = React.useState<number | null>(null)
     const [isPreviewingVersionHistory, setIsPreviewingVersionHistory] = React.useState<boolean>(false)
@@ -284,39 +276,21 @@ const ActionSwitch = React.memo((props: {
         }
     }, [])
 
-    const readSnapshotVersions = React.useCallback(() => ((((props.editor.storage as any)?.snapshot?.versions ?? []) as Array<{
-        version: number;
-        date: number;
-        name?: string;
-    }>).slice()).sort((a, b) => b.version - a.version), [props.editor]);
+    const readSnapshotVersions = React.useCallback(() => readSnapshotVersionsFromEditor(props.editor), [props.editor]);
 
-    const readSnapshotCurrentVersion = React.useCallback((): number => {
-        const value = (props.editor.storage as any)?.snapshot?.currentVersion
-        return typeof value === 'number' ? value : 0
-    }, [props.editor])
+    const readSnapshotCurrentVersion = React.useCallback((): number => (
+        readSnapshotCurrentVersionFromEditor(props.editor)
+    ), [props.editor])
 
-    const readProviderVersions = React.useCallback((): Array<{ version: number; date: number; name?: string }> => {
-        const getVersions = (snapshotProvider as any)?.getVersions
-        if (typeof getVersions !== 'function') return []
-        try {
-            const raw = (getVersions.call(snapshotProvider) ?? []) as Array<{ version?: number; date?: number; name?: string }>
-            return raw
-                .filter((v) => typeof v?.version === 'number' && typeof v?.date === 'number')
-                .map((v) => ({ version: v.version as number, date: v.date as number, name: v.name }))
-        } catch {
-            return []
-        }
-    }, [snapshotProvider])
+    const readProviderVersions = React.useCallback(() => (
+        readSnapshotVersionsFromProvider(snapshotProvider)
+    ), [snapshotProvider])
 
     const syncSnapshotVersions = React.useCallback(() => {
         const fromStorage = readSnapshotVersions()
         const fromProvider = readProviderVersions()
 
-        const mergedByVersion = new Map<number, { version: number; date: number; name?: string }>()
-        for (const version of fromStorage) mergedByVersion.set(version.version, version)
-        for (const version of fromProvider) mergedByVersion.set(version.version, version)
-
-        const next = Array.from(mergedByVersion.values()).sort((a, b) => b.version - a.version)
+        const next = mergeSnapshotVersionEntries(fromStorage, fromProvider)
         const currentVersion = readSnapshotCurrentVersion()
         logVersionHistoryDiagnostics('syncSnapshotVersions', {
             fromStorageCount: fromStorage.length,
@@ -628,21 +602,9 @@ const ActionSwitch = React.memo((props: {
 
     const renderedHistoryVersionOptions = snapshotVersions.length > 0 ? (
         snapshotVersions.map((version, index) => {
-            const date = new Date(version.date);
-            const timeStr = date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            }).replace(' ', '');
-            const dateStr = date.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-            });
-            const isLatest = index === 0;
             const isAutoBackup = version.name?.startsWith('Auto ') ?? false;
-            const icon = isAutoBackup ? '⟳' : '📌';
             const label = version.name || `Version ${version.version}`;
+            const optionLabel = formatSnapshotVersionHistoryOptionLabel(version, index);
 
             return (
                 <Option
@@ -673,9 +635,7 @@ const ActionSwitch = React.memo((props: {
                             display: 'inline-flex',
                             alignItems: 'center',
                         }}>
-                            {icon} {timeStr} - {dateStr}
-                            {isLatest ? ' (Latest)' : ''}
-                            {!isAutoBackup && ` - ${label}`}
+                            {optionLabel}
                         </span>
                     </motion.div>
                 </Option>
