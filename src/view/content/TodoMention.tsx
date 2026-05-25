@@ -56,6 +56,11 @@ import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
 import { Editor } from '@tiptap/core'
 import { NodeSelection } from 'prosemirror-state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // ============================================================================
 // Types
@@ -193,20 +198,14 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
     setEditValue(e.target.value)
   }, [])
 
-  const handleGripMouseDown = useCallback(() => {
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions when the node is being removed.
-    }
-  }, [editor, getPos])
+  const { mentionInteractionProps, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
 
   return (
     <NodeViewWrapper 
       as="span" 
-      className={`todo-mention ${checked ? 'todo-checked' : ''} ${selected ? 'selected' : ''}`}
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`todo-mention ${checked ? 'todo-checked' : ''} ${selected ? 'selected' : ''}`)}
       data-type="todo-mention"
       data-checked={checked ? 'true' : 'false'}
       data-text={text}
@@ -217,7 +216,7 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
         className="todo-grip"
         contentEditable={false}
         data-drag-handle
-        onMouseDown={handleGripMouseDown}
+        onPointerDown={handleMentionPointerDown}
         title="Drag to move"
       />
 
@@ -243,6 +242,7 @@ const TodoNodeView: React.FC<TodoNodeViewProps> = ({
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
           placeholder="Your todo here"
+          data-mention-interaction-ignore="true"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -318,11 +318,11 @@ export const TodoMentionNode = Node.create({
     
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: `todo-mention ${checked ? 'todo-checked' : ''}`,
         'data-type': 'todo-mention',
         ...(todoId ? { 'data-todo-id': todoId } : {}),
-      }),
+      })),
       // Static HTML render: checkbox + text + grip placeholder
       `${checkboxChar} ${text}`,
     ]

@@ -3,6 +3,7 @@ import './styles.scss';
 import { Mention, MentionOptions } from '@tiptap/extension-mention';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { mergeAttributes, nodeInputRule } from '@tiptap/core';
+import { getMentionRenderAttributes } from './MentionInteraction'
 
 export const CustomMention = Mention.extend({
   addOptions(): MentionOptions {
@@ -26,11 +27,11 @@ export const CustomMention = Mention.extend({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, { 
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: classes,
         'data-type': 'mention',
         'data-id': node.attrs.id || node.attrs.label
-      }),
+      })),
       `${node.attrs.label}`
     ]
   },

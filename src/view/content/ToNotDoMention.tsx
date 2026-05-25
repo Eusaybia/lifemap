@@ -32,6 +32,11 @@ import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
 import { Editor } from '@tiptap/core'
 import { NodeSelection } from 'prosemirror-state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 export interface ToNotDoMentionAttributes {
   checked: boolean
@@ -154,20 +159,14 @@ const ToNotDoNodeView: React.FC<ToNotDoNodeViewProps> = ({
     setEditValue(e.target.value)
   }, [])
 
-  const handleGripMouseDown = useCallback(() => {
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions when the node is being removed.
-    }
-  }, [editor, getPos])
+  const { mentionInteractionProps, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
 
   return (
     <NodeViewWrapper
       as="span"
-      className={`to-not-do-mention ${checked ? 'to-not-do-checked' : ''} ${selected ? 'selected' : ''}`}
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`to-not-do-mention ${checked ? 'to-not-do-checked' : ''} ${selected ? 'selected' : ''}`)}
       data-type="to-not-do-mention"
       data-checked={checked ? 'true' : 'false'}
       data-text={text}
@@ -177,7 +176,7 @@ const ToNotDoNodeView: React.FC<ToNotDoNodeViewProps> = ({
         className="todo-grip"
         contentEditable={false}
         data-drag-handle
-        onMouseDown={handleGripMouseDown}
+        onPointerDown={handleMentionPointerDown}
         title="Drag to move"
       />
 
@@ -201,6 +200,7 @@ const ToNotDoNodeView: React.FC<ToNotDoNodeViewProps> = ({
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
           placeholder="Your not-to-do here"
+          data-mention-interaction-ignore="true"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -269,11 +269,11 @@ export const ToNotDoMentionNode = Node.create({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: `to-not-do-mention ${checked ? 'to-not-do-checked' : ''}`,
         'data-type': 'to-not-do-mention',
         ...(todoId ? { 'data-todo-id': todoId } : {}),
-      }),
+      })),
       `${checkboxChar} ${text}`,
     ]
   },

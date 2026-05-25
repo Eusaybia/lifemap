@@ -9,6 +9,11 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { motion } from 'framer-motion'
 import { NodeSelection } from 'prosemirror-state'
 import type { Editor } from '@tiptap/core'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 export interface CommentMentionAttributes {
   text: string
@@ -108,6 +113,7 @@ const CommentMentionNodeView = ({
   const isExpanded = isEditing || selected
   const displayText = text.trim() || 'Type a comment'
   const inputWidth = `${Math.min(Math.max(editValue.length + 2, 14), 62)}ch`
+  const { mentionInteractionProps, selectNode } = useMentionNodeInteraction({ editor, getPos })
 
   const focusCommentInput = useCallback(() => {
     const input = inputRef.current
@@ -145,16 +151,6 @@ const CommentMentionNodeView = ({
       setEditValue(text)
     }
   }, [text, isEditing])
-
-  const selectNode = useCallback(() => {
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions while the document is mutating.
-    }
-  }, [editor, getPos])
 
   const removeNode = useCallback(() => {
     try {
@@ -222,12 +218,13 @@ const CommentMentionNodeView = ({
   return (
     <NodeViewWrapper
       as="span"
-      className={[
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass([
         'question-mention',
         'comment-mention',
         isExpanded ? 'comment-mention-expanded' : 'comment-mention-collapsed',
         selected ? 'selected' : '',
-      ].filter(Boolean).join(' ')}
+      ].filter(Boolean).join(' '))}
       data-type="comment-mention"
       data-comment-id={commentId ?? undefined}
       data-comment-anchor={anchorText || undefined}
@@ -244,7 +241,7 @@ const CommentMentionNodeView = ({
           duration: 0.16,
           ease: 'easeOut',
         }}
-        onPointerDown={!isEditing ? beginEditing : undefined}
+        onClick={!isEditing ? beginEditing : undefined}
       >
         <span className="question-checkbox comment-mention-icon" contentEditable={false}>
           <span className="question-checkbox-icon" aria-hidden="true">💬</span>
@@ -261,6 +258,7 @@ const CommentMentionNodeView = ({
             onBlur={handleInputBlur}
             placeholder={anchorText ? `Comment on "${anchorText}"` : 'Type a comment'}
             style={{ width: inputWidth }}
+            data-mention-interaction-ignore="true"
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -288,6 +286,7 @@ export const CommentMentionNode = Node.create({
   inline: true,
   atom: true,
   selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -332,13 +331,13 @@ export const CommentMentionNode = Node.create({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'question-mention comment-mention comment-mention-collapsed',
         'data-type': 'comment-mention',
         'data-comment-text': text,
         ...(anchorText ? { 'data-comment-anchor': anchorText } : {}),
         ...(commentId ? { 'data-comment-id': commentId } : {}),
-      }),
+      })),
       `💬 ${buildCollapsedLabel(text)}`,
     ]
   },

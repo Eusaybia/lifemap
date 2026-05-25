@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { IMPORTANT_GLOW, calculateGlowStyles, scanNodeForTags } from './Aura'
-import { fetchHashtags } from '../content/HashtagMention'
+import { fetchHashtags, getHashtagRenderAttributes } from '../content/HashtagMention'
 
 type FakeNode = {
   type: { name: string }
@@ -38,6 +38,23 @@ describe('fetchHashtags', () => {
     const matches = fetchHashtags('act')
 
     expect(matches.some((tag) => tag.id === 'tag:active' && tag.label === 'active')).toBe(true)
+  })
+
+  test('renders hashtag nodes as draggable chips with a focus glow', () => {
+    const attrs = getHashtagRenderAttributes({
+      id: 'tag:focus',
+      label: '☀️ focus',
+      'data-tag': 'focus',
+      'data-color': '#ffb700',
+    })
+
+    expect(attrs.draggable).toBe('true')
+    expect(attrs['data-hashtag-draggable']).toBe('true')
+    expect(attrs['data-drag-handle']).toBe('')
+    expect(attrs.contenteditable).toBe('false')
+    expect(attrs.class).toContain('atomic-mention')
+    expect(attrs.class).toContain('hashtag-mention')
+    expect(attrs.class).toContain('focus-glow')
   })
 })
 

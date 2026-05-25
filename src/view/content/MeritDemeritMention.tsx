@@ -3,12 +3,17 @@
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
-import { ReactRenderer } from '@tiptap/react'
+import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // Unique plugin key to avoid conflicts with other extensions
 const MeritDemeritPluginKey = new PluginKey('merit-demerit-suggestion')
@@ -161,12 +166,46 @@ MeritDemeritList.displayName = 'MeritDemeritList'
 // Merit/Demerit Node (for rendering inserted tags)
 // ============================================================================
 
+const MeritDemeritNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
+  const isMerit = node.attrs['data-type'] === 'merit'
+  const circleColor = String(node.attrs['data-circle-color'] || (isMerit ? 'white' : 'black'))
+  const { mentionInteractionProps, handleMentionClick } =
+    useMentionNodeInteraction({ editor, getPos })
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`merit-demerit-mention ${selected ? 'selected' : ''}`)}
+      data-node-type="meritDemerit"
+      data-id={node.attrs.id || undefined}
+      data-merit-type={String(node.attrs['data-type'] || '')}
+      data-circle-color={circleColor}
+      onClick={handleMentionClick}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          backgroundColor: circleColor,
+          border: '1.5px solid #333',
+          flexShrink: 0,
+        }}
+      />
+      <span>{node.attrs.label || ''}</span>
+    </NodeViewWrapper>
+  )
+}
+
 export const MeritDemeritNode = Node.create({
   name: 'meritDemerit',
   group: 'inline',
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -187,7 +226,7 @@ export const MeritDemeritNode = Node.create({
     
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'merit-demerit-mention',
         'data-node-type': 'meritDemerit',
         'data-id': node.attrs.id,
@@ -206,7 +245,7 @@ export const MeritDemeritNode = Node.create({
           color: #111111;
           box-shadow: 0px 0.36px 1.8px -1.67px rgba(0, 0, 0, 0.23), 0px 1.37px 6.87px -3.33px rgba(0, 0, 0, 0.19);
         `,
-      }),
+      })),
       // Circle element
       [
         'span',
@@ -229,6 +268,10 @@ export const MeritDemeritNode = Node.create({
         node.attrs.label || '',
       ],
     ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MeritDemeritNodeView)
   },
 })
 

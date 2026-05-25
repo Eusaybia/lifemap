@@ -3,13 +3,18 @@
 import './MentionList.scss'
 import { Extension, mergeAttributes, nodeInputRule } from '@tiptap/core'
 import { Node } from '@tiptap/core'
-import { ReactRenderer } from '@tiptap/react'
+import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import { AuraSpec, toAuraDataAttributes } from '../aura/AuraModel'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // Unique plugin key to avoid conflicts with other extensions
 const HashtagPluginKey = new PluginKey('hashtag-suggestion')
@@ -322,12 +327,114 @@ HashtagList.displayName = 'HashtagList'
 // Hashtag Node (for rendering inserted hashtags)
 // ============================================================================
 
+type HashtagNodeAttrs = Record<string, unknown>
+
+const getHashtagExtraClass = (attrs: HashtagNodeAttrs) => {
+  const label = String(attrs.label ?? '')
+  const dataTag = String(attrs['data-tag'] ?? '')
+  const id = String(attrs.id ?? '')
+
+  if (
+    label.includes('⭐️ important') ||
+    label === 'important' ||
+    dataTag === 'important' ||
+    dataTag === 'active' ||
+    id === 'tag:active' ||
+    label === 'active' ||
+    label === '#active'
+  ) {
+    return ' glow'
+  }
+
+  if (label.includes('✅ complete') || label === 'complete' || dataTag === 'complete') {
+    return ' green-glow'
+  }
+
+  if (label.includes('☀️ focus') || label === 'focus' || dataTag === 'focus') {
+    return ' focus-glow'
+  }
+
+  if (label.includes('not-a-priority') || dataTag === 'not-a-priority' || id === 'tag:not-a-priority') {
+    return ' dim-glow'
+  }
+
+  return ''
+}
+
+const optionalDataAttribute = (attrs: HashtagNodeAttrs, name: string) => {
+  const value = attrs[name]
+  return value == null || value === '' ? {} : { [name]: value }
+}
+
+const reactDataAttributeValue = (value: unknown) => {
+  if (value == null || value === '') return undefined
+  return String(value)
+}
+
+export const getHashtagRenderAttributes = (
+  attrs: HashtagNodeAttrs,
+  HTMLAttributes: Record<string, unknown> = {},
+) => mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
+  class: `hashtag-mention${getHashtagExtraClass(attrs)}`,
+  'data-type': 'hashtag',
+  'data-id': attrs.id,
+  'data-hashtag-draggable': 'true',
+  ...optionalDataAttribute(attrs, 'data-color'),
+  ...optionalDataAttribute(attrs, 'data-aura-color'),
+  ...optionalDataAttribute(attrs, 'data-aura-luminance'),
+  ...optionalDataAttribute(attrs, 'data-aura-size'),
+}))
+
+const HashtagNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
+  const attrs = node.attrs as HashtagNodeAttrs
+  const className = withMentionInteractionClass(
+    `hashtag-mention${getHashtagExtraClass(attrs)}${selected ? ' selected' : ''}`,
+  )
+  const {
+    mentionInteractionProps,
+    handleMentionClick,
+    handleMentionPointerDown,
+  } = useMentionNodeInteraction({ editor, getPos })
+
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
+      <span
+        {...mentionInteractionProps}
+        className={className}
+        data-type="hashtag"
+        data-id={reactDataAttributeValue(attrs.id)}
+        data-hashtag-draggable="true"
+        data-color={reactDataAttributeValue(attrs['data-color'])}
+        data-aura-color={reactDataAttributeValue(attrs['data-aura-color'])}
+        data-aura-luminance={reactDataAttributeValue(attrs['data-aura-luminance'])}
+        data-aura-size={reactDataAttributeValue(attrs['data-aura-size'])}
+        onClick={handleMentionClick}
+      >
+        <span
+          className="hashtag-grip"
+          contentEditable={false}
+          data-drag-handle
+          onPointerDown={handleMentionPointerDown}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+          }}
+          aria-label="Drag tag"
+          title="Drag tag"
+        />
+        {String(attrs.label ?? '')}
+      </span>
+    </NodeViewWrapper>
+  )
+}
+
 export const HashtagNode = Node.create({
   name: 'hashtag',
   group: 'inline',
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -346,39 +453,16 @@ export const HashtagNode = Node.create({
   },
 
   renderHTML({ node, HTMLAttributes }) {
-    // Add special glow classes for important, complete, and focus tags
-    // These work with the Aura component for visual effects
-    const label = (node.attrs.label as string) || ''
-    const dataTag = (node.attrs['data-tag'] as string) || ''
-    const id = (node.attrs.id as string) || ''
-    let extraClass = ''
-    if (
-      label.includes('⭐️ important') ||
-      label === 'important' ||
-      dataTag === 'important' ||
-      dataTag === 'active' ||
-      id === 'tag:active' ||
-      label === 'active' ||
-      label === '#active'
-    ) {
-      extraClass = ' glow'
-    } else if (label.includes('✅ complete') || label === 'complete' || dataTag === 'complete') {
-      extraClass = ' green-glow'
-    } else if (label.includes('☀️ focus') || label === 'focus' || dataTag === 'focus') {
-      extraClass = ' focus-glow'
-    } else if (label.includes('not-a-priority') || dataTag === 'not-a-priority' || id === 'tag:not-a-priority') {
-      extraClass = ' dim-glow'
-    }
-
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
-        class: 'hashtag-mention' + extraClass,
-        'data-type': 'hashtag',
-        'data-id': node.attrs.id,
-      }),
-      label,
+      getHashtagRenderAttributes(node.attrs, HTMLAttributes),
+      ['span', { class: 'hashtag-grip', contenteditable: 'false', 'data-drag-handle': '' }],
+      node.attrs.label || '',
     ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(HashtagNodeView)
   },
 
   // Quick input rules for common tags

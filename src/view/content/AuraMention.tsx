@@ -3,12 +3,17 @@
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
-import { ReactRenderer } from '@tiptap/react'
+import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer, ReactRenderer } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // Unique plugin key to avoid conflicts with other extensions
 const AuraPluginKey = new PluginKey('aura-suggestion')
@@ -156,12 +161,56 @@ AuraList.displayName = 'AuraList'
 // Aura Node (for rendering inserted aura mentions)
 // ============================================================================
 
+const getAuraGlowStyle = (auraId: string) => {
+  if (auraId?.includes('humility-level-4') || auraId?.includes('higher-energy')) {
+    return '0 0 12px 3px rgba(255, 240, 50, 0.6), 0 0 25px 6px rgba(255, 250, 100, 0.35)'
+  }
+  if (auraId?.includes('gratitude-level-3') || auraId?.includes('semi-higher-energy')) {
+    return '0 0 10px 3px rgba(255, 252, 230, 0.6), 0 0 20px 5px rgba(250, 248, 220, 0.35)'
+  }
+  if (auraId?.includes('respect-level-2')) {
+    return '0 0 8px 2px rgba(255, 255, 255, 0.8), 0 0 18px 4px rgba(245, 245, 245, 0.5)'
+  }
+  if (auraId?.includes('energy-level-1') || auraId?.includes('semi-lower-energy')) {
+    return '0 0 10px 3px rgba(0, 0, 0, 0.2), 0 0 20px 5px rgba(0, 0, 0, 0.12)'
+  }
+  if (auraId?.includes('lower-energy')) {
+    return '0 0 12px 3px rgba(0, 0, 0, 0.3), 0 0 25px 6px rgba(0, 0, 0, 0.18)'
+  }
+  if (auraId?.includes('blockage')) {
+    return '0 0 12px 3px rgba(0, 0, 0, 0.65), 0 0 28px 8px rgba(0, 0, 0, 0.4)'
+  }
+  return ''
+}
+
+const AuraNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
+  const auraId = String(node.attrs.id ?? '')
+  const glowStyle = getAuraGlowStyle(auraId)
+  const { mentionInteractionProps, handleMentionClick } =
+    useMentionNodeInteraction({ editor, getPos })
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`timepoint-mention ${selected ? 'selected' : ''}`)}
+      data-type={AURA_DATA_TYPE}
+      data-id={node.attrs.id || undefined}
+      style={glowStyle ? { boxShadow: glowStyle, borderRadius: 4 } : undefined}
+      onClick={handleMentionClick}
+    >
+      {node.attrs.label || ''}
+    </NodeViewWrapper>
+  )
+}
+
 export const AuraNode = Node.create({
   name: AURA_NODE_NAME,
   group: 'inline',
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -179,39 +228,22 @@ export const AuraNode = Node.create({
 
   renderHTML({ node, HTMLAttributes }) {
     const auraId = node.attrs.id as string
-    
-    // Determine glow based on energy level
-    let glowStyle = ''
-    if (auraId?.includes('humility-level-4') || auraId?.includes('higher-energy')) {
-      // Strong Yang - bright yellow sun glow
-      glowStyle = '0 0 12px 3px rgba(255, 240, 50, 0.6), 0 0 25px 6px rgba(255, 250, 100, 0.35)'
-    } else if (auraId?.includes('gratitude-level-3') || auraId?.includes('semi-higher-energy')) {
-      // Gratitude / Lesser Yang - pale white-yellow glow
-      glowStyle = '0 0 10px 3px rgba(255, 252, 230, 0.6), 0 0 20px 5px rgba(250, 248, 220, 0.35)'
-    } else if (auraId?.includes('respect-level-2')) {
-      // Respect - soft white ring aura
-      glowStyle = '0 0 8px 2px rgba(255, 255, 255, 0.8), 0 0 18px 4px rgba(245, 245, 245, 0.5)'
-    } else if (auraId?.includes('energy-level-1') || auraId?.includes('semi-lower-energy')) {
-      // Level 1 / Lesser Yin - soft dark shadow
-      glowStyle = '0 0 10px 3px rgba(0, 0, 0, 0.2), 0 0 20px 5px rgba(0, 0, 0, 0.12)'
-    } else if (auraId?.includes('lower-energy')) {
-      // Strong Yin - deeper dark shadow
-      glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.3), 0 0 25px 6px rgba(0, 0, 0, 0.18)'
-    } else if (auraId?.includes('blockage')) {
-      // Blockage - black aura, distinct from higher yang energies
-      glowStyle = '0 0 12px 3px rgba(0, 0, 0, 0.65), 0 0 28px 8px rgba(0, 0, 0, 0.4)'
-    }
+    const glowStyle = getAuraGlowStyle(auraId)
     
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'timepoint-mention',
         'data-type': AURA_DATA_TYPE,
         'data-id': node.attrs.id,
         style: glowStyle ? `box-shadow: ${glowStyle}; border-radius: 4px;` : '',
-      }),
+      })),
       node.attrs.label || '',
     ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(AuraNodeView)
   },
 })
 
