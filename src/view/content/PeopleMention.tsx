@@ -9,6 +9,11 @@ import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } f
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 const PeoplePluginKey = new PluginKey('people-suggestion')
 
@@ -124,7 +129,7 @@ const PeopleList = forwardRef<PeopleListRef, PeopleListProps>((props, ref) => {
 
 PeopleList.displayName = 'PeopleList'
 
-const PersonNodeView = ({ node, selected }: NodeViewProps) => {
+const PersonNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const tagRef = useRef<HTMLSpanElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -139,6 +144,7 @@ const PersonNodeView = ({ node, selected }: NodeViewProps) => {
   const label = attrs.label
   const name = attrs['data-name'] || label || 'Person'
   const initials = getPersonInitials(name)
+  const { mentionInteractionProps } = useMentionNodeInteraction({ editor, getPos })
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -189,13 +195,13 @@ const PersonNodeView = ({ node, selected }: NodeViewProps) => {
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
       <span
+        {...mentionInteractionProps}
         ref={tagRef}
-        className={`person-mention ${selected ? 'selected' : ''}`}
+        className={withMentionInteractionClass(`person-mention ${selected ? 'selected' : ''}`)}
         data-person-id={attrs.id || undefined}
         data-person-label={label || undefined}
         data-person-name={attrs['data-name'] || undefined}
         onClick={handleClick}
-        style={{ cursor: 'pointer' }}
       >
         {label}
       </span>
@@ -334,6 +340,7 @@ export const PersonNode = Node.create({
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -350,11 +357,11 @@ export const PersonNode = Node.create({
   renderHTML({ node, HTMLAttributes }) {
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'person-mention',
         'data-type': 'person',
         'data-id': node.attrs.id,
-      }),
+      })),
       node.attrs.label || '',
     ]
   },

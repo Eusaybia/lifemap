@@ -10,6 +10,11 @@ import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { Editor } from '@tiptap/core'
 import { NodeSelection } from 'prosemirror-state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 export interface MotivationsMentionAttributes {
   text: string
@@ -125,10 +130,14 @@ const MotivationsNodeView: React.FC<MotivationsNodeViewProps> = ({
     setEditValue(e.target.value)
   }, [])
 
+  const { mentionInteractionProps, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
+
   return (
     <NodeViewWrapper
       as="span"
-      className={`motivations-mention ${selected ? 'selected' : ''}`}
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`motivations-mention ${selected ? 'selected' : ''}`)}
       data-motivation-id={motivationId ?? undefined}
     >
       <span className="motivations-emoji" contentEditable={false}>
@@ -145,6 +154,7 @@ const MotivationsNodeView: React.FC<MotivationsNodeViewProps> = ({
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
           placeholder="Your motivation here"
+          data-mention-interaction-ignore="true"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -156,7 +166,12 @@ const MotivationsNodeView: React.FC<MotivationsNodeViewProps> = ({
         </span>
       )}
 
-      <span className="motivations-grip" contentEditable={false} />
+      <span
+        className="motivations-grip"
+        contentEditable={false}
+        data-drag-handle
+        onPointerDown={handleMentionPointerDown}
+      />
     </NodeViewWrapper>
   )
 }
@@ -167,6 +182,7 @@ export const MotivationsMentionNode = Node.create({
   inline: true,
   atom: true,
   selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -202,11 +218,11 @@ export const MotivationsMentionNode = Node.create({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'motivations-mention',
         'data-type': 'motivations-mention',
         ...(motivationId ? { 'data-motivation-id': motivationId } : {}),
-      }),
+      })),
       `${MOTIVATION_EMOJI} ${text}`,
     ]
   },

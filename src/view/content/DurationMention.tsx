@@ -3,10 +3,15 @@
 import './MentionList.scss'
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react'
 import { Extension, Node, mergeAttributes } from '@tiptap/core'
-import { ReactRenderer, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { ReactRenderer, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { PluginKey } from 'prosemirror-state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // ============================================================================
 // Duration Badge Node (for durations that should NOT use Pomodoro)
@@ -14,29 +19,23 @@ import { PluginKey } from 'prosemirror-state'
 // that shouldn't be treated as single-session timers.
 // ============================================================================
 
-interface DurationBadgeNodeViewProps {
-  node: {
-    attrs: {
-      duration: number
-      label: string
-      emoji: string
-      id: string
-    }
-  }
-  selected: boolean
-}
-
-const DurationBadgeNodeView: React.FC<DurationBadgeNodeViewProps> = ({
+const DurationBadgeNodeView: React.FC<NodeViewProps> = ({
   node,
   selected,
+  editor,
+  getPos,
 }) => {
   const { label, emoji } = node.attrs
+  const { mentionInteractionProps, handleMentionClick } =
+    useMentionNodeInteraction({ editor, getPos })
 
   return (
     <NodeViewWrapper
       as="span"
-      className={`duration-badge ${selected ? 'selected' : ''}`}
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`duration-badge ${selected ? 'selected' : ''}`)}
       data-id={node.attrs.id}
+      onClick={handleMentionClick}
     >
       <span className="duration-badge-emoji">{emoji}</span>
       <span className="duration-badge-label">{label}</span>
@@ -73,6 +72,8 @@ export const DurationBadgeNode = Node.create<DurationBadgeOptions>({
   selectable: true,
 
   atom: true,
+
+  draggable: true,
 
   addOptions() {
     return {
@@ -126,7 +127,7 @@ export const DurationBadgeNode = Node.create<DurationBadgeOptions>({
     return ['span', mergeAttributes(
       this.options.HTMLAttributes,
       HTMLAttributes,
-      { 'data-type': 'duration-badge' }
+      getMentionRenderAttributes({ class: 'duration-badge', 'data-type': 'duration-badge' })
     ), `${emoji} ${label}`]
   },
 

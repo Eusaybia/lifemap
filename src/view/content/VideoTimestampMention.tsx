@@ -4,6 +4,11 @@ import './MentionList.scss'
 import React from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 declare global {
   interface Window {
@@ -50,27 +55,13 @@ const postTimestampSeek = (seconds: number, label: string) => {
 const VideoTimestampNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
   const seconds = readTimestampSeconds(node.attrs.seconds)
   const label = node.attrs.label || formatTimestampLabel(seconds)
+  const { mentionInteractionProps, selectNode } = useMentionNodeInteraction({ editor, getPos })
 
-  const selectTimestampNode = () => {
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions while the document is mutating.
-    }
-  }
-
-  const activate = (event: React.PointerEvent | React.KeyboardEvent) => {
+  const activate = (event: React.MouseEvent | React.KeyboardEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    selectTimestampNode()
+    selectNode()
     postTimestampSeek(seconds, label)
-  }
-
-  const stopNativeSelection = (event: React.MouseEvent) => {
-    event.preventDefault()
-    event.stopPropagation()
   }
 
   return (
@@ -80,17 +71,18 @@ const VideoTimestampNodeView = ({ node, selected, editor, getPos }: NodeViewProp
       style={{ display: 'inline', position: 'relative' }}
     >
       <span
-        className={`duration-badge video-timestamp-mention ${selected ? 'selected' : ''}`.trim()}
+        {...mentionInteractionProps}
+        className={withMentionInteractionClass(
+          `duration-badge video-timestamp-mention ${selected ? 'selected' : ''}`.trim(),
+        )}
         data-type="video-timestamp"
         data-id={`video-timestamp:${seconds}`}
         data-video-timestamp-seconds={seconds}
         data-video-timestamp-label={label}
         role="button"
         tabIndex={0}
-        contentEditable={false}
         title={`Seek to ${label}`}
-        onPointerDown={activate}
-        onClick={stopNativeSelection}
+        onClick={activate}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             activate(event)
@@ -110,6 +102,7 @@ export const VideoTimestampNode = Node.create({
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -140,7 +133,7 @@ export const VideoTimestampNode = Node.create({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'duration-badge video-timestamp-mention',
         'data-type': 'video-timestamp',
         'data-id': `video-timestamp:${seconds}`,
@@ -148,7 +141,7 @@ export const VideoTimestampNode = Node.create({
         'data-video-timestamp-label': label,
         role: 'button',
         title: `Seek to ${label}`,
-      }),
+      })),
       ['span', { class: 'duration-badge-emoji video-timestamp-icon', 'aria-hidden': 'true' }, '▶'],
       ['span', { class: 'duration-badge-label' }, label],
     ]

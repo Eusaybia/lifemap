@@ -32,6 +32,11 @@ import { Node as ProseMirrorNode } from 'prosemirror-model'
 import { motion } from 'framer-motion'
 import { Editor } from '@tiptap/core'
 import { NodeSelection } from 'prosemirror-state'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 export interface QuestionMentionAttributes {
   checked: boolean
@@ -154,10 +159,14 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
     setEditValue(e.target.value)
   }, [])
 
+  const { mentionInteractionProps, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
+
   return (
     <NodeViewWrapper
       as="span"
-      className={`question-mention ${checked ? 'question-checked' : ''} ${selected ? 'selected' : ''}`}
+      {...mentionInteractionProps}
+      className={withMentionInteractionClass(`question-mention ${checked ? 'question-checked' : ''} ${selected ? 'selected' : ''}`)}
       data-question-id={questionId ?? undefined}
     >
       <motion.span
@@ -180,6 +189,7 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
           placeholder="Your question here"
+          data-mention-interaction-ignore="true"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -191,7 +201,12 @@ const QuestionNodeView: React.FC<QuestionNodeViewProps> = ({
         </span>
       )}
 
-      <span className="question-grip" contentEditable={false} />
+      <span
+        className="question-grip"
+        contentEditable={false}
+        data-drag-handle
+        onPointerDown={handleMentionPointerDown}
+      />
     </NodeViewWrapper>
   )
 }
@@ -202,6 +217,7 @@ export const QuestionMentionNode = Node.create({
   inline: true,
   atom: true,
   selectable: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -246,11 +262,11 @@ export const QuestionMentionNode = Node.create({
 
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: `question-mention ${checked ? 'question-checked' : ''}`,
         'data-type': 'question-mention',
         ...(questionId ? { 'data-question-id': questionId } : {}),
-      }),
+      })),
       `${icon} ${text}`,
     ]
   },

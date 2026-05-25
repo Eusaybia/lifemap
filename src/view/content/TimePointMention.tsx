@@ -16,6 +16,11 @@ import {
   readTimepointAuraFromAttrs,
   toAuraDataAttributes,
 } from '../aura/AuraModel'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // Unique plugin key to avoid conflicts with other extensions
 const TimePointPluginKey = new PluginKey('timepoint-suggestion')
@@ -1796,36 +1801,28 @@ const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) =>
   const isCurrentFocus = node.attrs.id === CURRENT_FOCUS_ID
   const aura = readTimepointAuraFromAttrs(node.attrs as Record<string, unknown>)
   const auraDataAttributes = aura ? toAuraDataAttributes(aura) : {}
-
-  const handleGripMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions when the node is being removed.
-    }
-  }
+  const { mentionInteractionProps, handleMentionClick, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
 
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
       <span
-        className={timepointClassName(isCurrentFocus, selected)}
+        {...mentionInteractionProps}
+        className={withMentionInteractionClass(timepointClassName(isCurrentFocus, selected))}
         data-type="timepoint"
         data-id={node.attrs.id || undefined}
         data-date={node.attrs['data-date'] || undefined}
         data-formatted={node.attrs['data-formatted'] || undefined}
         data-relative-label={node.attrs['data-relative-label'] || undefined}
         data-timepoint-kind={isCurrentFocus ? 'current-focus' : undefined}
+        onClick={handleMentionClick}
         {...auraDataAttributes}
       >
         <span
           className="location-grip"
           contentEditable={false}
           data-drag-handle
-          onMouseDown={handleGripMouseDown}
+          onPointerDown={handleMentionPointerDown}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -1844,6 +1841,7 @@ export const TimePointNode = Node.create({
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -1868,13 +1866,13 @@ export const TimePointNode = Node.create({
     const auraDataAttributes = aura ? toAuraDataAttributes(aura) : {}
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: timepointClassName(isCurrentFocus),
         'data-type': 'timepoint',
         'data-id': node.attrs.id,
         ...auraDataAttributes,
         ...(isCurrentFocus ? { 'data-timepoint-kind': 'current-focus' } : {}),
-      }),
+      })),
       ['span', { class: 'location-grip', contenteditable: 'false', 'data-drag-handle': '' }],
       node.attrs.label || '',
     ]
