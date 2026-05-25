@@ -72,6 +72,7 @@ interface NodeConnection {
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
+const SELECTED_LOCATION_SOURCE_FALLBACK_MS = 15000
 
 // Helper to generate a short unique ID for connections
 const generateConnectionId = () => Math.random().toString(36).substring(2, 10)
@@ -92,6 +93,26 @@ const loadConnections = (): NodeConnection[] => {
   } catch {
     return []
   }
+}
+
+const isConnectionEditorMode = (mode: EditorMode) => (
+  mode === 'temporal-order' ||
+  mode === 'physical-order' ||
+  mode === 'association' ||
+  mode === 'location-connection'
+)
+
+const isTemporalOrderEditorMode = (mode: EditorMode) => (
+  mode === 'temporal-order' ||
+  mode === 'physical-order' ||
+  mode === 'location-connection'
+)
+
+const getConnectionKindForEditorMode = (mode: EditorMode): NodeConnection['connectionKind'] => {
+  if (mode === 'temporal-order') return 'temporal-order'
+  if (mode === 'physical-order' || mode === 'location-connection') return 'physical-order'
+  if (mode === 'association') return 'association'
+  return 'manual'
 }
 
 // Save connections to localStorage
@@ -186,6 +207,19 @@ const getLocationElementLabel = (element: HTMLElement): string | undefined => {
   const rawLabel = explicitLabel || element.textContent || ''
   const label = rawLabel.replace(/^📍\s*/, '').trim()
   return label || undefined
+}
+
+const getSelectedLocationElement = (): { element: HTMLElement, id: string, type: 'location' } | null => {
+  const selectedElement = document.querySelector([
+    '.location-mention.selected[data-location-connection-id]',
+    '.location-mention.ProseMirror-selectednode[data-location-connection-id]',
+    '.ProseMirror-selectednode .location-mention[data-location-connection-id]',
+  ].join(', ')) as HTMLElement | null
+  const id = selectedElement?.getAttribute('data-location-connection-id')
+
+  return selectedElement && id
+    ? { element: selectedElement, id, type: 'location' }
+    : null
 }
 
 const getConnectionEndpointElement = (
@@ -352,21 +386,55 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const pendingRaf = useRef<number | null>(null)
   const hoverHideTimeoutRef = useRef<number | null>(null)
   const connectionsSignatureRef = useRef('')
+  const connectionsRef = useRef<NodeConnection[]>([])
+  const editorModeRef = useRef<EditorMode>('editing')
+  const pendingSourceRef = useRef<{ id: string, type: ConnectableType } | null>(null)
+  const lastSelectedLocationRef = useRef<{ id: string, at: number } | null>(null)
+  const lastPointerConnectionTargetRef = useRef<{ target: EventTarget | null, at: number } | null>(null)
   const isLocationConnectionMode = editorMode === 'location-connection'
-  const isConnectionMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || editorMode === 'association' || isLocationConnectionMode
-  const isTemporalOrderMode = editorMode === 'temporal-order' || editorMode === 'physical-order' || isLocationConnectionMode
+  const isConnectionMode = isConnectionEditorMode(editorMode)
+  const isTemporalOrderMode = isTemporalOrderEditorMode(editorMode)
   const isAssociationMode = editorMode === 'association'
   const usesRouteConnectorCursor = editorMode === 'physical-order' || isLocationConnectionMode
+
+  const clearPendingSourceOutline = useCallback((source = pendingSourceRef.current) => {
+    if (!source) return
+
+    const sourceElement = getConnectableElement(source.id, source.type)
+    if (sourceElement) {
+      sourceElement.style.outline = ''
+      sourceElement.style.outlineOffset = ''
+    }
+  }, [])
+
+  const setPendingSourceSelection = useCallback((
+    source: { id: string, type: ConnectableType } | null,
+    outlinedElement?: HTMLElement | null,
+  ) => {
+    clearPendingSourceOutline()
+    pendingSourceRef.current = source
+    setPendingSource(source)
+
+    if (!source) return
+
+    const element = outlinedElement ?? getConnectableElement(source.id, source.type)
+    if (element) {
+      element.style.outline = '2px solid #007AFF'
+      element.style.outlineOffset = '2px'
+    }
+  }, [clearPendingSourceOutline])
 
   // Load connections on mount
   useEffect(() => {
     const storedConnections = loadConnections()
     connectionsSignatureRef.current = getConnectionsSignature(storedConnections)
+    connectionsRef.current = storedConnections
     setConnections(storedConnections)
   }, [])
 
   useEffect(() => {
     connectionsSignatureRef.current = getConnectionsSignature(connections)
+    connectionsRef.current = connections
   }, [connections])
 
   useEffect(() => {
@@ -380,12 +448,14 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
           connectionKind: conn.connectionKind || 'manual',
         }))
         connectionsSignatureRef.current = getConnectionsSignature(nextConnections)
+        connectionsRef.current = nextConnections
         setConnections(nextConnections)
         return
       }
 
       const storedConnections = loadConnections()
       connectionsSignatureRef.current = getConnectionsSignature(storedConnections)
+      connectionsRef.current = storedConnections
       setConnections(storedConnections)
     }
 
@@ -409,10 +479,34 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       const customEvent = event as CustomEvent<DocumentAttributes>
       const updatedAttributes = normalizeDocumentAttributes(customEvent.detail)
       if (updatedAttributes?.editorMode) {
+        const previousMode = editorModeRef.current
+        editorModeRef.current = updatedAttributes.editorMode
         console.log('[NodeConnectionManager] Mode changed to:', updatedAttributes.editorMode)
         setEditorMode(updatedAttributes.editorMode)
         if (updatedAttributes.editorMode === 'editing') {
-          setPendingSource(null)
+          setPendingSourceSelection(null)
+        } else if (
+          updatedAttributes.editorMode === 'location-connection' &&
+          previousMode !== 'location-connection'
+        ) {
+          const selectedLocation = getSelectedLocationElement()
+          const recentLocation = lastSelectedLocationRef.current
+          const shouldUseRecentLocation =
+            !!recentLocation &&
+            Date.now() - recentLocation.at <= SELECTED_LOCATION_SOURCE_FALLBACK_MS
+          if (selectedLocation) {
+            setPendingSourceSelection(
+              { id: selectedLocation.id, type: selectedLocation.type },
+              selectedLocation.element,
+            )
+          } else if (recentLocation && shouldUseRecentLocation) {
+            setPendingSourceSelection(
+              { id: recentLocation.id, type: 'location' },
+              getConnectableElement(recentLocation.id, 'location'),
+            )
+          } else {
+            setPendingSourceSelection(null)
+          }
         }
       }
     }
@@ -424,6 +518,7 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       if (stored) {
         const attrs = normalizeDocumentAttributes(JSON.parse(stored) as DocumentAttributes)
         if (attrs.editorMode) {
+          editorModeRef.current = attrs.editorMode
           setEditorMode(attrs.editorMode)
         }
       }
@@ -432,125 +527,134 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     return () => {
       window.removeEventListener('doc-attributes-updated', handleAttributeUpdate)
     }
-  }, [])
+  }, [setPendingSourceSelection])
 
-  // Handle element clicks in Connection mode to create new connections
-  const handleElementClick = useCallback((event: MouseEvent) => {
-    if (!isConnectionMode) return
-    
-    const target = event.target as HTMLElement
+  // Handle element taps/clicks in Connection mode to create new connections.
+  // Pointerdown is the primary path on iPhone because waiting for click lets
+  // WebKit/ProseMirror start text selection before the connector can consume it.
+  const handleElementInteraction = useCallback((event: MouseEvent | PointerEvent) => {
+    const eventTarget = event.target
+    const isPointerDown = event.type === 'pointerdown'
+    if (isPointerDown && event instanceof PointerEvent && event.pointerType === 'mouse' && event.button !== 0) {
+      return
+    }
+
+    if (!isPointerDown) {
+      const lastPointerConnection = lastPointerConnectionTargetRef.current
+      if (
+        lastPointerConnection &&
+        lastPointerConnection.target === eventTarget &&
+        performance.now() - lastPointerConnection.at < 800
+      ) {
+        return
+      }
+    }
+
+    const target = eventTarget as HTMLElement
     const elementInfo = findConnectableElement(target)
-    
+
     if (!elementInfo) return
-    
+
+    if (elementInfo.type === 'location') {
+      lastSelectedLocationRef.current = { id: elementInfo.id, at: Date.now() }
+    }
+
+    const currentEditorMode = editorModeRef.current
+    const currentIsConnectionMode = isConnectionEditorMode(currentEditorMode)
+    const currentIsLocationConnectionMode = currentEditorMode === 'location-connection'
+    if (!currentIsConnectionMode) return
+
     const { element, id: elementId, type: elementType } = elementInfo
-    if (isLocationConnectionMode && elementType !== 'location') return
-    
+    if (currentIsLocationConnectionMode && elementType !== 'location') return
+
     event.preventDefault()
     event.stopPropagation()
-    
+    ;(event as Event & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.()
+    window.getSelection?.()?.removeAllRanges()
+    if (isPointerDown) {
+      lastPointerConnectionTargetRef.current = { target: eventTarget, at: performance.now() }
+    }
+
     console.log(`[NodeConnectionManager] Clicked ${elementType}:`, elementId)
-    
-    if (!pendingSource) {
-      setPendingSource({ id: elementId, type: elementType })
-      element.style.outline = '2px solid #007AFF'
-      element.style.outlineOffset = '2px'
+    const currentPendingSource = pendingSourceRef.current
+
+    if (!currentPendingSource) {
+      setPendingSourceSelection({ id: elementId, type: elementType }, element)
       console.log(`[NodeConnectionManager] Source selected (${elementType}):`, elementId)
     } else {
-      if (pendingSource.id === elementId) {
-        setPendingSource(null)
-        element.style.outline = ''
-        element.style.outlineOffset = ''
+      if (currentPendingSource.id === elementId) {
+        setPendingSourceSelection(null)
         console.log('[NodeConnectionManager] Deselected source')
         return
       }
 
-      const existingConnection = connections.find((conn) => (
-        conn.sourceId === pendingSource.id &&
-        conn.sourceType === pendingSource.type &&
+      const currentConnections = connectionsRef.current
+      const existingConnection = currentConnections.find((conn) => (
+        conn.sourceId === currentPendingSource.id &&
+        conn.sourceType === currentPendingSource.type &&
         conn.targetId === elementId &&
         conn.targetType === elementType
       ))
 
       if (existingConnection) {
-        const updatedConnections = connections.filter((conn) => conn.id !== existingConnection.id)
+        const updatedConnections = currentConnections.filter((conn) => conn.id !== existingConnection.id)
         delete focusedEndByConnection.current[existingConnection.id]
+        connectionsRef.current = updatedConnections
+        connectionsSignatureRef.current = getConnectionsSignature(updatedConnections)
         setConnections(updatedConnections)
         saveConnections(updatedConnections)
 
-        const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
-        if (sourceElement) {
-          sourceElement.style.outline = ''
-          sourceElement.style.outlineOffset = ''
-        }
-
-        setPendingSource(null)
+        setPendingSourceSelection(null)
         console.log('[NodeConnectionManager] Removed connection:', existingConnection)
         return
       }
-      
-      const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
-      const connectionKind: NodeConnection['connectionKind'] = editorMode === 'temporal-order'
-        ? 'temporal-order'
-        : editorMode === 'physical-order' || isLocationConnectionMode
-          ? 'physical-order'
-          : editorMode === 'association'
-            ? 'association'
-            : 'manual'
+
+      const sourceElement = getConnectableElement(currentPendingSource.id, currentPendingSource.type)
+      const connectionKind = getConnectionKindForEditorMode(currentEditorMode)
       const newConnection: NodeConnection = {
         id: generateConnectionId(),
-        sourceId: pendingSource.id,
+        sourceId: currentPendingSource.id,
         targetId: elementId,
-        sourceType: pendingSource.type,
+        sourceType: currentPendingSource.type,
         targetType: elementType,
         connectionKind,
-        createdBy: isLocationConnectionMode ? 'manualLocationConnection' : undefined,
-        sourceLabel: pendingSource.type === 'location' && sourceElement ? getLocationElementLabel(sourceElement) : undefined,
+        createdBy: currentIsLocationConnectionMode ? 'manualLocationConnection' : undefined,
+        sourceLabel: currentPendingSource.type === 'location' && sourceElement ? getLocationElementLabel(sourceElement) : undefined,
         targetLabel: elementType === 'location' ? getLocationElementLabel(element) : undefined,
       }
       
-      const updatedConnections = [...connections, newConnection]
+      const updatedConnections = [...currentConnections, newConnection]
+      connectionsRef.current = updatedConnections
+      connectionsSignatureRef.current = getConnectionsSignature(updatedConnections)
       setConnections(updatedConnections)
       saveConnections(updatedConnections)
       
       console.log('[NodeConnectionManager] Created connection:', newConnection)
       
-      if (sourceElement) {
-        sourceElement.style.outline = ''
-        sourceElement.style.outlineOffset = ''
-      }
-      
-      if (isLocationConnectionMode) {
-        setPendingSource({ id: elementId, type: elementType })
-        element.style.outline = '2px solid #007AFF'
-        element.style.outlineOffset = '2px'
+      if (currentIsLocationConnectionMode) {
+        setPendingSourceSelection({ id: elementId, type: elementType }, element)
       } else {
-        setPendingSource(null)
+        setPendingSourceSelection(null)
       }
     }
-  }, [connections, editorMode, isConnectionMode, isLocationConnectionMode, pendingSource])
+  }, [setPendingSourceSelection])
 
-  // Add/remove click listener based on mode
+  // Keep the capture listener mounted so the first tap after entering connection mode
+  // cannot race ahead of React's effect that would otherwise add the listener.
   useEffect(() => {
-    if (isConnectionMode) {
-      document.addEventListener('click', handleElementClick, true)
-      console.log('[NodeConnectionManager] Connection mode active')
-    } else {
-      document.removeEventListener('click', handleElementClick, true)
-      
-      if (pendingSource) {
-        const sourceElement = getConnectableElement(pendingSource.id, pendingSource.type)
-        if (sourceElement) {
-          sourceElement.style.outline = ''
-          sourceElement.style.outlineOffset = ''
-        }
-      }
-    }
-    
+    document.addEventListener('pointerdown', handleElementInteraction, true)
+    document.addEventListener('click', handleElementInteraction, true)
     return () => {
-      document.removeEventListener('click', handleElementClick, true)
+      document.removeEventListener('pointerdown', handleElementInteraction, true)
+      document.removeEventListener('click', handleElementInteraction, true)
     }
-  }, [handleElementClick, isConnectionMode, pendingSource])
+  }, [handleElementInteraction])
+
+  useEffect(() => {
+    if (!isConnectionMode) {
+      setPendingSourceSelection(null)
+    }
+  }, [isConnectionMode, setPendingSourceSelection])
 
   // Track mouse position when in connection mode (for preview arrow cursor indicator)
   useEffect(() => {

@@ -5,13 +5,18 @@ import { Extension, mergeAttributes } from '@tiptap/core'
 import { Node } from '@tiptap/core'
 import { ReactRenderer, NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
 import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
-import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef, useCallback } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PluginKey } from '@tiptap/pm/state'
 import mapboxgl from 'mapbox-gl'
 import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import { shouldSuppressLocationTagMapPopup } from './MapboxMapShared'
+import {
+  getMentionRenderAttributes,
+  useMentionNodeInteraction,
+  withMentionInteractionClass,
+} from './MentionInteraction'
 
 // Unique plugin key to avoid conflicts with other extensions
 const LocationPluginKey = new PluginKey('location-suggestion')
@@ -525,6 +530,8 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
   const tagRef = useRef<HTMLSpanElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 })
+  const { mentionInteractionProps, handleMentionPointerDown } =
+    useMentionNodeInteraction({ editor, getPos })
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -561,18 +568,6 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
     setIsExpanded(false)
   }
 
-  const handleGripMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    try {
-      const pos = getPos()
-      if (typeof pos !== 'number') return
-      editor.chain().focus().setNodeSelection(pos).run()
-    } catch {
-      // Ignore stale positions when the node is being removed.
-    }
-  }, [editor, getPos])
-
   // Close popover when clicking outside
   useEffect(() => {
     if (!isExpanded) return
@@ -603,8 +598,9 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
       <span
+        {...mentionInteractionProps}
         ref={tagRef}
-        className={`location-mention ${selected ? 'selected' : ''}`}
+        className={withMentionInteractionClass(`location-mention ${selected ? 'selected' : ''}`)}
         data-location-id={attrs.id || undefined}
         data-location-connection-id={locationConnectionId || undefined}
         data-location-label={label || undefined}
@@ -612,13 +608,12 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
         data-location-country={attrs['data-country'] || undefined}
         data-location-coords={coordsStr || undefined}
         onClick={handleClick}
-        style={{ cursor: 'pointer' }}
       >
         <span
           className="location-grip"
           contentEditable={false}
           data-drag-handle
-          onMouseDown={handleGripMouseDown}
+          onPointerDown={handleMentionPointerDown}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -722,6 +717,7 @@ export const LocationNode = Node.create({
   inline: true,
   selectable: true,
   atom: true,
+  draggable: true,
 
   addAttributes() {
     return {
@@ -752,12 +748,12 @@ export const LocationNode = Node.create({
   renderHTML({ node, HTMLAttributes }) {
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(HTMLAttributes, getMentionRenderAttributes({
         class: 'location-mention',
         'data-type': 'location',
         'data-id': node.attrs.id,
         'data-location-connection-id': node.attrs.locationId,
-      }),
+      })),
       node.attrs.label || '',
     ]
   },

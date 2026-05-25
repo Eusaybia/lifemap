@@ -534,6 +534,35 @@
   outline-offset: 2px;
 }
 
+.atomic-mention.atomic-mention {
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.selected {
+    outline: 2px solid #6366f1;
+    outline-offset: 1px;
+  }
+
+  *:not(input):not(textarea) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
 // ============================================================================
 // Duration Badge Styles (for durations >= 1 day - celestial durations)
 // These display the emoji and label without pomodoro/timer functionality
