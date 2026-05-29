@@ -44,6 +44,7 @@ import { CustomMention } from './Mention'
 import { TemporalFieldExtension, TimePointNode } from './TimePointMention'
 import { VideoTimestampNode, formatVideoTimestampLabel, readVideoTimestampSeconds } from './VideoTimestampMention'
 import { PomodoroNode } from './PomodoroNode'
+import { VoiceNoteNode } from './VoiceNoteNode'
 import { DurationExtension, DurationBadgeNode } from './DurationMention'
 import { LocationMention, LocationNode } from './LocationMention'
 import { AutoLocationTaggingExtension } from './AutoLocationTaggingExtension'
@@ -1107,6 +1108,9 @@ export const customExtensions: Extensions = [
   // PomodoroNode is for short durations (< 1 day) with timer functionality
   // DurationBadgeNode is for celestial durations (>= 1 day) without timer functionality
   PomodoroNode,
+  // Voice note - inline recorder that mirrors the pomodoro styling, but with a
+  // red record circle that starts capture and a stop button while recording.
+  VoiceNoteNode,
   DurationBadgeNode,
   DurationExtension,
   DocumentAttributeExtension,
@@ -3126,6 +3130,10 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       }
       if (command === 'comment') {
         applyCommentMentionToSelection(editor as Editor);
+        return;
+      }
+      if (command === 'voiceNote' || command === 'voice-note') {
+        (chain as any).insertVoiceNote({ label: detail?.label || '' }).run();
         return;
       }
       if (command === 'auraConfused' || command === 'aura-confused') {

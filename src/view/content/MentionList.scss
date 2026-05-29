@@ -451,6 +451,108 @@
   }
 }
 
+// Voice-note buttons mirror the pomodoro play/pause buttons exactly, but the
+// record button is red (a circle) instead of the green play triangle.
+.voice-note-record-btn,
+.voice-note-stop-btn,
+.voice-note-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.2rem;
+  transition: all 0.15s ease;
+
+  svg {
+    display: block;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.voice-note-record-btn {
+  color: #ef4444;
+
+  &:hover {
+    color: #dc2626;
+    transform: scale(1.15);
+  }
+}
+
+// Stop (while recording) stays red to read as "stop the active recording".
+.voice-note-stop-btn {
+  color: #ef4444;
+
+  &:hover {
+    color: #dc2626;
+    transform: scale(1.15);
+  }
+}
+
+// Playback of a finished recording reuses the green play affordance.
+.voice-note-play-btn {
+  color: #22c55e;
+
+  &:hover {
+    color: #16a34a;
+    transform: scale(1.15);
+  }
+}
+
+.voice-note-elapsed {
+  font-weight: 500;
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
+  margin-left: 0.15rem;
+}
+
+// Audio-spectrogram body: a row of vertical bars whose heights map to
+// frequency energy. Reused across idle / recording / recorded states.
+.voice-note-spectrogram {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5px;
+  height: 1.1rem;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+.voice-note-bar {
+  display: inline-block;
+  width: 2px;
+  min-height: 2px;
+  border-radius: 1px;
+  background-color: #d1d5db;
+  transition: height 0.08s linear, background-color 0.15s ease;
+}
+
+// Idle: faint, evenly-low bars hinting "this will record audio".
+.voice-note-spectrogram-idle .voice-note-bar {
+  background-color: #cbd5e1;
+}
+
+// Recording: live bars in red to match the active record affordance.
+.voice-note-spectrogram-recording .voice-note-bar {
+  background-color: #ef4444;
+}
+
+// Recorded: played portion is solid, the rest is muted.
+.voice-note-spectrogram-recorded .voice-note-bar {
+  background-color: #cbd5e1;
+}
+
+.voice-note-spectrogram-recorded .voice-note-bar-played {
+  background-color: #22c55e;
+}
+
 .pomodoro-divider {
   color: #94a3b8;
   margin: 0 0.25rem;
