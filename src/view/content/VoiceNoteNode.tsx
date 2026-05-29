@@ -264,6 +264,20 @@ const VoiceNoteNodeView: React.FC<NodeViewProps> = (props) => {
     mediaRecorderRef.current?.stop()
   }, [])
 
+  // Auto-start capture the moment a fresh node is inserted. This fires once per
+  // mount, only for a brand-new node (idle, no audioId yet) on this device, so
+  // it never re-triggers when an already-recorded node loads or syncs in. If
+  // the mic is unavailable/denied, handleRecord just logs and we fall back to
+  // the idle record button for a manual retry.
+  const hasAutoStartedRef = useRef(false)
+  useEffect(() => {
+    if (hasAutoStartedRef.current) return
+    if (status === 'idle' && !audioId && !isRecording) {
+      hasAutoStartedRef.current = true
+      handleRecord()
+    }
+  }, [status, audioId, isRecording, handleRecord])
+
   const handlePlayback = useCallback(() => {
     if (!resolvedSrc) return
     if (isPlaying) {

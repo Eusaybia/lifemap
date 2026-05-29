@@ -496,12 +496,12 @@
   }
 }
 
-// Playback of a finished recording reuses the green play affordance.
+// Playback of a finished recording uses a blue play affordance.
 .voice-note-play-btn {
-  color: #22c55e;
+  color: #3b82f6;
 
   &:hover {
-    color: #16a34a;
+    color: #2563eb;
     transform: scale(1.15);
   }
 }
@@ -550,7 +550,7 @@
 }
 
 .voice-note-spectrogram-recorded .voice-note-bar-played {
-  background-color: #22c55e;
+  background-color: #3b82f6;
 }
 
 .pomodoro-divider {
