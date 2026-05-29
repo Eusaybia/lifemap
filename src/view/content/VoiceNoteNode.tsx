@@ -69,6 +69,38 @@ const Spectrogram: React.FC<{
 
 const flatLevels = (value: number) => Array.from({ length: BAR_COUNT }, () => value)
 
+// Decode the base64 payload the native recorder hands back into raw bytes so we
+// can rebuild a Blob and feed it through the same storage lanes as the browser
+// MediaRecorder path.
+const base64ToUint8 = (base64: string): Uint8Array => {
+  const chars = atob(base64)
+  const bytes = new Uint8Array(chars.length)
+  for (let i = 0; i < chars.length; i++) bytes[i] = chars.charCodeAt(i)
+  return bytes
+}
+
+// The web editor runs from a file:// origin inside WKWebView, where getUserMedia
+// is blocked. When this bridge is present we delegate capture to native AVFoundation.
+const getNativeVoiceBridge = (): { postMessage: (msg: any) => void } | null => {
+  if (typeof window === 'undefined') return null
+  return (window as any).webkit?.messageHandlers?.kairosVoiceNote ?? null
+}
+
+// Down-sample a stream of captured peaks into a fixed-width spectrogram.
+const peaksToBars = (peaks: number[]): number[] => {
+  if (!peaks.length) return flatLevels(0.4)
+  const bars: number[] = []
+  const chunk = peaks.length / BAR_COUNT
+  for (let i = 0; i < BAR_COUNT; i++) {
+    const start = Math.floor(i * chunk)
+    const end = Math.max(start + 1, Math.floor((i + 1) * chunk))
+    let peak = 0
+    for (let j = start; j < end; j++) peak = Math.max(peak, peaks[j] || 0)
+    bars.push(peak)
+  }
+  return bars
+}
+
 const VoiceNoteNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, updateAttributes, selected } = props
   const { status, audioId, remoteUrl, duration, waveform } = node.attrs
@@ -170,7 +202,85 @@ const VoiceNoteNodeView: React.FC<NodeViewProps> = (props) => {
     rafRef.current = requestAnimationFrame(runAnalyser)
   }, [])
 
+  // Shared finish path for both capture backends: cache bytes locally, commit
+  // the reference into the doc (single atomic Yjs write), then background-upload.
+  const commitRecording = useCallback(
+    (blob: Blob, recordedSeconds: number, peaks: number[]) => {
+      const bars = peaksToBars(peaks)
+      const newAudioId = `voice-note:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+      storeLocalAudio(newAudioId, blob)
+        .catch(err => console.log('VoiceNote: local cache failed', err))
+        .finally(() => {
+          setIsRecording(false)
+          updateAttributes({
+            status: 'recorded',
+            audioId: newAudioId,
+            duration: Math.round(recordedSeconds),
+            waveform: bars,
+          })
+        })
+
+      uploadAudio(newAudioId, blob)
+        .then(url => updateAttributes({ remoteUrl: url }))
+        .catch(err => console.log('VoiceNote: upload deferred', err?.message || err))
+    },
+    [updateAttributes],
+  )
+
+  // Native (AVFoundation) capture. Returns true if the native bridge handled it.
+  const startNativeRecording = useCallback((): boolean => {
+    const bridge = getNativeVoiceBridge()
+    if (!bridge) return false
+    capturedPeaksRef.current = []
+    setLiveLevels(flatLevels(0.12))
+    startedAtRef.current = Date.now()
+    setElapsed(0)
+    setIsRecording(true)
+    bridge.postMessage({ action: 'start', nodeId: node.attrs.id })
+    return true
+  }, [node.attrs.id])
+
+  // Receive live meter samples and the finished recording from native.
+  useEffect(() => {
+    const myId = node.attrs.id
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {}
+      if (detail.nodeId !== myId) return
+      switch (detail.command) {
+        case 'voiceNoteLevel': {
+          const level = typeof detail.level === 'number' ? detail.level : 0
+          capturedPeaksRef.current.push(level)
+          setLiveLevels(prev => [...prev, level].slice(-BAR_COUNT))
+          break
+        }
+        case 'voiceNoteComplete': {
+          const recordedSeconds =
+            typeof detail.duration === 'number'
+              ? detail.duration
+              : (Date.now() - startedAtRef.current) / 1000
+          const blob = new Blob([base64ToUint8(detail.base64 || '')], {
+            type: detail.mimeType || 'audio/mp4',
+          })
+          commitRecording(blob, recordedSeconds, capturedPeaksRef.current.slice())
+          break
+        }
+        case 'voiceNotePermissionDenied':
+          console.log('VoiceNote: microphone permission denied (native)')
+          setIsRecording(false)
+          break
+        case 'voiceNoteError':
+          console.log('VoiceNote: native recorder error', detail.message)
+          setIsRecording(false)
+          break
+      }
+    }
+    window.addEventListener('kairos-native-editor-command', handler as EventListener)
+    return () => window.removeEventListener('kairos-native-editor-command', handler as EventListener)
+  }, [node.attrs.id, commitRecording])
+
   const handleRecord = useCallback(async () => {
+    if (startNativeRecording()) return
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       console.log('VoiceNote: getUserMedia not available (expected on file:// iOS; native capture bridge handles this)')
       return
@@ -206,42 +316,7 @@ const VoiceNoteNodeView: React.FC<NodeViewProps> = (props) => {
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType || 'audio/webm' })
         const recordedSeconds = (Date.now() - startedAtRef.current) / 1000
-
-        // Down-sample captured peaks into a fixed-width waveform.
-        const peaks = capturedPeaksRef.current
-        const bars: number[] = []
-        if (peaks.length) {
-          const chunk = peaks.length / BAR_COUNT
-          for (let i = 0; i < BAR_COUNT; i++) {
-            const start = Math.floor(i * chunk)
-            const end = Math.max(start + 1, Math.floor((i + 1) * chunk))
-            let peak = 0
-            for (let j = start; j < end; j++) peak = Math.max(peak, peaks[j] || 0)
-            bars.push(peak)
-          }
-        }
-
-        const newAudioId = `voice-note:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-        // Cache the bytes locally, then commit ONLY the reference to the doc
-        // (this is the single atomic Yjs write for the recording).
-        storeLocalAudio(newAudioId, blob)
-          .catch(err => console.log('VoiceNote: local cache failed', err))
-          .finally(() => {
-            setIsRecording(false)
-            updateAttributes({
-              status: 'recorded',
-              audioId: newAudioId,
-              duration: Math.round(recordedSeconds),
-              waveform: bars.length ? bars : flatLevels(0.4),
-            })
-          })
-
-        // Background upload: success populates remoteUrl in a second tiny write.
-        // Failure (offline / no token) is fine — local cache still plays.
-        uploadAudio(newAudioId, blob)
-          .then(url => updateAttributes({ remoteUrl: url }))
-          .catch(err => console.log('VoiceNote: upload deferred', err?.message || err))
+        commitRecording(blob, recordedSeconds, capturedPeaksRef.current.slice())
 
         if (rafRef.current) cancelAnimationFrame(rafRef.current)
         stream.getTracks().forEach(t => t.stop())
@@ -258,11 +333,16 @@ const VoiceNoteNodeView: React.FC<NodeViewProps> = (props) => {
     } catch (err) {
       console.log('VoiceNote: microphone permission denied or failed', err)
     }
-  }, [updateAttributes, runAnalyser])
+  }, [startNativeRecording, commitRecording, runAnalyser])
 
   const handleStop = useCallback(() => {
+    const bridge = getNativeVoiceBridge()
+    if (bridge) {
+      bridge.postMessage({ action: 'stop', nodeId: node.attrs.id })
+      return
+    }
     mediaRecorderRef.current?.stop()
-  }, [])
+  }, [node.attrs.id])
 
   // Auto-start capture the moment a fresh node is inserted. This fires once per
   // mount, only for a brand-new node (idle, no audioId yet) on this device, so
