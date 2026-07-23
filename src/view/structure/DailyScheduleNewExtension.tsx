@@ -81,23 +81,6 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
         boxShadow: '0 1px 2px rgba(60, 64, 67, 0.12)',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          padding: '10px 14px',
-          borderBottom: '1px solid #e8eaed',
-          color: '#202124',
-          fontFamily: "'Google Sans', Roboto, 'Helvetica Neue', Arial, sans-serif",
-          fontSize: 13,
-          fontWeight: 650,
-        }}
-      >
-        <span>Daily Schedule [new]</span>
-        <span style={{ color: '#5f6368', fontSize: 11, fontWeight: 600 }}>Natural Calendar</span>
-      </div>
       <iframe
         ref={iframeRef}
         title="Daily Schedule [new]"
