@@ -107,6 +107,18 @@ type NativeBridgeWindow = Window & {
 export const shouldSuppressLocationTagMapPopup = (): boolean => {
   if (typeof window === 'undefined') return false
 
+  // Embedded in a host shell that already shows a map beside the note (the
+  // Atlas web layout, the iOS editor): a second inline map on tag click is
+  // redundant, and it covers the note while the real map sits right there.
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('iosEmbed') === 'true' || params.get('hideMapPopup') === 'true') {
+      return true
+    }
+  } catch {
+    // Malformed URL: fall through to the checks below.
+  }
+
   const nativeBridge = (window as NativeBridgeWindow).webkit?.messageHandlers
   if (nativeBridge && Object.keys(nativeBridge).length > 0) {
     return true
