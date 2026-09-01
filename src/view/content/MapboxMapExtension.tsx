@@ -22,6 +22,7 @@ import {
   forceMapboxLayout,
   MAPBOX_ACCESS_TOKEN,
   shouldSuppressLocationTagMapPopup,
+  areInteractiveMapsEnabled,
   type MapViewportSize,
 } from './MapboxMapShared'
 import {
@@ -924,7 +925,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
   // Initialize map
   useEffect(() => {
-    if (!ENABLE_INTERACTIVE_MAP) {
+    // Hosts that rasterise this document (the lifemap board) switch live maps
+    // off; the static image beneath stays, which is all a card face needs.
+    if (!ENABLE_INTERACTIVE_MAP || !areInteractiveMapsEnabled()) {
       setIsInteractiveMapReady(false)
       return
     }

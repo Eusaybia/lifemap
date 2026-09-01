@@ -104,8 +104,31 @@ type NativeBridgeWindow = Window & {
   }
 }
 
+/*
+ * Whether this document may mount live Mapbox GL instances at all.
+ *
+ * Off inside the Kairos Lifemap board. There, notes are live HTML documents
+ * rasterised into a 3D canvas every frame, and a Mapbox GL map inside one
+ * keeps tiling, placing labels and serialising worker messages on the main
+ * thread for as long as it exists. Debugger.pause on a hung board landed in
+ * mapbox's _render -> updateSources -> _addTile -> serialize on three of four
+ * loads, and the fourth died of OOM. The static Mapbox image is what a card
+ * face needs; the GL map is what was freezing the tab.
+ *
+ * A module flag rather than a URL parameter because the board is a host that
+ * embeds these documents, and it is the host that knows they are decorative.
+ */
+let interactiveMapsEnabled = true
+
+export const setInteractiveMapsEnabled = (enabled: boolean) => {
+  interactiveMapsEnabled = enabled
+}
+
+export const areInteractiveMapsEnabled = () => interactiveMapsEnabled
+
 export const shouldSuppressLocationTagMapPopup = (): boolean => {
   if (typeof window === 'undefined') return false
+  if (!interactiveMapsEnabled) return true
 
   // Embedded in a host shell that already shows a map beside the note (the
   // Atlas web layout, the iOS editor): a second inline map on tag click is
