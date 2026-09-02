@@ -8,7 +8,7 @@ import Suggestion, { SuggestionKeyDownProps, SuggestionOptions, SuggestionProps 
 import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } from 'react'
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import mapboxgl from 'mapbox-gl'
 import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import { shouldSuppressLocationTagMapPopup } from './MapboxMapShared'
@@ -755,6 +755,38 @@ export const LocationNode = Node.create({
         'data-location-connection-id': node.attrs.locationId,
       })),
       node.attrs.label || '',
+    ]
+  },
+
+  addProseMirrorPlugins() {
+    // A copied or duplicated tag arrives with its original connection id, and
+    // connections resolve endpoints by that id, so the second tag would draw
+    // its connectors to the first. Every location keeps an id of its own.
+    return [
+      new Plugin({
+        key: new PluginKey('locationConnectionIdUniqueness'),
+        appendTransaction: (transactions, _oldState, newState) => {
+          if (!transactions.some((transaction) => transaction.docChanged)) return null
+          const seen = new Set<string>()
+          const transaction = newState.tr
+          let changed = false
+          newState.doc.descendants((node, pos) => {
+            if (node.type.name !== 'location') return true
+            const id = node.attrs.locationId as string | null
+            if (id && !seen.has(id)) {
+              seen.add(id)
+              return true
+            }
+            let fresh = generateShortId()
+            while (seen.has(fresh)) fresh = generateShortId()
+            seen.add(fresh)
+            transaction.setNodeMarkup(pos, node.type, { ...node.attrs, locationId: fresh }, node.marks)
+            changed = true
+            return true
+          })
+          return changed ? transaction : null
+        },
+      }),
     ]
   },
 

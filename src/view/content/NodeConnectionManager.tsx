@@ -72,7 +72,6 @@ interface NodeConnection {
 const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
 const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
-const SELECTED_LOCATION_SOURCE_FALLBACK_MS = 15000
 
 // Helper to generate a short unique ID for connections
 const generateConnectionId = () => Math.random().toString(36).substring(2, 10)
@@ -207,19 +206,6 @@ const getLocationElementLabel = (element: HTMLElement): string | undefined => {
   const rawLabel = explicitLabel || element.textContent || ''
   const label = rawLabel.replace(/^📍\s*/, '').trim()
   return label || undefined
-}
-
-const getSelectedLocationElement = (): { element: HTMLElement, id: string, type: 'location' } | null => {
-  const selectedElement = document.querySelector([
-    '.location-mention.selected[data-location-connection-id]',
-    '.location-mention.ProseMirror-selectednode[data-location-connection-id]',
-    '.ProseMirror-selectednode .location-mention[data-location-connection-id]',
-  ].join(', ')) as HTMLElement | null
-  const id = selectedElement?.getAttribute('data-location-connection-id')
-
-  return selectedElement && id
-    ? { element: selectedElement, id, type: 'location' }
-    : null
 }
 
 const getConnectionEndpointElement = (
@@ -389,7 +375,6 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const connectionsRef = useRef<NodeConnection[]>([])
   const editorModeRef = useRef<EditorMode>('editing')
   const pendingSourceRef = useRef<{ id: string, type: ConnectableType } | null>(null)
-  const lastSelectedLocationRef = useRef<{ id: string, at: number } | null>(null)
   const lastPointerConnectionTargetRef = useRef<{ target: EventTarget | null, at: number } | null>(null)
   const isLocationConnectionMode = editorMode === 'location-connection'
   const isConnectionMode = isConnectionEditorMode(editorMode)
@@ -479,34 +464,16 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       const customEvent = event as CustomEvent<DocumentAttributes>
       const updatedAttributes = normalizeDocumentAttributes(customEvent.detail)
       if (updatedAttributes?.editorMode) {
-        const previousMode = editorModeRef.current
         editorModeRef.current = updatedAttributes.editorMode
         console.log('[NodeConnectionManager] Mode changed to:', updatedAttributes.editorMode)
         setEditorMode(updatedAttributes.editorMode)
         if (updatedAttributes.editorMode === 'editing') {
           setPendingSourceSelection(null)
-        } else if (
-          updatedAttributes.editorMode === 'location-connection' &&
-          previousMode !== 'location-connection'
-        ) {
-          const selectedLocation = getSelectedLocationElement()
-          const recentLocation = lastSelectedLocationRef.current
-          const shouldUseRecentLocation =
-            !!recentLocation &&
-            Date.now() - recentLocation.at <= SELECTED_LOCATION_SOURCE_FALLBACK_MS
-          if (selectedLocation) {
-            setPendingSourceSelection(
-              { id: selectedLocation.id, type: selectedLocation.type },
-              selectedLocation.element,
-            )
-          } else if (recentLocation && shouldUseRecentLocation) {
-            setPendingSourceSelection(
-              { id: recentLocation.id, type: 'location' },
-              getConnectableElement(recentLocation.id, 'location'),
-            )
-          } else {
-            setPendingSourceSelection(null)
-          }
+        } else if (updatedAttributes.editorMode === 'location-connection') {
+          // Entering the mode always starts with no source, so the first tap
+          // is the source and the second the target, whatever was touched or
+          // selected beforehand.
+          setPendingSourceSelection(null)
         }
       }
     }
@@ -554,10 +521,6 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     const elementInfo = findConnectableElement(target)
 
     if (!elementInfo) return
-
-    if (elementInfo.type === 'location') {
-      lastSelectedLocationRef.current = { id: elementInfo.id, at: Date.now() }
-    }
 
     const currentEditorMode = editorModeRef.current
     const currentIsConnectionMode = isConnectionEditorMode(currentEditorMode)
