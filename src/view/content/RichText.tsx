@@ -1071,7 +1071,8 @@ export const customExtensions: Extensions = [
   // Location mentions - triggered by ! for location insertion (Sydney, Tokyo, etc.)
   LocationNode,
   LocationMention,
-  AutoLocationTaggingExtension,
+  // AutoLocationTaggingExtension is off: it tagged "Roadtrippin'" and "We" as
+  // places. Locations are tagged by hand or by the assistant.
   TemporalEntityAutotaggingExtension,
   TemporalRelationAutotaggingExtension,
   // Connections between tags live on the tags themselves (see ConnectionsExtension)
