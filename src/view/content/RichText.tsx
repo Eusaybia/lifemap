@@ -50,6 +50,7 @@ import { LocationMention, LocationNode } from './LocationMention'
 import { AutoLocationTaggingExtension } from './AutoLocationTaggingExtension'
 import { TemporalEntityAutotaggingExtension } from './TemporalEntityAutotaggingExtension'
 import { TemporalRelationAutotaggingExtension } from './TemporalRelationAutotaggingExtension'
+import { ConnectionsExtension } from './ConnectionsExtension'
 import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
@@ -942,6 +943,18 @@ registerLowlightLanguage(lowlight, 'js', js)
 export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid";
 
 
+/** Nodes that carry a quantaId (NodeOverlay targets); shared with the connections attribute. */
+const QUANTA_ID_NODE_TYPES = [
+      'paragraph', 'mention', 'group', 'scrollview', 'daily', 'day', 'dailyScheduleNew',
+      // Structure nodes
+      'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
+      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
+      'quantaFlow', 'lifemapCard', 'singleLifemapCard',
+      // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
+      'excalidraw', 'mapboxMap', 'warning', 'quote',
+      'conversation', 'math', 'calculation', 'keyValuePair', 'comment',
+    ]
+
 export const officialExtensions = (quantaId: string) => {return [
   // Add official extensions
   CodeBlockLowlight.configure({
@@ -1028,17 +1041,7 @@ export const officialExtensions = (quantaId: string) => {return [
   }),
   TextStyle,
   UniqueID.configure({
-    // All block nodes that can participate in connections
-    types: [
-      'paragraph', 'mention', 'group', 'scrollview', 'daily', 'day', 'dailyScheduleNew',
-      // Structure nodes
-      'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
-      'quantaFlow', 'lifemapCard', 'singleLifemapCard',
-      // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
-      'excalidraw', 'mapboxMap', 'warning', 'quote',
-      'conversation', 'math', 'calculation', 'keyValuePair', 'comment',
-    ],
+    types: QUANTA_ID_NODE_TYPES,
     filterTransaction: transaction => !isChangeOrigin(transaction),
     generateID: generateUniqueID,
     attributeName: 'quantaId',
@@ -1071,6 +1074,8 @@ export const customExtensions: Extensions = [
   AutoLocationTaggingExtension,
   TemporalEntityAutotaggingExtension,
   TemporalRelationAutotaggingExtension,
+  // Connections between tags live on the tags themselves (see ConnectionsExtension)
+  ConnectionsExtension.configure({ quantaNodeTypes: QUANTA_ID_NODE_TYPES }),
   // People mentions - triggered by % for person insertion (Jane Doe, Alex Chen, etc.)
   PersonNode,
   PeopleMention,

@@ -3,8 +3,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 
 export const TemporalRelationAutotaggingPluginKey = new PluginKey('temporalRelationAutotagging')
 
-const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
-const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
+import { connectionStore } from './ConnectionsExtension'
 const TEMPORAL_RELATION_ANALYSIS_PATH = '/api/analyze-temporal-relations'
 const SCAN_DEBOUNCE_MS = 1400
 const MIN_ANALYSIS_CHARS = 8
@@ -546,24 +545,6 @@ const resolveEndpoint = (
   }
 }
 
-const loadConnections = (): NodeConnectionRecord[] => {
-  if (typeof window === 'undefined') return []
-  try {
-    const stored = window.localStorage.getItem(CONNECTIONS_STORAGE_KEY)
-    if (!stored) return []
-    const parsed = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-const saveConnections = (connections: NodeConnectionRecord[]) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connections))
-  window.dispatchEvent(new CustomEvent(CONNECTIONS_UPDATED_EVENT, { detail: connections }))
-}
-
 const appendTemporalConnections = (
   relations: Array<{
     sourceId: string
@@ -575,9 +556,8 @@ const appendTemporalConnections = (
 ) => {
   if (typeof window === 'undefined' || relations.length === 0) return
 
-  const existingConnections = loadConnections()
   const existingKeys = new Set(
-    existingConnections.map((connection) => (
+    connectionStore.list().map((connection) => (
       `${connection.sourceType}:${connection.sourceId}->${connection.targetType}:${connection.targetId}`
     )),
   )
@@ -591,7 +571,6 @@ const appendTemporalConnections = (
 
     existingKeys.add(key)
     additions.push({
-      id: generateShortId(),
       sourceId: relation.sourceId,
       targetId: relation.targetId,
       sourceType: 'location',
@@ -599,13 +578,10 @@ const appendTemporalConnections = (
       connectionKind: 'temporal-order',
       createdBy: 'temporalRelationAutotagging',
       cue: relation.cue,
-      sourceLabel: relation.sourceLabel,
-      targetLabel: relation.targetLabel,
     })
   })
 
-  if (!additions.length) return
-  saveConnections([...existingConnections, ...additions])
+  additions.forEach((addition) => connectionStore.add(addition))
 }
 
 const applyTemporalRelationTags = (

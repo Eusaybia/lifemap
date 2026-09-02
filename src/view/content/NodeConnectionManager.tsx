@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { DocumentAttributes, EditorMode, normalizeDocumentAttributes } from '../structure/DocumentAttributesExtension'
+import { connectionStore, CONNECTIONS_UPDATED_EVENT, type NodeConnectionRecord } from './ConnectionsExtension'
 import {
   buildTemporalArrowPolygonPoints,
   TEMPORAL_ARROW_GLOW,
@@ -53,46 +54,14 @@ import {
 
 // Connection between two connectable elements
 // 'todo', 'question', 'motivation', and 'location' types are for inline mention nodes with connection grips
-type ConnectableType = 'block' | 'span' | 'node' | 'todo' | 'question' | 'motivation' | 'location'
+type ConnectableType = NodeConnectionRecord['sourceType']
+type NodeConnection = NodeConnectionRecord
 
-interface NodeConnection {
-  id: string
-  sourceId: string
-  targetId: string
-  sourceType: ConnectableType
-  targetType: ConnectableType
-  connectionKind?: 'temporal-order' | 'physical-order' | 'association' | 'manual'
-  createdBy?: string
-  cue?: string
-  sourceLabel?: string
-  targetLabel?: string
-}
-
-// Local storage key for persisting connections
-const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
-const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
 const DOC_ATTRIBUTES_STORAGE_KEY = 'tiptapDocumentAttributes'
 
-// Helper to generate a short unique ID for connections
-const generateConnectionId = () => Math.random().toString(36).substring(2, 10)
-
-// Load connections from localStorage
-const loadConnections = (): NodeConnection[] => {
-  if (typeof window === 'undefined') return []
-  try {
-    const stored = localStorage.getItem(CONNECTIONS_STORAGE_KEY)
-    if (!stored) return []
-    const parsed = JSON.parse(stored)
-    return parsed.map((conn: any) => ({
-      ...conn,
-      sourceType: conn.sourceType || 'span',
-      targetType: conn.targetType || 'span',
-      connectionKind: conn.connectionKind || 'manual',
-    }))
-  } catch {
-    return []
-  }
-}
+// Connections live on the tags themselves (ConnectionsExtension); the store
+// flattens them into the list this overlay draws.
+const loadConnections = (): NodeConnection[] => connectionStore.list()
 
 const isConnectionEditorMode = (mode: EditorMode) => (
   mode === 'temporal-order' ||
@@ -112,13 +81,6 @@ const getConnectionKindForEditorMode = (mode: EditorMode): NodeConnection['conne
   if (mode === 'physical-order' || mode === 'location-connection') return 'physical-order'
   if (mode === 'association') return 'association'
   return 'manual'
-}
-
-// Save connections to localStorage
-const saveConnections = (connections: NodeConnection[]) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(CONNECTIONS_STORAGE_KEY, JSON.stringify(connections))
-  window.dispatchEvent(new CustomEvent(CONNECTIONS_UPDATED_EVENT, { detail: connections }))
 }
 
 // Helper to find a connectable element and determine its type
@@ -560,38 +522,24 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       ))
 
       if (existingConnection) {
-        const updatedConnections = currentConnections.filter((conn) => conn.id !== existingConnection.id)
         delete focusedEndByConnection.current[existingConnection.id]
-        connectionsRef.current = updatedConnections
-        connectionsSignatureRef.current = getConnectionsSignature(updatedConnections)
-        setConnections(updatedConnections)
-        saveConnections(updatedConnections)
+        connectionStore.remove(existingConnection.id)
 
         setPendingSourceSelection(null)
         console.log('[NodeConnectionManager] Removed connection:', existingConnection)
         return
       }
 
-      const sourceElement = getConnectableElement(currentPendingSource.id, currentPendingSource.type)
       const connectionKind = getConnectionKindForEditorMode(currentEditorMode)
-      const newConnection: NodeConnection = {
-        id: generateConnectionId(),
+      const newConnection = connectionStore.add({
         sourceId: currentPendingSource.id,
         targetId: elementId,
         sourceType: currentPendingSource.type,
         targetType: elementType,
         connectionKind,
         createdBy: currentIsLocationConnectionMode ? 'manualLocationConnection' : undefined,
-        sourceLabel: currentPendingSource.type === 'location' && sourceElement ? getLocationElementLabel(sourceElement) : undefined,
-        targetLabel: elementType === 'location' ? getLocationElementLabel(element) : undefined,
-      }
-      
-      const updatedConnections = [...currentConnections, newConnection]
-      connectionsRef.current = updatedConnections
-      connectionsSignatureRef.current = getConnectionsSignature(updatedConnections)
-      setConnections(updatedConnections)
-      saveConnections(updatedConnections)
-      
+      })
+
       console.log('[NodeConnectionManager] Created connection:', newConnection)
       
       if (currentIsLocationConnectionMode) {
@@ -845,10 +793,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     event.preventDefault()
     event.stopPropagation()
 
-    const updatedConnections = connections.filter((conn) => conn.id !== connectionId)
     delete focusedEndByConnection.current[connectionId]
-    setConnections(updatedConnections)
-    saveConnections(updatedConnections)
+    connectionStore.remove(connectionId)
     setHoveredConnectionId((current) => (current === connectionId ? null : current))
   }, [connections])
 

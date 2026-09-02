@@ -40,8 +40,7 @@ const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
 const MAPBOX_STATIC_DEFAULT_STYLE = DEFAULT_MAP_STYLE
 const ENABLE_INTERACTIVE_MAP = true
 const ENABLE_MAP_SEARCH_OVERLAY = false
-const CONNECTIONS_STORAGE_KEY = 'span-group-connections'
-const CONNECTIONS_UPDATED_EVENT = 'node-connections-updated'
+import { connectionStore, CONNECTIONS_UPDATED_EVENT } from './ConnectionsExtension'
 const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
 const MAPBOX_GLOBE_FOG = {
   color: 'rgb(228, 236, 255)',
@@ -381,13 +380,7 @@ const loadLocationConnections = (): NodeConnectionRecord[] => {
   if (typeof window === 'undefined') return []
 
   try {
-    const raw = localStorage.getItem(CONNECTIONS_STORAGE_KEY)
-    if (!raw) return []
-
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-
-    return parsed.filter((connection): connection is NodeConnectionRecord => {
+    return connectionStore.list().filter((connection): connection is NodeConnectionRecord => {
       if (!connection || typeof connection !== 'object') return false
       const record = connection as NodeConnectionRecord
       return (
@@ -697,11 +690,9 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     syncConnections()
     window.addEventListener(CONNECTIONS_UPDATED_EVENT, syncConnections)
-    window.addEventListener('storage', syncConnections)
 
     return () => {
       window.removeEventListener(CONNECTIONS_UPDATED_EVENT, syncConnections)
-      window.removeEventListener('storage', syncConnections)
     }
   }, [])
 
