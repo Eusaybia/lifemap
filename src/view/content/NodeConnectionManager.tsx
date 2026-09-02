@@ -338,6 +338,11 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
   const editorModeRef = useRef<EditorMode>('editing')
   const pendingSourceRef = useRef<{ id: string, type: ConnectableType } | null>(null)
   const lastPointerConnectionTargetRef = useRef<{ target: EventTarget | null, at: number } | null>(null)
+  // Hold-to-connect: pressing and holding a location's grip enters route
+  // connection mode with that location as the source. The next tap on another
+  // location makes the route and leaves the mode; a tap anywhere else leaves it.
+  const quickConnectRef = useRef<{ sourceElement: HTMLElement, firedAt: number } | null>(null)
+  const holdRef = useRef<{ timer: number, x: number, y: number } | null>(null)
   const isLocationConnectionMode = editorMode === 'location-connection'
   const isConnectionMode = isConnectionEditorMode(editorMode)
   const isTemporalOrderMode = isTemporalOrderEditorMode(editorMode)
@@ -352,6 +357,11 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
       sourceElement.style.outline = ''
       sourceElement.style.outlineOffset = ''
     }
+  }, [])
+
+  const setEditorModeAttribute = useCallback((mode: EditorMode) => {
+    const editor = connectionStore.editors()[0] as { commands?: { setDocumentAttribute?: (attrs: { editorMode: EditorMode }) => void } } | undefined
+    editor?.commands?.setDocumentAttribute?.({ editorMode: mode })
   }, [])
 
   const setPendingSourceSelection = useCallback((
@@ -458,6 +468,64 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
     }
   }, [setPendingSourceSelection])
 
+  const leaveQuickConnect = useCallback(() => {
+    if (!quickConnectRef.current) return
+    quickConnectRef.current = null
+    setPendingSourceSelection(null)
+    setEditorModeAttribute('editing')
+  }, [setEditorModeAttribute, setPendingSourceSelection])
+
+  useEffect(() => {
+    const HOLD_MS = 450
+    const MOVE_TOLERANCE_PX = 8
+
+    const cancelHold = () => {
+      if (!holdRef.current) return
+      window.clearTimeout(holdRef.current.timer)
+      holdRef.current = null
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (editorModeRef.current !== 'editing' || quickConnectRef.current) return
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      const grip = (event.target as HTMLElement | null)?.closest?.('.location-grip') as HTMLElement | null
+      const mention = grip?.closest('.location-mention[data-location-connection-id]') as HTMLElement | null
+      const id = mention?.getAttribute('data-location-connection-id')
+      if (!mention || !id) return
+      cancelHold()
+      holdRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        timer: window.setTimeout(() => {
+          holdRef.current = null
+          quickConnectRef.current = { sourceElement: mention, firedAt: performance.now() }
+          window.getSelection?.()?.removeAllRanges()
+          setEditorModeAttribute('location-connection')
+          // The mode change clears the pending source; set ours after it.
+          window.setTimeout(() => setPendingSourceSelection({ id, type: 'location' }, mention), 0)
+        }, HOLD_MS),
+      }
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      const hold = holdRef.current
+      if (!hold) return
+      if (Math.hypot(event.clientX - hold.x, event.clientY - hold.y) > MOVE_TOLERANCE_PX) cancelHold()
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('pointermove', onPointerMove, true)
+    document.addEventListener('pointerup', cancelHold, true)
+    document.addEventListener('pointercancel', cancelHold, true)
+    return () => {
+      cancelHold()
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('pointermove', onPointerMove, true)
+      document.removeEventListener('pointerup', cancelHold, true)
+      document.removeEventListener('pointercancel', cancelHold, true)
+    }
+  }, [setEditorModeAttribute, setPendingSourceSelection])
+
   // Handle element taps/clicks in Connection mode to create new connections.
   // Pointerdown is the primary path on iPhone because waiting for click lets
   // WebKit/ProseMirror start text selection before the connector can consume it.
@@ -481,6 +549,17 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
     const target = eventTarget as HTMLElement
     const elementInfo = findConnectableElement(target)
+
+    const quickConnect = quickConnectRef.current
+    if (quickConnect) {
+      // The release and click that end the hold land on the source itself.
+      if (quickConnect.sourceElement.contains(target) && performance.now() - quickConnect.firedAt < 800) return
+      // Anything but another location is a miss: drop the pending route and leave the mode.
+      if (!elementInfo || elementInfo.type !== 'location' || elementInfo.element === quickConnect.sourceElement) {
+        if (isPointerDown) leaveQuickConnect()
+        return
+      }
+    }
 
     if (!elementInfo) return
 
@@ -525,7 +604,8 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
         delete focusedEndByConnection.current[existingConnection.id]
         connectionStore.remove(existingConnection.id)
 
-        setPendingSourceSelection(null)
+        if (quickConnectRef.current) leaveQuickConnect()
+        else setPendingSourceSelection(null)
         console.log('[NodeConnectionManager] Removed connection:', existingConnection)
         return
       }
@@ -542,13 +622,17 @@ export const NodeConnectionManager: React.FC<{ containerRef?: React.RefObject<HT
 
       console.log('[NodeConnectionManager] Created connection:', newConnection)
       
-      if (currentIsLocationConnectionMode) {
+      if (quickConnectRef.current) {
+        quickConnectRef.current = null
+        setPendingSourceSelection(null)
+        setEditorModeAttribute('editing')
+      } else if (currentIsLocationConnectionMode) {
         setPendingSourceSelection({ id: elementId, type: elementType }, element)
       } else {
         setPendingSourceSelection(null)
       }
     }
-  }, [setPendingSourceSelection])
+  }, [leaveQuickConnect, setEditorModeAttribute, setPendingSourceSelection])
 
   // Keep the capture listener mounted so the first tap after entering connection mode
   // cannot race ahead of React's effect that would otherwise add the listener.

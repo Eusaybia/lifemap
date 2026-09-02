@@ -219,6 +219,11 @@ class ConnectionStore {
     this.publish()
   }
 
+  /** Mounted editors, for callers that need to run an editor command (mode changes). */
+  editors(): Editor[] {
+    return Array.from(this.indexes.keys())
+  }
+
   list(): NodeConnectionRecord[] {
     const records: NodeConnectionRecord[] = []
     const seen = new Set<string>()
