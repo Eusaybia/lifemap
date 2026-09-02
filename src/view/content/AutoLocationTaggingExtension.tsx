@@ -119,6 +119,11 @@ export const AutoLocationTaggingExtension = Extension.create({
     let isAnalyzing = false
     let viewRef: any = null
 
+    // After a failed call (bad key, quota, outage) the analysis pauses rather
+    // than firing again on the next keystroke.
+    let analysisPausedUntil = 0
+    const FAILURE_BACKOFF_MS = 60_000
+
     const fetchLlmLocations = async (text: string): Promise<string[]> => {
       const response = await fetch('/api/analyze-locations', {
         method: 'POST',
@@ -126,7 +131,10 @@ export const AutoLocationTaggingExtension = Extension.create({
         body: JSON.stringify({ text }),
       })
 
-      if (!response.ok) return []
+      if (!response.ok) {
+        analysisPausedUntil = Date.now() + FAILURE_BACKOFF_MS
+        return []
+      }
 
       const data = await response.json()
       const locations: DetectedLocation[] = Array.isArray(data?.locations)
@@ -274,14 +282,22 @@ export const AutoLocationTaggingExtension = Extension.create({
     const analyzeAndTag = debounce(async (targets: SentenceAnalysisTarget[]) => {
       if (!viewRef) return
       if (isAnalyzing) return
+      if (Date.now() < analysisPausedUntil) return
       isAnalyzing = true
       try {
-        for (const target of targets) {
-          const latestTarget = findLatestMatchingTarget(target)
-          if (!latestTarget) continue
-
-          const llmLocations = await fetchLlmLocations(latestTarget.text)
-          applyLocationTags(mergeLocationTexts(llmLocations), latestTarget)
+        // One request for the whole note: the model sees every sentence at
+        // once, and an edit no longer costs one call per sentence.
+        const latestTargets = targets
+          .map(findLatestMatchingTarget)
+          .filter((target): target is SentenceAnalysisTarget => target != null)
+        if (latestTargets.length === 0) return
+        const llmLocations = mergeLocationTexts(
+          await fetchLlmLocations(latestTargets.map((target) => target.text).join('\n')),
+        )
+        if (llmLocations.length === 0) return
+        for (const target of latestTargets) {
+          const current = findLatestMatchingTarget(target)
+          if (current) applyLocationTags(llmLocations, current)
         }
       } catch (err) {
         console.error('Auto location tagging error:', err)
