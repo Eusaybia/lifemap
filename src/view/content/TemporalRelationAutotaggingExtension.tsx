@@ -515,34 +515,11 @@ const resolveEndpoint = (
     return resolveExistingLocationSegment(segment)
   }
 
-  const docFrom = linearized.indexToPos[normalizedEndpoint.start]
-  const docTo = linearized.indexToPos[normalizedEndpoint.end - 1] + 1
-  if (!Number.isFinite(docFrom) || !Number.isFinite(docTo) || docTo <= docFrom) return null
-
-  const rangeKey = `${docFrom}:${docTo}`
-  const existingOperation = operationByRange.get(rangeKey)
-  if (existingOperation?.kind === 'replaceText') {
-    return {
-      connectionId: existingOperation.attrs.locationId,
-      operation: existingOperation,
-    }
-  }
-
-  const connectionId = generateShortId()
-  const operation: LocationOperation = {
-    kind: 'replaceText',
-    from: docFrom,
-    to: docTo,
-    attrs: createLocationAttrs(name, connectionId),
-  }
-
-  operationByRange.set(rangeKey, operation)
-
-  return {
-    connectionId,
-    operation,
-    label: name,
-  }
+  // Plain text is never promoted to a location node here. The model tagged
+  // "We" and "Roadtrippin'" as places; relations only join locations the
+  // user has tagged, so an endpoint that is not already a location node is
+  // dropped.
+  return null
 }
 
 const appendTemporalConnections = (
@@ -652,7 +629,9 @@ const applyTemporalRelationTags = (
     changed = true
   })
 
-  if (changed) {
+  // The analysis ran asynchronously; a transaction built on a superseded
+  // state would throw "Applying a mismatched transaction".
+  if (changed && view.state.doc === state.doc) {
     tr.setMeta('fromTemporalRelationAutotagging', true)
     view.dispatch(tr)
   }
