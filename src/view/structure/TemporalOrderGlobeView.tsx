@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { MAPBOX_GL_CSS_URL as MAPBOX_IMPORTED_GL_CSS_URL, loadMapboxGl, type MapboxGl } from '../content/mapboxRuntime'
 
 import { DEFAULT_MAP_STYLE, type MapMarker } from '../content/MapboxMapAttrs'
 import {
@@ -77,10 +78,8 @@ type MapboxGlobal = {
   version?: string
 }
 
-const MAPBOX_IMPORTED_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
-const MAPBOX_IMPORTED_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_IMPORTED_GL_VERSION}/mapbox-gl.css`
-const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
-const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+/** The mapbox-gl module for the 2D view, set once it has loaded it; the globe view uses the CDN runtime instead. */
+let mapboxGl: MapboxGl
 const MAPBOX_GL_VERSION = '3.12.0'
 const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
 const MAPBOX_GL_JS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.js`
@@ -112,13 +111,6 @@ const MAPBOX_GLOBE_FOG = {
 }
 
 let mapboxLoadPromise: Promise<void> | null = null
-
-const configureMapboxWorker = () => {
-  const majorVersion = Number.parseInt(MAPBOX_IMPORTED_GL_VERSION.split('.')[0] || '0', 10)
-  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
-    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
-  }
-}
 
 const getMapboxGlobal = (): MapboxGlobal | null => {
   if (typeof window === 'undefined' || !window.mapboxgl || typeof window.mapboxgl.Map !== 'function') {
@@ -430,10 +422,13 @@ const focusMapOnMarkers = (
     return
   }
 
-  const bounds = new mapboxgl.LngLatBounds()
-  nextMarkers.forEach((marker) => {
-    bounds.extend([marker.lng, marker.lat])
-  })
+  // Plain bounds, so this helper serves both the CDN globe and the bundled 2D map.
+  const lngs = nextMarkers.map((marker) => marker.lng)
+  const lats = nextMarkers.map((marker) => marker.lat)
+  const bounds: [[number, number], [number, number]] = [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ]
 
   map.fitBounds(bounds, {
     padding: 72,
@@ -1050,7 +1045,7 @@ const TemporalOrderImportedMapView: React.FC<{
     }
 
     const marker = isGlobeMode
-      ? new mapboxgl.Marker({
+      ? new mapboxGl.Marker({
           element: (() => {
             const element = document.createElement('div')
             element.className = 'temporal-order-globe-marker'
@@ -1062,7 +1057,7 @@ const TemporalOrderImportedMapView: React.FC<{
         })
           .setLngLat([markerData.lng, markerData.lat])
           .addTo(mapRef.current)
-      : new mapboxgl.Marker({
+      : new mapboxGl.Marker({
           color: '#e11d48',
           scale: 1.1,
         })
@@ -1071,7 +1066,7 @@ const TemporalOrderImportedMapView: React.FC<{
 
     if (!shouldSuppressLocationTagMapPopup()) {
       marker.setPopup(
-        new mapboxgl.Popup({
+        new mapboxGl.Popup({
           className: 'location-tag-map-popup',
           closeButton: false,
           closeOnClick: true,
@@ -1146,12 +1141,19 @@ const TemporalOrderImportedMapView: React.FC<{
 
       if (cancelled || !mapContainerRef.current || mapRef.current) return
 
+      try {
+        mapboxGl = await loadMapboxGl()
+      } catch (error) {
+        console.error('[TemporalOrder2DMapView] Failed to load mapbox-gl:', error)
+        return
+      }
+      if (cancelled || !mapContainerRef.current || mapRef.current) return
+
       forceMapboxLayout(mapContainerRef.current)
-      configureMapboxWorker()
-      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+      mapboxGl.accessToken = MAPBOX_ACCESS_TOKEN
 
       try {
-        mapInstance = new mapboxgl.Map({
+        mapInstance = new mapboxGl.Map({
           container: mapContainerRef.current,
           style: mapStyle,
           projection: isGlobeMode ? 'globe' : 'mercator',
@@ -1304,7 +1306,7 @@ const TemporalOrderImportedMapView: React.FC<{
         return
       }
 
-      const bounds = new mapboxgl.LngLatBounds()
+      const bounds = new mapboxGl.LngLatBounds()
       markers.forEach((markerData) => {
         bounds.extend([markerData.lng, markerData.lat])
       })

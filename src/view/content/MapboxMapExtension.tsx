@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer, NodeViewProps } from '@tiptap/react'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { MAPBOX_GL_CSS_URL, loadMapboxGl, type MapboxGl } from './mapboxRuntime'
 
 import {
   DEFAULT_MAP_CENTER,
@@ -34,14 +35,12 @@ import {
 } from './TemporalArrowVisual'
 import DragGrip from '../components/DragGrip'
 
-const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
-const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
-const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
 const MAPBOX_STATIC_DEFAULT_STYLE = DEFAULT_MAP_STYLE
 const ENABLE_INTERACTIVE_MAP = true
 const ENABLE_MAP_SEARCH_OVERLAY = false
 import { connectionStore, CONNECTIONS_UPDATED_EVENT } from './ConnectionsExtension'
-const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+/** The mapbox-gl module, set once a map has loaded it; only map code after that point uses it. */
+let mapboxGl: MapboxGl
 const MAPBOX_GLOBE_FOG = {
   color: 'rgb(228, 236, 255)',
   'high-color': 'rgb(120, 158, 255)',
@@ -56,13 +55,6 @@ declare module '@tiptap/core' {
       insertMapboxMap: (options?: { center?: [number, number]; zoom?: number }) => ReturnType
       setMapboxMapLens: (options: { lens: MapboxMapLens }) => ReturnType
     }
-  }
-}
-
-const configureMapboxWorker = () => {
-  const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
-  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
-    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
   }
 }
 
@@ -700,7 +692,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
   const addMarkerToMap = useCallback((markerData: MapMarker) => {
     if (!map.current) return null
 
-    const marker = new mapboxgl.Marker({
+    const marker = new mapboxGl.Marker({
       color: '#e11d48',
       scale: 1.1,
     })
@@ -708,7 +700,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
     if (!shouldSuppressLocationTagMapPopup()) {
       marker.setPopup(
-        new mapboxgl.Popup({
+        new mapboxGl.Popup({
           className: 'location-tag-map-popup',
           closeButton: false,
           closeOnClick: true,
@@ -941,12 +933,19 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
 
       if (cancelled || !mapContainer.current || map.current) return
 
+      try {
+        mapboxGl = await loadMapboxGl()
+      } catch (error) {
+        console.error('[MapboxMap] Failed to load mapbox-gl:', error)
+        return
+      }
+      if (cancelled || !mapContainer.current || map.current) return
+
       forceMapboxLayout(mapContainer.current)
-      configureMapboxWorker()
-      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+      mapboxGl.accessToken = MAPBOX_ACCESS_TOKEN
 
       try {
-        mapInstance = new mapboxgl.Map({
+        mapInstance = new mapboxGl.Map({
           container: mapContainer.current,
           style: resolveMapboxStyle(style),
           center: center,
@@ -1131,7 +1130,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         return
       }
 
-      const bounds = new mapboxgl.LngLatBounds()
+      const bounds = new mapboxGl.LngLatBounds()
       activeMarkers.forEach((markerData) => {
         bounds.extend([markerData.lng, markerData.lat])
       })
@@ -1177,7 +1176,7 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
         markerElement.appendChild(emoji)
         markerElement.appendChild(label)
 
-        const durationMarker = new mapboxgl.Marker({
+        const durationMarker = new mapboxGl.Marker({
           element: markerElement,
           anchor: 'center',
         })

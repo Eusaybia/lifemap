@@ -9,7 +9,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useState, useRef } f
 import tippy, { Instance as TippyInstance } from 'tippy.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { MAPBOX_GL_CSS_URL, loadMapboxGl, type MapboxGl } from './mapboxRuntime'
 import { deferNodeViewAttributeUpdate } from './deferNodeViewAttributeUpdate'
 import { shouldSuppressLocationTagMapPopup } from './MapboxMapShared'
 import {
@@ -26,10 +27,8 @@ const MAPBOX_ACCESS_TOKEN =
   process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   process.env.REACT_APP_MAPBOX_ACCESS_TOKEN ||
   ''
-const MAPBOX_GL_VERSION = String((mapboxgl as typeof mapboxgl & { version?: string }).version || '2.15.0')
-const MAPBOX_GL_CSS_URL = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
-const MAPBOX_GL_CSP_WORKER_URL = '/vendor/mapbox-gl-csp-worker-v2.15.0.js'
-const mapboxglWithWorkerUrl = mapboxgl as typeof mapboxgl & { workerUrl: string }
+/** The mapbox-gl module, set once the popup map has loaded it. */
+let mapboxGl: MapboxGl
 const generateShortId = () => Math.random().toString(36).substring(2, 8)
 
 const splitLocationPinLabel = (label?: string | null) => {
@@ -41,13 +40,6 @@ const splitLocationPinLabel = (label?: string | null) => {
   return {
     pin: '📍',
     text: trimmedLabel.replace(/^📍\s*/, ''),
-  }
-}
-
-const configureMapboxWorker = () => {
-  const majorVersion = Number.parseInt(MAPBOX_GL_VERSION.split('.')[0] || '0', 10)
-  if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
-    mapboxglWithWorkerUrl.workerUrl = MAPBOX_GL_CSP_WORKER_URL
   }
 }
 
@@ -363,11 +355,17 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
       // Default to Sydney if no coords
       const center: [number, number] = mapCoords || [151.2093, -33.8688]
 
-      configureMapboxWorker()
-      mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
+      try {
+        mapboxGl = await loadMapboxGl()
+      } catch (e) {
+        console.error('[LocationMention] Failed to load mapbox-gl:', e)
+        return
+      }
+      if (cancelled || !mapContainer.current) return
+      mapboxGl.accessToken = MAPBOX_ACCESS_TOKEN
       
       try {
-        mapInstance = new mapboxgl.Map({
+        mapInstance = new mapboxGl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/streets-v12',
           center: center,
@@ -380,7 +378,7 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
       }
 
       // Add navigation controls
-      mapInstance.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
+      mapInstance.addControl(new mapboxGl.NavigationControl(), 'bottom-right')
 
       // Store center in closure for marker function
       const markerCenter = center

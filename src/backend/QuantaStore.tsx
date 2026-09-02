@@ -4,8 +4,7 @@ import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { TiptapCollabProvider } from '@tiptap-pro/provider'
 import { Content, QuantaClass, QuantaId, QuantaType } from "../core/Model";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "./Firebase";
+import { getCollabToken } from "./collabToken";
 
 type QuantaStoreContextType = {
   quantaId: QuantaId,
@@ -86,52 +85,12 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   const [jwt, setJwt] = React.useState<string>("notoken");
   const [provider, setProvider] = React.useState<TiptapCollabProvider | null>(null);
 
-  // Immediately generate a jwt token via Firebase Cloud Function
+  // The token is minted once per page and cached (see collabToken.ts).
   React.useEffect(() => {
     let isCancelled = false;
-
-    const fetchJwtToken = async () => {
-      const generateAuthenticationToken = httpsCallable(functions, 'generateAuthenticationToken');
-
-      try {
-        const result = await generateAuthenticationToken();
-        const data = result.data as { token?: string } | undefined;
-        const token = data?.token;
-
-        if (!token) {
-          throw new Error('Cloud Function returned no token');
-        }
-
-        if (!isCancelled) {
-          setJwt(token);
-        }
-        return;
-      } catch (firebaseError) {
-        // Firebase callable may fail for local/dev users; fall back to Next API token route.
-        console.warn('[QuantaStore] Firebase callable token fetch failed, falling back to /api/getCollabToken', firebaseError);
-      }
-
-      try {
-        const response = await fetch(`/api/getCollabToken?documentName=${encodeURIComponent(roomName)}`);
-        if (!response.ok) {
-          throw new Error(`Fallback token request failed with status ${response.status}`);
-        }
-
-        const payload = await response.json() as { token?: string };
-        if (!payload.token) {
-          throw new Error('Fallback token response missing token');
-        }
-
-        if (!isCancelled) {
-          setJwt(payload.token);
-        }
-      } catch (fallbackError) {
-        console.warn('[QuantaStore] Failed to generate JWT token via Firebase and fallback API. Running without cloud sync.', fallbackError);
-      }
-    };
-
-    fetchJwtToken();
-
+    getCollabToken(roomName).then((token) => {
+      if (!isCancelled && token) setJwt(token);
+    });
     return () => {
       isCancelled = true;
     };

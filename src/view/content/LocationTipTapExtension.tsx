@@ -8,7 +8,8 @@ import { getMathsLoupeFromAttributes } from "../../utils/utils";
 import { Tag } from "./Tag";
 import { FlowSwitch } from "../structure/FlowSwitch";
 import { motion } from "framer-motion";
-import { Location } from "./Location";
+// The location picker carries react-map-gl and mapbox-gl; load it with the first location node.
+const Location = React.lazy(() => import("./Location").then((module) => ({ default: module.Location })));
 
 const REGEX_BLOCK_AT = /@[^@]+@/
 
@@ -48,7 +49,9 @@ export const LocationExtension = Node.create({
     return ReactNodeViewRenderer((props: NodeViewProps) => {
       return (
         <NodeViewWrapper>
-          <Location location={props.node.textContent}/>
+          <React.Suspense fallback={null}>
+            <Location location={props.node.textContent}/>
+          </React.Suspense>
         </NodeViewWrapper>
       );
     });
