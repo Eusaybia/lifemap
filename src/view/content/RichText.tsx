@@ -51,7 +51,6 @@ import { AutoLocationTaggingExtension } from './AutoLocationTaggingExtension'
 import { TemporalEntityAutotaggingExtension } from './TemporalEntityAutotaggingExtension'
 import { TemporalRelationAutotaggingExtension } from './TemporalRelationAutotaggingExtension'
 import { ConnectionsExtension } from './ConnectionsExtension'
-import { ServerAiToolkit } from '@tiptap/ai-toolkit'
 import { PeopleMention, PersonNode } from './PeopleMention'
 import { HashtagMention, HashtagNode } from './HashtagMention'
 import { MeritDemeritMention, MeritDemeritNode } from './MeritDemeritMention'
@@ -1077,9 +1076,6 @@ export const customExtensions: Extensions = [
   TemporalRelationAutotaggingExtension,
   // Connections between tags live on the tags themselves (see ConnectionsExtension)
   ConnectionsExtension.configure({ quantaNodeTypes: QUANTA_ID_NODE_TYPES }),
-  // Makes the document readable and editable by the Tiptap Server AI Toolkit
-  // (getEditorContext on the client, /v4/ai/toolkit on the server).
-  ServerAiToolkit,
   // People mentions - triggered by % for person insertion (Jane Doe, Alex Chen, etc.)
   PersonNode,
   PeopleMention,

@@ -34,7 +34,6 @@
     "@tiptap-pro/extension-mathematics": "2.21.5",
     "@tiptap-pro/extension-snapshot": "^3.3.0",
     "@tiptap-pro/provider": "^3.3.0",
-    "@tiptap/ai-toolkit": "^0.4.0",
     "@tiptap/core": "3.19.0",
     "@tiptap/extension-bold": "3.19.0",
     "@tiptap/extension-code-block": "3.19.0",
