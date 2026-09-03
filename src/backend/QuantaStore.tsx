@@ -106,6 +106,10 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
         document: quanta.information,
       });
       
+      newProvider.on('synced', () => {
+        window.dispatchEvent(new CustomEvent('kairos-cloud-synced', { detail: { roomName } }));
+      });
+
       // Add error listener for authentication failures
       newProvider.on('authenticationFailed', (data: any) => {
         console.warn(`[QuantaStore] Authentication failed for ${roomName}. Running without cloud sync.`, data);
