@@ -77,6 +77,8 @@ const MONTH_DAY_PATTERN = new RegExp(
 
 const TIME_WITH_MERIDIEM_PATTERN = /\b(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?=$|[\s,.;:!?)]|$)/gi
 const TIME_24_HOUR_PATTERN = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g
+/** "1:15–2:45 PM", "6-6:30pm", "10 to 11 am": the start has no meridiem of its own and takes the end's. */
+const TIME_RANGE_SHARED_MERIDIEM_PATTERN = /\b(\d{1,2})(?:[:.](\d{2}))?\s*(?:[–—-]|to)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?=$|[\s,.;:!?)]|$)/gi
 
 const normalizeYear = (rawYear: string | undefined, month: number, day: number, referenceDate: Date): number => {
   if (rawYear) {
@@ -270,6 +272,34 @@ const collectTimeEntities = (
 ): ParsedTemporalEntity[] => {
   const entities: ParsedTemporalEntity[] = []
 
+  // Range starts first, so the 24-hour pass below cannot read "1:15" in
+  // "1:15–2:45 PM" as 01:15. A start later than its end on the clock, as in
+  // "11–1 PM", belongs to the other half of the day.
+  for (const match of text.matchAll(TIME_RANGE_SHARED_MERIDIEM_PATTERN)) {
+    const start = match.index ?? -1
+    if (start < 0) continue
+    const startHour = Number.parseInt(match[1], 10)
+    const startMinute = match[2] ? Number.parseInt(match[2], 10) : 0
+    const endHour = Number.parseInt(match[3], 10)
+    const endMinute = match[4] ? Number.parseInt(match[4], 10) : 0
+    const meridiem = match[5].toLocaleLowerCase().replace(/\./g, '')
+    const startsAfterEnd = startHour * 60 + startMinute > endHour * 60 + endMinute
+    const startMeridiem = startsAfterEnd ? (meridiem === 'pm' ? 'am' : 'pm') : meridiem
+    const parsed = parseMeridiemTime(startHour, startMinute, startMeridiem)
+    if (!parsed) continue
+    const startText = `${match[1]}${match[2] ? match[0].charAt(match[1].length) + match[2] : ''}`
+
+    entities.push(buildTimeEntity(
+      text,
+      start,
+      start + startText.length,
+      parsed.hour,
+      parsed.minute,
+      referenceDate,
+      dateEntities,
+    ))
+  }
+
   for (const match of text.matchAll(TIME_WITH_MERIDIEM_PATTERN)) {
     const start = match.index ?? -1
     if (start < 0) continue
@@ -277,6 +307,7 @@ const collectTimeEntities = (
     const minuteValue = match[2] ? Number.parseInt(match[2], 10) : 0
     const parsed = parseMeridiemTime(hourValue, minuteValue, match[3])
     if (!parsed) continue
+    if (entities.some((entity) => rangesOverlap(entity, { start, end: start + match[0].length }))) continue
 
     entities.push(buildTimeEntity(
       text,

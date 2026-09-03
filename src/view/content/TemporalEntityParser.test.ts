@@ -56,6 +56,19 @@ describe('TemporalEntityParser', () => {
     expect(entities[0].attrs['data-date']).toBe(new Date(2026, 5, 21, 11, 20, 0).toISOString())
   })
 
+  test('gives the start of a range the meridiem written only at its end', () => {
+    const cases: Array<[string, string, string]> = [
+      ['1:15–2:45 PM — Kayaking', '🕐 1:15 PM', '🕐 2:45 PM'],
+      ['6-6:30pm walk', '🕐 6 PM', '🕐 6:30 PM'],
+      ['6:10–7:00 AM — Sunrise walk', '🕐 6:10 AM', '🕐 7 AM'],
+      ['11 to 1 pm lunch', '🕐 11 AM', '🕐 1 PM'],
+    ]
+    for (const [text, startLabel, endLabel] of cases) {
+      const labels = parseTemporalEntities(text, referenceDate).map((entity) => entity.attrs.label)
+      expect(labels, text).toEqual([startLabel, endLabel])
+    }
+  })
+
   test('rejects invalid times, flight labels, and generic direction words', () => {
     expect(parseTemporalEntities('20am Sunday 21 June 2026', referenceDate).map((entity) => entity.text)).toEqual([
       'Sunday 21 June 2026',
