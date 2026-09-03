@@ -23,6 +23,9 @@ const dummyQuantaStoreContext = {
   requestVersionPreviewFromCloud: (version: Content) => {}
 }
 
+/** How long an empty local document waits for the cloud before the editor opens anyway. */
+const EMPTY_DOCUMENT_GRACE_MS = 5000;
+
 // Handles storing and syncing information between a single quanta to the remote cloud store
 export const QuantaStoreContext = React.createContext<QuantaStoreContextType>(dummyQuantaStoreContext);
 
@@ -54,11 +57,28 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // TipTap Cloud App ID - get this at collab.tiptap.dev
   const appId = 'dy9wzo9x'
 
+  /*
+   * The editor must not exist before the document has arrived. Created over
+   * an empty Y.Doc, it writes its default empty paragraph into the shared
+   * document, and when the stored content then merges in, that paragraph
+   * survives as a blank line; every open added another. So the children
+   * (the editor) render only once IndexedDB has synced, and, if that left the
+   * document empty, once the cloud has answered too, or after a grace period
+   * for a note that is genuinely new or a device that is offline.
+   */
+  const [localSynced, setLocalSynced] = React.useState(false);
+  const [cloudSynced, setCloudSynced] = React.useState(false);
+  const [gracePeriodOver, setGracePeriodOver] = React.useState(false);
+
   // Sync the document locally (offline support)
   React.useEffect(() => {
+    setLocalSynced(false);
+    setCloudSynced(false);
+    setGracePeriodOver(false);
     const persistence = new IndexeddbPersistence(roomName, quanta.information);
 
     const markSynced = () => {
+      setLocalSynced(true);
       if (typeof window === 'undefined') return;
       (window as any).__KAIROS_IOS_LOCAL_PERSISTENCE_SYNCED__ = {
         ...((window as any).__KAIROS_IOS_LOCAL_PERSISTENCE_SYNCED__ || {}),
@@ -107,6 +127,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
       });
       
       newProvider.on('synced', () => {
+        setCloudSynced(true);
         window.dispatchEvent(new CustomEvent('kairos-cloud-synced', { detail: { roomName } }));
       });
 
@@ -123,6 +144,15 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
       };
     } 
   }, [jwt, roomName, quanta.information, appId]);
+
+  React.useEffect(() => {
+    if (!localSynced) return;
+    const timer = window.setTimeout(() => setGracePeriodOver(true), EMPTY_DOCUMENT_GRACE_MS);
+    return () => window.clearTimeout(timer);
+  }, [localSynced, roomName]);
+
+  const hasLocalContent = localSynced && quanta.information.getXmlFragment('default').length > 0;
+  const documentReady = localSynced && (hasLocalContent || cloudSynced || gracePeriodOver);
 
   // Define a function that sends a version.preview request to the provider
   const requestVersionPreviewFromCloud = (version: Content) => {
@@ -142,7 +172,7 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
 
   return (
     <QuantaStoreContext.Provider value={quantaStoreContext}>
-      {props.children}
+      {documentReady ? props.children : null}
     </QuantaStoreContext.Provider>
   );
 }
