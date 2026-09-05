@@ -1,4 +1,5 @@
-import type { Editor } from "@tiptap/core";
+import { Extension, type Editor } from "@tiptap/core";
+import { Plugin } from "@tiptap/pm/state";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -110,6 +111,68 @@ function insertUploadingImagePlaceholder(
     .run();
 }
 
+export async function uploadImage(editor: Editor, file: File): Promise<void> {
+  if (file.size > MAX_IMAGE_SIZE) {
+    alert(
+      `File size exceeds maximum allowed (${MAX_IMAGE_SIZE / (1024 * 1024)}MB)`,
+    );
+    return;
+  }
+
+  const uploadId = createUploadId();
+  const previewUrl = URL.createObjectURL(file);
+  const inserted = insertUploadingImagePlaceholder(
+    editor,
+    file,
+    uploadId,
+    previewUrl,
+  );
+
+  if (!inserted) {
+    URL.revokeObjectURL(previewUrl);
+    return;
+  }
+
+  try {
+    const uploadedUrl = await uploadImageFile(file);
+    updateUploadingImageNode(editor, uploadId, {
+      src: uploadedUrl,
+      alt: file.name,
+      title: file.name,
+      "data-upload-id": null,
+      "data-uploading": null,
+      "data-upload-name": null,
+      "data-upload-error": null,
+    });
+  } catch (error) {
+    removeUploadingImageNode(editor, uploadId);
+    alert(
+      `Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  } finally {
+    URL.revokeObjectURL(previewUrl);
+  }
+}
+
+export function pasteImageFiles(editor: Editor, clipboardData: Pick<DataTransfer, "files"> | null): boolean {
+  const files = Array.from(clipboardData?.files ?? []).filter(file => file.type.startsWith("image/"));
+  if (!files.length || !editor.isEditable) return false;
+  for (const file of files) void uploadImage(editor, file);
+  return true;
+}
+
+export const ClipboardImageUpload = Extension.create({
+  name: "clipboardImageUpload",
+  addProseMirrorPlugins() {
+    const editor = this.editor;
+    return [new Plugin({
+      props: {
+        handlePaste: (_view, event) => pasteImageFiles(editor, event.clipboardData),
+      },
+    })];
+  },
+});
+
 export function promptAndUploadImage(editor: Editor): boolean {
   const input = document.createElement("input");
   input.type = "file";
@@ -131,47 +194,9 @@ export function promptAndUploadImage(editor: Editor): boolean {
       return;
     }
 
-    if (file.size > MAX_IMAGE_SIZE) {
-      alert(
-        `File size exceeds maximum allowed (${MAX_IMAGE_SIZE / (1024 * 1024)}MB)`,
-      );
-      input.remove();
-      return;
-    }
-
-    const uploadId = createUploadId();
-    const previewUrl = URL.createObjectURL(file);
-    const inserted = insertUploadingImagePlaceholder(
-      editor,
-      file,
-      uploadId,
-      previewUrl,
-    );
-
-    if (!inserted) {
-      URL.revokeObjectURL(previewUrl);
-      input.remove();
-      return;
-    }
-
     try {
-      const uploadedUrl = await uploadImageFile(file);
-      updateUploadingImageNode(editor, uploadId, {
-        src: uploadedUrl,
-        alt: file.name,
-        title: file.name,
-        "data-upload-id": null,
-        "data-uploading": null,
-        "data-upload-name": null,
-        "data-upload-error": null,
-      });
-    } catch (error) {
-      removeUploadingImageNode(editor, uploadId);
-      alert(
-        `Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      await uploadImage(editor, file);
     } finally {
-      URL.revokeObjectURL(previewUrl);
       input.remove();
     }
   };

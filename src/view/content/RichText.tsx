@@ -9,6 +9,7 @@ import StarterKit from '@tiptap/starter-kit'
 import FontFamily from '@tiptap/extension-font-family'
 import { TextStyle } from '@tiptap/extension-text-style'
 import Image from './image-node/image-node-extension'
+import { ClipboardImageUpload } from './image-upload'
 import { MapboxMapExtension } from './MapboxMapExtension'
 import { ExcalidrawExtension } from './ExcalidrawExtension'
 import Heading from '@tiptap/extension-heading'
@@ -1274,7 +1275,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [...generatedOfficialExtensions, ...editorCustomExtensions(isLocalFirst), ...agents],
+    extensions: [...generatedOfficialExtensions, ClipboardImageUpload, ...editorCustomExtensions(isLocalFirst), ...agents],
     editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
     autofocus: true, // Auto-focus the editor on load

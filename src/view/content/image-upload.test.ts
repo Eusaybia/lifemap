@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 
+import { Editor } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "./image-node/image-node-extension";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { promptAndUploadImage } from "./image-upload";
+import { ClipboardImageUpload, pasteImageFiles, promptAndUploadImage, uploadImage, MAX_IMAGE_SIZE } from "./image-upload";
 
 type FakeImageNode = {
   type: { name: string };
@@ -48,6 +52,7 @@ function createEditorDouble() {
   };
 
   const editor = {
+    isEditable: true,
     chain: () => chainApi,
     state: {
       doc: {
@@ -123,6 +128,10 @@ function captureCreatedFileInput() {
       return createdInput;
     },
   };
+}
+
+function clipboardWithFiles(files: File[]): Pick<DataTransfer, "files"> {
+  return { files: Object.assign(files, { item: (index: number) => files[index] ?? null }) };
 }
 
 const originalCreateObjectURL = URL.createObjectURL;
@@ -244,4 +253,57 @@ describe("promptAndUploadImage", () => {
     );
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview-image");
   });
+  it("uploads clipboard PNG files through the same placeholder lifecycle", async () => {
+    const { editor, getImageNode } = createEditorDouble();
+    const file = new File(["png"], "clipboard.png", { type: "image/png" });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "https://example.com/clipboard.png" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    expect(pasteImageFiles(editor as never, clipboardWithFiles([file]))).toBe(true);
+    expect(getImageNode()?.attrs["data-uploading"]).toBe("true");
+    await vi.waitFor(() => expect(getImageNode()?.attrs.src).toBe("https://example.com/clipboard.png"));
+    expect(fetchMock).toHaveBeenCalledWith("/api/upload?filename=clipboard.png", { method: "POST", body: file });
+    expect(getImageNode()?.attrs["data-upload-id"]).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview-image");
+  });
+
+  it("leaves text and non-image clipboard files to normal paste handling", () => {
+    const { editor } = createEditorDouble();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(pasteImageFiles(editor as never, null)).toBe(false);
+    expect(pasteImageFiles(editor as never, clipboardWithFiles([]))).toBe(false);
+    expect(pasteImageFiles(editor as never, clipboardWithFiles([new File(["text"], "note.txt", { type: "text/plain" })]))).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized files before creating a preview or upload", async () => {
+    const { editor, getImageNode } = createEditorDouble();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await uploadImage(editor as never, new File([new Uint8Array(MAX_IMAGE_SIZE + 1)], "large.png", { type: "image/png" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(getImageNode()).toBeNull();
+    expect(alert).toHaveBeenCalledWith("File size exceeds maximum allowed (5MB)");
+  });
+
+  it("handles a dispatched PNG paste through the production Tiptap extension", async () => {
+    const editor = new Editor({ extensions: [StarterKit, Image, ClipboardImageUpload], content: "<p>Paste here</p>" });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ url: "https://example.com/native-paste.png" }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", { value: { ...clipboardWithFiles([new File(["png"], "native.png", { type: "image/png" })]), getData: () => "" } });
+    try {
+      editor.view.dom.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await vi.waitFor(() => expect(editor.getJSON().content?.some(node => node.type === "image" && node.attrs?.src === "https://example.com/native-paste.png")).toBe(true));
+    } finally {
+      editor.destroy();
+    }
+  });
+
 });
