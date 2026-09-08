@@ -833,14 +833,9 @@ export const TemporalDailyExtension = TipTapNode.create({
 
   addCommands() {
     return {
-      insertTemporalDaily: () => ({ chain }) => {
-        return chain()
-          .insertContent({
-            type: 'temporalDaily',
-            content: [{ type: 'temporalSpace', content: [{ type: 'paragraph' }] }],
-          })
-          .run();
-      },
+      // New insertions use the working daily calendar. Keep this node's schema
+      // and view intact so saved temporalDaily children remain editable.
+      insertTemporalDaily: () => ({ commands }) => commands.insertDailyScheduleNew(),
       setTemporalDailyCollapsed: (attributes: { collapsed: boolean }) => ({ state, dispatch }) => {
         const { selection } = state;
         const node = state.doc.nodeAt(selection.from);

@@ -475,7 +475,7 @@ export const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
     {
       id: 'temporal-daily',
       title: 'Temporal Daily',
-      description: 'Auto-sorts children by date for daily schedules (early→late)',
+      description: 'Daily calendar with editable event notes',
       emoji: '📅',
       keywords: ['temporal', 'daily', 'schedule', 'chronological', 'date', 'time', 'order', 'planner'],
       action: (editor) => {
