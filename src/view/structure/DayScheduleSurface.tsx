@@ -295,6 +295,17 @@ export function DayScheduleGridSurface({
   readOnlyBlocks = [],
   renderBlockContent,
 }: DayScheduleGridSurfaceProps) {
+  const [now, setNow] = React.useState<Date | null>(null)
+  React.useEffect(() => {
+    const updateNow = () => setNow(new Date())
+    updateNow()
+    const timer = window.setInterval(updateNow, 60_000)
+    document.addEventListener('visibilitychange', updateNow)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', updateNow)
+    }
+  }, [])
   const dayStartMinute = startHour * 60
   const dayEndMinute = endHour * 60
   const dayKey = resolveDayKey(date)
@@ -312,6 +323,9 @@ export function DayScheduleGridSurface({
   const gridHeight = slots.length * rowHeight
   const compactDateHeader = formatCompactDateHeader(dateValue)
   const canEdit = !readOnly && Boolean(onBlocksChange)
+  const currentMinute = now ? now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60 : null
+  const showCurrentTime = currentMinute !== null && dayKey === getTodayKey()
+    && currentMinute >= dayStartMinute && currentMinute < dayEndMinute
 
   const updateBlocks = (nextBlocks: DayScheduleBlock[]) => {
     onBlocksChange?.(nextBlocks)
@@ -587,6 +601,16 @@ export function DayScheduleGridSurface({
               touchAction: 'none',
             }}
           >
+            {showCurrentTime && currentMinute !== null ? (
+              <div data-testid="day-current-time" aria-hidden="true" style={{
+                position: 'absolute', left: 0, right: 0,
+                top: minuteToTop(currentMinute, dayStartMinute, rowHeight),
+                height: 2, background: '#ea4335', zIndex: 20, pointerEvents: 'none',
+              }}>
+                <span style={{ position: 'absolute', left: -5, top: -4, width: 10, height: 10,
+                  borderRadius: '50%', background: '#ea4335' }} />
+              </div>
+            ) : null}
             {dragSelection ? (() => {
               const { startMinuteOfDay, endMinuteOfDay } = resolveSelectionBounds(dragSelection, allowedBoundaries)
               const top = minuteToTop(startMinuteOfDay, dayStartMinute, rowHeight)
