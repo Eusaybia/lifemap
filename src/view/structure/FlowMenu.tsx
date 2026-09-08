@@ -837,21 +837,7 @@ const ActionSwitch = React.memo((props: {
                 </motion.div>
             </Option>
             <Option
-                value={"Insert Daily Schedule"}
-                onClick={() => {
-                    if (!props.editor) return;
-                    // @ts-ignore - insertDaily is added by the DailyExtension
-                    props.editor.commands.insertDaily()
-                }}
-            >
-                <motion.div>
-                    <span>
-                        📅 Insert Daily Schedule
-                    </span>
-                </motion.div>
-            </Option>
-            <Option
-                value={"Insert Daily Schedule [new]"}
+                value={"Insert Temporal - Daily Schedule"}
                 onClick={() => {
                     if (!props.editor) return;
                     // @ts-ignore - insertDailyScheduleNew is added by the DailyScheduleNewExtension
@@ -860,7 +846,7 @@ const ActionSwitch = React.memo((props: {
             >
                 <motion.div>
                     <span>
-                        📅 Insert Daily Schedule [new]
+                        📅 Insert Temporal - Daily Schedule
                     </span>
                 </motion.div>
             </Option>
@@ -1108,7 +1094,7 @@ const VersionHistorySwitch = (props: { selectedVersionHistory: string, editor: E
     </FlowSwitch>)
 }
 
-export const DocumentFlowMenu = (props: { editor?: Editor }) => {
+export const DocumentFlowMenu = (props: { editor?: Editor; inline?: boolean }) => {
     // Use editor from context (shared by RichText) if available, fallback to prop
     const { editor: contextEditor } = useEditorContext()
     const editor = contextEditor || props.editor
@@ -1133,6 +1119,10 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
     documentMenuStyle.left = 'auto';
     documentMenuStyle.zIndex = 10001; // Higher than minimap's z-index of 10000
 
+    if (props.inline) {
+        documentMenuStyle = { ...documentMenuStyle, position: 'relative', top: 'auto', right: 'auto', left: 'auto', maxWidth: 'calc(100vw - 44px)' };
+    }
+
     // Don't render if no editor is available
     if (!editor) {
         return null
@@ -1147,7 +1137,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                 }
                 
                 @media (max-width: 768px) {
-                    .document-flow-menu {
+                    .document-flow-menu:not(.document-flow-menu-inline) {
                         left: 0 !important;
                         right: 0 !important;
                         width: 100% !important;
@@ -1156,7 +1146,7 @@ export const DocumentFlowMenu = (props: { editor?: Editor }) => {
                     }
                 }
             `}</style>
-            <motion.div style={documentMenuStyle} className="document-flow-menu">
+            <motion.div style={documentMenuStyle} className={`document-flow-menu${props.inline ? ' document-flow-menu-inline' : ''}`}>
                 {/* Editor Mode Toggle - Editing vs connection modes */}
                 <FlowSwitch value={editorMode} isLens>
                 <Option 
@@ -1621,39 +1611,6 @@ const TemporalOrderLoupe = React.memo((props: { editor: Editor }) => {
             </FlowSwitch>
             <Tag>
                 Temporal Order
-            </Tag>
-        </div>
-    )
-})
-
-const TemporalDailyLoupe = React.memo((props: { editor: Editor }) => {
-    const selectedNode = getSelectedNode(props.editor)
-    const isCollapsed = !!selectedNode?.attrs?.collapsed
-    const flowValue = isCollapsed ? "collapsed" : "expanded"
-
-    return (
-        <div
-            style={{ display: "flex", gap: 5, height: "fit-content", alignItems: "center", overflow: "visible" }}>
-            <FlowSwitch value={flowValue} isLens scrollToSelect>
-                <Option value={"expanded"} onClick={() => {
-                    // @ts-ignore - command is added by TemporalDailyExtension
-                    props.editor.commands.setTemporalDailyCollapsed({ collapsed: false })
-                }}>
-                    <motion.div>
-                        Expanded
-                    </motion.div>
-                </Option>
-                <Option value={"collapsed"} onClick={() => {
-                    // @ts-ignore - command is added by TemporalDailyExtension
-                    props.editor.commands.setTemporalDailyCollapsed({ collapsed: true })
-                }}>
-                    <motion.div>
-                        📦 Collapsed
-                    </motion.div>
-                </Option>
-            </FlowSwitch>
-            <Tag>
-                Temporal Daily
             </Tag>
         </div>
     )
@@ -2383,7 +2340,6 @@ const FlowMenuContent = React.memo((props: {
                     'temporalSpace': <TemporalSpaceLoupe editor={props.editor} />,
                     'temporalOrder': <TemporalOrderLoupe editor={props.editor} />,
                     'trends': <TemporalOrderLoupe editor={props.editor} />,
-                    'temporalDaily': <TemporalDailyLoupe editor={props.editor} />,
                     'glowNetwork': <ForceGraph3DLoupe editor={props.editor} />,
                     'scrollview': <></>,
                     'portal': <PortalLoupe editor={props.editor} />,

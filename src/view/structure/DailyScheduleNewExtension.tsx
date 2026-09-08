@@ -83,7 +83,7 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
     >
       <iframe
         ref={iframeRef}
-        title="Daily Schedule [new]"
+        title="Temporal - Daily Schedule"
         src={src}
         style={{
           display: 'block',

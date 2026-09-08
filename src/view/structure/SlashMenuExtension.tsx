@@ -352,19 +352,8 @@ export const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
-      id: 'daily-schedule',
-      title: 'Daily Schedule',
-      description: 'Insert a daily schedule view',
-      emoji: '📅',
-      keywords: ['daily', 'schedule', 'day', 'planner', 'calendar'],
-      action: (editor) => {
-        // @ts-ignore
-        editor.commands.insertDaily()
-      },
-    },
-    {
       id: 'daily-schedule-new',
-      title: 'Daily Schedule [new]',
+      title: 'Temporal - Daily Schedule',
       description: 'Insert the Natural Calendar daily schedule view',
       emoji: '📅',
       keywords: ['daily', 'schedule', 'new', 'natural', 'calendar', 'day'],
@@ -470,17 +459,6 @@ export const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       action: (editor) => {
         // @ts-ignore
         editor.commands.insertTemporalOrder()
-      },
-    },
-    {
-      id: 'temporal-daily',
-      title: 'Temporal Daily',
-      description: 'Daily calendar with editable event notes',
-      emoji: '📅',
-      keywords: ['temporal', 'daily', 'schedule', 'chronological', 'date', 'time', 'order', 'planner'],
-      action: (editor) => {
-        // @ts-ignore
-        editor.commands.insertTemporalDaily()
       },
     },
     {

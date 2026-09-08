@@ -81,7 +81,6 @@ import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
-import { DailyExtension, DailyYesterday, DailyToday, DailyTomorrow } from '../structure/DailyExtension'
 import { DayExtension } from '../structure/DayExtension'
 import { DailyScheduleNewExtension } from '../structure/DailyScheduleNewExtension'
 
@@ -90,7 +89,6 @@ import { LunarMonthExtension } from '../structure/LunarMonthExtension'
 import { DayHeaderExtension, DayHeaderTasks, DayHeaderInsights, DayHeaderObservations } from '../structure/DayHeaderExtension'
 import { TemporalSpaceExtension } from '../structure/TemporalSpaceExtension'
 import { TemporalOrderExtension } from '../structure/TemporalOrderExtension'
-import { TemporalDailyExtension } from '../structure/TemporalDailyExtension'
 import { TrendsExtension } from '../structure/TrendsExtension'
 import { LifetimeViewExtension } from '../structure/LifetimeViewExtension'
 import { WeatherExtension } from '../structure/WeatherExtension'
@@ -946,10 +944,10 @@ export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid"
 
 /** Nodes that carry a quantaId (NodeOverlay targets); shared with the connections attribute. */
 const QUANTA_ID_NODE_TYPES = [
-      'paragraph', 'mention', 'group', 'scrollview', 'daily', 'day', 'dailyScheduleNew',
+      'paragraph', 'mention', 'group', 'scrollview', 'day', 'dailyScheduleNew',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
-      'temporalSpace', 'temporalOrder', 'temporalDaily', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
+      'temporalSpace', 'temporalOrder', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
       'quantaFlow', 'lifemapCard', 'singleLifemapCard',
       // Content nodes (pomodoro excluded - it's inline and doesn't use NodeOverlay)
       'excalidraw', 'mapboxMap', 'warning', 'quote',
@@ -1147,10 +1145,6 @@ export const customExtensions: Extensions = [
   QuantaFlowExtension,
   CalendarExtension,
   HighlightImportantLinePlugin,
-  DailyYesterday,
-  DailyToday,
-  DailyTomorrow,
-  DailyExtension,
   DayExtension,
   DailyScheduleNewExtension,
   WeeklyExtension,
@@ -1164,7 +1158,6 @@ export const customExtensions: Extensions = [
   DayHeaderExtension,
   TemporalSpaceExtension,
   TemporalOrderExtension,
-  TemporalDailyExtension,
   TrendsExtension,
   LifetimeViewExtension,
   WeatherExtension,
@@ -2901,87 +2894,6 @@ export const RichText = observer((props: { quanta?: QuantaType, text: RichTextT,
       }
     }
   }, [props.quanta?.id, editor, resolvedQuantaId]);
-
-  // Auto-insert Daily node for present-day-tasks after content has synced from IndexedDB
-  // Also removes duplicate Daily nodes if multiple exist
-  const dailyNodeCheckDone = React.useRef(false);
-  
-  React.useEffect(() => {
-    // Early exit if already checked in this component instance
-    if (dailyNodeCheckDone.current) return;
-    if (!props.quanta?.id || !editor) return;
-    
-    const urlId = resolvedQuantaId;
-    if (urlId !== 'present-day-tasks') return;
-    
-    // Access the Y.Doc from the quanta props
-    const yDoc = props.quanta?.information;
-    if (!yDoc) return;
-    
-    let stabilityTimeout: NodeJS.Timeout | null = null;
-    let isCancelled = false;
-    
-    const checkAndInsertDaily = () => {
-      // Double-check the ref and cancellation flag before any action
-      if (isCancelled || dailyNodeCheckDone.current) return;
-      
-      // Mark as done FIRST to prevent any race conditions
-      dailyNodeCheckDone.current = true;
-      
-      // Count daily nodes and collect their positions
-      const dailyNodePositions: number[] = [];
-      editor.state.doc.descendants((node, pos) => {
-        if (node.type.name === 'daily') {
-          dailyNodePositions.push(pos);
-        }
-        return true;
-      });
-      
-      const dailyCount = dailyNodePositions.length;
-      
-      if (dailyCount === 0) {
-        // No daily node exists, insert one
-        editor.chain().focus('end').insertContent({ type: 'daily' }).run();
-      } else if (dailyCount > 1) {
-        // Multiple daily nodes exist - remove extras (keep the first one)
-        // Delete in reverse order to avoid position shifts affecting earlier positions
-        const positionsToDelete = dailyNodePositions.slice(1).reverse();
-        
-        let chain = editor.chain();
-        for (const pos of positionsToDelete) {
-          const node = editor.state.doc.nodeAt(pos);
-          if (node && node.type.name === 'daily') {
-            chain = chain.deleteRange({ from: pos, to: pos + node.nodeSize });
-          }
-        }
-        chain.run();
-        
-        console.log(`[RichText] Removed ${dailyCount - 1} duplicate Daily node(s)`);
-      }
-    };
-    
-    // Wait for content to stabilize (no Y.Doc updates for 800ms)
-    const onYDocUpdate = () => {
-      if (stabilityTimeout) clearTimeout(stabilityTimeout);
-      if (!isCancelled && !dailyNodeCheckDone.current) {
-        stabilityTimeout = setTimeout(checkAndInsertDaily, 800);
-      }
-    };
-    
-    // Listen for Y.Doc updates
-    yDoc.on('update', onYDocUpdate);
-    
-    // Also set an initial timeout in case the doc is already synced and no updates come
-    if (!dailyNodeCheckDone.current) {
-      stabilityTimeout = setTimeout(checkAndInsertDaily, 1000);
-    }
-    
-    return () => {
-      isCancelled = true;
-      yDoc.off('update', onYDocUpdate);
-      if (stabilityTimeout) clearTimeout(stabilityTimeout);
-    };
-  }, [props.quanta?.id, editor, props.quanta?.information, resolvedQuantaId]);
 
   // Auto-insert Calendar node for 'past' quanta (Monthly section) after content has synced
   // Use a module-level flag to prevent duplicate insertions across component remounts

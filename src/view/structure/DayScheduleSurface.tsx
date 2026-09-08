@@ -277,6 +277,8 @@ export type DayScheduleGridSurfaceProps = {
   rowHeight?: number
   maxHeight?: number
   headerAccessory?: React.ReactNode
+  readOnlyBlocks?: DayScheduleBlock[]
+  renderBlockContent?: (block: DayScheduleBlock) => React.ReactNode
 }
 
 export function DayScheduleGridSurface({
@@ -290,6 +292,8 @@ export function DayScheduleGridSurface({
   rowHeight = DEFAULT_ROW_HEIGHT,
   maxHeight = 650,
   headerAccessory,
+  readOnlyBlocks = [],
+  renderBlockContent,
 }: DayScheduleGridSurfaceProps) {
   const dayStartMinute = startHour * 60
   const dayEndMinute = endHour * 60
@@ -299,9 +303,10 @@ export function DayScheduleGridSurface({
     () => normalizeBlocks(rawBlocks, dayStartMinute, dayEndMinute),
     [dayEndMinute, dayStartMinute, rawBlocks],
   )
-  const renderedBlocks = useMemo(() => layoutOverlappingBlocks(blocks), [blocks])
+  const renderedBlocks = useMemo(() => layoutOverlappingBlocks([...blocks, ...readOnlyBlocks]), [blocks, readOnlyBlocks])
   const allDayBlocks = useMemo(() => normalizeAllDayBlocks(rawAllDayBlocks), [rawAllDayBlocks])
   const allowedBoundaries = useMemo(() => buildAllowedBoundaries(dayStartMinute, dayEndMinute), [dayEndMinute, dayStartMinute])
+  const blockDrag = React.useRef<{ pointerId: number; mode: 'move' | 'start' | 'end'; anchorMinute: number; block: DayScheduleBlock } | null>(null)
   const [dragSelection, setDragSelection] = React.useState<DragSelection | null>(null)
   const slots = Array.from({ length: endHour - startHour }, (_, index) => index)
   const gridHeight = slots.length * rowHeight
@@ -316,6 +321,44 @@ export function DayScheduleGridSurface({
     const rect = element.getBoundingClientRect()
     const offsetY = clamp(clientY - rect.top, 0, gridHeight)
     return clamp(dayStartMinute + (offsetY / rowHeight) * 60, dayStartMinute, dayEndMinute)
+  }
+
+  const startBlockDrag = (event: React.PointerEvent<HTMLDivElement>, block: DayScheduleBlock, mode: 'move' | 'start' | 'end') => {
+    event.stopPropagation()
+    if (!canEdit || !blocks.some(entry => entry.id === block.id) || event.button !== 0) return
+    const grid = event.currentTarget.closest<HTMLElement>('[data-day-schedule-grid]')
+    if (!grid) return
+    blockDrag.current = { pointerId: event.pointerId, mode, block,
+      anchorMinute: getMinuteFromPointer(grid, event.clientY) }
+    event.currentTarget.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  }
+
+  const moveBlock = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = blockDrag.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const grid = event.currentTarget.closest<HTMLElement>('[data-day-schedule-grid]')
+    if (!grid) return
+    const minute = getMinuteFromPointer(grid, event.clientY)
+    const snap = (value: number) => snapMinuteToBoundary(value, allowedBoundaries, dayStartMinute, dayEndMinute)
+    let start = drag.block.startMinuteOfDay
+    let end = drag.block.endMinuteOfDay
+    if (drag.mode === 'move') {
+      const duration = end - start
+      start = clamp(snap(start + minute - drag.anchorMinute), dayStartMinute, dayEndMinute - duration)
+      end = start + duration
+    } else if (drag.mode === 'start') start = Math.min(snap(start + minute - drag.anchorMinute), end - MIN_BLOCK_MINUTES)
+    else end = Math.max(snap(end + minute - drag.anchorMinute), start + MIN_BLOCK_MINUTES)
+    updateBlocks(blocks.map(block => block.id === drag.block.id ? { ...block, startMinuteOfDay: start, endMinuteOfDay: end } : block))
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const finishBlockDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!blockDrag.current) return
+    blockDrag.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    event.stopPropagation()
   }
 
   const handleGridPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -420,7 +463,7 @@ export function DayScheduleGridSurface({
           style={{
             display: 'grid',
             gridTemplateColumns: '72px minmax(0, 1fr)',
-            minWidth: 420,
+            minWidth: 0,
           }}
         >
           <div
@@ -530,6 +573,7 @@ export function DayScheduleGridSurface({
           </div>
 
           <div
+            data-day-schedule-grid="true"
             onPointerDown={handleGridPointerDown}
             onPointerMove={handleGridPointerMove}
             onPointerUp={finishGridDrag}
@@ -573,9 +617,13 @@ export function DayScheduleGridSurface({
               return (
                 <div
                   key={block.id}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onDoubleClick={canEdit ? () => handleRenameBlock(block) : undefined}
+                  onPointerDown={(event) => startBlockDrag(event, block, 'move')}
+                  onPointerMove={moveBlock}
+                  onPointerUp={finishBlockDrag}
+                  onPointerCancel={finishBlockDrag}
+                  onDoubleClick={canEdit && !renderBlockContent && blocks.some(entry => entry.id === block.id) ? () => handleRenameBlock(block) : undefined}
                   data-testid="day-schedule-block"
+                  data-block-id={block.id}
                   style={{
                     position: 'absolute',
                     left: `calc(${block.lane * laneWidth}% + 8px)`,
@@ -601,9 +649,12 @@ export function DayScheduleGridSurface({
                       justifyContent: 'space-between',
                       gap: 8,
                       minWidth: 0,
+                      height: renderBlockContent ? '100%' : undefined,
                     }}
                   >
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1, height: renderBlockContent ? '100%' : undefined }}
+                      onPointerDown={renderBlockContent ? event => event.stopPropagation() : undefined}>
+                      {renderBlockContent && blocks.some(entry => entry.id === block.id) ? renderBlockContent(block) : <>
                       <div
                         style={{
                           fontSize: 12,
@@ -614,16 +665,18 @@ export function DayScheduleGridSurface({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {block.title}
+                        {block.href ? <a href={block.href} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{block.title}</a> : block.title}
                       </div>
                       <div style={{ marginTop: 2, fontSize: 10, opacity: 0.92 }}>
                         {block.subtitle ?? `${formatMinuteLabel(block.startMinuteOfDay)} - ${formatMinuteLabel(block.endMinuteOfDay)}`}
                       </div>
+                      </>}
                     </div>
-                    {canEdit ? (
+                    {canEdit && blocks.some(entry => entry.id === block.id) ? (
                       <button
                         type="button"
                         aria-label={`Delete ${block.title}`}
+                        onPointerDown={event => event.stopPropagation()}
                         onClick={(event) => {
                           event.stopPropagation()
                           handleDeleteBlock(block.id)
@@ -647,6 +700,13 @@ export function DayScheduleGridSurface({
                       </button>
                     ) : null}
                   </div>
+                  {canEdit && blocks.some(entry => entry.id === block.id) ? <>
+                    {(['start', 'end'] as const).map(edge => <div key={edge} data-resize-edge={edge}
+                      onPointerDown={event => startBlockDrag(event, block, edge)}
+                      style={{ position: 'absolute', left: 0, right: 0, height: 6,
+                        top: edge === 'start' ? 0 : undefined, bottom: edge === 'end' ? 0 : undefined,
+                        cursor: 'ns-resize', touchAction: 'none' }} />)}
+                  </> : null}
                 </div>
               )
             })}
