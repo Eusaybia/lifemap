@@ -81,7 +81,6 @@ import { WarningExtension } from '../structure/WarningTipTapExtension'
 import { LifemapCardExtension, SingleLifemapCardExtension } from '../structure/LifemapCardExtension'
 import { QuantaFlowExtension } from '../structure/QuantaFlowExtension'
 import { CalendarExtension } from '../structure/CalendarExtension'
-import { DayExtension } from '../structure/DayExtension'
 import { DailyScheduleNewExtension } from '../structure/DailyScheduleNewExtension'
 
 import { WeeklyExtension, WeeklyQuantaExtension, LunarScheduleExtension, SeasonalScheduleExtension } from '../structure/WeeklyExtension'
@@ -944,7 +943,7 @@ export type textInformationType =  "string" | "jsonContent" | "yDoc" | "invalid"
 
 /** Nodes that carry a quantaId (NodeOverlay targets); shared with the connections attribute. */
 const QUANTA_ID_NODE_TYPES = [
-      'paragraph', 'mention', 'group', 'scrollview', 'day', 'dailyScheduleNew',
+      'paragraph', 'mention', 'group', 'scrollview', 'dailyScheduleNew',
       // Structure nodes
       'weekly', 'weeklyQuanta', 'lunarSchedule', 'seasonalSchedule', 'canvas3D', 'calendar', 'dayHeader', 'lunarMonth',
       'temporalSpace', 'temporalOrder', 'trends', 'externalPortal', 'browserWindow', 'portal', 'lifetimeView', 'glowNetwork',
@@ -1145,7 +1144,6 @@ export const customExtensions: Extensions = [
   QuantaFlowExtension,
   CalendarExtension,
   HighlightImportantLinePlugin,
-  DayExtension,
   DailyScheduleNewExtension,
   WeeklyExtension,
   WeeklyQuantaExtension,

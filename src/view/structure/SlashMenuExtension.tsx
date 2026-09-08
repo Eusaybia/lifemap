@@ -363,17 +363,6 @@ export const getSlashMenuItems = (editor: Editor): SlashMenuItem[] => {
       },
     },
     {
-      id: 'day',
-      title: 'Day',
-      description: 'Insert a single-day calendar view',
-      emoji: '📅',
-      keywords: ['day', 'daily', 'schedule', 'planner', 'calendar'],
-      action: (editor) => {
-        // @ts-ignore
-        editor.commands.insertDay()
-      },
-    },
-    {
       id: 'weekly-schedule',
       title: 'Weekly Schedule',
       description: 'Insert a weekly schedule view',
