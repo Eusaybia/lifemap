@@ -666,6 +666,10 @@ export function DayScheduleGridSurface({
                     width: `calc(${laneWidth}% - 20px)`,
                     top: top + 2,
                     height: height - 4,
+                    // Short blocks are drawn at a minimum height that can spill over the
+                    // next block; the shorter block paints on top so a five-minute event
+                    // is never hidden under its neighbour.
+                    zIndex: Math.max(1, 1500 - (block.endMinuteOfDay - block.startMinuteOfDay)),
                     borderRadius: 6,
                     border: `1px solid ${block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
                     background: block.backgroundColor ?? DEFAULT_BLOCK_BACKGROUND,
