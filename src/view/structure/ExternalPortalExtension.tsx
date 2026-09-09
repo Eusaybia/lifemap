@@ -6,6 +6,7 @@ import {
 } from "@tiptap/react";
 import { Node } from "@tiptap/react";
 import { Editor, mergeAttributes } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 import { generateUniqueID } from "../../utils/utils";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -73,9 +74,15 @@ const SUBNOTE_USER_ID = '000000';
  * room lives under the same '000000' user the /q route reads, so the iframe
  * sees the content it was seeded with.
  */
+const subnoteExtractionsInFlight = new WeakSet<Editor>();
+
 export const extractSelectionToSubnote = async (editor: Editor): Promise<string | null> => {
+  if (subnoteExtractionsInFlight.has(editor)) return null;
   const { state } = editor;
   const { selection } = state;
+  if (selection instanceof NodeSelection && selection.node.type.name === 'externalPortal') {
+    throw new Error('This is already a sub-note.');
+  }
   const slice = selection.empty
     ? (() => {
         const $from = selection.$from;
@@ -91,23 +98,31 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
   });
 
   const noteId = generateUniqueID();
-  const response = await fetch('/api/createNote', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ noteId, userId: SUBNOTE_USER_ID, content: { type: 'doc', content: blocks } }),
-  });
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(payload.error || 'Could not create the sub-note.');
-  }
+  subnoteExtractionsInFlight.add(editor);
+  try {
+    const response = await fetch('/api/createNote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ noteId, userId: SUBNOTE_USER_ID, content: { type: 'doc', content: blocks } }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error || 'Could not create the sub-note.');
+    }
+    if (!editor.state.doc.eq(state.doc)) {
+      throw new Error(`The note changed while the sub-note was being created. It is saved at /q/${noteId}.`);
+    }
 
-  editor
-    .chain()
-    .focus()
-    .deleteRange({ from: slice.from, to: slice.to })
-    .insertContentAt(slice.from, { type: 'externalPortal', attrs: { externalQuantaId: noteId } })
-    .run();
-  return noteId;
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from: slice.from, to: slice.to })
+      .insertContentAt(slice.from, { type: 'externalPortal', attrs: { externalQuantaId: noteId } })
+      .run();
+    return noteId;
+  } finally {
+    subnoteExtractionsInFlight.delete(editor);
+  }
 };
 
 // Declare the setExternalPortalLens command for TypeScript

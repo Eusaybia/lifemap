@@ -692,6 +692,7 @@ const ActionSwitch = React.memo((props: {
             )}
             <Option
                 value={"Make sub-note"}
+                onScrollSelect={() => {}}
                 onClick={() => {
                     extractSelectionToSubnote(props.editor).catch((error) => {
                         window.alert(error instanceof Error ? error.message : 'Could not create the sub-note.')
