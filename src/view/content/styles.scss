@@ -632,3 +632,14 @@ body.call-mode-dimmed::before {
 .span-group:hover {
   background-color: #f8f8f8;
 }
+
+/* Links read as links: standard blue, underlined, pointer, and they open on click. */
+.ProseMirror a[href] {
+  color: #1a0dab;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a[href]:visited {
+  color: #681da8;
+}
