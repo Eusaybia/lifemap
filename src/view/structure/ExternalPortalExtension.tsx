@@ -7,6 +7,8 @@ import {
 import { Node } from "@tiptap/react";
 import { Editor, mergeAttributes } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
+import { Mapping } from "@tiptap/pm/transform";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { generateUniqueID } from "../../utils/utils";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -76,6 +78,53 @@ const SUBNOTE_USER_ID = '000000';
  */
 const subnoteExtractionsInFlight = new WeakSet<Editor>();
 
+const TIME_TAG_ID_PREFIX = 'timepoint:time-';
+const DATE_TAG_ID_PREFIX = 'timepoint:date-';
+
+const timepointIdsIn = (nodes: unknown[]): string[] => {
+  const ids: string[] = [];
+  const walk = (node: unknown) => {
+    const typed = node as { type?: string; attrs?: { id?: string }; content?: unknown[] };
+    if (typed.type === 'timepoint' && typeof typed.attrs?.id === 'string') ids.push(typed.attrs.id);
+    (typed.content ?? []).forEach(walk);
+  };
+  nodes.forEach(walk);
+  return ids;
+};
+
+/**
+ * A line such as "12 PM – Arrive at Shoal Bay" only makes sense under the date
+ * heading above it. Once it becomes its own note that context is gone, so the
+ * sub-note inherits the nearest date tag that precedes it in the parent.
+ */
+const nearestDateTagBefore = (doc: ProseMirrorNode, pos: number): ProseMirrorNode | null => {
+  let found: ProseMirrorNode | null = null;
+  doc.nodesBetween(0, pos, (node) => {
+    if (node.type.name === 'timepoint' && String(node.attrs.id ?? '').startsWith(DATE_TAG_ID_PREFIX)) found = node;
+    return true;
+  });
+  return found;
+};
+
+const HARD_BREAK_TYPES = new Set(['hardBreak', 'hard_break']);
+
+/** Widen a range over the line breaks that surround it so the parent keeps no dangling blank lines. */
+const absorbAdjacentHardBreaks = (doc: ProseMirrorNode, from: number, to: number) => {
+  let start = from;
+  let end = to;
+  for (;;) {
+    const before = doc.resolve(start).nodeBefore;
+    if (!before || !HARD_BREAK_TYPES.has(before.type.name)) break;
+    start -= before.nodeSize;
+  }
+  for (;;) {
+    const after = doc.resolve(end).nodeAfter;
+    if (!after || !HARD_BREAK_TYPES.has(after.type.name)) break;
+    end += after.nodeSize;
+  }
+  return { from: start, to: end };
+};
+
 export const extractSelectionToSubnote = async (editor: Editor): Promise<string | null> => {
   if (subnoteExtractionsInFlight.has(editor)) return null;
   const { state } = editor;
@@ -89,7 +138,10 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
         const block = $from.node($from.depth);
         return { content: [block.toJSON()], from: $from.before($from.depth), to: $from.after($from.depth) };
       })()
-    : { content: selection.content().content.toJSON() as unknown[], from: selection.from, to: selection.to };
+    : {
+        content: selection.content().content.toJSON() as unknown[],
+        ...absorbAdjacentHardBreaks(state.doc, selection.from, selection.to),
+      };
 
   if (!Array.isArray(slice.content) || slice.content.length === 0) return null;
   const blocks = slice.content.map((node) => {
@@ -97,8 +149,24 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
     return typed.type === 'text' ? { type: 'paragraph', content: [node] } : node;
   });
 
+  const tagIds = timepointIdsIn(blocks);
+  const hasTimeTag = tagIds.some((id) => id.startsWith(TIME_TAG_ID_PREFIX));
+  const hasDateTag = tagIds.some((id) => id.startsWith(DATE_TAG_ID_PREFIX));
+  if (hasTimeTag && !hasDateTag) {
+    const dateTag = nearestDateTagBefore(state.doc, slice.from);
+    if (dateTag) blocks.unshift({ type: 'paragraph', content: [dateTag.toJSON()] });
+  }
+
   const noteId = generateUniqueID();
   subnoteExtractionsInFlight.add(editor);
+  // Other portals write their measured height into the doc while the request
+  // is in flight, so the range is mapped through every transaction instead of
+  // assumed fixed.
+  const mapping = new Mapping();
+  const trackTransaction = ({ transaction }: { transaction: { docChanged: boolean; mapping: Mapping } }) => {
+    if (transaction.docChanged) mapping.appendMapping(transaction.mapping);
+  };
+  editor.on('transaction', trackTransaction);
   try {
     const response = await fetch('/api/createNote', {
       method: 'POST',
@@ -109,18 +177,21 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(payload.error || 'Could not create the sub-note.');
     }
-    if (!editor.state.doc.eq(state.doc)) {
-      throw new Error(`The note changed while the sub-note was being created. It is saved at /q/${noteId}.`);
+    const fromResult = mapping.mapResult(slice.from, 1);
+    const toResult = mapping.mapResult(slice.to, -1);
+    if (fromResult.deletedAfter || toResult.deletedBefore || toResult.pos <= fromResult.pos) {
+      throw new Error(`The selected text changed while the sub-note was being created. It is saved at /q/${noteId}.`);
     }
 
     editor
       .chain()
       .focus()
-      .deleteRange({ from: slice.from, to: slice.to })
-      .insertContentAt(slice.from, { type: 'externalPortal', attrs: { externalQuantaId: noteId } })
+      .deleteRange({ from: fromResult.pos, to: toResult.pos })
+      .insertContentAt(fromResult.pos, { type: 'externalPortal', attrs: { externalQuantaId: noteId } })
       .run();
     return noteId;
   } finally {
+    editor.off('transaction', trackTransaction);
     subnoteExtractionsInFlight.delete(editor);
   }
 };
@@ -137,6 +208,10 @@ declare module '@tiptap/core' {
 const ExternalPortalExtension = Node.create({
   name: "externalPortal",
   group: "block",
+
+  addStorage() {
+    return { extractSelectionToSubnote };
+  },
   atom: true, // Atom since we're embedding an iframe
   selectable: true,
   draggable: true,
