@@ -46,9 +46,6 @@ const renderInline = (node: JsonNode, key: number): React.ReactNode => {
   if (mentionClass) {
     return <span key={key} className={mentionClass}>{attrString(node, 'label') || attrString(node, 'data-name')}</span>;
   }
-  if (node.type === 'pomodoro') {
-    return <span key={key} className="mention">{`${attrString(node, 'emoji') || '⏳'} ${attrString(node, 'label')}`.trim()}</span>;
-  }
   if (node.type === 'todoMention') {
     return (
       <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -88,11 +85,6 @@ const renderBlock = (node: JsonNode, key: number): React.ReactNode => {
       return null;
   }
 };
-
-/** A static render of a note's JSON: no editor, no fetch. */
-export const NoteDocView = (props: { doc: JsonNode; className?: string; style?: React.CSSProperties }) => (
-  <div className={props.className ?? 'ProseMirror'} style={props.style}>{(props.doc.content ?? []).map(renderBlock)}</div>
-);
 
 export const ExternalPortalPreview = (props: {
   quantaId: string;
@@ -135,5 +127,5 @@ export const ExternalPortalPreview = (props: {
   if (status === 'missing' || !doc) {
     return <div style={{ padding: 8, color: '#9aa0a6', fontSize: 13 }}>Empty sub-note.</div>;
   }
-  return <NoteDocView doc={doc} style={{ padding: 8 }} />;
+  return <div className="ProseMirror" style={{ padding: 8 }}>{(doc.content ?? []).map(renderBlock)}</div>;
 };

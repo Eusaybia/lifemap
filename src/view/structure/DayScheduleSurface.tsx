@@ -690,8 +690,8 @@ export function DayScheduleGridSurface({
                     }}
                   >
                     <div style={{ minWidth: 0, flex: 1, height: renderBlockContent ? '100%' : undefined }}
-                      onPointerDown={renderBlockContent && blocks.some(entry => entry.id === block.id) ? event => event.stopPropagation() : undefined}>
-                      {(renderBlockContent ? renderBlockContent(block) : null) ?? <>
+                      onPointerDown={renderBlockContent ? event => event.stopPropagation() : undefined}>
+                      {renderBlockContent && blocks.some(entry => entry.id === block.id) ? renderBlockContent(block) : <>
                       <div
                         style={{
                           fontSize: 12,
