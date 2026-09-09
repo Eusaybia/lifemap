@@ -279,6 +279,8 @@ export type DayScheduleGridSurfaceProps = {
   headerAccessory?: React.ReactNode
   readOnlyBlocks?: DayScheduleBlock[]
   renderBlockContent?: (block: DayScheduleBlock) => React.ReactNode
+  /** A click (not a drag) on any block, editable or read-only. */
+  onBlockSelect?: (block: DayScheduleBlock, anchor: DOMRect) => void
 }
 
 export function DayScheduleGridSurface({
@@ -294,7 +296,9 @@ export function DayScheduleGridSurface({
   headerAccessory,
   readOnlyBlocks = [],
   renderBlockContent,
+  onBlockSelect,
 }: DayScheduleGridSurfaceProps) {
+  const pressStart = React.useRef<{ id: string; x: number; y: number } | null>(null)
   const [now, setNow] = React.useState<Date | null>(null)
   React.useEffect(() => {
     const updateNow = () => setNow(new Date())
@@ -641,9 +645,17 @@ export function DayScheduleGridSurface({
               return (
                 <div
                   key={block.id}
-                  onPointerDown={(event) => startBlockDrag(event, block, 'move')}
+                  onPointerDown={(event) => { pressStart.current = { id: block.id, x: event.clientX, y: event.clientY }; startBlockDrag(event, block, 'move') }}
                   onPointerMove={moveBlock}
-                  onPointerUp={finishBlockDrag}
+                  onPointerUp={(event) => {
+                    const press = pressStart.current
+                    pressStart.current = null
+                    finishBlockDrag(event)
+                    if (onBlockSelect && press && press.id === block.id && Math.hypot(event.clientX - press.x, event.clientY - press.y) < 4
+                      && !(event.target instanceof Element && event.target.closest('button, a'))) {
+                      onBlockSelect(block, event.currentTarget.getBoundingClientRect())
+                    }
+                  }}
                   onPointerCancel={finishBlockDrag}
                   onDoubleClick={canEdit && !renderBlockContent && blocks.some(entry => entry.id === block.id) ? () => handleRenameBlock(block) : undefined}
                   data-testid="day-schedule-block"
@@ -659,7 +671,8 @@ export function DayScheduleGridSurface({
                     background: block.backgroundColor ?? DEFAULT_BLOCK_BACKGROUND,
                     color: block.textColor ?? DEFAULT_BLOCK_TEXT,
                     boxShadow: '0 1px 2px rgba(60, 64, 67, 0.2)',
-                    padding: '6px 8px',
+                    // A 25-minute block is ~28px tall: keep the first line inside it.
+                    padding: renderBlockContent ? '2px 8px' : '6px 8px',
                     boxSizing: 'border-box',
                     overflow: 'hidden',
                     cursor: canEdit ? 'default' : 'inherit',

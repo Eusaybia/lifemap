@@ -159,7 +159,7 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
     const dateTag = nearestDateTagBefore(state.doc, slice.from);
     const first = blocks[0] as { type?: string; content?: unknown[] };
     if (dateTag && first?.type === 'paragraph' && Array.isArray(first.content)) {
-      first.content.push({ type: 'text', text: ' ' }, dateTag.toJSON());
+      first.content.push({ type: 'text', text: ' · ' }, dateTag.toJSON());
     } else if (dateTag) {
       blocks.unshift({ type: 'paragraph', content: [dateTag.toJSON()] });
     }
