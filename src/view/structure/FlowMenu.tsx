@@ -28,6 +28,7 @@ import { yellow } from "@mui/material/colors";
 import { useEditorContext } from "../../contexts/EditorContext";
 import { watchPreviewContent } from "@tiptap-pro/extension-snapshot";
 import { promptAndUploadImage } from "../content/image-upload";
+import { extractSelectionToSubnote } from "./ExternalPortalExtension";
 import {
     getSnapshotProviderFromEditor,
     readSnapshotVersionsFromEditor,
@@ -689,6 +690,20 @@ const ActionSwitch = React.memo((props: {
                     </motion.div>
                 </Option>
             )}
+            <Option
+                value={"Make sub-note"}
+                onClick={() => {
+                    extractSelectionToSubnote(props.editor).catch((error) => {
+                        window.alert(error instanceof Error ? error.message : 'Could not create the sub-note.')
+                    })
+                }}
+            >
+                <motion.div>
+                    <span>
+                        📝 Make sub-note
+                    </span>
+                </motion.div>
+            </Option>
             {isDevMode && (
                 <Option
                     value={"Copy quanta id"}

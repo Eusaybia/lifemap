@@ -5,7 +5,8 @@ import {
   nodeInputRule,
 } from "@tiptap/react";
 import { Node } from "@tiptap/react";
-import { mergeAttributes } from "@tiptap/core";
+import { Editor, mergeAttributes } from "@tiptap/core";
+import { generateUniqueID } from "../../utils/utils";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { NodeOverlay } from "../components/NodeOverlay";
@@ -39,11 +40,16 @@ const REGEX_BLOCK_AT_SLASH = /(^@\/(.+?)@)/;
 // Shared border radius matching PortalExtension style
 const sharedBorderRadius = 15;
 const DEFAULT_IFRAME_HEIGHT = 220;
-const MIN_IFRAME_HEIGHT = 96;
+const MIN_IFRAME_HEIGHT = 40;
 const MAX_INITIAL_HEIGHT = 420;
 const MAX_IFRAME_HEIGHT = 420;
 const buildExternalPortalSrc = (externalQuantaId: string, fillPane: boolean): string => {
   const searchParams = new URLSearchParams();
+
+  if (!fillPane) {
+    searchParams.set('mode', 'compact');
+    searchParams.set('padding', '8');
+  }
 
   if (fillPane) {
     searchParams.set('mode', 'graph');
@@ -55,6 +61,53 @@ const buildExternalPortalSrc = (externalQuantaId: string, fillPane: boolean): st
 
   const queryString = searchParams.toString();
   return queryString ? `/q/${externalQuantaId}?${queryString}` : `/q/${externalQuantaId}`;
+};
+
+const SUBNOTE_USER_ID = '000000';
+
+/**
+ * Moves the current selection into a brand-new note and leaves an external
+ * portal to it in the selection's place. The new note is seeded through the
+ * server, because the browser has no write path to a Tiptap Cloud room it has
+ * not opened yet; the portal's iframe then opens the room as usual. The
+ * room lives under the same '000000' user the /q route reads, so the iframe
+ * sees the content it was seeded with.
+ */
+export const extractSelectionToSubnote = async (editor: Editor): Promise<string | null> => {
+  const { state } = editor;
+  const { selection } = state;
+  const slice = selection.empty
+    ? (() => {
+        const $from = selection.$from;
+        const block = $from.node($from.depth);
+        return { content: [block.toJSON()], from: $from.before($from.depth), to: $from.after($from.depth) };
+      })()
+    : { content: selection.content().content.toJSON() as unknown[], from: selection.from, to: selection.to };
+
+  if (!Array.isArray(slice.content) || slice.content.length === 0) return null;
+  const blocks = slice.content.map((node) => {
+    const typed = node as { type?: string };
+    return typed.type === 'text' ? { type: 'paragraph', content: [node] } : node;
+  });
+
+  const noteId = generateUniqueID();
+  const response = await fetch('/api/createNote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ noteId, userId: SUBNOTE_USER_ID, content: { type: 'doc', content: blocks } }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error || 'Could not create the sub-note.');
+  }
+
+  editor
+    .chain()
+    .focus()
+    .deleteRange({ from: slice.from, to: slice.to })
+    .insertContentAt(slice.from, { type: 'externalPortal', attrs: { externalQuantaId: noteId } })
+    .run();
+  return noteId;
 };
 
 // Declare the setExternalPortalLens command for TypeScript
@@ -211,12 +264,12 @@ const ExternalPortalExtension = Node.create({
             const doc = iframe.contentDocument || iframe.contentWindow?.document;
             if (!doc) return;
 
-            const measuredHeight = Math.max(
-              doc.body?.scrollHeight || 0,
-              doc.documentElement?.scrollHeight || 0,
-              doc.body?.offsetHeight || 0,
-              doc.documentElement?.offsetHeight || 0,
-            );
+            // The body stretches to the iframe's own height, so measuring it can
+            // never shrink the frame. The editor's bottom edge is the real content height.
+            const editorElement = doc.querySelector('.ProseMirror');
+            const measuredHeight = editorElement
+              ? Math.ceil(editorElement.getBoundingClientRect().bottom + 8)
+              : Math.max(doc.body?.scrollHeight || 0, doc.documentElement?.scrollHeight || 0);
 
             if (measuredHeight > 0) {
               applyIframeHeight(measuredHeight);
@@ -249,6 +302,14 @@ const ExternalPortalExtension = Node.create({
           measureIframeHeight(iframeRef.current);
         }, [measureIframeHeight, externalPortalSrc]);
 
+        // The inner editor mounts only after its document syncs, well after the
+        // iframe's load event, and nothing inside announces later edits, so poll.
+        useEffect(() => {
+          if (usesFullHeightPane) return;
+          const timer = window.setInterval(() => measureIframeHeight(iframeRef.current), 600);
+          return () => window.clearInterval(timer);
+        }, [measureIframeHeight, usesFullHeightPane]);
+
         useEffect(() => {
           if (!props.selected) {
             setIsTagExpanded(false);
@@ -261,16 +322,23 @@ const ExternalPortalExtension = Node.create({
             nodeType="externalPortal"
             isPrivate={lens === "private"}
             backgroundColor="#ffffff"
-            style={usesFullHeightPane
-              ? {
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                }
-              : undefined}
+            boxShadow="none"
+            borderRadius={6}
+            padding={0}
+            enableAuraGlow={false}
+            style={{
+              border: '1px solid #dadce0',
+              ...(usesFullHeightPane
+                ? {
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                  }
+                : {}),
+            }}
           >
-            <div contentEditable={false} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
+            <div contentEditable={false} hidden={!props.selected} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
               <input
                 type="text"
                 value={externalQuantaId}
@@ -299,6 +367,7 @@ const ExternalPortalExtension = Node.create({
               lens={lens}
               quantaId={resolvedQuantaId}
               fillHeight={usesFullHeightPane}
+              padding={0}
             >
               <div
                 contentEditable={false}
@@ -317,13 +386,13 @@ const ExternalPortalExtension = Node.create({
                     style={{
                       width: '100%',
                       height: usesFullHeightPane ? '100%' : `${iframeHeight}px`,
-                      borderRadius: 10,
+                      borderRadius: 5,
                       overflow: 'hidden',
                       background: 'white',
                       // ARCHITECTURE DECISION: round and clip on a wrapper div instead of
                       // the iframe itself because browsers do not reliably clip iframe
                       // content to border-radius after dynamic resizes.
-                      clipPath: 'inset(0 round 10px)',
+                      clipPath: 'inset(0 round 5px)',
                       transform: 'translateZ(0)',
                       WebkitMaskImage: '-webkit-radial-gradient(white, black)',
                       minHeight: 0,
