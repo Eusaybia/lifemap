@@ -695,7 +695,7 @@ export function DayScheduleGridSurface({
                       <div
                         style={{
                           fontSize: 12,
-                          fontWeight: 700,
+                          fontWeight: 600,
                           lineHeight: 1.2,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
