@@ -3,7 +3,6 @@
 import React from 'react'
 import { Node as TipTapNode } from '@tiptap/core'
 import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
-import { useFirebaseAuth } from '@/contexts/firebase-auth-context'
 
 const DEFAULT_HEIGHT = 760
 
@@ -23,49 +22,6 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
     props.updateAttributes({ userId })
   }, [props, userId])
 
-  // Google Calendar OAuth runs in this top-level document (Firebase popup auth
-  // can't complete inside the harness iframe). The iframe requests a connect via
-  // postMessage; we run it here and relay the access token back.
-  const iframeRef = React.useRef<HTMLIFrameElement | null>(null)
-  const { googleCalendarAccessToken, connectGoogleCalendar } = useFirebaseAuth()
-  const tokenRef = React.useRef<string | null>(googleCalendarAccessToken ?? null)
-  tokenRef.current = googleCalendarAccessToken ?? null
-
-  const postToken = React.useCallback((token: string | null) => {
-    iframeRef.current?.contentWindow?.postMessage({ source: 'kairos-gcal', type: 'token', token }, '*')
-  }, [])
-
-  React.useEffect(() => {
-    const onMessage = async (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow) return
-      const data = event.data
-      if (!data || data.source !== 'kairos-gcal') return
-      if (data.type === 'ready') {
-        postToken(tokenRef.current)
-      } else if (data.type === 'connect') {
-        try {
-          const token = tokenRef.current ?? (await connectGoogleCalendar())
-          postToken(token ?? null)
-        } catch (error) {
-          iframeRef.current?.contentWindow?.postMessage(
-            {
-              source: 'kairos-gcal',
-              type: 'error',
-              message: error instanceof Error ? error.message : 'Could not connect Google Calendar.',
-            },
-            '*',
-          )
-        }
-      }
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [connectGoogleCalendar, postToken])
-
-  React.useEffect(() => {
-    postToken(googleCalendarAccessToken ?? null)
-  }, [googleCalendarAccessToken, postToken])
-
   return (
     <NodeViewWrapper
       as="section"
@@ -82,7 +38,6 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
       }}
     >
       <iframe
-        ref={iframeRef}
         title="Temporal - Daily Schedule"
         src={src}
         style={{
