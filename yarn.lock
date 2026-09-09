@@ -3926,6 +3926,13 @@
   dependencies:
     undici-types "~6.21.0"
 
+"@types/node@>=20.0.0":
+  version "22.20.2"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-22.20.2.tgz#daae777b5f5965a587f50cc80d5364c2ddf27e36"
+  integrity sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==
+  dependencies:
+    undici-types "~6.21.0"
+
 "@types/offscreencanvas@^2019.6.4":
   version "2019.7.3"
   resolved "https://registry.npmjs.org/@types/offscreencanvas/-/offscreencanvas-2019.7.3.tgz"
@@ -4046,6 +4053,18 @@
   version "0.5.21"
   resolved "https://registry.npmjs.org/@types/webxr/-/webxr-0.5.21.tgz"
   integrity sha512-geZIAtLzjGmgY2JUi6VxXdCrTb99A7yP49lxLr2Nm/uIK0PkkxcEi4OGhoGDO4pxCf3JwGz2GiJL2Ej4K2bKaA==
+
+"@types/whatwg-mimetype@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@types/whatwg-mimetype/-/whatwg-mimetype-3.0.2.tgz#e5e06dcd3e92d4e622ef0129637707d66c28d6a4"
+  integrity sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==
+
+"@types/ws@^8.18.1":
+  version "8.18.1"
+  resolved "https://registry.yarnpkg.com/@types/ws/-/ws-8.18.1.tgz#48464e4bf2ddfd17db13d845467f6070ffea4aa9"
+  integrity sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==
+  dependencies:
+    "@types/node" "*"
 
 "@types/yargs-parser@*":
   version "21.0.3"
@@ -4917,6 +4936,13 @@ buffer-from@1.x, buffer-from@^1.0.0:
   version "1.1.2"
   resolved "https://registry.npmjs.org/buffer-from/-/buffer-from-1.1.2.tgz"
   integrity sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==
+
+buffer-image-size@^0.6.4:
+  version "0.6.4"
+  resolved "https://registry.yarnpkg.com/buffer-image-size/-/buffer-image-size-0.6.4.tgz#357e8173e951ced3b5a2785c695993aa29dbcac4"
+  integrity sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==
+  dependencies:
+    "@types/node" "*"
 
 buffer@^5.5.0, buffer@^5.7.1:
   version "5.7.1"
@@ -6239,6 +6265,11 @@ entities@^4.4.0, entities@^4.5.0:
   resolved "https://registry.npmjs.org/entities/-/entities-4.5.0.tgz"
   integrity sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==
 
+entities@^7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/entities/-/entities-7.0.1.tgz#26e8a88889db63417dcb9a1e79a3f1bc92b5976b"
+  integrity sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==
+
 env-paths@^2.2.0:
   version "2.2.1"
   resolved "https://registry.npmjs.org/env-paths/-/env-paths-2.2.1.tgz"
@@ -7383,6 +7414,19 @@ hachure-fill@^0.5.2:
   version "0.5.2"
   resolved "https://registry.npmjs.org/hachure-fill/-/hachure-fill-0.5.2.tgz"
   integrity sha512-3GKBOn+m2LX9iq+JC1064cSFprJY4jL1jCXTcpnfER5HYE2l/4EfWSGzkPa/ZDBmYI0ZOEj5VHV/eKnPGkHuOg==
+
+happy-dom@^20.14.0:
+  version "20.14.0"
+  resolved "https://registry.yarnpkg.com/happy-dom/-/happy-dom-20.14.0.tgz#92bd0629d00bcdbb1f254a504980f4c99f0f6652"
+  integrity sha512-4bRh1KzRvKDnFNTlLhzT1RZTpkKhQbQDl9j+7GXszWsvuspYdo29k6OHRf4PwiM6oLb8r/pMWeYiJjkfod5AvQ==
+  dependencies:
+    "@types/node" ">=20.0.0"
+    "@types/whatwg-mimetype" "^3.0.2"
+    "@types/ws" "^8.18.1"
+    buffer-image-size "^0.6.4"
+    entities "^7.0.1"
+    whatwg-mimetype "^3.0.0"
+    ws "^8.21.0"
 
 has-bigints@^1.0.2:
   version "1.1.0"
@@ -12615,6 +12659,11 @@ whatwg-encoding@^3.1.1:
   dependencies:
     iconv-lite "0.6.3"
 
+whatwg-mimetype@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/whatwg-mimetype/-/whatwg-mimetype-3.0.0.tgz#5fa1a7623867ff1af6ca3dc72ad6b8a4208beba7"
+  integrity sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==
+
 whatwg-mimetype@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmjs.org/whatwg-mimetype/-/whatwg-mimetype-4.0.0.tgz"
@@ -12756,6 +12805,11 @@ ws@^8.17.1, ws@^8.18.0, ws@^8.5.0:
   version "8.18.1"
   resolved "https://registry.npmjs.org/ws/-/ws-8.18.1.tgz"
   integrity sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==
+
+ws@^8.21.0:
+  version "8.21.3"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
+  integrity sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==
 
 xml-name-validator@^5.0.0:
   version "5.0.0"

@@ -143,6 +143,7 @@
     "cypress": "^14.5.0",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
+    "happy-dom": "^20.14.0",
     "inquirer": "8.2.0",
     "jsdom": "^25.0.1",
     "patch-package": "^8.0.0",

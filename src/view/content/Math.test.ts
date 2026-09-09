@@ -17,17 +17,17 @@ test('evaluation of equation containing exponentials is correct', () => {
 
     let expression: BoxedExpression = ce.parse(latexEquation);
 
-    expect(expression.N().latex).toBe(10000+100)
+    expect(expression.N().valueOf()).toBe(10000 + 100)
 })
 
 test('cube root of a negative number has the correct result', () => {
-    // cbrt(-8) = -2 (if we only look at real results)
-    // = 1 +- 1.73205081𝑖 (if we look at complex results)
-    const latexEquation = "\sqrt[3]{-8}"
+    // cbrt(-8) = -2 on the real line; N() prefers the principal complex root
+    // 1 + 1.732i, which is not what a person writing the equation means.
+    const latexEquation = "\\sqrt[3]{-8}"
 
     const ce = new ComputeEngine();
 
     let expression: BoxedExpression = ce.parse(latexEquation);
 
-    expect(expression.N().latex).toBe(-2)
+    expect(expression.evaluate().valueOf()).toBe(-2)
 })
