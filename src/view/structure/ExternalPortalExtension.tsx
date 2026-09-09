@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion";
 import { NodeOverlay } from "../components/NodeOverlay";
 import { Group, GroupLenses } from "./Group";
+import { ExternalPortalPreview } from "./ExternalPortalPreview";
 
 // Lens types for ExternalPortal - controls visibility/display
 type ExternalPortalLenses = "identity" | "preview" | "private" | "tag";
@@ -286,6 +287,9 @@ const ExternalPortalExtension = Node.create({
           return DEFAULT_IFRAME_HEIGHT;
         });
         const [isTagExpanded, setIsTagExpanded] = useState(false);
+        // Portals open as a static render of the stored note and mount the live
+        // editor only on request; see ExternalPortalPreview.
+        const [isEditing, setIsEditing] = useState(false);
 
         // Get the current lens from node attributes
         const currentLens = (props.node.attrs.lens as ExternalPortalLenses | undefined) ?? 'identity';
@@ -395,10 +399,11 @@ const ExternalPortalExtension = Node.create({
         // The inner editor mounts only after its document syncs, well after the
         // iframe's load event, and nothing inside announces later edits, so poll.
         useEffect(() => {
-          if (usesFullHeightPane) return;
+          if (usesFullHeightPane || !isEditing) return;
           const timer = window.setInterval(() => measureIframeHeight(iframeRef.current), 600);
           return () => window.clearInterval(timer);
-        }, [measureIframeHeight, usesFullHeightPane]);
+        }, [isEditing, measureIframeHeight, usesFullHeightPane]);
+        const showLiveEditor = usesFullHeightPane || isEditing;
 
         useEffect(() => {
           if (!props.selected) {
@@ -428,6 +433,23 @@ const ExternalPortalExtension = Node.create({
                 : {}),
             }}
           >
+            {externalQuantaId && !usesFullHeightPane ? (
+              <button
+                type="button"
+                contentEditable={false}
+                onClick={(event) => { event.stopPropagation(); setIsEditing((editing) => !editing); }}
+                onPointerDown={stopInteractiveInputPropagation}
+                onMouseDown={stopInteractiveInputPropagation}
+                title={isEditing ? 'Back to the read-only view' : 'Edit this sub-note in place'}
+                style={{
+                  position: 'absolute', top: 4, right: 26, zIndex: 2,
+                  border: '1px solid #dadce0', borderRadius: 4, background: '#fff', color: '#5f6368',
+                  fontSize: 11, lineHeight: 1, padding: '3px 6px', cursor: 'pointer',
+                }}
+              >
+                {isEditing ? 'Done' : '✎ Edit'}
+              </button>
+            ) : null}
             <div contentEditable={false} hidden={!props.selected} style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
               <input
                 type="text"
@@ -471,7 +493,9 @@ const ExternalPortalExtension = Node.create({
                     }
                   : undefined}
               >
-                {externalQuantaId ? (
+                {externalQuantaId && !showLiveEditor ? (
+                  <ExternalPortalPreview quantaId={externalQuantaId} userId={SUBNOTE_USER_ID} />
+                ) : externalQuantaId ? (
                   <div
                     style={{
                       width: '100%',
