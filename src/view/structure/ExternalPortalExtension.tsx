@@ -265,7 +265,6 @@ const ExternalPortalExtension = Node.create({
         "data-external-portal": "true",
         "data-external-quanta-id": node.attrs.externalQuantaId,
       }),
-      0,
     ];
   },
 

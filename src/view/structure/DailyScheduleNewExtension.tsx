@@ -79,6 +79,7 @@ export const DailyScheduleNewExtension = TipTapNode.create({
       },
       height: {
         default: DEFAULT_HEIGHT,
+        renderHTML: () => ({}),
       },
     }
   },
