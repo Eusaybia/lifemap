@@ -154,8 +154,15 @@ export const extractSelectionToSubnote = async (editor: Editor): Promise<string 
   const hasTimeTag = tagIds.some((id) => id.startsWith(TIME_TAG_ID_PREFIX));
   const hasDateTag = tagIds.some((id) => id.startsWith(DATE_TAG_ID_PREFIX));
   if (hasTimeTag && !hasDateTag) {
+    // Standard line order is title, times, date: the inherited date goes at
+    // the end of the first block rather than on a line of its own.
     const dateTag = nearestDateTagBefore(state.doc, slice.from);
-    if (dateTag) blocks.unshift({ type: 'paragraph', content: [dateTag.toJSON()] });
+    const first = blocks[0] as { type?: string; content?: unknown[] };
+    if (dateTag && first?.type === 'paragraph' && Array.isArray(first.content)) {
+      first.content.push({ type: 'text', text: ' ' }, dateTag.toJSON());
+    } else if (dateTag) {
+      blocks.unshift({ type: 'paragraph', content: [dateTag.toJSON()] });
+    }
   }
 
   const noteId = generateUniqueID();
