@@ -287,9 +287,10 @@ const ExternalPortalExtension = Node.create({
           return DEFAULT_IFRAME_HEIGHT;
         });
         const [isTagExpanded, setIsTagExpanded] = useState(false);
-        // Portals open as a static render of the stored note and mount the live
-        // editor only on request; see ExternalPortalPreview.
-        const [isEditing, setIsEditing] = useState(false);
+        // Sub-notes open in the full editor so they are editable in place; the
+        // static preview (ExternalPortalPreview) stays behind the toggle as the
+        // fast path to return to once editing is optimised.
+        const [isEditing, setIsEditing] = useState(true);
 
         // Get the current lens from node attributes
         const currentLens = (props.node.attrs.lens as ExternalPortalLenses | undefined) ?? 'identity';
