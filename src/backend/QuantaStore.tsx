@@ -2,6 +2,7 @@
 
 import React from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
+import * as Y from "yjs";
 import { TiptapCollabProvider } from '@tiptap-pro/provider'
 import { Content, QuantaClass, QuantaId, QuantaType } from "../core/Model";
 import { getCollabToken } from "./collabToken";
@@ -27,6 +28,43 @@ const dummyQuantaStoreContext = {
 const EMPTY_DOCUMENT_GRACE_MS = 5000;
 
 // Handles storing and syncing information between a single quanta to the remote cloud store
+/**
+ * Fill a room's local IndexedDB copy before anyone opens it. The editor
+ * renders only once the local copy has synced, and an empty local copy has
+ * to wait on the cloud (about 1.6s); a warmed room opens in ~100ms. The
+ * provider and persistence are torn down once the cloud has answered, and
+ * IndexedDB keeps what arrived.
+ */
+const warmedRooms = new Set<string>();
+export async function warmQuantaRoom(userId: string, quantaId: string, timeoutMs = 10_000): Promise<void> {
+  const roomName = `${userId}/${quantaId}`;
+  if (warmedRooms.has(roomName) || typeof window === 'undefined') return;
+  warmedRooms.add(roomName);
+  const doc = new Y.Doc();
+  const persistence = new IndexeddbPersistence(roomName, doc);
+  try {
+    await persistence.whenSynced;
+    if (doc.getXmlFragment('default').length > 0) return;
+    const token = await getCollabToken(roomName);
+    if (!token) return;
+    await new Promise<void>((resolve) => {
+      const timer = window.setTimeout(() => { provider.destroy(); resolve(); }, timeoutMs);
+      const provider = new TiptapCollabProvider({
+        appId: 'dy9wzo9x',
+        name: roomName,
+        token,
+        document: doc,
+        onSynced: () => { window.clearTimeout(timer); provider.destroy(); resolve(); },
+      });
+    });
+  } catch (error) {
+    warmedRooms.delete(roomName);
+    console.warn('[QuantaStore] Could not warm room', roomName, error);
+  } finally {
+    persistence.destroy();
+  }
+}
+
 export const QuantaStoreContext = React.createContext<QuantaStoreContextType>(dummyQuantaStoreContext);
 
 export const QuantaStore = (props: { quantaId: QuantaId, userId: string, children: JSX.Element}) => {
