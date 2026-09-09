@@ -47,6 +47,11 @@ const DEFAULT_BLOCK_TEXT = '#fff'
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
 
+/** Capture the pointer if the browser will let us; a synthetic or already-released pointer throws and needs no capture. */
+function capturePointer(event: React.PointerEvent<HTMLElement>) {
+  try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* no live pointer to capture */ }
+}
+
 function createBlockId(): string {
   return `day-block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -348,7 +353,7 @@ export function DayScheduleGridSurface({
     if (!grid) return
     blockDrag.current = { pointerId: event.pointerId, mode, block,
       anchorMinute: getMinuteFromPointer(grid, event.clientY) }
-    event.currentTarget.setPointerCapture(event.pointerId)
+    capturePointer(event)
     event.preventDefault()
   }
 
@@ -389,7 +394,7 @@ export function DayScheduleGridSurface({
 
     event.preventDefault()
     event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
+    capturePointer(event)
     setDragSelection({
       pointerId: event.pointerId,
       anchorMinute,
