@@ -27,8 +27,8 @@ export function EventLocationPreview({ location }: { location: { name: string; c
   }, [location.name, location.coords])
   const url = center && MAPBOX_ACCESS_TOKEN
     ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+e11d48(${center.join(',')})/${center.join(',')},13/320x180?access_token=${MAPBOX_ACCESS_TOKEN}` : null
-  return <div style={{ marginTop: 4 }}>
+  return <div style={{ marginTop: 3, flex: 1, minHeight: 0, overflow: 'hidden' }}>
     {url && <img src={url} alt={`Map showing ${location.name}`} loading="lazy" draggable={false}
-      style={{ width: '100%', height: 76, objectFit: 'cover', borderRadius: 4, display: 'block', marginTop: 3, pointerEvents: 'none' }} />}
+      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, display: 'block', pointerEvents: 'none' }} />}
   </div>
 }

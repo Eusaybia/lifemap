@@ -643,7 +643,7 @@ export function DayScheduleGridSurface({
                     left: 8,
                     right: 12,
                     top: top + 2,
-                    height: height - 4,
+                    height: Math.max(1, height - 2),
                     borderRadius: 6,
                     border: '1px solid rgba(26, 115, 232, 0.5)',
                     background: 'rgba(26, 115, 232, 0.14)',
@@ -654,7 +654,7 @@ export function DayScheduleGridSurface({
             })() : null}
             {renderedBlocks.map((block) => {
               const top = minuteToTop(block.startMinuteOfDay, dayStartMinute, rowHeight)
-              const height = Math.max(block.location ? 124 : 26, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
+              const height = Math.max(1, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
               const sideWidth = Math.min(24, 96 / Math.max(1, block.laneCount - 1))
 
               return (
@@ -680,7 +680,7 @@ export function DayScheduleGridSurface({
                     left: 8 + block.lane * sideWidth,
                     width: `calc(100% - ${20 + (block.laneCount - 1) * sideWidth}px)`,
                     top: top + 2,
-                    height: height - 4,
+                    height: Math.max(1, height - 2),
                     // Short blocks are drawn at a minimum height that can spill over the
                     // next block; the shorter block paints on top so a five-minute event
                     // is never hidden under its neighbour.
@@ -691,7 +691,7 @@ export function DayScheduleGridSurface({
                     color: block.textColor ?? DEFAULT_BLOCK_TEXT,
                     boxShadow: '0 1px 2px rgba(60, 64, 67, 0.2)',
                     // A 25-minute block is ~28px tall: keep the first line inside it.
-                    padding: renderBlockContent ? '2px 8px' : '6px 8px',
+                    padding: height < 40 ? '0 4px' : '4px 8px',
                     boxSizing: 'border-box',
                     overflow: 'hidden',
                     cursor: canEdit ? 'default' : 'inherit',
@@ -705,14 +705,16 @@ export function DayScheduleGridSurface({
                       justifyContent: 'space-between',
                       gap: 8,
                       minWidth: 0,
-                      height: renderBlockContent ? '100%' : undefined,
+                      height: '100%',
                     }}
                   >
-                    <div style={{ minWidth: 0, flex: 1, height: renderBlockContent ? '100%' : undefined }}
+                    <div style={{ minWidth: 0, flex: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                       onPointerDown={renderBlockContent ? event => event.stopPropagation() : undefined}>
                       {renderBlockContent && blocks.some(entry => entry.id === block.id) ? renderBlockContent(block) : <>
                       <div
                         style={{
+                          display: height < 40 ? 'none' : 'block',
+                          flexShrink: 0,
                           fontSize: 12,
                           fontWeight: 500,
                           lineHeight: 1.2,
@@ -723,11 +725,11 @@ export function DayScheduleGridSurface({
                       >
                         {block.href ? <a href={block.href} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{block.title}</a> : block.title}
                       </div>
-                      <div style={{ marginTop: 2, fontSize: 10, opacity: 0.92, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <div style={{ marginTop: height < 40 ? 0 : 2, flexShrink: 0, fontSize: height < 16 ? 7 : 10, opacity: 0.92, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                         <MentionTag kind="timepoint" style={{ flexShrink: 0, cursor: 'default' }}>🕐 {block.subtitle ?? `${formatMinuteLabel(block.startMinuteOfDay)} - ${formatMinuteLabel(block.endMinuteOfDay)}`}</MentionTag>
                         {block.location && <><span aria-hidden="true">·</span><MentionTag kind="location" title={block.location.name} style={{ minWidth: 0, cursor: 'default' }}><span aria-hidden="true">📍</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{block.location.name}</span></MentionTag></>}
                       </div>
-                      {block.location && <EventLocationPreview location={block.location} />}
+                      {block.location && height > 48 && <EventLocationPreview location={block.location} />}
                       </>}
                     </div>
 
