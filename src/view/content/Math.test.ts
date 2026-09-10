@@ -15,7 +15,7 @@ test('evaluation of equation containing exponentials is correct', () => {
 
     const ce = new ComputeEngine();
 
-    let expression: BoxedExpression = ce.parse(latexEquation);
+    const expression: BoxedExpression = ce.parse(latexEquation);
 
     expect(expression.N().valueOf()).toBe(10000 + 100)
 })
@@ -27,7 +27,7 @@ test('cube root of a negative number has the correct result', () => {
 
     const ce = new ComputeEngine();
 
-    let expression: BoxedExpression = ce.parse(latexEquation);
+    const expression: BoxedExpression = ce.parse(latexEquation);
 
     expect(expression.evaluate().valueOf()).toBe(-2)
 })
