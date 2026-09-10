@@ -643,3 +643,24 @@ body.call-mode-dimmed::before {
 .ProseMirror a[href]:visited {
   color: #681da8;
 }
+
+.span-group[data-group-type="event"],
+.event-inline-atom {
+  background: rgba(59, 130, 246, 0.10);
+  border: 0;
+  border-radius: 0;
+  padding: 2px 0;
+  box-shadow: 0 -1px rgba(59, 130, 246, 0.35), 0 1px rgba(59, 130, 246, 0.35);
+  cursor: text;
+}
+
+.span-group[data-group-type="event"]::after {
+  display: none;
+}
+
+.event-enclosure-host { position: relative; isolation: isolate; }
+.event-enclosures { position: absolute; top: 0; left: 0; pointer-events: none; z-index: -1; overflow: visible; }
+.event-enclosures path { fill: transparent; stroke: #999; stroke-width: 2; stroke-linejoin: round; }
+.span-group[data-group-type="event"], .event-inline-atom { background: transparent; box-shadow: none; }
+
+.event-enclosures[data-filled="true"] path { fill: #a4bdfc; stroke: #7986cb; }

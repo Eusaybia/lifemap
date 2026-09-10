@@ -1,3 +1,4 @@
+import { convertSubnotesToInlineEvents } from '../content/inlineEvents';
 import { Editor, JSONContent, isNodeSelection, getAttributes } from "@tiptap/core"
 import { BubbleMenu } from "@tiptap/react/menus"
 import { RichTextCodeExample, customExtensions } from "../content/RichText"
@@ -690,6 +691,32 @@ const ActionSwitch = React.memo((props: {
                     </motion.div>
                 </Option>
             )}
+            <Option
+                value="Convert sub-notes to inline events"
+                onScrollSelect={() => {}}
+                onClick={() => {
+                    convertSubnotesToInlineEvents(props.editor).catch(error => {
+                        window.alert(error instanceof Error ? error.message : 'Could not convert sub-notes.');
+                    });
+                }}
+            >
+                <span>◷ Convert sub-notes to inline events</span>
+            </Option>
+            <Option value="Event appearance: clear outline" onScrollSelect={() => {}}
+                onClick={() => props.editor.commands.setEventFill(false)}>
+                <span>◯ Events: clear outline</span>
+            </Option>
+            <Option value="Event appearance: blue fill" onScrollSelect={() => {}}
+                onClick={() => props.editor.commands.setEventFill(true)}>
+                <span>◉ Events: blue fill</span>
+            </Option>
+            <Option
+                value="Mark as event"
+                onScrollSelect={() => {}}
+                onClick={() => props.editor.chain().focus().setEventSpan().run()}
+            >
+                <span>◷ Mark as event</span>
+            </Option>
             <Option
                 value={"Make sub-note"}
                 onScrollSelect={() => {}}
