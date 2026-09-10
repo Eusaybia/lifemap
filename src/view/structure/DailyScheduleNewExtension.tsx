@@ -4,6 +4,8 @@ import React from 'react'
 import { Node as TipTapNode } from '@tiptap/core'
 import { NodeViewProps, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 
+import { scheduleDateRange } from './scheduleDateRange'
+
 const DEFAULT_HEIGHT = 760
 
 function createScheduleUserId(): string {
@@ -15,6 +17,23 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
     ? props.node.attrs.userId
     : createScheduleUserId()
   const height = typeof props.node.attrs.height === 'number' ? props.node.attrs.height : DEFAULT_HEIGHT
+  const frame = React.useRef<HTMLIFrameElement>(null)
+  const publishRange = React.useCallback(() => {
+    if (props.editor.isDestroyed) return
+    const position = props.getPos()
+    if (typeof position !== 'number') return
+    const range = scheduleDateRange(props.editor.state.doc, position)
+    frame.current?.contentWindow?.postMessage({ type: 'schedule-note-date-range', range }, window.location.origin)
+  }, [props.editor, props.getPos])
+  React.useEffect(() => {
+    const ready = (event: MessageEvent) => {
+      if (event.origin === window.location.origin && event.source === frame.current?.contentWindow && event.data?.type === 'schedule-date-range-ready') publishRange()
+    }
+    window.addEventListener('message', ready)
+    publishRange()
+    props.editor.on('transaction', publishRange)
+    return () => { props.editor.off('transaction', publishRange); window.removeEventListener('message', ready) }
+  }, [publishRange])
   const src = `/natural-calendar-day-panel-harness?userId=${encodeURIComponent(userId)}`
 
   React.useEffect(() => {
@@ -38,6 +57,8 @@ function DailyScheduleNewNodeView(props: NodeViewProps) {
       }}
     >
       <iframe
+        ref={frame}
+        onLoad={publishRange}
         title="Temporal - Daily Schedule"
         src={src}
         style={{

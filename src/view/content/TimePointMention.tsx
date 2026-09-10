@@ -1,4 +1,5 @@
 'use client'
+import { MentionTag } from './MentionTag'
 
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
@@ -1811,7 +1812,7 @@ const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) =>
 
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
-      <span
+      <MentionTag kind="timepoint"
         className={timepointClassName(isCurrentFocus, selected)}
         data-type="timepoint"
         data-id={node.attrs.id || undefined}
@@ -1833,7 +1834,7 @@ const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) =>
           title="Drag to move"
         />
         {node.attrs.label || ''}
-      </span>
+      </MentionTag>
     </NodeViewWrapper>
   )
 }

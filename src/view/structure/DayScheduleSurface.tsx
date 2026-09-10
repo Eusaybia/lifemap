@@ -1,11 +1,14 @@
 'use client'
 
 import React, { useMemo } from 'react'
+import { EventLocationPreview } from './EventLocationPreview'
+import { MentionTag } from '../content/MentionTag'
 
 export type DayScheduleBlock = {
   id: string
   title: string
   subtitle?: string
+  location?: { name: string; coords: [number, number] | null }
   startMinuteOfDay: number
   endMinuteOfDay: number
   backgroundColor?: string
@@ -165,7 +168,12 @@ function normalizeBlocks(value: unknown, dayStartMinute: number, dayEndMinute: n
     const startMinuteOfDay = clamp(candidate.startMinuteOfDay, dayStartMinute, dayEndMinute - MIN_BLOCK_MINUTES)
     const endMinuteOfDay = clamp(candidate.endMinuteOfDay, startMinuteOfDay + MIN_BLOCK_MINUTES, dayEndMinute)
 
+    const rawLocation = candidate.location as { name?: unknown; coords?: unknown } | undefined
+    const location = rawLocation && typeof rawLocation.name === 'string'
+      ? { name: rawLocation.name, coords: Array.isArray(rawLocation.coords) && rawLocation.coords.length === 2 && rawLocation.coords.every(value => typeof value === 'number' && Number.isFinite(value)) ? rawLocation.coords as [number, number] : null }
+      : undefined
     return [{
+      location,
       id: candidate.id,
       title: typeof candidate.title === 'string' && candidate.title.trim() ? candidate.title : 'New block',
       subtitle: typeof candidate.subtitle === 'string' ? candidate.subtitle : undefined,
@@ -249,6 +257,7 @@ export function serializeBlocks(blocks: DayScheduleBlock[]) {
     id: block.id,
     title: block.title,
     subtitle: block.subtitle,
+    location: block.location,
     startMinuteOfDay: block.startMinuteOfDay,
     endMinuteOfDay: block.endMinuteOfDay,
     backgroundColor: block.backgroundColor,
@@ -323,6 +332,7 @@ export function DayScheduleGridSurface({
     () => normalizeBlocks(rawBlocks, dayStartMinute, dayEndMinute),
     [dayEndMinute, dayStartMinute, rawBlocks],
   )
+  const [focusedBlockId, setFocusedBlockId] = React.useState<string | null>(null)
   const renderedBlocks = useMemo(() => layoutOverlappingBlocks([...blocks, ...readOnlyBlocks]), [blocks, readOnlyBlocks])
   const allDayBlocks = useMemo(() => normalizeAllDayBlocks(rawAllDayBlocks), [rawAllDayBlocks])
   const allowedBoundaries = useMemo(() => buildAllowedBoundaries(dayStartMinute, dayEndMinute), [dayEndMinute, dayStartMinute])
@@ -644,13 +654,13 @@ export function DayScheduleGridSurface({
             })() : null}
             {renderedBlocks.map((block) => {
               const top = minuteToTop(block.startMinuteOfDay, dayStartMinute, rowHeight)
-              const height = Math.max(26, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
-              const laneWidth = 100 / block.laneCount
+              const height = Math.max(block.location ? 124 : 26, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
+              const sideWidth = Math.min(24, 96 / Math.max(1, block.laneCount - 1))
 
               return (
                 <div
-                  key={block.id}
-                  onPointerDown={(event) => { pressStart.current = { id: block.id, x: event.clientX, y: event.clientY }; startBlockDrag(event, block, 'move') }}
+                  key={`${block.id}:${block.startMinuteOfDay}:${block.endMinuteOfDay}`}
+                  onPointerDown={(event) => { setFocusedBlockId(block.id); pressStart.current = { id: block.id, x: event.clientX, y: event.clientY }; startBlockDrag(event, block, 'move') }}
                   onPointerMove={moveBlock}
                   onPointerUp={(event) => {
                     const press = pressStart.current
@@ -667,14 +677,14 @@ export function DayScheduleGridSurface({
                   data-block-id={block.id}
                   style={{
                     position: 'absolute',
-                    left: `calc(${block.lane * laneWidth}% + 8px)`,
-                    width: `calc(${laneWidth}% - 20px)`,
+                    left: 8 + block.lane * sideWidth,
+                    width: `calc(100% - ${20 + (block.laneCount - 1) * sideWidth}px)`,
                     top: top + 2,
                     height: height - 4,
                     // Short blocks are drawn at a minimum height that can spill over the
                     // next block; the shorter block paints on top so a five-minute event
                     // is never hidden under its neighbour.
-                    zIndex: Math.max(1, 1500 - (block.endMinuteOfDay - block.startMinuteOfDay)),
+                    zIndex: block.id === focusedBlockId ? 4000 : (block.location ? 2000 : 0) + Math.max(1, 1500 - (block.endMinuteOfDay - block.startMinuteOfDay)),
                     borderRadius: 6,
                     border: `1px solid ${block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
                     background: block.backgroundColor ?? DEFAULT_BLOCK_BACKGROUND,
@@ -704,7 +714,7 @@ export function DayScheduleGridSurface({
                       <div
                         style={{
                           fontSize: 12,
-                          fontWeight: 600,
+                          fontWeight: 500,
                           lineHeight: 1.2,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -713,38 +723,14 @@ export function DayScheduleGridSurface({
                       >
                         {block.href ? <a href={block.href} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{block.title}</a> : block.title}
                       </div>
-                      <div style={{ marginTop: 2, fontSize: 10, opacity: 0.92 }}>
-                        {block.subtitle ?? `${formatMinuteLabel(block.startMinuteOfDay)} - ${formatMinuteLabel(block.endMinuteOfDay)}`}
+                      <div style={{ marginTop: 2, fontSize: 10, opacity: 0.92, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <MentionTag kind="timepoint" style={{ flexShrink: 0, cursor: 'default' }}>🕐 {block.subtitle ?? `${formatMinuteLabel(block.startMinuteOfDay)} - ${formatMinuteLabel(block.endMinuteOfDay)}`}</MentionTag>
+                        {block.location && <><span aria-hidden="true">·</span><MentionTag kind="location" title={block.location.name} style={{ minWidth: 0, cursor: 'default' }}><span aria-hidden="true">📍</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{block.location.name}</span></MentionTag></>}
                       </div>
+                      {block.location && <EventLocationPreview location={block.location} />}
                       </>}
                     </div>
-                    {canEdit && blocks.some(entry => entry.id === block.id) ? (
-                      <button
-                        type="button"
-                        aria-label={`Delete ${block.title}`}
-                        onPointerDown={event => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          handleDeleteBlock(block.id)
-                        }}
-                        style={{
-                          flex: '0 0 auto',
-                          border: 0,
-                          borderRadius: 4,
-                          background: 'rgba(255, 255, 255, 0.18)',
-                          color: '#fff',
-                          width: 20,
-                          height: 20,
-                          display: 'grid',
-                          placeItems: 'center',
-                          fontSize: 14,
-                          lineHeight: 1,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        x
-                      </button>
-                    ) : null}
+
                   </div>
                   {canEdit && blocks.some(entry => entry.id === block.id) ? <>
                     {(['start', 'end'] as const).map(edge => <div key={edge} data-resize-edge={edge}

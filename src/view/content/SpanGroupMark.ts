@@ -106,6 +106,12 @@ export const SpanGroupMark = Mark.create<SpanGroupOptions>({
       props: {
         decorations(state) {
           const decorations: Decoration[] = [];
+          const starts = new Map<string, number>();
+          const recordStart = (id: string, pos: number) => starts.set(id, Math.min(starts.get(id) ?? pos, pos));
+          state.doc.descendants((node, pos) => {
+            const event = node.marks.find(mark => mark.type.name === 'spanGroup' && mark.attrs.groupType === 'event');
+            if (event) recordStart(event.attrs.groupId, pos);
+          });
           state.doc.descendants((block, pos) => {
             if (!block.isTextblock) return;
             const children: { node: typeof block; pos: number }[] = [];
@@ -128,12 +134,24 @@ export const SpanGroupMark = Mark.create<SpanGroupOptions>({
                 });
               }
               const groupId = identity(node) || (!before ? right : left && left === right ? left : null);
+              if (groupId) recordStart(groupId, childPos);
               if (groupId) decorations.push(Decoration.node(childPos, childPos + node.nodeSize, {
                 class: 'event-inline-atom',
                 'data-event-group-id': groupId,
               }));
             });
           });
+          for (const [id, pos] of starts) {
+            decorations.push(Decoration.widget(pos, () => {
+              const tag = document.createElement('span');
+              tag.className = 'location-mention event-type-tag';
+              tag.setAttribute('data-event-group-id', id);
+              tag.setAttribute('aria-label', 'Event type');
+              tag.contentEditable = 'false';
+              tag.textContent = '◷ Event';
+              return tag;
+            }, { side: -1, key: `event-type:${id}` }));
+          }
           return DecorationSet.create(state.doc, decorations);
         },
       },

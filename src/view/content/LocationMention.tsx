@@ -1,4 +1,5 @@
 'use client'
+import { MentionTag } from './MentionTag'
 
 import './MentionList.scss'
 import { Extension, mergeAttributes } from '@tiptap/core'
@@ -595,7 +596,7 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
 
   return (
     <NodeViewWrapper as="span" style={{ display: 'inline', position: 'relative' }}>
-      <span
+      <MentionTag kind="location"
         {...mentionInteractionProps}
         ref={tagRef}
         className={withMentionInteractionClass(`location-mention ${selected ? 'selected' : ''}`)}
@@ -622,7 +623,7 @@ const LocationNodeView = ({ node, selected, updateAttributes, editor, getPos }: 
           {labelParts.pin}
         </span>
         {labelParts.text ? <span className="location-label-text">{labelParts.text}</span> : null}
-      </span>
+      </MentionTag>
       <AnimatePresence>
         {isExpanded && (
           <motion.div
