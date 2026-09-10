@@ -654,7 +654,7 @@ export function DayScheduleGridSurface({
             })() : null}
             {renderedBlocks.map((block) => {
               const top = minuteToTop(block.startMinuteOfDay, dayStartMinute, rowHeight)
-              const height = Math.max(1, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
+              const height = Math.max(rowHeight / 2, minuteToTop(block.endMinuteOfDay, dayStartMinute, rowHeight) - top)
               const sideWidth = Math.min(24, 96 / Math.max(1, block.laneCount - 1))
 
               return (
@@ -725,7 +725,7 @@ export function DayScheduleGridSurface({
                       >
                         {block.href ? <a href={block.href} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{block.title}</a> : block.title}
                       </div>
-                      <div style={{ marginTop: height < 40 ? 0 : 2, flexShrink: 0, fontSize: height < 16 ? 7 : 10, opacity: 0.92, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <div style={{ marginTop: height < 40 ? 0 : 2, flexShrink: 0, fontSize: 10, opacity: 0.92, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                         <MentionTag kind="timepoint" style={{ flexShrink: 0, cursor: 'default' }}>🕐 {block.subtitle ?? `${formatMinuteLabel(block.startMinuteOfDay)} - ${formatMinuteLabel(block.endMinuteOfDay)}`}</MentionTag>
                         {block.location && <><span aria-hidden="true">·</span><MentionTag kind="location" title={block.location.name} style={{ minWidth: 0, cursor: 'default' }}><span aria-hidden="true">📍</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{block.location.name}</span></MentionTag></>}
                       </div>
