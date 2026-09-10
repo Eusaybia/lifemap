@@ -713,11 +713,11 @@ export function DayScheduleGridSurface({
                       {renderBlockContent && blocks.some(entry => entry.id === block.id) ? renderBlockContent(block) : <>
                       <div
                         style={{
-                          display: height < 40 ? 'none' : 'block',
+                          display: 'block',
                           flexShrink: 0,
-                          fontSize: 12,
+                          fontSize: height < 40 ? 11 : 12,
                           fontWeight: 500,
-                          lineHeight: 1.2,
+                          lineHeight: height < 40 ? 1 : 1.2,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
