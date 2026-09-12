@@ -15,7 +15,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['github'], ['blob']] : [['line'], ['html', { open: 'never' }]],
-  use: { baseURL, trace: 'retain-on-failure', video: 'off' },
+  // Specs run in the Google Chrome installed on this machine (channel below),
+  // headless by default. `yarn test:e2e:headed` opens a visible window;
+  // PWSLOWMO=250 slows each action so a person can follow along.
+  use: {
+    baseURL,
+    trace: 'retain-on-failure',
+    video: 'off',
+    launchOptions: { slowMo: Number(process.env.PWSLOWMO ?? 0) },
+  },
   webServer: process.env.LIFEMAP_TEST_BASE_URL
     ? undefined
     : { command: 'yarn next dev -p 3000', url: baseURL, reuseExistingServer: true, timeout: 180_000 },

@@ -107,15 +107,17 @@
   },
   "scripts": {
     "deploy": "firebase deploy",
-    "test": "vitest",
-    "cy:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
-    "cy:open": "env -u ELECTRON_RUN_AS_NODE cypress open",
+    "test": "vitest run && playwright test",
     "initialise-mobile-native": "yarn next build && npx cap add android && npx cap add ios",
     "dev-web": "yarn concurrently -n NEXT,TS -c magenta,cyan \"yarn next dev -p 3000\" \"yarn tsc --watch\"",
     "dev-ios": "npx cap open ios",
     "dev-android": "npx cap open android",
     "build": "CI=false && yarn next build",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:open": "playwright test --ui"
   },
   "browserslist": {
     "production": [
@@ -131,6 +133,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "4.6.2",
+    "@playwright/test": "1.59.1",
     "@types/color-hash": "1.0.1",
     "@types/jest": "29.5.4",
     "@types/jsonwebtoken": "9.0.2",
@@ -140,7 +143,6 @@
     "autoprefixer": "10.4.13",
     "commander": "10.0.0",
     "concurrently": "8.2.0",
-    "cypress": "^14.5.0",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
     "happy-dom": "^20.14.0",
