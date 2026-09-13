@@ -1269,7 +1269,7 @@ export const MainEditor = (information: RichTextT, isQuanta: boolean, readOnly?:
     extensions: [...generatedOfficialExtensions, ClipboardImageUpload, ...editorCustomExtensions(isLocalFirst), ...agents],
     editable: !readOnly, // Only enable when mounted
     enableContentCheck: true, // Enable content validation
-    autofocus: true, // Auto-focus the editor on load
+    autofocus: 'end', // The cursor starts at the bottom of the note, so dictation and typing append by default
     editorProps: {
       attributes: {
         class: 'tiptap focus:outline-none',
