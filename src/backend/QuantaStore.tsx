@@ -65,6 +65,23 @@ export async function warmQuantaRoom(userId: string, quantaId: string, timeoutMs
   }
 }
 
+/*
+ * A room's local copy can start loading as soon as the page's script has
+ * evaluated, before React has rendered down to the store. The store adopts
+ * the preloaded document and persistence when it mounts for the same room,
+ * so the IndexedDB read overlaps rendering instead of following it.
+ */
+type PreloadedRoom = { quanta: QuantaClass; persistence: IndexeddbPersistence; claimed: boolean };
+const preloadedRooms = new Map<string, PreloadedRoom>();
+export function preloadQuantaRoom(userId: string, quantaId: string): void {
+  if (typeof window === 'undefined') return;
+  const roomName = `${userId}/${quantaId}`;
+  if (preloadedRooms.has(roomName)) return;
+  performance.mark('kairos:persistence-start');
+  const quanta = new QuantaClass();
+  preloadedRooms.set(roomName, { quanta, persistence: new IndexeddbPersistence(roomName, quanta.information), claimed: false });
+}
+
 export const QuantaStoreContext = React.createContext<QuantaStoreContextType>(dummyQuantaStoreContext);
 
 export const QuantaStore = (props: { quantaId: QuantaId, userId: string, children: JSX.Element}) => {
@@ -73,10 +90,14 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // keeps using the old one (due to useEditor memoization), causing a disconnect
   // between what the user types and what gets persisted to IndexedDB
   const quantaRef = React.useRef<QuantaType | null>(null);
+  const preloadedRef = React.useRef<PreloadedRoom | null>(null);
   
-  // Create the quanta only once (or when quantaId changes)
+  // Create the quanta only once (or when quantaId changes); a preloaded room
+  // hands over its document. Render only looks the room up: React may discard
+  // this render, so the persistence is claimed in the effect below.
   if (quantaRef.current === null) {
-    quantaRef.current = new QuantaClass();
+    preloadedRef.current = preloadedRooms.get(`${props.userId}/${props.quantaId}`) ?? null;
+    quantaRef.current = preloadedRef.current?.quanta ?? new QuantaClass();
   }
   
   const quanta = quantaRef.current;
@@ -113,9 +134,13 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
     setLocalSynced(false);
     setCloudSynced(false);
     setGracePeriodOver(false);
-    const persistence = new IndexeddbPersistence(roomName, quanta.information);
+    const preloaded = preloadedRef.current && !preloadedRef.current.claimed && preloadedRef.current.quanta === quanta ? preloadedRef.current : null;
+    if (preloaded) { preloaded.claimed = true; performance.mark('kairos:persistence-adopted'); }
+    else performance.mark('kairos:persistence-start');
+    const persistence = preloaded?.persistence ?? new IndexeddbPersistence(roomName, quanta.information);
 
     const markSynced = () => {
+      performance.mark('kairos:persistence-synced');
       setLocalSynced(true);
       if (typeof window === 'undefined') return;
       (window as any).__KAIROS_IOS_LOCAL_PERSISTENCE_SYNCED__ = {
@@ -133,9 +158,10 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
       persistence.once('synced', markSynced);
     }
     
-    // Clean up persistence on unmount
+    // Clean up persistence on unmount; a claimed preload is spent with it.
     return () => {
       persistence.destroy();
+      if (preloaded) preloadedRooms.delete(roomName);
     };
   }, [roomName, quanta.information]);
 
@@ -146,7 +172,9 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
   // The token is minted once per page and cached (see collabToken.ts).
   React.useEffect(() => {
     let isCancelled = false;
+    performance.mark('kairos:token-request');
     getCollabToken(roomName).then((token) => {
+      performance.mark('kairos:token-received');
       if (!isCancelled && token) setJwt(token);
     });
     return () => {
@@ -164,7 +192,9 @@ export const QuantaStore = (props: { quantaId: QuantaId, userId: string, childre
         document: quanta.information,
       });
       
+      performance.mark('kairos:provider-created');
       newProvider.on('synced', () => {
+        performance.mark('kairos:provider-synced');
         setCloudSynced(true);
         window.dispatchEvent(new CustomEvent('kairos-cloud-synced', { detail: { roomName } }));
       });
