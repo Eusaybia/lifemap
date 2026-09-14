@@ -2,9 +2,11 @@
 
 import React, { useMemo } from 'react'
 import { EventLocationPreview } from './EventLocationPreview'
+import { eventAppearance } from '../content/eventAppearance'
 import { MentionTag } from '../content/MentionTag'
 
 export type DayScheduleBlock = {
+  eventKind?: 'temporalSpace'
   id: string
   title: string
   subtitle?: string
@@ -44,9 +46,9 @@ const SLOT_MINUTES = 60
 const DEFAULT_ROW_HEIGHT = 56
 const MIN_BLOCK_MINUTES = 5
 const ALLOWED_MINUTE_OFFSETS = [0, 5, 15, 30, 45, 55] as const
-const DEFAULT_BLOCK_BACKGROUND = '#1a73e8'
-const DEFAULT_BLOCK_BORDER = '#185abc'
-const DEFAULT_BLOCK_TEXT = '#fff'
+const DEFAULT_BLOCK_BACKGROUND = eventAppearance.background
+const DEFAULT_BLOCK_BORDER = eventAppearance.border
+const DEFAULT_BLOCK_TEXT = eventAppearance.text
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
 
@@ -179,6 +181,7 @@ function normalizeBlocks(value: unknown, dayStartMinute: number, dayEndMinute: n
       subtitle: typeof candidate.subtitle === 'string' ? candidate.subtitle : undefined,
       startMinuteOfDay,
       endMinuteOfDay,
+      eventKind: candidate.eventKind === 'temporalSpace' ? 'temporalSpace' : undefined,
       backgroundColor: typeof candidate.backgroundColor === 'string' ? candidate.backgroundColor : undefined,
       borderColor: typeof candidate.borderColor === 'string' ? candidate.borderColor : undefined,
       textColor: typeof candidate.textColor === 'string' ? candidate.textColor : undefined,
@@ -260,6 +263,7 @@ export function serializeBlocks(blocks: DayScheduleBlock[]) {
     location: block.location,
     startMinuteOfDay: block.startMinuteOfDay,
     endMinuteOfDay: block.endMinuteOfDay,
+    eventKind: block.eventKind,
     backgroundColor: block.backgroundColor,
     borderColor: block.borderColor,
     textColor: block.textColor,
@@ -562,8 +566,8 @@ export function DayScheduleGridSurface({
                     key={block.id}
                     style={{
                       minHeight: 22,
-                      borderRadius: 6,
-                      border: `1px solid ${block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
+                      borderRadius: eventAppearance.radius,
+                      border: `${'eventKind' in block && block.eventKind === 'temporalSpace' ? '2px dotted' : `${eventAppearance.borderWidth}px solid`} ${'eventKind' in block && block.eventKind === 'temporalSpace' ? eventAppearance.spaceBorder : block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
                       background: block.backgroundColor ?? DEFAULT_BLOCK_BACKGROUND,
                       color: block.textColor ?? DEFAULT_BLOCK_TEXT,
                       padding: '4px 8px',
@@ -644,7 +648,7 @@ export function DayScheduleGridSurface({
                     right: 12,
                     top: top + 2,
                     height: Math.max(1, height - 2),
-                    borderRadius: 6,
+                    borderRadius: eventAppearance.radius,
                     border: '1px solid rgba(26, 115, 232, 0.5)',
                     background: 'rgba(26, 115, 232, 0.14)',
                     pointerEvents: 'none',
@@ -685,11 +689,11 @@ export function DayScheduleGridSurface({
                     // next block; the shorter block paints on top so a five-minute event
                     // is never hidden under its neighbour.
                     zIndex: block.id === focusedBlockId ? 4000 : (block.location ? 2000 : 0) + Math.max(1, 1500 - (block.endMinuteOfDay - block.startMinuteOfDay)),
-                    borderRadius: 6,
-                    border: `1px solid ${block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
+                    borderRadius: eventAppearance.radius,
+                    border: `${'eventKind' in block && block.eventKind === 'temporalSpace' ? '2px dotted' : `${eventAppearance.borderWidth}px solid`} ${'eventKind' in block && block.eventKind === 'temporalSpace' ? eventAppearance.spaceBorder : block.borderColor ?? block.backgroundColor ?? DEFAULT_BLOCK_BORDER}`,
                     background: block.backgroundColor ?? DEFAULT_BLOCK_BACKGROUND,
                     color: block.textColor ?? DEFAULT_BLOCK_TEXT,
-                    boxShadow: '0 1px 2px rgba(60, 64, 67, 0.2)',
+                    boxShadow: eventAppearance.shadow,
                     // A 25-minute block is ~28px tall: keep the first line inside it.
                     padding: height < 40 ? '0 4px' : '4px 8px',
                     boxSizing: 'border-box',

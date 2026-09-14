@@ -660,7 +660,10 @@ body.call-mode-dimmed::before {
 
 .event-enclosure-host { position: relative; isolation: isolate; }
 .event-enclosures { position: absolute; top: 0; left: 0; pointer-events: none; z-index: -1; overflow: visible; }
-.event-enclosures path { fill: transparent; stroke: #999; stroke-width: 2; stroke-linejoin: round; }
+.event-enclosures path { stroke-linejoin: round; }
 .span-group[data-group-type="event"], .event-inline-atom { background: transparent; box-shadow: none; }
 
-.event-enclosures[data-filled="true"] path { fill: #a4bdfc; stroke: #7986cb; }
+
+
+.event-enclosure-host .span-group[data-group-type="event"] { color: var(--event-text); }
+.event-enclosure-host .span-group[data-event-kind="temporalSpace"] { color: inherit; }

@@ -717,6 +717,9 @@ const ActionSwitch = React.memo((props: {
             >
                 <span>◷ Mark as event</span>
             </Option>
+            <Option value="Mark as temporal space" onScrollSelect={() => {}} onClick={() => props.editor.chain().focus().setTemporalSpaceSpan().run()}>
+                <span>◷ Mark as temporal space</span>
+            </Option>
             <Option
                 value={"Make sub-note"}
                 onScrollSelect={() => {}}

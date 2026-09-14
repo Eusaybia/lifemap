@@ -1,0 +1,7 @@
+:root { --event-shadow: 0 3px 6px rgba(60, 64, 67, 0.3); }
+
+[data-inline-event-editor] .tiptap,
+[data-inline-event-editor] .tiptap span[style*="color"] { color: inherit !important; }
+@supports (color: contrast-color(white)) {
+  [data-testid="calendar-event-card"] { color: contrast-color(#f0f4f9) !important; }
+}

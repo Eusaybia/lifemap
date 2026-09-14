@@ -1793,6 +1793,12 @@ TimePointList.displayName = 'TimePointList'
 // TimePoint Node (for rendering inserted timepoints)
 // ============================================================================
 
+function timepointDisplayLabel(id: string | undefined, label: string = '') {
+  if (/\p{Extended_Pictographic}/u.test(label)) return label
+  const emoji = id?.startsWith('timepoint:time-') ? '🕐' : id?.startsWith('timepoint:date-') ? '📅' : ''
+  return emoji ? `${emoji} ${label}` : label
+}
+
 const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) => {
   const isCurrentFocus = node.attrs.id === CURRENT_FOCUS_ID
   const aura = readTimepointAuraFromAttrs(node.attrs as Record<string, unknown>)
@@ -1833,7 +1839,7 @@ const TimePointNodeView = ({ node, selected, editor, getPos }: NodeViewProps) =>
           }}
           title="Drag to move"
         />
-        {node.attrs.label || ''}
+        {timepointDisplayLabel(node.attrs.id, node.attrs.label || '')}
       </MentionTag>
     </NodeViewWrapper>
   )
@@ -1877,7 +1883,7 @@ export const TimePointNode = Node.create({
         ...(isCurrentFocus ? { 'data-timepoint-kind': 'current-focus' } : {}),
       }),
       ['span', { class: 'location-grip', contenteditable: 'false', 'data-drag-handle': '' }],
-      node.attrs.label || '',
+      timepointDisplayLabel(node.attrs.id, node.attrs.label || ''),
     ]
   },
 

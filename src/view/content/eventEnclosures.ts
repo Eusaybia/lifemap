@@ -1,14 +1,17 @@
+import { eventAppearance } from './eventAppearance';
 import type { EditorView } from '@tiptap/pm/view';
 
 /** One filled outline per event, measured from its inline fragments rather than a nested editor. */
 export function eventEnclosures(view: EditorView) {
   const host = view.dom.parentElement;
-  if (!host) return {};
+  if (!host || host.hasAttribute('data-inline-event-editor')) return {};
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.classList.add('event-enclosures');
-  svg.setAttribute('data-filled', String(localStorage.getItem('inline-events-filled') === 'true'));
+  svg.setAttribute('data-filled', String(localStorage.getItem('inline-events-filled') !== 'false'));
   svg.setAttribute('aria-hidden', 'true');
   host.classList.add('event-enclosure-host');
+  host.style.setProperty('--event-text', svg.getAttribute('data-filled') === 'true' ? eventAppearance.text : eventAppearance.border);
+  host.style.setProperty('--event-border', eventAppearance.border);
   host.appendChild(svg);
   let frame = 0;
   const draw = () => {
@@ -56,7 +59,7 @@ export function eventEnclosures(view: EditorView) {
         const next = local[(index + 1) % local.length];
         const approach = (other: number[]) => {
           const length = Math.hypot(other[0] - point[0], other[1] - point[1]);
-          const scale = length ? Math.min(5, length / 2) / length : 0;
+          const scale = length ? Math.min(eventAppearance.radius, length / 2) / length : 0;
           return [point[0] + (other[0] - point[0]) * scale, point[1] + (other[1] - point[1]) * scale];
         };
         return { point, enter: approach(previous), exit: approach(next) };
@@ -65,6 +68,18 @@ export function eventEnclosures(view: EditorView) {
         `${index ? 'L' : 'M'}${corner.enter.join(',')} Q${corner.point.join(',')} ${corner.exit.join(',')}`
       ).join(' ') + ' Z');
       path.setAttribute('data-event-outline', id);
+      path.style.fill = svg.getAttribute('data-filled') === 'true' ? eventAppearance.background : 'transparent';
+      path.style.stroke = eventAppearance.border;
+      path.style.strokeWidth = String(eventAppearance.borderWidth);
+      path.style.filter = `drop-shadow(${eventAppearance.shadow})`;
+      const isSpace = Array.from(view.dom.querySelectorAll<HTMLElement>('[data-event-kind="temporalSpace"]')).some(element => element.dataset.spanGroupId === id);
+      if (isSpace) {
+        path.style.fill = '#4285f433';
+        path.style.stroke = eventAppearance.spaceBorder;
+        path.style.strokeWidth = '2';
+        path.style.strokeDasharray = '0 6';
+        path.style.strokeLinecap = 'round';
+      }
       svg.appendChild(path);
     }
   };

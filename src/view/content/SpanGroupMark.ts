@@ -33,6 +33,7 @@ declare module '@tiptap/core' {
        */
       setSpanGroup: () => ReturnType;
       setEventSpan: () => ReturnType;
+      setTemporalSpaceSpan: () => ReturnType;
       /**
        * Remove a span group mark from the current selection
        */
@@ -63,6 +64,11 @@ export const SpanGroupMark = Mark.create<SpanGroupOptions>({
         renderHTML: attributes => attributes.groupType === 'event'
           ? { 'data-group-type': 'event', title: 'Event' }
           : {},
+      },
+      eventKind: {
+        default: null,
+        parseHTML: element => element.getAttribute("data-event-kind"),
+        renderHTML: attributes => attributes.eventKind === "temporalSpace" ? { "data-event-kind": "temporalSpace" } : {},
       },
       groupId: {
         default: null,
@@ -148,7 +154,11 @@ export const SpanGroupMark = Mark.create<SpanGroupOptions>({
               tag.setAttribute('data-event-group-id', id);
               tag.setAttribute('aria-label', 'Event type');
               tag.contentEditable = 'false';
-              tag.textContent = '◷ Event';
+              let isSpace = false;
+              state.doc.descendants(node => {
+                if (node.marks.some(mark => mark.attrs.groupId === id && mark.attrs.eventKind === 'temporalSpace')) isSpace = true;
+              });
+              tag.textContent = isSpace ? '◷ Temporal space' : '◷ Event';
               return tag;
             }, { side: -1, key: `event-type:${id}` }));
           }
@@ -167,6 +177,10 @@ export const SpanGroupMark = Mark.create<SpanGroupOptions>({
         localStorage.setItem('inline-events-filled', String(filled));
         editor.view.dom.parentElement?.querySelector('.event-enclosures')?.setAttribute('data-filled', String(filled));
         return true;
+      },
+      setTemporalSpaceSpan: () => ({ state, commands }) => {
+        if (state.selection.empty) return false;
+        return commands.setMark(this.name, { groupId: generateShortId(), groupType: 'event', eventKind: 'temporalSpace' });
       },
       setEventSpan: () => ({ state, commands }) => {
         if (state.selection.empty) return false;
