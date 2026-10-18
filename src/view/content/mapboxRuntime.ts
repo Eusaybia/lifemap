@@ -23,6 +23,17 @@ export const loadMapboxGl = (): Promise<MapboxGl> => {
     if (Number.isFinite(majorVersion) && majorVersion > 0 && majorVersion < 3) {
       ;(gl as MapboxGl & { workerUrl: string }).workerUrl = MAPBOX_GL_CSP_WORKER_URL
     }
+    /*
+     * mapbox sizes its canvas from the container's on-screen box, undone by the first CSS scale it finds above it. A map
+     * on a 3D card face is drawn through a projection that is no CSS scale, so that box is the projected one: the canvas
+     * came out stretched and every marker off its place. The laid-out size is what it means in every case.
+     */
+    const map = gl.Map.prototype as unknown as { _container?: HTMLElement; _containerWidth: number; _containerHeight: number; _updateContainerDimensions(): void }
+    map._updateContainerDimensions = function () {
+      if (!this._container) return
+      this._containerWidth = this._container.offsetWidth || 400
+      this._containerHeight = this._container.offsetHeight || 300
+    }
     return gl
   })
   return loading

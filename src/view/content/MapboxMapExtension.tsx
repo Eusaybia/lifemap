@@ -1082,12 +1082,15 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
     const observer = new ResizeObserver(resizeMap)
     observer.observe(mapContainer.current)
     window.addEventListener('resize', resizeMap)
+    // The map is made after mount, so this runs again once it has loaded; with no dependency it bailed out before the map existed and
+    // never watched the container, which left the canvas drawn for its first size and stretched, with the pins off their places.
+    resizeMap()
 
     return () => {
       observer.disconnect()
       window.removeEventListener('resize', resizeMap)
     }
-  }, [])
+  }, [mapLoaded])
 
   // Sync markers with map whenever markers array or mapLoaded changes
   useEffect(() => {
