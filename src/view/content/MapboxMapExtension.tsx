@@ -953,13 +953,6 @@ const MapboxMapNodeView: React.FC<NodeViewProps> = (props) => {
           attributionControl: false,
         })
         map.current = mapInstance
-        // The view on the element, as Google Maps carries it in its address, so the 3D board can stand the relief under it.
-        const reportView = () => {
-          const at = mapInstance?.getCenter()
-          if (at && mapContainer.current) mapContainer.current.dataset.mapView = JSON.stringify([at.lng, at.lat, mapInstance!.getZoom()])
-        }
-        mapInstance.on('move', reportView)
-        reportView()
       } catch (error) {
         console.error('[MapboxMap] Failed to initialize map:', error)
         return
